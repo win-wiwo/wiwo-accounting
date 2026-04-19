@@ -1,0 +1,62 @@
+services:
+  mongodb:
+    image: mongo:7
+    container_name: prams-mongodb
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo-data:/data/db
+    command: ["mongod", "--replSet", "rs0"]
+    healthcheck:
+      test: |
+        mongosh --eval "
+          try {
+            rs.status().ok
+          } catch(e) {
+            rs.initiate({_id: 'rs0', members: [{_id: 0, host: 'mongodb:27017'}]});
+            1
+          }
+        " --quiet
+      interval: 5s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: development
+    container_name: prams-api
+    ports:
+      - "3000:3000"
+    env_file: .env
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/prams?replicaSet=rs0
+    volumes:
+      - ./apps/api/src:/app/apps/api/src
+      - ./packages/shared/src:/app/packages/shared/src
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      target: development
+    container_name: prams-web
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:3000/api
+    volumes:
+      - ./apps/web/src:/app/apps/web/src
+      - ./packages/shared/src:/app/packages/shared/src
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  mongo-data:

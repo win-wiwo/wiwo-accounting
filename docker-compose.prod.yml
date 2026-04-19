@@ -1,0 +1,88 @@
+services:
+  mongodb:
+    image: mongo:7
+    container_name: prams-mongodb
+    volumes:
+      - mongo-data:/data/db
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    healthcheck:
+      test: |
+        mongosh --eval "
+          try {
+            rs.status().ok
+          } catch(e) {
+            rs.initiate({_id: 'rs0', members: [{_id: 0, host: 'localhost:27017'}]});
+            1
+          }
+        " --quiet
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
+    restart: always
+    networks:
+      - internal
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: production
+    container_name: prams-api
+    env_file: .env.production
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/prams?replicaSet=rs0
+      - NODE_ENV=production
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: always
+    networks:
+      - internal
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      target: production
+    container_name: prams-web
+    ports:
+      - "80:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: always
+    networks:
+      - internal
+
+  mongo-backup:
+    image: mongo:7
+    container_name: prams-backup
+    volumes:
+      - mongo-backups:/backups
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    entrypoint: /bin/sh
+    command: >
+      -c 'while true; do
+        mongodump --uri="mongodb://mongodb:27017/prams?replicaSet=rs0" --out=/backups/$$(date +%Y%m%d_%H%M%S) --gzip;
+        find /backups -maxdepth 1 -type d -mtime +30 -exec rm -rf {} +;
+        sleep 86400;
+      done'
+    restart: always
+    networks:
+      - internal
+
+volumes:
+  mongo-data:
+  mongo-backups:
+
+networks:
+  internal:
+    driver: bridge
