@@ -18,6 +18,7 @@ import {
   Paperclip,
   Upload,
   Download,
+  Eye,
   Loader2,
   FileText,
 } from 'lucide-react';
@@ -130,14 +131,14 @@ export function PrDetailPage() {
 
   const pr = data?.data;
   const { data: approvalHistoryData } = useApprovalHistory(id!);
-  const approvalHistory = (approvalHistoryData as unknown as Array<{
+  const approvalHistory = ((approvalHistoryData as unknown as { data: Array<{
     _id: string;
     approvalLevel: number;
     action: string;
     comments: string;
     actionDate: string;
     approverId: { firstName: string; lastName: string; role: string };
-  }>) ?? [];
+  }> })?.data) ?? [];
 
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
@@ -152,6 +153,14 @@ export function PrDetailPage() {
     action: 'approved' | 'rejected' | 'returned';
   }>({ open: false, action: 'approved' });
   const [approvalComments, setApprovalComments] = useState('');
+
+  const [previewDialog, setPreviewDialog] = useState<{
+    open: boolean;
+    url: string | null;
+    mimeType: string;
+    name: string;
+    loading: boolean;
+  }>({ open: false, url: null, mimeType: '', name: '', loading: false });
 
   const handleConfirm = async () => {
     if (!pr) return;
@@ -210,6 +219,26 @@ export function PrDetailPage() {
     } catch {
       toast({ title: 'Failed to remove', variant: 'error' });
     }
+  };
+
+  const handlePreview = async (attachmentId: string, mimeType: string, name: string) => {
+    setPreviewDialog({ open: true, url: null, mimeType, name, loading: true });
+    try {
+      const response = await apiClient.get(
+        `/purchase-requests/${id}/attachments/${attachmentId}/download`,
+        { responseType: 'blob' },
+      );
+      const blobUrl = URL.createObjectURL(new Blob([response.data], { type: mimeType }));
+      setPreviewDialog({ open: true, url: blobUrl, mimeType, name, loading: false });
+    } catch {
+      setPreviewDialog({ open: false, url: null, mimeType: '', name: '', loading: false });
+      toast({ title: 'Failed to load preview', variant: 'error' });
+    }
+  };
+
+  const closePreview = () => {
+    if (previewDialog.url) URL.revokeObjectURL(previewDialog.url);
+    setPreviewDialog({ open: false, url: null, mimeType: '', name: '', loading: false });
   };
 
   const handleApprovalAction = async () => {
@@ -501,6 +530,16 @@ export function PrDetailPage() {
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7"
+                          title="Preview"
+                          onClick={() => handlePreview(att._id, att.mimeType, att.originalName)}
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          title="Download"
                           onClick={() =>
                             purchaseRequestsApi.downloadAttachment(pr._id, att._id, att.originalName)
                           }
@@ -704,6 +743,43 @@ export function PrDetailPage() {
               <Ban className="h-4 w-4" /> Cancel PR
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Attachment Preview Dialog */}
+      <Dialog open={previewDialog.open} onOpenChange={(open) => { if (!open) closePreview(); }}>
+        <DialogContent
+          className="max-w-4xl w-full h-[85vh] flex flex-col p-0 gap-0"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
+          <DialogHeader className="flex flex-row items-center gap-2 px-4 py-3 border-b shrink-0">
+            <Paperclip className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <DialogTitle className="truncate text-sm font-medium">{previewDialog.name}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 bg-muted/30">
+            {previewDialog.loading && (
+              <div className="flex items-center justify-center h-full">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            )}
+            {!previewDialog.loading && previewDialog.url && (
+              previewDialog.mimeType.startsWith('image/') ? (
+                <div className="flex items-center justify-center h-full p-4 overflow-auto">
+                  <img
+                    src={previewDialog.url}
+                    alt={previewDialog.name}
+                    className="max-w-full max-h-full object-contain rounded"
+                  />
+                </div>
+              ) : (
+                <iframe
+                  src={previewDialog.url}
+                  title={previewDialog.name}
+                  className="w-full h-full border-0"
+                />
+              )
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 

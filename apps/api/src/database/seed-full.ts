@@ -1,10 +1,15 @@
 import mongoose, { Types } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 import * as dotenv from 'dotenv';
+import * as fs from 'fs';
+import { join } from 'path';
+import PDFDocument = require('pdfkit');
+import { v4 as uuidv4 } from 'uuid';
 
 dotenv.config();
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/prams';
+const UPLOADS_DIR = join(process.cwd(), 'uploads', 'attachments');
 
 // ─── Schemas ──────────────────────────────────────────────
 
@@ -171,12 +176,251 @@ function totalOf(items: ReturnType<typeof makeItems>) {
   return items.reduce((sum, i) => sum + i.totalPrice, 0);
 }
 
+// ─── Attachment PDF Generation ─────────────────────────────
+
+interface SupplierQuoteConfig {
+  supplierName: string;
+  address: string;
+  contact: string;
+  tin: string;
+  multiplier: number;
+  remarks: string;
+}
+
+function ensureUploadsDir() {
+  if (!fs.existsSync(UPLOADS_DIR)) {
+    fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+  }
+}
+
+async function generateQuotationPdf(opts: {
+  filename: string;
+  supplierName: string;
+  supplierAddress: string;
+  supplierContact: string;
+  supplierTin: string;
+  prTitle: string;
+  projectName: string | null;
+  items: Array<{ description: string; quantity: number; unit: string; estimatedPrice: number; totalPrice: number }>;
+  totalAmount: number;
+  date: Date;
+}): Promise<{ storagePath: string; originalName: string; mimeType: string; size: number }> {
+  return new Promise((resolve, reject) => {
+    const filepath = join(UPLOADS_DIR, opts.filename);
+    const doc = new (PDFDocument as any)({ margin: 50, size: 'A4' });
+    const stream = fs.createWriteStream(filepath);
+    doc.pipe(stream);
+
+    const fmt = (n: number) =>
+      'PHP ' + new Intl.NumberFormat('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+    const dateStr = opts.date.toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' });
+    const quotationRef = `QTN-${opts.date.getFullYear()}-${String(Math.floor(Math.random() * 9000) + 1000)}`;
+
+    // ── Supplier Header ──
+    doc.fontSize(18).font('Helvetica-Bold').text(opts.supplierName, { align: 'left' });
+    doc.fontSize(9).font('Helvetica').fillColor('#555555').text(opts.supplierAddress);
+    doc.text(`Contact: ${opts.supplierContact}  |  TIN: ${opts.supplierTin}`);
+    doc.fillColor('#000000').moveDown(0.8);
+
+    // Divider
+    doc.moveTo(50, doc.y).lineTo(545, doc.y).lineWidth(1.5).stroke('#333333');
+    doc.moveDown(0.6);
+
+    // ── Document Title ──
+    doc.fontSize(14).font('Helvetica-Bold').text('PRICE QUOTATION', { align: 'center' });
+    doc.moveDown(0.4);
+
+    // Meta block
+    doc.fontSize(9).font('Helvetica');
+    doc.text(`Quotation No.: ${quotationRef}`, { align: 'right' });
+    doc.text(`Date: ${dateStr}`, { align: 'right' });
+    if (opts.projectName) {
+      doc.text(`Project: ${opts.projectName}`, { align: 'right' });
+    }
+    doc.moveDown(0.5);
+    doc.font('Helvetica-Bold').text('Attention:');
+    doc.font('Helvetica').text('Procurement Department');
+    doc.text(`Re: ${opts.prTitle}`);
+    doc.moveDown(1);
+
+    // ── Items Table Header ──
+    doc.moveTo(50, doc.y).lineTo(545, doc.y).lineWidth(0.5).stroke('#aaaaaa');
+    const tableTop = doc.y + 4;
+    doc.fontSize(8).font('Helvetica-Bold').fillColor('#ffffff');
+    doc.rect(50, tableTop - 4, 495, 16).fill('#333333');
+    doc.text('ITEM DESCRIPTION', 54, tableTop, { width: 230 });
+    doc.text('QTY', 284, tableTop, { width: 40, align: 'center' });
+    doc.text('UNIT', 324, tableTop, { width: 50 });
+    doc.text('UNIT PRICE', 374, tableTop, { width: 80, align: 'right' });
+    doc.text('AMOUNT', 454, tableTop, { width: 87, align: 'right' });
+    doc.fillColor('#000000').moveDown(0.2);
+    doc.y = tableTop + 16;
+
+    // ── Items ──
+    doc.font('Helvetica').fontSize(8);
+    let rowBg = false;
+    for (const item of opts.items) {
+      const rowY = doc.y;
+      if (rowBg) {
+        doc.rect(50, rowY - 2, 495, 18).fill('#f5f5f5');
+        doc.fillColor('#000000');
+      }
+      doc.text(item.description, 54, rowY, { width: 228 });
+      doc.text(item.quantity.toString(), 284, rowY, { width: 40, align: 'center' });
+      doc.text(item.unit, 324, rowY, { width: 50 });
+      doc.text(fmt(item.estimatedPrice).replace('PHP ', ''), 374, rowY, { width: 80, align: 'right' });
+      doc.text(fmt(item.totalPrice).replace('PHP ', ''), 454, rowY, { width: 87, align: 'right' });
+      doc.moveDown(0.9);
+      rowBg = !rowBg;
+    }
+
+    // ── Total ──
+    doc.moveDown(0.3);
+    doc.moveTo(50, doc.y).lineTo(545, doc.y).lineWidth(0.5).stroke('#aaaaaa');
+    doc.moveDown(0.4);
+    doc.font('Helvetica-Bold').fontSize(10);
+    const totalY = doc.y;
+    doc.text('TOTAL QUOTED AMOUNT:', 300, totalY, { width: 154 });
+    doc.text(fmt(opts.totalAmount), 454, totalY, { width: 87, align: 'right' });
+    doc.moveDown(0.3);
+    doc.font('Helvetica').fontSize(8).fillColor('#555555');
+    doc.text('(VAT-inclusive)', 454, doc.y, { width: 87, align: 'right' });
+
+    // ── Terms ──
+    doc.fillColor('#000000').moveDown(1.5);
+    doc.font('Helvetica-Bold').fontSize(9).text('Terms and Conditions:');
+    doc.font('Helvetica').fontSize(8).fillColor('#444444');
+    doc.text('1. This quotation is valid for thirty (30) days from date of issuance.');
+    doc.text('2. All prices are VAT-inclusive unless otherwise stated.');
+    doc.text('3. Delivery lead time: 2-4 weeks upon receipt of Purchase Order.');
+    doc.text('4. Payment Terms: Net 30 days upon delivery and acceptance.');
+    doc.text('5. Warranty: 1 year parts and labor unless otherwise specified.');
+
+    // ── Signature ──
+    doc.fillColor('#000000').moveDown(2);
+    doc.font('Helvetica').fontSize(9);
+    doc.text('Prepared by:', 50, doc.y);
+    doc.moveDown(2.5);
+    doc.moveTo(50, doc.y).lineTo(220, doc.y).stroke('#333333');
+    doc.moveDown(0.2);
+    doc.text('Authorized Representative', 50, doc.y);
+    doc.text(opts.supplierName, 50, doc.y);
+
+    doc.end();
+
+    stream.on('finish', () => {
+      const stats = fs.statSync(filepath);
+      resolve({
+        storagePath: `/app/uploads/attachments/${opts.filename}`,
+        originalName: opts.filename,
+        mimeType: 'application/pdf',
+        size: stats.size,
+      });
+    });
+    stream.on('error', reject);
+  });
+}
+
+// Supplier pools by PR category
+const CAMERA_SUPPLIERS: SupplierQuoteConfig[] = [
+  { supplierName: 'TechVision Philippines Inc.', address: '12F Cybergate Tower, EDSA, Mandaluyong City', contact: '+63 917 123 4567 | sales@techvision.ph', tin: '123-456-789-000', multiplier: 1.00, remarks: 'Authorized Hikvision distributor, includes 2-year warranty' },
+  { supplierName: 'HiSec Distribution Corp.', address: '3F Avida Tower, Alabang, Muntinlupa City', contact: '+63 918 234 5678 | quotes@hisec.ph', tin: '234-567-890-000', multiplier: 1.06, remarks: 'Dahua Technology partner, faster delivery' },
+  { supplierName: 'CamWorld Philippines', address: '2F SM Cyberzone, SM Mall of Asia, Pasay City', contact: '+63 919 345 6789 | info@camworld.ph', tin: '345-678-901-000', multiplier: 1.12, remarks: 'Mixed brands available, longer lead time' },
+];
+
+const CABLE_SUPPLIERS: SupplierQuoteConfig[] = [
+  { supplierName: 'Cabletech Solutions Corp.', address: '789 Shaw Blvd, Mandaluyong City', contact: '+63 920 456 7890 | orders@cabletech.ph', tin: '456-789-012-000', multiplier: 1.00, remarks: 'ISO-certified cables, bulk discount applied' },
+  { supplierName: 'NetInfra Philippines', address: '45 Ortigas Ave, Pasig City', contact: '+63 921 567 8901 | sales@netinfra.ph', tin: '567-890-123-000', multiplier: 1.04, remarks: 'Includes free delivery for orders above PHP 50,000' },
+  { supplierName: 'WireMax Supply Inc.', address: '100 Quezon Ave, Quezon City', contact: '+63 922 678 9012 | wiring@wiremax.ph', tin: '678-901-234-000', multiplier: 1.09, remarks: 'Smaller company, limited stock for large orders' },
+];
+
+const SERVER_SUPPLIERS: SupplierQuoteConfig[] = [
+  { supplierName: 'ServerPro Technologies Inc.', address: '8F Rockwell Business Center, Makati City', contact: '+63 923 789 0123 | enterprise@serverpro.ph', tin: '789-012-345-000', multiplier: 1.00, remarks: 'HPE and Dell authorized partner, 3-year support contract' },
+  { supplierName: 'DataCenter Philippines Corp.', address: '22F Ayala Ave, Makati City', contact: '+63 924 890 1234 | dc@datacenter.ph', tin: '890-123-456-000', multiplier: 1.05, remarks: 'Lenovo partner, includes rack installation service' },
+  { supplierName: 'TechCore Systems PH', address: '5F Bonifacio High Street, BGC, Taguig', contact: '+63 925 901 2345 | quotes@techcore.ph', tin: '901-234-567-000', multiplier: 1.10, remarks: 'Higher quote but offers 24/7 on-site support' },
+];
+
+const AI_SUPPLIERS: SupplierQuoteConfig[] = [
+  { supplierName: 'AIVision Systems Philippines', address: '30F Cyber Sigma, Mckinley Hill, Taguig', contact: '+63 926 012 3456 | solutions@aivision.ph', tin: '012-345-678-000', multiplier: 1.00, remarks: 'Exclusive AI analytics partner, includes 6-month optimization support' },
+  { supplierName: 'SmartAnalytics PH Inc.', address: '15F GT Tower, Ayala Ave, Makati City', contact: '+63 927 123 4560 | info@smartanalytics.ph', tin: '112-345-678-000', multiplier: 1.08, remarks: 'Alternative AI platform, more modules available' },
+  { supplierName: 'VisionAI Corporation', address: '7F Estancia Mall Tower, Pasig City', contact: '+63 928 234 5671 | enterprise@visionai.ph', tin: '223-456-789-000', multiplier: 1.14, remarks: 'Newer company but has strong local support team' },
+];
+
+const GENERAL_SUPPLIERS: SupplierQuoteConfig[] = [
+  { supplierName: 'Office Depot Manila Corp.', address: '456 Makati Ave, Makati City', contact: '+63 929 345 6782 | orders@officedepot.ph', tin: '334-567-890-000', multiplier: 1.00, remarks: 'Bulk pricing available, same-day delivery' },
+  { supplierName: 'NBS Philippines', address: '789 Taft Ave, Manila', contact: '+63 930 456 7893 | corporate@nbs.ph', tin: '445-678-901-000', multiplier: 1.05, remarks: 'Wide selection, loyalty program member' },
+  { supplierName: 'Shopwise Business Supplies', address: '100 EDSA Cubao, Quezon City', contact: '+63 931 567 8904 | biz@shopwise.ph', tin: '556-789-012-000', multiplier: 1.08, remarks: 'Good for mixed supplies, higher per-unit cost' },
+];
+
+const PPE_SUPPLIERS: SupplierQuoteConfig[] = [
+  { supplierName: 'SafetyGear Philippines Corp.', address: '55 Commonwealth Ave, Quezon City', contact: '+63 932 678 9015 | safety@safetygear.ph', tin: '667-890-123-000', multiplier: 1.00, remarks: 'DOLE-certified PPE supplier, bulk pricing' },
+  { supplierName: 'WorkSafe Solutions Inc.', address: '77 Mindanao Ave, Quezon City', contact: '+63 933 789 0126 | orders@worksafe.ph', tin: '778-901-234-000', multiplier: 1.07, remarks: 'ISO-certified products, includes safety training' },
+  { supplierName: 'ProtectPro Philippines', address: '88 Kamuning Rd, Quezon City', contact: '+63 934 890 1237 | protect@protectpro.ph', tin: '889-012-345-000', multiplier: 1.13, remarks: 'Premium brands only, higher price point' },
+];
+
+const SERVICE_SUPPLIERS: SupplierQuoteConfig[] = [
+  { supplierName: 'TechInstall Services Corp.', address: '20 Boni Ave, Mandaluyong City', contact: '+63 935 901 2348 | projects@techinstall.ph', tin: '990-123-456-000', multiplier: 1.00, remarks: 'CCTV-specialized contractor, 10 years experience' },
+  { supplierName: 'NetworkPlus Philippines', address: '33 Scout Area, Quezon City', contact: '+63 936 012 3459 | service@networkplus.ph', tin: '101-234-567-000', multiplier: 1.05, remarks: 'Certified network engineers, flexible scheduling' },
+  { supplierName: 'ProInstall Solutions', address: '44 Ortigas Extension, Pasig City', contact: '+63 937 123 4560 | info@proinstall.ph', tin: '202-345-678-000', multiplier: 1.11, remarks: 'Available for urgent mobilization, higher rate' },
+];
+
+function pickSuppliers(prTitle: string): SupplierQuoteConfig[] {
+  const t = prTitle.toLowerCase();
+  if (t.includes('ai') || t.includes('analytic') || t.includes('smart') || t.includes('intelligent')) return AI_SUPPLIERS;
+  if (t.includes('server') || t.includes('nvr') || t.includes('storage') || t.includes('gpu') || t.includes('computing')) return SERVER_SUPPLIERS;
+  if (t.includes('cable') || t.includes('fiber') || t.includes('conduit') || t.includes('wiring') || t.includes('cabling')) return CABLE_SUPPLIERS;
+  if (t.includes('ppe') || t.includes('safety') || t.includes('protection') || t.includes('gear')) return PPE_SUPPLIERS;
+  if (t.includes('survey') || t.includes('install') || t.includes('commissioning') || t.includes('maintenance')) return SERVICE_SUPPLIERS;
+  if (t.includes('camera') || t.includes('cctv') || t.includes('dome') || t.includes('ptz') || t.includes('hikvision') || t.includes('dahua')) return CAMERA_SUPPLIERS;
+  return GENERAL_SUPPLIERS;
+}
+
+async function attachQuotations(
+  prDoc: any,
+  uploaderId: Types.ObjectId,
+): Promise<void> {
+  const suppliers = pickSuppliers(prDoc.title);
+  const attachments = [];
+
+  for (const sup of suppliers) {
+    const filename = `${uuidv4()}.pdf`;
+    const quotedTotal = Math.round(prDoc.totalAmount * sup.multiplier);
+    const result = await generateQuotationPdf({
+      filename,
+      supplierName: sup.supplierName,
+      supplierAddress: sup.address,
+      supplierContact: sup.contact,
+      supplierTin: sup.tin,
+      prTitle: prDoc.title,
+      projectName: prDoc.projectName || null,
+      items: prDoc.items.map((item: any) => ({
+        ...item,
+        estimatedPrice: Math.round(item.estimatedPrice * sup.multiplier),
+        totalPrice: Math.round(item.totalPrice * sup.multiplier),
+      })),
+      totalAmount: quotedTotal,
+      date: prDoc.createdAt instanceof Date ? prDoc.createdAt : new Date(prDoc.createdAt),
+    });
+    attachments.push({
+      _id: new Types.ObjectId(),
+      ...result,
+      uploadedBy: uploaderId,
+      uploadedAt: prDoc.createdAt,
+    });
+  }
+
+  prDoc.attachments = attachments;
+}
+
 // ─── Main Seed ────────────────────────────────────────────
 
 async function seed() {
   try {
     await mongoose.connect(MONGODB_URI);
     console.log('Connected to MongoDB');
+
+    ensureUploadsDir();
+    console.log(`Upload directory: ${UPLOADS_DIR}`);
 
     const User = mongoose.model('User', userSchema);
     const Department = mongoose.model('Department', departmentSchema);
@@ -200,116 +444,116 @@ async function seed() {
       PurchaseOrder.deleteMany({}),
     ]);
 
-    // ─── Password ───
+    // Clear old uploaded files
+    if (fs.existsSync(UPLOADS_DIR)) {
+      for (const f of fs.readdirSync(UPLOADS_DIR)) {
+        fs.unlinkSync(join(UPLOADS_DIR, f));
+      }
+    }
+
     const password = await bcrypt.hash('Password@123', 12);
     console.log('All user passwords: Password@123');
 
     // ─── Departments ───
     console.log('\nCreating departments...');
     const departments = await Department.insertMany([
-      { name: 'Engineering', code: 'ENG', description: 'Software development and infrastructure' },
-      { name: 'Marketing', code: 'MKT', description: 'Marketing campaigns and brand management' },
-      { name: 'Human Resources', code: 'HR', description: 'People operations and recruitment' },
-      { name: 'Finance', code: 'FIN', description: 'Financial planning and accounting' },
-      { name: 'Operations', code: 'OPS', description: 'Facility management and logistics' },
-      { name: 'Sales', code: 'SAL', description: 'Business development and client relations' },
+      { name: 'Engineering & Technical', code: 'ENG', description: 'CCTV design, installation, and technical operations' },
+      { name: 'IT & Systems', code: 'ITS', description: 'Network infrastructure, servers, and software management' },
+      { name: 'Operations', code: 'OPS', description: 'Project management, logistics, and field coordination' },
+      { name: 'Finance & Accounting', code: 'FIN', description: 'Financial planning, budgeting, and accounting' },
+      { name: 'Procurement', code: 'PRO', description: 'Purchasing, supplier management, and canvassing' },
+      { name: 'Administration', code: 'ADM', description: 'HR, compliance, and office administration' },
     ]);
-    const [eng, mkt, hr, fin, ops, sal] = departments;
+    const [eng, its, ops, fin, pro, adm] = departments;
     console.log(`  Created ${departments.length} departments`);
 
     // ─── Users ───
     console.log('\nCreating users...');
     const users = await User.insertMany([
       // Admin
-      { employeeId: 'EMP-0001', email: 'admin@prams.com', passwordHash: password, firstName: 'System', lastName: 'Admin', role: 'admin', isActive: true },
+      { employeeId: 'EMP-0001', email: 'admin@wiwo.com', passwordHash: password, firstName: 'System', lastName: 'Admin', role: 'admin', isActive: true },
 
       // C-level
-      { employeeId: 'EMP-0002', email: 'ceo@prams.com', passwordHash: password, firstName: 'Roberto', lastName: 'Santos', role: 'ceo', isActive: true },
-      { employeeId: 'EMP-0003', email: 'coo@prams.com', passwordHash: password, firstName: 'Maria', lastName: 'Reyes', role: 'coo', isActive: true },
+      { employeeId: 'EMP-0002', email: 'ceo@wiwo.com', passwordHash: password, firstName: 'Roberto', lastName: 'Santos', role: 'ceo', isActive: true },
+      { employeeId: 'EMP-0003', email: 'coo@wiwo.com', passwordHash: password, firstName: 'Maria', lastName: 'Reyes', role: 'coo', isActive: true },
 
       // Department Heads
-      { employeeId: 'EMP-0010', email: 'eng.head@prams.com', passwordHash: password, firstName: 'Carlos', lastName: 'Garcia', role: 'dept_head', departmentId: eng._id, isActive: true },
-      { employeeId: 'EMP-0011', email: 'mkt.head@prams.com', passwordHash: password, firstName: 'Ana', lastName: 'Cruz', role: 'dept_head', departmentId: mkt._id, isActive: true },
-      { employeeId: 'EMP-0012', email: 'hr.head@prams.com', passwordHash: password, firstName: 'Patricia', lastName: 'Lim', role: 'dept_head', departmentId: hr._id, isActive: true },
-      { employeeId: 'EMP-0013', email: 'fin.head@prams.com', passwordHash: password, firstName: 'Jose', lastName: 'Tan', role: 'dept_head', departmentId: fin._id, isActive: true },
-      { employeeId: 'EMP-0014', email: 'ops.head@prams.com', passwordHash: password, firstName: 'Ricardo', lastName: 'Mendoza', role: 'dept_head', departmentId: ops._id, isActive: true },
-      { employeeId: 'EMP-0015', email: 'sal.head@prams.com', passwordHash: password, firstName: 'Lucia', lastName: 'Flores', role: 'dept_head', departmentId: sal._id, isActive: true },
+      { employeeId: 'EMP-0010', email: 'eng.head@wiwo.com', passwordHash: password, firstName: 'Carlos', lastName: 'Garcia', role: 'dept_head', departmentId: eng._id, isActive: true },
+      { employeeId: 'EMP-0011', email: 'its.head@wiwo.com', passwordHash: password, firstName: 'Jerome', lastName: 'Aquino', role: 'dept_head', departmentId: its._id, isActive: true },
+      { employeeId: 'EMP-0012', email: 'ops.head@wiwo.com', passwordHash: password, firstName: 'Ricardo', lastName: 'Mendoza', role: 'dept_head', departmentId: ops._id, isActive: true },
+      { employeeId: 'EMP-0013', email: 'fin.head@wiwo.com', passwordHash: password, firstName: 'Jose', lastName: 'Tan', role: 'dept_head', departmentId: fin._id, isActive: true },
+      { employeeId: 'EMP-0014', email: 'pro.head@wiwo.com', passwordHash: password, firstName: 'Lucia', lastName: 'Flores', role: 'dept_head', departmentId: pro._id, isActive: true },
+      { employeeId: 'EMP-0015', email: 'adm.head@wiwo.com', passwordHash: password, firstName: 'Patricia', lastName: 'Lim', role: 'dept_head', departmentId: adm._id, isActive: true },
 
       // Engineering staff
-      { employeeId: 'EMP-0100', email: 'juan.delacruz@prams.com', passwordHash: password, firstName: 'Juan', lastName: 'Dela Cruz', role: 'staff', departmentId: eng._id, isActive: true },
-      { employeeId: 'EMP-0101', email: 'mark.ramos@prams.com', passwordHash: password, firstName: 'Mark', lastName: 'Ramos', role: 'staff', departmentId: eng._id, isActive: true },
-      { employeeId: 'EMP-0102', email: 'sarah.villanueva@prams.com', passwordHash: password, firstName: 'Sarah', lastName: 'Villanueva', role: 'staff', departmentId: eng._id, isActive: true },
-      { employeeId: 'EMP-0103', email: 'kevin.bautista@prams.com', passwordHash: password, firstName: 'Kevin', lastName: 'Bautista', role: 'staff', departmentId: eng._id, isActive: true },
+      { employeeId: 'EMP-0100', email: 'juan.delacruz@wiwo.com', passwordHash: password, firstName: 'Juan', lastName: 'Dela Cruz', role: 'staff', departmentId: eng._id, isActive: true },
+      { employeeId: 'EMP-0101', email: 'mark.ramos@wiwo.com', passwordHash: password, firstName: 'Mark', lastName: 'Ramos', role: 'staff', departmentId: eng._id, isActive: true },
+      { employeeId: 'EMP-0102', email: 'sarah.villanueva@wiwo.com', passwordHash: password, firstName: 'Sarah', lastName: 'Villanueva', role: 'staff', departmentId: eng._id, isActive: true },
+      { employeeId: 'EMP-0103', email: 'kevin.bautista@wiwo.com', passwordHash: password, firstName: 'Kevin', lastName: 'Bautista', role: 'staff', departmentId: eng._id, isActive: true },
 
-      // Marketing staff
-      { employeeId: 'EMP-0110', email: 'diana.fernandez@prams.com', passwordHash: password, firstName: 'Diana', lastName: 'Fernandez', role: 'staff', departmentId: mkt._id, isActive: true },
-      { employeeId: 'EMP-0111', email: 'miguel.aquino@prams.com', passwordHash: password, firstName: 'Miguel', lastName: 'Aquino', role: 'staff', departmentId: mkt._id, isActive: true },
-
-      // HR staff
-      { employeeId: 'EMP-0120', email: 'grace.santos@prams.com', passwordHash: password, firstName: 'Grace', lastName: 'Santos', role: 'staff', departmentId: hr._id, isActive: true },
-      { employeeId: 'EMP-0121', email: 'ryan.lopez@prams.com', passwordHash: password, firstName: 'Ryan', lastName: 'Lopez', role: 'staff', departmentId: hr._id, isActive: true },
-
-      // Finance staff
-      { employeeId: 'EMP-0130', email: 'christine.navarro@prams.com', passwordHash: password, firstName: 'Christine', lastName: 'Navarro', role: 'staff', departmentId: fin._id, isActive: true },
+      // IT staff
+      { employeeId: 'EMP-0110', email: 'diana.fernandez@wiwo.com', passwordHash: password, firstName: 'Diana', lastName: 'Fernandez', role: 'staff', departmentId: its._id, isActive: true },
+      { employeeId: 'EMP-0111', email: 'miguel.aquino@wiwo.com', passwordHash: password, firstName: 'Miguel', lastName: 'Aquino', role: 'staff', departmentId: its._id, isActive: true },
 
       // Operations staff
-      { employeeId: 'EMP-0140', email: 'paolo.castro@prams.com', passwordHash: password, firstName: 'Paolo', lastName: 'Castro', role: 'staff', departmentId: ops._id, isActive: true },
-      { employeeId: 'EMP-0141', email: 'nina.dela.rosa@prams.com', passwordHash: password, firstName: 'Nina', lastName: 'Dela Rosa', role: 'staff', departmentId: ops._id, isActive: true },
+      { employeeId: 'EMP-0120', email: 'grace.santos@wiwo.com', passwordHash: password, firstName: 'Grace', lastName: 'Santos', role: 'staff', departmentId: ops._id, isActive: true },
+      { employeeId: 'EMP-0121', email: 'ryan.lopez@wiwo.com', passwordHash: password, firstName: 'Ryan', lastName: 'Lopez', role: 'staff', departmentId: ops._id, isActive: true },
 
-      // Sales staff
-      { employeeId: 'EMP-0150', email: 'ramon.aguilar@prams.com', passwordHash: password, firstName: 'Ramon', lastName: 'Aguilar', role: 'staff', departmentId: sal._id, isActive: true },
-      { employeeId: 'EMP-0151', email: 'isabella.morales@prams.com', passwordHash: password, firstName: 'Isabella', lastName: 'Morales', role: 'staff', departmentId: sal._id, isActive: true },
+      // Finance staff
+      { employeeId: 'EMP-0130', email: 'christine.navarro@wiwo.com', passwordHash: password, firstName: 'Christine', lastName: 'Navarro', role: 'staff', departmentId: fin._id, isActive: true },
 
-      // Accounting
-      { employeeId: 'EMP-0160', email: 'accounting@prams.com', passwordHash: password, firstName: 'Maricel', lastName: 'Dimaculangan', role: 'accounting', departmentId: fin._id, isActive: true },
+      // Procurement staff
+      { employeeId: 'EMP-0140', email: 'paolo.castro@wiwo.com', passwordHash: password, firstName: 'Paolo', lastName: 'Castro', role: 'staff', departmentId: pro._id, isActive: true },
+      { employeeId: 'EMP-0141', email: 'nina.dela.rosa@wiwo.com', passwordHash: password, firstName: 'Nina', lastName: 'Dela Rosa', role: 'staff', departmentId: pro._id, isActive: true },
 
-      // Procurement
-      { employeeId: 'EMP-0170', email: 'procurement@prams.com', passwordHash: password, firstName: 'Eduardo', lastName: 'Villanueva', role: 'procurement', departmentId: ops._id, isActive: true },
+      // Admin staff
+      { employeeId: 'EMP-0150', email: 'ramon.aguilar@wiwo.com', passwordHash: password, firstName: 'Ramon', lastName: 'Aguilar', role: 'staff', departmentId: adm._id, isActive: true },
+      { employeeId: 'EMP-0151', email: 'isabella.morales@wiwo.com', passwordHash: password, firstName: 'Isabella', lastName: 'Morales', role: 'staff', departmentId: adm._id, isActive: true },
 
-      // Inactive user
-      { employeeId: 'EMP-0199', email: 'former.employee@prams.com', passwordHash: password, firstName: 'Former', lastName: 'Employee', role: 'staff', departmentId: eng._id, isActive: false },
+      // Special roles
+      { employeeId: 'EMP-0160', email: 'accounting@wiwo.com', passwordHash: password, firstName: 'Maricel', lastName: 'Dimaculangan', role: 'accounting', departmentId: fin._id, isActive: true },
+      { employeeId: 'EMP-0170', email: 'procurement@wiwo.com', passwordHash: password, firstName: 'Eduardo', lastName: 'Villanueva', role: 'procurement', departmentId: pro._id, isActive: true },
+
+      // Inactive
+      { employeeId: 'EMP-0199', email: 'former.employee@wiwo.com', passwordHash: password, firstName: 'Former', lastName: 'Employee', role: 'staff', departmentId: eng._id, isActive: false },
     ]);
 
     const userMap: Record<string, typeof users[0]> = {};
     for (const u of users) userMap[u.email as string] = u;
-
     console.log(`  Created ${users.length} users (1 inactive)`);
 
-    // Set department heads
-    await Department.updateOne({ _id: eng._id }, { headId: userMap['eng.head@prams.com']._id });
-    await Department.updateOne({ _id: mkt._id }, { headId: userMap['mkt.head@prams.com']._id });
-    await Department.updateOne({ _id: hr._id }, { headId: userMap['hr.head@prams.com']._id });
-    await Department.updateOne({ _id: fin._id }, { headId: userMap['fin.head@prams.com']._id });
-    await Department.updateOne({ _id: ops._id }, { headId: userMap['ops.head@prams.com']._id });
-    await Department.updateOne({ _id: sal._id }, { headId: userMap['sal.head@prams.com']._id });
+    await Department.updateOne({ _id: eng._id }, { headId: userMap['eng.head@wiwo.com']._id });
+    await Department.updateOne({ _id: its._id }, { headId: userMap['its.head@wiwo.com']._id });
+    await Department.updateOne({ _id: ops._id }, { headId: userMap['ops.head@wiwo.com']._id });
+    await Department.updateOne({ _id: fin._id }, { headId: userMap['fin.head@wiwo.com']._id });
+    await Department.updateOne({ _id: pro._id }, { headId: userMap['pro.head@wiwo.com']._id });
+    await Department.updateOne({ _id: adm._id }, { headId: userMap['adm.head@wiwo.com']._id });
     console.log('  Assigned department heads');
 
-    // ─── Purchase Requests ───
-    console.log('\nCreating purchase requests...');
-    const ceo = userMap['ceo@prams.com'];
-    const coo = userMap['coo@prams.com'];
-    const engHead = userMap['eng.head@prams.com'];
-    const mktHead = userMap['mkt.head@prams.com'];
-    const hrHead = userMap['hr.head@prams.com'];
-    const finHead = userMap['fin.head@prams.com'];
-    const opsHead = userMap['ops.head@prams.com'];
-    const salHead = userMap['sal.head@prams.com'];
-    const juan = userMap['juan.delacruz@prams.com'];
-    const mark = userMap['mark.ramos@prams.com'];
-    const sarah = userMap['sarah.villanueva@prams.com'];
-    const kevin = userMap['kevin.bautista@prams.com'];
-    const diana = userMap['diana.fernandez@prams.com'];
-    const miguel = userMap['miguel.aquino@prams.com'];
-    const grace = userMap['grace.santos@prams.com'];
-    const ryan = userMap['ryan.lopez@prams.com'];
-    const christine = userMap['christine.navarro@prams.com'];
-    const paolo = userMap['paolo.castro@prams.com'];
-    const nina = userMap['nina.dela.rosa@prams.com'];
-    const ramon = userMap['ramon.aguilar@prams.com'];
-    const isabella = userMap['isabella.morales@prams.com'];
-
-    const procurementUser = userMap['procurement@prams.com'];
-    const accountingUser = userMap['accounting@prams.com'];
+    // ─── Purchase Requests Setup ───
+    const ceo = userMap['ceo@wiwo.com'];
+    const coo = userMap['coo@wiwo.com'];
+    const engHead = userMap['eng.head@wiwo.com'];
+    const itsHead = userMap['its.head@wiwo.com'];
+    const opsHead = userMap['ops.head@wiwo.com'];
+    const finHead = userMap['fin.head@wiwo.com'];
+    const proHead = userMap['pro.head@wiwo.com'];
+    const admHead = userMap['adm.head@wiwo.com'];
+    const juan = userMap['juan.delacruz@wiwo.com'];
+    const mark = userMap['mark.ramos@wiwo.com'];
+    const sarah = userMap['sarah.villanueva@wiwo.com'];
+    const kevin = userMap['kevin.bautista@wiwo.com'];
+    const diana = userMap['diana.fernandez@wiwo.com'];
+    const miguel = userMap['miguel.aquino@wiwo.com'];
+    const grace = userMap['grace.santos@wiwo.com'];
+    const ryan = userMap['ryan.lopez@wiwo.com'];
+    const christine = userMap['christine.navarro@wiwo.com'];
+    const paolo = userMap['paolo.castro@wiwo.com'];
+    const nina = userMap['nina.dela.rosa@wiwo.com'];
+    const ramon = userMap['ramon.aguilar@wiwo.com'];
+    const isabella = userMap['isabella.morales@wiwo.com'];
+    const procurementUser = userMap['procurement@wiwo.com'];
+    const accountingUser = userMap['accounting@wiwo.com'];
 
     const year = new Date().getFullYear();
     const seqCounters: Record<string, number> = {};
@@ -322,11 +566,10 @@ async function seed() {
       return `${prefix}-${deptCode}-${year}-${String(seqCounters[key]).padStart(5, '0')}`;
     }
 
-    const allPrs: mongoose.Document[] = [];
+    const allPrs: any[] = [];
     const allApprovals: mongoose.Document[] = [];
     const allNotifications: mongoose.Document[] = [];
 
-    // Helper to create a fully-approved PR
     function createApprovedPr(opts: {
       title: string; desc: string; justification: string; priority: string;
       requester: typeof users[0]; dept: typeof departments[0]; deptCode: string;
@@ -349,7 +592,7 @@ async function seed() {
       const a2Id = new Types.ObjectId();
       const a3Id = new Types.ObjectId();
 
-      allPrs.push(new PurchaseRequest({
+      allPrs.push({
         _id: prId, prNumber, requestType: reqType, title: opts.title,
         projectName: opts.projectName || null, description: opts.desc,
         requesterId: opts.requester._id, departmentId: opts.dept._id,
@@ -359,24 +602,23 @@ async function seed() {
         currentApprovalLevel: 3, approvalHistory: [a1Id, a2Id, a3Id],
         submittedAt: submitted, completedAt: l3Date,
         createdAt: created, updatedAt: l3Date,
-      }));
+        attachments: [],
+      });
 
       allApprovals.push(
-        new Approval({ _id: a1Id, purchaseRequestId: prId, approverId: opts.deptHead._id, approvalLevel: 1, action: 'approved', comments: 'Looks good, approved.', actionDate: l1Date }),
-        new Approval({ _id: a2Id, purchaseRequestId: prId, approverId: coo._id, approvalLevel: 2, action: 'approved', comments: 'Budget verified, proceed.', actionDate: l2Date }),
+        new Approval({ _id: a1Id, purchaseRequestId: prId, approverId: opts.deptHead._id, approvalLevel: 1, action: 'approved', comments: 'Requirements verified and budget confirmed. Approved.', actionDate: l1Date }),
+        new Approval({ _id: a2Id, purchaseRequestId: prId, approverId: coo._id, approvalLevel: 2, action: 'approved', comments: 'Budget allocation confirmed. Proceed to procurement.', actionDate: l2Date }),
         new Approval({ _id: a3Id, purchaseRequestId: prId, approverId: ceo._id, approvalLevel: 3, action: 'approved', comments: 'Final approval granted.', actionDate: l3Date }),
       );
 
-      // Notifications
       allNotifications.push(
-        new Notification({ recipientId: opts.deptHead._id, title: 'New PR for review', message: `${opts.requester.firstName} submitted ${prNumber}`, type: 'pr_submitted', purchaseRequestId: prId, isRead: true, readAt: l1Date }),
-        new Notification({ recipientId: opts.requester._id, title: 'PR Approved', message: `${prNumber} has been fully approved`, type: 'approval_approved', purchaseRequestId: prId, isRead: false }),
+        new Notification({ recipientId: opts.deptHead._id, title: 'New PR for Review', message: `${opts.requester.firstName} submitted ${prNumber}`, type: 'pr_submitted', purchaseRequestId: prId, isRead: true, readAt: l1Date }),
+        new Notification({ recipientId: opts.requester._id, title: 'PR Fully Approved', message: `${prNumber} has been fully approved`, type: 'approval_approved', purchaseRequestId: prId, isRead: false }),
       );
 
       return prId;
     }
 
-    // Helper for PR at a specific stage
     function createPrAtStage(opts: {
       title: string; desc: string; justification: string; priority: string;
       requester: typeof users[0]; dept: typeof departments[0]; deptCode: string;
@@ -400,28 +642,24 @@ async function seed() {
       const approvalIds: Types.ObjectId[] = [];
 
       if (opts.stage === 'level1_review') {
-        status = 'level1_review';
         currentLevel = 1;
-        // L1 approved
         const a1Id = new Types.ObjectId();
-        allApprovals.push(new Approval({ _id: a1Id, purchaseRequestId: prId, approverId: opts.deptHead._id, approvalLevel: 1, action: 'approved', comments: 'Approved at dept level.', actionDate: hoursAfter(submitted!, 6) }));
+        allApprovals.push(new Approval({ _id: a1Id, purchaseRequestId: prId, approverId: opts.deptHead._id, approvalLevel: 1, action: 'approved', comments: 'Approved at department level.', actionDate: hoursAfter(submitted!, 6) }));
         approvalIds.push(a1Id);
       }
 
       if (opts.stage === 'level2_review') {
-        status = 'level2_review';
         currentLevel = 2;
         const a1Id = new Types.ObjectId();
         const a2Id = new Types.ObjectId();
         allApprovals.push(
-          new Approval({ _id: a1Id, purchaseRequestId: prId, approverId: opts.deptHead._id, approvalLevel: 1, action: 'approved', comments: 'Approved.', actionDate: hoursAfter(submitted!, 5) }),
-          new Approval({ _id: a2Id, purchaseRequestId: prId, approverId: coo._id, approvalLevel: 2, action: 'approved', comments: 'COO approved.', actionDate: hoursAfter(submitted!, 18) }),
+          new Approval({ _id: a1Id, purchaseRequestId: prId, approverId: opts.deptHead._id, approvalLevel: 1, action: 'approved', comments: 'Dept requirements confirmed.', actionDate: hoursAfter(submitted!, 5) }),
+          new Approval({ _id: a2Id, purchaseRequestId: prId, approverId: coo._id, approvalLevel: 2, action: 'approved', comments: 'COO approved, forwarding for CEO sign-off.', actionDate: hoursAfter(submitted!, 18) }),
         );
         approvalIds.push(a1Id, a2Id);
       }
 
       if (opts.stage === 'level3_review') {
-        status = 'level3_review';
         currentLevel = 3;
         const a1Id = new Types.ObjectId();
         const a2Id = new Types.ObjectId();
@@ -431,14 +669,13 @@ async function seed() {
         );
         approvalIds.push(a1Id, a2Id);
         allNotifications.push(
-          new Notification({ recipientId: ceo._id, title: 'PR awaiting CEO approval', message: `${prNumber} needs your final approval`, type: 'pr_needs_action', purchaseRequestId: prId, isRead: false }),
+          new Notification({ recipientId: ceo._id, title: 'PR Awaiting CEO Approval', message: `${prNumber} requires your final approval`, type: 'pr_needs_action', purchaseRequestId: prId, isRead: false }),
         );
       }
 
       if (opts.stage === 'rejected') {
-        status = 'rejected';
         const a1Id = new Types.ObjectId();
-        allApprovals.push(new Approval({ _id: a1Id, purchaseRequestId: prId, approverId: opts.deptHead._id, approvalLevel: 1, action: 'rejected', comments: opts.rejectReason || 'Budget constraints, not approved.', actionDate: hoursAfter(submitted!, 8) }));
+        allApprovals.push(new Approval({ _id: a1Id, purchaseRequestId: prId, approverId: opts.deptHead._id, approvalLevel: 1, action: 'rejected', comments: opts.rejectReason || 'Not approved.', actionDate: hoursAfter(submitted!, 8) }));
         approvalIds.push(a1Id);
         allNotifications.push(
           new Notification({ recipientId: opts.requester._id, title: 'PR Rejected', message: `${prNumber} has been rejected`, type: 'approval_rejected', purchaseRequestId: prId, isRead: false }),
@@ -446,22 +683,21 @@ async function seed() {
       }
 
       if (opts.stage === 'returned') {
-        status = 'returned';
         const a1Id = new Types.ObjectId();
-        allApprovals.push(new Approval({ _id: a1Id, purchaseRequestId: prId, approverId: opts.deptHead._id, approvalLevel: 1, action: 'returned', comments: opts.returnReason || 'Please provide more details and 3 quotations.', actionDate: hoursAfter(submitted!, 10) }));
+        allApprovals.push(new Approval({ _id: a1Id, purchaseRequestId: prId, approverId: opts.deptHead._id, approvalLevel: 1, action: 'returned', comments: opts.returnReason || 'Please revise and resubmit.', actionDate: hoursAfter(submitted!, 10) }));
         approvalIds.push(a1Id);
         allNotifications.push(
-          new Notification({ recipientId: opts.requester._id, title: 'PR Returned', message: `${prNumber} was returned for revision`, type: 'approval_returned', purchaseRequestId: prId, isRead: false }),
+          new Notification({ recipientId: opts.requester._id, title: 'PR Returned for Revision', message: `${prNumber} was returned, please revise`, type: 'approval_returned', purchaseRequestId: prId, isRead: false }),
         );
       }
 
       if (opts.stage === 'submitted') {
         allNotifications.push(
-          new Notification({ recipientId: opts.deptHead._id, title: 'New PR for review', message: `${opts.requester.firstName} submitted ${prNumber}`, type: 'pr_submitted', purchaseRequestId: prId, isRead: false }),
+          new Notification({ recipientId: opts.deptHead._id, title: 'New PR for Review', message: `${opts.requester.firstName} submitted ${prNumber}`, type: 'pr_submitted', purchaseRequestId: prId, isRead: false }),
         );
       }
 
-      allPrs.push(new PurchaseRequest({
+      allPrs.push({
         _id: prId, prNumber, requestType: reqType, title: opts.title,
         projectName: opts.projectName || null, description: opts.desc,
         requesterId: opts.requester._id, departmentId: opts.dept._id,
@@ -472,565 +708,650 @@ async function seed() {
         submittedAt: submitted,
         cancellationReason: opts.stage === 'cancelled' ? (opts.cancelReason || 'No longer needed') : null,
         createdAt: created, updatedAt: created,
-      }));
+        attachments: [],
+      });
 
       return prId;
     }
 
-    // ─── APPROVED PRs (various departments, past dates) ───
+    // ─── PROJECT 1: CCTV BUSWAY INSTALLATION ────────────────
+    console.log('\nCreating purchase requests — Project 1: CCTV Busway...');
 
-    // Engineering
     createApprovedPr({
-      title: 'Development Laptops for New Hires',
-      desc: 'MacBook Pro M3 laptops for 3 new software engineers joining the team.',
-      justification: 'New hires starting next month need development workstations.',
-      priority: 'high', requester: juan, dept: eng, deptCode: 'ENG', deptHead: engHead,
-      createdDaysAgo: 45, neededInDays: -15,
+      title: 'IP Dome Cameras – Busway Stations Batch 1',
+      desc: 'Hikvision DS-2CD2143G2-I 4MP AcuSense dome cameras for 8 busway stations, 15 units per station.',
+      justification: 'Primary cameras required for the CCTV Busway Line 1 project scope. 120 units cover all indoor and platform areas per approved project plan.',
+      priority: 'urgent', requester: juan, dept: eng, deptCode: 'ENG', deptHead: engHead,
+      createdDaysAgo: 55, neededInDays: -20,
+      projectName: 'CCTV Installation – Busway Line 1',
       items: makeItems([
-        { desc: 'MacBook Pro 16" M3 Pro, 36GB RAM, 512GB SSD', qty: 3, unit: 'units', price: 145000 },
-        { desc: 'USB-C Docking Station', qty: 3, unit: 'units', price: 5500 },
-        { desc: 'Ergonomic Keyboard (Keychron K8 Pro)', qty: 3, unit: 'units', price: 6500 },
+        { desc: 'Hikvision DS-2CD2143G2-I 4MP AcuSense Dome Camera', qty: 120, unit: 'units', price: 8500, notes: 'Indoor/outdoor, IR 40m, H.265+' },
+        { desc: 'Camera Mounting Bracket (Universal Ceiling/Wall)', qty: 120, unit: 'units', price: 350 },
+        { desc: 'Camera Junction Box (Outdoor-rated, IP67)', qty: 60, unit: 'units', price: 480, notes: 'For outdoor platform cameras' },
       ]),
     });
 
     createApprovedPr({
-      title: 'Cloud Infrastructure Annual License',
-      desc: 'AWS Reserved Instances and Managed Services annual commitment.',
-      justification: 'Current pay-as-you-go costs are 30% higher than reserved pricing.',
+      title: 'Cat6 Cabling and Conduit – Busway Phase 1',
+      desc: 'Structured cabling installation for camera network backbone across 8 busway stations.',
+      justification: 'Network cabling is critical path for camera installation. Approved BOQ from site survey.',
       priority: 'urgent', requester: mark, dept: eng, deptCode: 'ENG', deptHead: engHead,
-      createdDaysAgo: 60, neededInDays: -30,
+      createdDaysAgo: 50, neededInDays: -25,
+      projectName: 'CCTV Installation – Busway Line 1',
       items: makeItems([
-        { desc: 'AWS EC2 Reserved Instances (3x m5.xlarge, 1yr)', qty: 1, unit: 'lot', price: 520000 },
-        { desc: 'AWS RDS PostgreSQL Reserved (1yr)', qty: 1, unit: 'lot', price: 180000 },
-        { desc: 'CloudFlare Enterprise Plan (annual)', qty: 1, unit: 'license', price: 95000 },
+        { desc: 'Cat6 UTP Cable (305m/box, Outdoor-rated)', qty: 40, unit: 'boxes', price: 4800 },
+        { desc: 'UPVC Conduit Pipe (1", 3m length)', qty: 500, unit: 'pcs', price: 85 },
+        { desc: 'Metal Conduit (1.5", 3m length, server room)', qty: 80, unit: 'pcs', price: 320 },
+        { desc: 'Cable Tray (100mm x 50mm, 3m)', qty: 60, unit: 'pcs', price: 650 },
+        { desc: 'Junction Box Assorted (IP55)', qty: 200, unit: 'pcs', price: 120 },
       ]),
     });
 
     createApprovedPr({
-      title: 'Software Testing Tools',
-      desc: 'Annual licenses for Cypress Cloud, BrowserStack, and Postman.',
-      justification: 'QA team needs dedicated testing tools to meet sprint commitments.',
-      priority: 'medium', requester: sarah, dept: eng, deptCode: 'ENG', deptHead: engHead,
-      createdDaysAgo: 30, neededInDays: 5,
+      title: 'NVR Server and Storage – Busway Command Center',
+      desc: '64-channel NVR server with RAID storage for centralized recording at the command center.',
+      justification: '120 cameras require minimum 64-channel NVR with 30-day retention at 4MP/15fps per project specs.',
+      priority: 'urgent', requester: diana, dept: its, deptCode: 'ITS', deptHead: itsHead,
+      createdDaysAgo: 48, neededInDays: -18,
+      projectName: 'CCTV Installation – Busway Line 1',
       items: makeItems([
-        { desc: 'Cypress Cloud Team Plan (annual, 5 seats)', qty: 1, unit: 'license', price: 42000 },
-        { desc: 'BrowserStack Automate Pro (annual)', qty: 1, unit: 'license', price: 65000 },
-        { desc: 'Postman Professional (annual, 5 seats)', qty: 1, unit: 'license', price: 38000 },
-      ]),
-    });
-
-    // Marketing
-    createApprovedPr({
-      title: 'Annual Brand Refresh Campaign',
-      desc: 'Complete brand refresh including new collateral, website update, and launch event.',
-      justification: 'Current branding is 4 years old and needs modernization per board directive.',
-      priority: 'high', requester: diana, dept: mkt, deptCode: 'MKT', deptHead: mktHead,
-      createdDaysAgo: 50, neededInDays: -10,
-      items: makeItems([
-        { desc: 'Brand Identity Design Package (Agency)', qty: 1, unit: 'project', price: 250000 },
-        { desc: 'Print Collateral (brochures, business cards, letterheads)', qty: 1, unit: 'lot', price: 85000 },
-        { desc: 'Website Redesign and Development', qty: 1, unit: 'project', price: 180000 },
-        { desc: 'Launch Event & Media Coverage', qty: 1, unit: 'event', price: 120000 },
+        { desc: 'Hikvision DS-96064NI-I16 64-Channel NVR', qty: 2, unit: 'units', price: 185000, notes: '4K resolution, H.265+' },
+        { desc: 'Seagate SkyHawk 8TB Surveillance HDD', qty: 16, unit: 'units', price: 14500, notes: 'RAID-6 configuration, 8 drives per NVR' },
+        { desc: 'UPS (3kVA, 6-hour backup) for NVR Room', qty: 2, unit: 'units', price: 45000 },
+        { desc: '2U Rack Shelf and Cable Management', qty: 2, unit: 'sets', price: 8500 },
       ]),
     });
 
     createApprovedPr({
-      title: 'Trade Show Booth & Materials',
-      desc: 'Exhibition booth for TechCon 2026 including setup, materials, and giveaways.',
-      justification: 'TechCon is our biggest lead gen event, expecting 500+ qualified leads.',
-      priority: 'high', requester: miguel, dept: mkt, deptCode: 'MKT', deptHead: mktHead,
-      createdDaysAgo: 35, neededInDays: 10,
+      title: 'PoE Network Switches – Busway Station Infrastructure',
+      desc: '24-port PoE+ managed switches for each station to power IP cameras via Cat6.',
+      justification: 'Each busway station requires 1 managed PoE switch for 15 cameras. 8 stations + 2 spares.',
+      priority: 'high', requester: miguel, dept: its, deptCode: 'ITS', deptHead: itsHead,
+      createdDaysAgo: 45, neededInDays: -15,
+      projectName: 'CCTV Installation – Busway Line 1',
       items: makeItems([
-        { desc: 'Booth Space Rental (3x3m Premium)', qty: 1, unit: 'slot', price: 150000 },
-        { desc: 'Booth Design & Fabrication', qty: 1, unit: 'project', price: 95000 },
-        { desc: 'Promotional Merchandise (500 sets)', qty: 500, unit: 'sets', price: 350 },
-        { desc: 'Roll-up Banners (set of 4)', qty: 4, unit: 'pcs', price: 8500 },
+        { desc: 'Hikvision DS-3E2528P 24-Port PoE+ Managed Switch (370W)', qty: 10, unit: 'units', price: 32000, notes: '8 stations + 2 spares' },
+        { desc: 'SFP Fiber Module (1G, Single-mode, LC)', qty: 20, unit: 'units', price: 2800, notes: '2 per switch for uplink' },
+        { desc: 'Wall-mount Network Enclosure (12U)', qty: 10, unit: 'units', price: 7500 },
+        { desc: 'Patch Panel 24-Port Cat6 (1U)', qty: 10, unit: 'units', price: 2200 },
       ]),
     });
 
-    // HR
     createApprovedPr({
-      title: 'Employee Wellness Program Q2',
-      desc: 'Quarterly wellness activities including health screenings and fitness subsidies.',
-      justification: 'Part of the annual employee wellness initiative approved by the board.',
-      priority: 'medium', requester: grace, dept: hr, deptCode: 'HR', deptHead: hrHead,
-      createdDaysAgo: 25, neededInDays: 15,
+      title: 'Video Management Software – Busway CCTV',
+      desc: 'Hikvision iVMS-5200 Pro VMS license for centralized monitoring of all busway cameras.',
+      justification: 'VMS required for 24/7 command center operations. License supports up to 256 cameras with analytics.',
+      priority: 'high', requester: sarah, dept: its, deptCode: 'ITS', deptHead: itsHead,
+      createdDaysAgo: 40, neededInDays: -10,
+      projectName: 'CCTV Installation – Busway Line 1',
       items: makeItems([
-        { desc: 'Annual Physical Exam Package (50 employees)', qty: 50, unit: 'persons', price: 3500 },
-        { desc: 'Gym Membership Subsidy (quarterly)', qty: 30, unit: 'persons', price: 2500 },
-        { desc: 'Mental Health Webinar Series (3 sessions)', qty: 3, unit: 'sessions', price: 15000 },
+        { desc: 'Hikvision iVMS-5200 Pro Base License (64-ch)', qty: 2, unit: 'licenses', price: 95000 },
+        { desc: 'VMS Additional Channel License (32-ch expansion)', qty: 1, unit: 'license', price: 45000 },
+        { desc: 'VMS Client Workstation License (5 concurrent)', qty: 3, unit: 'licenses', price: 18000 },
+        { desc: 'Annual Software Maintenance & Support', qty: 1, unit: 'year', price: 35000 },
       ]),
     });
 
-    // Finance
     createApprovedPr({
-      title: 'Accounting Software Upgrade',
-      desc: 'Upgrade from QuickBooks to SAP Business One for growing operations.',
-      justification: 'Current system cannot handle multi-entity consolidation required by expansion.',
-      priority: 'urgent', requester: christine, dept: fin, deptCode: 'FIN', deptHead: finHead,
-      createdDaysAgo: 40, neededInDays: -5,
+      title: 'PPE and Safety Equipment – Busway Installation Team',
+      desc: 'Personal protective equipment for field installation team working at busway stations.',
+      justification: 'DOLE and OSHS compliance requirement. Installation involves working at height and confined spaces.',
+      priority: 'high', requester: grace, dept: ops, deptCode: 'OPS', deptHead: opsHead,
+      createdDaysAgo: 52, neededInDays: -30,
+      projectName: 'CCTV Installation – Busway Line 1',
       items: makeItems([
-        { desc: 'SAP Business One Professional License (10 users)', qty: 10, unit: 'licenses', price: 45000 },
-        { desc: 'Implementation & Data Migration Services', qty: 1, unit: 'project', price: 350000 },
-        { desc: 'Training Program (5 days on-site)', qty: 1, unit: 'project', price: 85000 },
+        { desc: 'Safety Helmet (Class B, ANSI Z89.1)', qty: 15, unit: 'pcs', price: 850 },
+        { desc: 'Full-Body Safety Harness (ANSI Z359)', qty: 10, unit: 'sets', price: 4500, notes: 'For elevated work on platforms' },
+        { desc: 'Safety Boots (Steel Toe, Size 7-11)', qty: 15, unit: 'pairs', price: 2800 },
+        { desc: 'Hi-Visibility Safety Vest (ANSI Class 2)', qty: 20, unit: 'pcs', price: 450 },
+        { desc: 'Insulated Electrical Gloves (Class 00)', qty: 10, unit: 'pairs', price: 1800 },
+        { desc: 'First Aid Kit (Industrial, 50-person)', qty: 3, unit: 'kits', price: 3500 },
       ]),
     });
 
-    // Operations
     createApprovedPr({
-      title: 'Office Furniture Replacement',
-      desc: 'Replace aging office furniture in the main floor with ergonomic alternatives.',
-      justification: 'Current desks and chairs are 8+ years old, multiple employees reporting back pain.',
-      priority: 'medium', requester: paolo, dept: ops, deptCode: 'OPS', deptHead: opsHead,
-      createdDaysAgo: 20, neededInDays: 20,
+      title: 'Service Vehicles – Field Installation Crew',
+      desc: 'Two service vans equipped with ladder racks for transporting installation team and equipment to busway sites.',
+      justification: 'Current vehicles are insufficient for the busway project scope. Two dedicated service vans needed for daily site mobilization.',
+      priority: 'high', requester: ryan, dept: ops, deptCode: 'OPS', deptHead: opsHead,
+      createdDaysAgo: 60, neededInDays: -35,
+      projectName: 'CCTV Installation – Busway Line 1',
       items: makeItems([
-        { desc: 'Height-Adjustable Standing Desk', qty: 20, unit: 'units', price: 18500 },
-        { desc: 'Ergonomic Office Chair (Herman Miller Aeron)', qty: 20, unit: 'units', price: 52000 },
-        { desc: 'Monitor Arms (dual)', qty: 20, unit: 'units', price: 4500 },
-        { desc: 'Delivery & Assembly', qty: 1, unit: 'lot', price: 25000 },
+        { desc: 'Toyota Hi-Ace Cargo Van (Manual, White)', qty: 2, unit: 'units', price: 1450000 },
+        { desc: 'Vehicle Ladder Rack System', qty: 2, unit: 'sets', price: 18500 },
+        { desc: 'Vehicle Lettering / Vinyl Wrap (Company Branding)', qty: 2, unit: 'units', price: 12000 },
+        { desc: 'Vehicle Insurance (Comprehensive, 1 year)', qty: 2, unit: 'units', price: 28000 },
       ]),
     });
 
-    // Sales
+    // ─── PROJECT 2: AI CAMERA SYSTEM ────────────────────────
+    console.log('Creating purchase requests — Project 2: AI Cameras...');
+
     createApprovedPr({
-      title: 'CRM System Annual Subscription',
-      desc: 'Salesforce Enterprise license renewal for the entire sales team.',
-      justification: 'Current contract expires next month. Salesforce is critical for pipeline management.',
-      priority: 'urgent', requester: ramon, dept: sal, deptCode: 'SAL', deptHead: salHead,
-      createdDaysAgo: 15, neededInDays: 2,
+      title: 'AI Smart Cameras – Phase 1 Batch 1',
+      desc: 'Hikvision DS-2CD2T47G2P-LSU/SL 4MP ColorVu AI cameras with deep learning analytics for Phase 1 deployment.',
+      justification: 'AI camera deployment Phase 1 covers 40 priority zones. Cameras support people counting, intrusion detection, and behavior analysis.',
+      priority: 'urgent', requester: kevin, dept: eng, deptCode: 'ENG', deptHead: engHead,
+      createdDaysAgo: 42, neededInDays: -12,
+      projectName: 'AI Camera System – Phase 1',
       items: makeItems([
-        { desc: 'Salesforce Enterprise (annual, 15 seats)', qty: 15, unit: 'licenses', price: 28000 },
-        { desc: 'Salesforce CPQ Add-on (annual)', qty: 1, unit: 'license', price: 120000 },
+        { desc: 'Hikvision DS-2CD2T47G2P 4MP AI Bullet Camera (ColorVu)', qty: 40, unit: 'units', price: 14500, notes: 'Deep learning, 120m IR, strobe alarm' },
+        { desc: 'Hikvision DS-2DE4425IWG-E 4MP PTZ AI Camera', qty: 8, unit: 'units', price: 52000, notes: 'For wide-area surveillance zones' },
+        { desc: 'Camera Outdoor Housing (SS316, IP68)', qty: 40, unit: 'units', price: 2200 },
+        { desc: 'Anti-vibration Camera Mount', qty: 48, unit: 'units', price: 1500 },
       ]),
     });
 
-    // ─── IN-PROGRESS PRs (various stages) ───
+    createApprovedPr({
+      title: 'Edge AI Server with GPU – AI Processing Node',
+      desc: 'NVIDIA-powered edge computing server for real-time AI inference at the control center.',
+      justification: 'AI video analytics require dedicated GPU processing. On-premise edge server reduces latency vs. cloud processing.',
+      priority: 'urgent', requester: diana, dept: its, deptCode: 'ITS', deptHead: itsHead,
+      createdDaysAgo: 38, neededInDays: -8,
+      projectName: 'AI Camera System – Phase 1',
+      items: makeItems([
+        { desc: 'Dell PowerEdge R750xa Server (2x Xeon Gold 6326)', qty: 2, unit: 'units', price: 485000 },
+        { desc: 'NVIDIA RTX A4000 16GB GPU', qty: 4, unit: 'units', price: 145000, notes: '2 per server for AI inference' },
+        { desc: '64GB DDR4 ECC RAM (per server)', qty: 2, unit: 'sets', price: 48000 },
+        { desc: '4TB NVMe SSD (OS + AI models)', qty: 4, unit: 'units', price: 28000 },
+      ]),
+    });
 
-    // Submitted - waiting for dept head
+    createApprovedPr({
+      title: 'AI Video Analytics Platform License – 3-Year',
+      desc: 'Milestone XProtect Corporate VMS with AI analytics modules for 3-year term license.',
+      justification: 'AI Platform required for unified management of 48 AI cameras. Includes People Counting, LPR, Behavior Analytics modules.',
+      priority: 'urgent', requester: miguel, dept: its, deptCode: 'ITS', deptHead: itsHead,
+      createdDaysAgo: 35, neededInDays: -5,
+      projectName: 'AI Camera System – Phase 1',
+      items: makeItems([
+        { desc: 'Milestone XProtect Corporate Base License (3-year)', qty: 1, unit: 'license', price: 350000 },
+        { desc: 'Milestone AI Module – People Counting (per camera, 3yr)', qty: 48, unit: 'channels', price: 12000 },
+        { desc: 'Milestone AI Module – Behavior Analytics (3yr)', qty: 48, unit: 'channels', price: 15000 },
+        { desc: 'Milestone LPR Module – License Plate Recognition (3yr)', qty: 8, unit: 'channels', price: 25000 },
+        { desc: 'Premier Support & Maintenance (3-year)', qty: 1, unit: 'contract', price: 185000 },
+      ]),
+    });
+
+    createApprovedPr({
+      title: 'Fiber Optic Backbone – AI Camera Network',
+      desc: 'Single-mode fiber optic cable and termination for AI camera network backbone.',
+      justification: 'AI cameras generate 4K-8MP streams requiring high-bandwidth backbone. Fiber ensures low-latency data transfer to edge servers.',
+      priority: 'high', requester: sarah, dept: eng, deptCode: 'ENG', deptHead: engHead,
+      createdDaysAgo: 32, neededInDays: -2,
+      projectName: 'AI Camera System – Phase 1',
+      items: makeItems([
+        { desc: 'Corning OS2 Single-Mode Fiber (6-core, 1km/reel)', qty: 8, unit: 'reels', price: 18500 },
+        { desc: 'Fiber Optic Patch Panel 24-Port SC/APC (1U)', qty: 4, unit: 'units', price: 8500 },
+        { desc: 'SC/APC Fiber Connector (field-terminated)', qty: 200, unit: 'pcs', price: 185 },
+        { desc: 'Fiber Fusion Splicing Service (per splice)', qty: 96, unit: 'splices', price: 350 },
+        { desc: 'OTDR Testing and Fiber Certification', qty: 1, unit: 'lot', price: 35000 },
+      ]),
+    });
+
+    // ─── GENERAL OPERATIONS PRs ──────────────────────────────
+
+    createApprovedPr({
+      title: 'Office Supplies – Quarterly Procurement Q2',
+      desc: 'Quarterly bulk purchase of consumables, printing materials, and stationery for all departments.',
+      justification: 'Standard quarterly procurement per approved annual budget allocation.',
+      priority: 'low', requester: paolo, dept: pro, deptCode: 'PRO', deptHead: proHead,
+      createdDaysAgo: 28, neededInDays: -5,
+      items: makeItems([
+        { desc: 'A4 Bond Paper (80gsm, 500 sheets/ream)', qty: 80, unit: 'reams', price: 280 },
+        { desc: 'Ballpoint Pens Assorted (box of 50)', qty: 8, unit: 'boxes', price: 450 },
+        { desc: 'Printer Ink Cartridges (HP 664 Black+Color set)', qty: 10, unit: 'sets', price: 1200 },
+        { desc: 'Filing Folders, Binders, and Labels (assorted)', qty: 1, unit: 'lot', price: 6800 },
+        { desc: 'Sticky Notes, Markers, and Whiteboard Supplies', qty: 1, unit: 'lot', price: 3500 },
+      ]),
+    });
+
+    createApprovedPr({
+      title: 'Laptops – Engineering Field Team',
+      desc: 'Rugged laptops for field engineers to access VMS, run camera configuration tools, and manage site documentation on-site.',
+      justification: 'Field engineers currently share office laptops, causing delays in site configuration and testing.',
+      priority: 'high', requester: juan, dept: eng, deptCode: 'ENG', deptHead: engHead,
+      createdDaysAgo: 22, neededInDays: 5,
+      items: makeItems([
+        { desc: 'Lenovo ThinkPad X1 Carbon (i7, 32GB RAM, 512GB SSD)', qty: 5, unit: 'units', price: 92000 },
+        { desc: 'USB-C Multiport Hub (HDMI, LAN, USB 3.0)', qty: 5, unit: 'units', price: 2800 },
+        { desc: 'Laptop Bag (Anti-shock, 15")', qty: 5, unit: 'units', price: 1800 },
+        { desc: 'Microsoft 365 Business Standard License (1yr)', qty: 5, unit: 'licenses', price: 6500 },
+      ]),
+    });
+
+    // ─── IN-PROGRESS PRs ─────────────────────────────────────
+
+    // Submitted – waiting for ENG head
     createPrAtStage({
-      title: 'Development Conference Sponsorship',
-      desc: 'Sponsor and attend DevOps Days Manila 2026.',
-      justification: 'Great recruitment opportunity and team learning experience.',
-      priority: 'medium', requester: kevin, dept: eng, deptCode: 'ENG', deptHead: engHead,
-      createdDaysAgo: 3, neededInDays: 30,
+      title: 'PTZ Speed Dome Cameras – Busway Intersections',
+      desc: 'Hikvision DS-2DE4425IWG-E 4MP PTZ cameras for monitoring major busway intersection points.',
+      justification: 'Site survey identified 6 critical intersection points requiring PTZ coverage. Included in Phase 2 scope.',
+      priority: 'high', requester: mark, dept: eng, deptCode: 'ENG', deptHead: engHead,
+      createdDaysAgo: 3, neededInDays: 25,
       stage: 'submitted',
+      projectName: 'CCTV Installation – Busway Line 1',
       items: makeItems([
-        { desc: 'Gold Sponsorship Package', qty: 1, unit: 'package', price: 75000 },
-        { desc: 'Team Tickets (5 persons)', qty: 5, unit: 'tickets', price: 8000 },
-        { desc: 'Travel & Accommodation', qty: 5, unit: 'persons', price: 12000 },
+        { desc: 'Hikvision DS-2DE4425IWG-E 4MP PTZ Camera (25x zoom)', qty: 6, unit: 'units', price: 48000 },
+        { desc: 'Heavy-Duty PTZ Wall Mount (Stainless Steel)', qty: 6, unit: 'units', price: 8500 },
+        { desc: 'RS-485 Control Cable (300m, shielded)', qty: 2, unit: 'rolls', price: 5500 },
       ]),
     });
 
-    // Submitted - waiting for dept head
+    // Submitted – waiting for OPS head
     createPrAtStage({
-      title: 'Office Cleaning Service Contract',
-      desc: 'Monthly professional deep cleaning service for all office floors.',
-      justification: 'Building management recommended professional cleaning after recent audit.',
-      priority: 'low', requester: nina, dept: ops, deptCode: 'OPS', deptHead: opsHead,
-      createdDaysAgo: 2, neededInDays: 14,
+      title: 'Camera Mounting Poles and Hardware – Busway Phase 2',
+      desc: 'Galvanized steel mounting poles and hardware for external camera installations on Phase 2 busway stations.',
+      justification: 'Phase 2 stations require outdoor pole mounting for perimeter cameras. Approved scope from project engineer.',
+      priority: 'medium', requester: grace, dept: ops, deptCode: 'OPS', deptHead: opsHead,
+      createdDaysAgo: 2, neededInDays: 20,
       stage: 'submitted',
+      projectName: 'CCTV Installation – Busway Line 1',
       items: makeItems([
-        { desc: 'Monthly Deep Cleaning (6 months contract)', qty: 6, unit: 'months', price: 35000 },
-        { desc: 'Carpet Shampooing (quarterly)', qty: 2, unit: 'sessions', price: 18000 },
+        { desc: 'Galvanized Pole (4-meter, 3" diameter, with base plate)', qty: 24, unit: 'units', price: 4500 },
+        { desc: 'Camera Arm Bracket (2-meter extension)', qty: 24, unit: 'units', price: 1800 },
+        { desc: 'Anchor Bolts Set (M16, per pole)', qty: 24, unit: 'sets', price: 380 },
+        { desc: 'Galvanizing Paint Touch-up (spray)', qty: 10, unit: 'cans', price: 250 },
+      ]),
+    });
+
+    // Submitted – IT dept
+    createPrAtStage({
+      title: 'Network Video Recorder – AI Backup Recording',
+      desc: 'Redundant NVR for backup recording of AI camera system to ensure 30-day retention compliance.',
+      justification: 'Project specs require redundant recording. Primary edge servers do not provide sufficient storage redundancy.',
+      priority: 'high', requester: diana, dept: its, deptCode: 'ITS', deptHead: itsHead,
+      createdDaysAgo: 4, neededInDays: 18,
+      stage: 'submitted',
+      projectName: 'AI Camera System – Phase 1',
+      items: makeItems([
+        { desc: 'Hikvision DS-96128NI-I24 128-Channel NVR', qty: 1, unit: 'unit', price: 345000 },
+        { desc: 'Seagate SkyHawk AI 10TB HDD (Surveillance)', qty: 12, unit: 'units', price: 18500 },
+        { desc: '2U Rackmount Server Case with Rails', qty: 1, unit: 'unit', price: 12000 },
       ]),
     });
 
     // At COO review (Level 2)
     createPrAtStage({
-      title: 'Social Media Marketing Tools',
-      desc: 'Annual subscription for Hootsuite Enterprise and Canva Pro for the marketing team.',
-      justification: 'Current free-tier tools are limiting campaign output and analytics.',
-      priority: 'medium', requester: diana, dept: mkt, deptCode: 'MKT', deptHead: mktHead,
-      createdDaysAgo: 5, neededInDays: 20,
+      title: 'AI Camera Outdoor Enclosures – Phase 1',
+      desc: 'Stainless steel outdoor enclosures with thermostat and blower for AI cameras in harsh environments.',
+      justification: 'Outdoor AI cameras require climate-controlled enclosures to operate within thermal limits in direct sunlight.',
+      priority: 'medium', requester: kevin, dept: eng, deptCode: 'ENG', deptHead: engHead,
+      createdDaysAgo: 6, neededInDays: 22,
       stage: 'level2_review',
+      projectName: 'AI Camera System – Phase 1',
       items: makeItems([
-        { desc: 'Hootsuite Enterprise (annual, 5 seats)', qty: 1, unit: 'license', price: 95000 },
-        { desc: 'Canva Pro for Teams (annual, 5 seats)', qty: 1, unit: 'license', price: 32000 },
-        { desc: 'Shutterstock Enterprise (annual, 750 images)', qty: 1, unit: 'license', price: 55000 },
+        { desc: 'Stainless Outdoor Camera Enclosure (SS316, IP66, with heater/blower)', qty: 24, unit: 'units', price: 8500 },
+        { desc: 'Pole Side Mount Adapter Kit', qty: 24, unit: 'sets', price: 1200 },
+        { desc: 'Security Padlock (Weather-resistant, Keyed Alike)', qty: 24, unit: 'units', price: 480 },
       ]),
     });
 
-    // At CEO review (Level 3)
+    // At CEO review (Level 3) — high value
     createPrAtStage({
-      title: 'Data Center Network Upgrade',
-      desc: 'Upgrade core network switches and add redundant fiber links.',
-      justification: 'Current infrastructure is at 85% capacity, risking outages during peak.',
-      priority: 'urgent', requester: mark, dept: eng, deptCode: 'ENG', deptHead: engHead,
-      createdDaysAgo: 8, neededInDays: 15,
+      title: 'AI Control Room Workstations and Video Wall',
+      desc: '4K multi-display command workstations and video wall controller for the AI Camera System control room.',
+      justification: 'Control room operators need to monitor 48 AI camera feeds simultaneously. Video wall and dedicated workstations are mandatory deliverable per contract.',
+      priority: 'urgent', requester: miguel, dept: its, deptCode: 'ITS', deptHead: itsHead,
+      createdDaysAgo: 9, neededInDays: 15,
       stage: 'level3_review',
+      projectName: 'AI Camera System – Phase 1',
       items: makeItems([
-        { desc: 'Cisco Catalyst 9300 Series Switches (2x)', qty: 2, unit: 'units', price: 285000 },
-        { desc: 'Fiber Optic Cabling (redundant path)', qty: 1, unit: 'lot', price: 120000 },
-        { desc: 'Installation & Configuration Services', qty: 1, unit: 'project', price: 85000 },
-        { desc: 'UPS Battery Replacement', qty: 4, unit: 'units', price: 35000 },
+        { desc: 'Dell OptiPlex 7010 Workstation (i9, 64GB, 1TB NVMe)', qty: 3, unit: 'units', price: 95000, notes: 'VMS operator workstations' },
+        { desc: 'Samsung 55" 4K Commercial Display (UD55F-B)', qty: 6, unit: 'units', price: 85000, notes: 'For 2x3 video wall' },
+        { desc: 'Datapath FX4 Video Wall Controller', qty: 1, unit: 'unit', price: 320000 },
+        { desc: 'Video Wall Mounting Structure (2x3 bezel-free)', qty: 1, unit: 'set', price: 145000 },
+        { desc: 'Control Room Console Desk (curved, 3 positions)', qty: 1, unit: 'unit', price: 185000 },
       ]),
     });
 
     // ─── REJECTED PR ───
+
     createPrAtStage({
-      title: 'Premium Coffee Machine for Pantry',
-      desc: 'Commercial-grade espresso machine for the office pantry.',
-      justification: 'Team morale and retention — employees have been requesting better coffee.',
-      priority: 'low', requester: ryan, dept: hr, deptCode: 'HR', deptHead: hrHead,
-      createdDaysAgo: 10, neededInDays: 30,
+      title: 'Drone for Site Survey and Inspection',
+      desc: 'DJI Matrice 350 RTK drone for aerial site surveys and camera placement planning.',
+      justification: 'Aerial survey would improve camera placement accuracy and reduce multiple site visits.',
+      priority: 'medium', requester: juan, dept: eng, deptCode: 'ENG', deptHead: engHead,
+      createdDaysAgo: 12, neededInDays: 30,
       stage: 'rejected',
-      rejectReason: 'While appreciated, this expense is not justified in the current budget cycle. Please resubmit in Q4 when discretionary budgets are reviewed.',
+      rejectReason: 'Drone procurement requires CAB (Civil Aviation Board) operator certification which the team does not currently hold. Please coordinate with the Engineering head on alternative survey methods. Resubmit when certification requirements are met.',
       items: makeItems([
-        { desc: 'La Marzocco Linea Mini Espresso Machine', qty: 1, unit: 'unit', price: 185000 },
-        { desc: 'Eureka Mignon Specialita Grinder', qty: 1, unit: 'unit', price: 28000 },
-        { desc: 'Coffee Bean Monthly Subscription (12 months)', qty: 12, unit: 'months', price: 4500 },
+        { desc: 'DJI Matrice 350 RTK Enterprise Drone', qty: 1, unit: 'unit', price: 485000 },
+        { desc: 'DJI Zenmuse H20T Camera (Thermal+Optical)', qty: 1, unit: 'unit', price: 285000 },
+        { desc: 'Extra Battery Set and Charging Hub', qty: 2, unit: 'sets', price: 45000 },
+        { desc: 'CAB Drone Operator Training (online, per person)', qty: 3, unit: 'persons', price: 12000 },
       ]),
     });
 
     // ─── RETURNED PRs ───
+
     createPrAtStage({
-      title: 'Team Building Event Q2',
-      desc: 'Off-site team building activity for the Sales department.',
-      justification: 'Quarterly team building to improve collaboration and morale.',
-      priority: 'medium', requester: isabella, dept: sal, deptCode: 'SAL', deptHead: salHead,
-      createdDaysAgo: 4, neededInDays: 25,
+      title: 'CCTV Installation Certification Training',
+      desc: 'Certified CCTV Installer (CPSTI) training for 5 field engineers via ASIS International.',
+      justification: 'Certification will improve installation quality and is increasingly required by government project bids.',
+      priority: 'medium', requester: sarah, dept: eng, deptCode: 'ENG', deptHead: engHead,
+      createdDaysAgo: 5, neededInDays: 28,
       stage: 'returned',
-      returnReason: 'Please provide at least 3 venue quotations and a detailed itinerary before resubmission.',
+      returnReason: 'Please provide: (1) training provider accreditation certificate, (2) detailed training schedule and modules, and (3) at least 3 price quotations from different training providers. Resubmit with complete supporting documents.',
       items: makeItems([
-        { desc: 'Resort Venue Rental (2 days, 1 night)', qty: 1, unit: 'event', price: 85000 },
-        { desc: 'Team Activities & Facilitator', qty: 1, unit: 'package', price: 45000 },
-        { desc: 'Transportation (bus rental)', qty: 1, unit: 'trip', price: 25000 },
-        { desc: 'Meals & Refreshments', qty: 22, unit: 'persons', price: 2500 },
+        { desc: 'CPSTI Certification Training (5 participants)', qty: 5, unit: 'persons', price: 25000 },
+        { desc: 'Training Materials and Module Kit', qty: 5, unit: 'sets', price: 3500 },
+        { desc: 'Certification Exam Fee (per candidate)', qty: 5, unit: 'persons', price: 8500 },
+      ]),
+    });
+
+    createPrAtStage({
+      title: 'Cable Pulling and Termination Tools',
+      desc: 'Professional cable installation tools for the field engineering team.',
+      justification: 'Current tools are outdated and insufficient for the scale of Busway Phase 2 installation.',
+      priority: 'medium', requester: kevin, dept: eng, deptCode: 'ENG', deptHead: engHead,
+      createdDaysAgo: 3, neededInDays: 20,
+      stage: 'returned',
+      returnReason: 'Please provide at least 3 canvass sheets from hardware suppliers. Also clarify if these tools are for purchase or rental — rental may be more cost-effective for a single project.',
+      items: makeItems([
+        { desc: 'Cable Puller (600m, 800kg pull force)', qty: 1, unit: 'unit', price: 45000 },
+        { desc: 'Fiber Optic Fusion Splicer (Sumitomo TYPE-82)', qty: 1, unit: 'unit', price: 185000 },
+        { desc: 'OTDR (Optical Time Domain Reflectometer)', qty: 1, unit: 'unit', price: 125000 },
+        { desc: 'Network Cable Tester (Fluke Networks)', qty: 2, unit: 'units', price: 28000 },
+        { desc: 'Cable Crimping and Stripping Tool Set', qty: 5, unit: 'sets', price: 4500 },
       ]),
     });
 
     // ─── CANCELLED PR ───
+
     createPrAtStage({
-      title: 'Printer Toner Cartridges',
-      desc: 'Bulk purchase of toner cartridges for floor printers.',
-      justification: 'Running low on toner for the HP LaserJet printers.',
-      priority: 'low', requester: paolo, dept: ops, deptCode: 'OPS', deptHead: opsHead,
-      createdDaysAgo: 7, neededInDays: 10,
+      title: 'Analog CCTV Cameras – Temporary Monitoring',
+      desc: 'Temporary analog CCTV cameras for site security during Busway installation period.',
+      justification: 'Temporary security monitoring for construction materials at busway sites.',
+      priority: 'low', requester: ryan, dept: ops, deptCode: 'OPS', deptHead: opsHead,
+      createdDaysAgo: 8, neededInDays: 5,
       stage: 'cancelled',
-      cancelReason: 'Duplicate request — already covered by the quarterly office supplies order.',
+      cancelReason: 'Client has provided their own temporary security cameras for site monitoring. Purchase no longer needed.',
       items: makeItems([
-        { desc: 'HP 26A Black Toner Cartridge', qty: 10, unit: 'pcs', price: 4200 },
-        { desc: 'HP 26A Color Toner Set (C/M/Y)', qty: 5, unit: 'sets', price: 12500 },
+        { desc: 'Analog Dome Camera (AHD 2MP)', qty: 20, unit: 'units', price: 1800 },
+        { desc: '16-Channel DVR (2MP, 2TB HDD included)', qty: 2, unit: 'units', price: 15000 },
+        { desc: 'RG59 Coaxial Cable (100m/roll)', qty: 10, unit: 'rolls', price: 2200 },
       ]),
     });
 
     // ─── DRAFT PRs ───
+
     createPrAtStage({
-      title: 'Security Camera System Upgrade',
-      desc: 'Replace aging CCTV system with modern IP cameras and NVR.',
-      justification: 'Current analog cameras have poor image quality and no remote viewing.',
-      priority: 'high', requester: nina, dept: ops, deptCode: 'OPS', deptHead: opsHead,
-      createdDaysAgo: 1, neededInDays: 45,
+      title: 'UPS Systems – Busway Station NVR Rooms',
+      desc: 'Rackmount UPS units for each busway station equipment room to ensure continuous recording during power outages.',
+      justification: 'Station power is unreliable during peak hours. UPS provides minimum 4-hour backup per project specs.',
+      priority: 'high', requester: mark, dept: eng, deptCode: 'ENG', deptHead: engHead,
+      createdDaysAgo: 1, neededInDays: 30,
       stage: 'draft',
+      projectName: 'CCTV Installation – Busway Line 1',
       items: makeItems([
-        { desc: 'Hikvision 4MP IP Camera', qty: 16, unit: 'units', price: 8500 },
-        { desc: '32-Channel NVR with 8TB Storage', qty: 1, unit: 'unit', price: 45000 },
-        { desc: 'Cat6 Cabling & Installation', qty: 1, unit: 'lot', price: 65000 },
+        { desc: 'APC Smart-UPS 2200VA LCD RM 2U (SUA2200RMXL5U)', qty: 8, unit: 'units', price: 38500 },
+        { desc: 'UPS Battery Replacement Kit (per unit)', qty: 8, unit: 'sets', price: 8500 },
+        { desc: 'PDU Rackmount (8-outlet, 20A)', qty: 8, unit: 'units', price: 5500 },
       ]),
     });
 
     createPrAtStage({
-      title: 'Recruitment Job Fair Materials',
-      desc: 'Booth and materials for university job fair roadshow.',
-      justification: 'Targeting 3 universities for engineering intern recruitment.',
-      priority: 'medium', requester: grace, dept: hr, deptCode: 'HR', deptHead: hrHead,
-      createdDaysAgo: 0, neededInDays: 30,
+      title: 'AI Camera Phase 2 – Additional Zones',
+      desc: 'Expansion of AI camera coverage to 20 additional zones identified in Phase 1 evaluation.',
+      justification: 'Phase 1 revealed additional blind spots requiring coverage. Phase 2 scope approved by project stakeholders.',
+      priority: 'medium', requester: diana, dept: its, deptCode: 'ITS', deptHead: itsHead,
+      createdDaysAgo: 0, neededInDays: 45,
       stage: 'draft',
+      projectName: 'AI Camera System – Phase 1',
       items: makeItems([
-        { desc: 'Pop-up Booth Display Stand', qty: 2, unit: 'units', price: 12000 },
-        { desc: 'Company Brochures (500 copies)', qty: 500, unit: 'pcs', price: 45 },
-        { desc: 'Branded Tote Bags (200 pcs)', qty: 200, unit: 'pcs', price: 180 },
-        { desc: 'Portable Banner (2 designs)', qty: 2, unit: 'pcs', price: 5500 },
+        { desc: 'Hikvision DS-2CD2T47G2P 4MP AI Camera (additional zones)', qty: 20, unit: 'units', price: 14500 },
+        { desc: 'Milestone Additional Channel License (per camera, 3yr)', qty: 20, unit: 'channels', price: 12000 },
+        { desc: 'Mounting Hardware and Accessories (per camera)', qty: 20, unit: 'sets', price: 2500 },
       ]),
     });
 
-    // ─── More approved PRs for historical data spread ───
-    createApprovedPr({
-      title: 'Annual Office Supplies',
-      desc: 'Quarterly bulk purchase of office supplies for all departments.',
-      justification: 'Standard quarterly procurement per approved budget allocation.',
-      priority: 'low', requester: paolo, dept: ops, deptCode: 'OPS', deptHead: opsHead,
-      createdDaysAgo: 55, neededInDays: -25,
-      items: makeItems([
-        { desc: 'A4 Bond Paper (100 reams)', qty: 100, unit: 'reams', price: 280 },
-        { desc: 'Ballpoint Pens (box of 50)', qty: 10, unit: 'boxes', price: 450 },
-        { desc: 'Sticky Notes & Markers Assorted', qty: 1, unit: 'lot', price: 5500 },
-        { desc: 'Folders, Binders & Filing Supplies', qty: 1, unit: 'lot', price: 8200 },
-      ]),
-    });
+    // ─── JOB REQUESTS ─────────────────────────────────────────
+    console.log('Creating job requests...');
 
     createApprovedPr({
-      title: 'Sales Team Tablets',
-      desc: 'iPad Pro tablets for the field sales team for client presentations.',
-      justification: 'Field team needs portable devices for live demos and contract signing.',
-      priority: 'high', requester: ramon, dept: sal, deptCode: 'SAL', deptHead: salHead,
-      createdDaysAgo: 28, neededInDays: 0,
+      title: 'Site Survey – Busway Phase 2 Stations',
+      desc: 'Professional site survey of 6 additional busway stations for Phase 2 camera placement planning.',
+      justification: 'Phase 2 scope requires detailed site survey to finalize camera types, quantities, and cabling routes.',
+      priority: 'high', requester: juan, dept: eng, deptCode: 'ENG', deptHead: engHead,
+      createdDaysAgo: 25, neededInDays: -5,
+      requestType: 'job_request', projectName: 'CCTV Installation – Busway Line 1',
       items: makeItems([
-        { desc: 'iPad Pro 12.9" M2 256GB WiFi+Cellular', qty: 8, unit: 'units', price: 72000 },
-        { desc: 'Apple Pencil (2nd Gen)', qty: 8, unit: 'units', price: 8500 },
-        { desc: 'Logitech Combo Touch Keyboard Case', qty: 8, unit: 'units', price: 12000 },
+        { desc: 'Site Survey and Assessment (per station)', qty: 6, unit: 'stations', price: 8500 },
+        { desc: 'Camera Placement Drawing and BOQ Preparation', qty: 6, unit: 'stations', price: 5000 },
+        { desc: 'Site Survey Report and Recommendations', qty: 1, unit: 'lot', price: 15000 },
       ]),
     });
 
-    createApprovedPr({
-      title: 'Recruitment Agency Retainer',
-      desc: 'Monthly retainer for executive search firm for senior engineering hires.',
-      justification: 'Internal recruitment cannot fill senior positions; agency has 85% success rate.',
-      priority: 'high', requester: grace, dept: hr, deptCode: 'HR', deptHead: hrHead,
-      createdDaysAgo: 38, neededInDays: -8,
+    const jrId = createApprovedPr({
+      title: 'AI Camera System Commissioning and Testing',
+      desc: 'Professional commissioning, configuration, and acceptance testing of the AI camera system.',
+      justification: 'Commissioning by certified engineers required per project contract. Includes camera calibration, AI analytics tuning, and client acceptance.',
+      priority: 'urgent', requester: miguel, dept: its, deptCode: 'ITS', deptHead: itsHead,
+      createdDaysAgo: 15, neededInDays: 3,
+      requestType: 'job_request', projectName: 'AI Camera System – Phase 1',
       items: makeItems([
-        { desc: 'Executive Search Retainer (6 months)', qty: 6, unit: 'months', price: 65000 },
-        { desc: 'Background Check Services (per candidate)', qty: 20, unit: 'checks', price: 3500 },
-      ]),
-    });
-
-    // ─── JOB REQUESTS ───
-    console.log('\nCreating job requests...');
-
-    const jrApprovedId = createApprovedPr({
-      title: 'Office HVAC Maintenance and Repair',
-      desc: 'Annual preventive maintenance and repair of all HVAC units in the building.',
-      justification: 'Several units are underperforming. PM contract prevents costly breakdowns.',
-      priority: 'high', requester: paolo, dept: ops, deptCode: 'OPS', deptHead: opsHead,
-      createdDaysAgo: 20, neededInDays: 5,
-      requestType: 'job_request', projectName: 'Building Maintenance 2026',
-      items: makeItems([
-        { desc: 'HVAC Preventive Maintenance (12 units)', qty: 12, unit: 'units', price: 5500 },
-        { desc: 'Compressor Repair (2 units)', qty: 2, unit: 'units', price: 18000 },
-        { desc: 'Refrigerant Recharge', qty: 4, unit: 'units', price: 3500 },
+        { desc: 'AI Camera Commissioning (per camera)', qty: 48, unit: 'cameras', price: 1500 },
+        { desc: 'AI Analytics Configuration and Tuning', qty: 48, unit: 'channels', price: 800 },
+        { desc: 'VMS Integration and Testing', qty: 1, unit: 'lot', price: 35000 },
+        { desc: 'Client Acceptance Testing and Documentation', qty: 1, unit: 'lot', price: 25000 },
       ]),
     });
 
     createPrAtStage({
-      title: 'Electrical Wiring Inspection and Repair',
-      desc: 'Professional inspection and repair of electrical wiring in the server room.',
-      justification: 'Building inspector flagged potential hazards during last audit.',
-      priority: 'urgent', requester: nina, dept: ops, deptCode: 'OPS', deptHead: opsHead,
-      createdDaysAgo: 3, neededInDays: 7,
-      stage: 'submitted',
-      requestType: 'job_request', projectName: 'Server Room Safety Upgrade',
-      items: makeItems([
-        { desc: 'Electrical Inspection & Testing', qty: 1, unit: 'lot', price: 25000 },
-        { desc: 'Wiring Replacement (server room)', qty: 1, unit: 'lot', price: 85000 },
-        { desc: 'Circuit Breaker Upgrade', qty: 4, unit: 'units', price: 12000 },
-      ]),
-    });
-
-    createPrAtStage({
-      title: 'Pest Control Service Contract',
-      desc: 'Monthly pest control treatment for all office floors.',
-      justification: 'Recent sightings reported by multiple employees.',
-      priority: 'medium', requester: paolo, dept: ops, deptCode: 'OPS', deptHead: opsHead,
-      createdDaysAgo: 1, neededInDays: 14,
+      title: 'CCTV Preventive Maintenance – Busway Phase 1 Systems',
+      desc: 'Quarterly preventive maintenance of all installed CCTV cameras and recording equipment in Phase 1 busway stations.',
+      justification: 'Post-warranty PM contract ensures system reliability and 99% uptime SLA compliance.',
+      priority: 'medium', requester: grace, dept: ops, deptCode: 'OPS', deptHead: opsHead,
+      createdDaysAgo: 1, neededInDays: 30,
       stage: 'draft',
-      requestType: 'job_request',
+      requestType: 'job_request', projectName: 'CCTV Installation – Busway Line 1',
       items: makeItems([
-        { desc: 'Monthly Pest Control (6 months contract)', qty: 6, unit: 'months', price: 8000 },
-        { desc: 'Initial Deep Treatment', qty: 1, unit: 'session', price: 15000 },
+        { desc: 'Quarterly PM Service (per station, 8 stations)', qty: 8, unit: 'stations', price: 6500 },
+        { desc: 'Camera Lens Cleaning and Focus Check (per camera)', qty: 120, unit: 'cameras', price: 150 },
+        { desc: 'NVR Health Check and Storage Verification', qty: 2, unit: 'units', price: 8000 },
+        { desc: 'PM Report and Certification per Station', qty: 8, unit: 'reports', price: 1500 },
       ]),
     });
 
-    // Add projectName to some existing PRs
-    // (The 'Development Laptops' and 'Cloud Infrastructure' PRs)
-
-    // ─── SUPPLIERS ───
+    // ─── SUPPLIERS ───────────────────────────────────────────
     console.log('\nCreating suppliers...');
     const suppliers = await Supplier.insertMany([
       {
-        companyName: 'TechHub Philippines Inc.',
-        address: '123 IT Park, Cebu City, Philippines',
+        companyName: 'TechVision Philippines Inc.',
+        address: '12F Cybergate Tower, EDSA, Mandaluyong City',
         taxType: 'vat', tin: '123-456-789-000',
-        contactPerson: 'Michael Tan', contactNumber: '+63 917 123 4567', email: 'sales@techhub.ph',
-        paymentTerms: 'Net 30', bankAccountName: 'TechHub Philippines Inc.', bankAccountNumber: '1234567890', bankName: 'BDO Unibank',
-        status: 'active', createdBy: procurementUser._id,
+        contactPerson: 'Michael Tan', contactNumber: '+63 917 123 4567', email: 'sales@techvision.ph',
+        paymentTerms: 'Net 30', bankAccountName: 'TechVision Philippines Inc.', bankAccountNumber: '1234567890', bankName: 'BDO Unibank',
+        status: 'active', notes: 'Authorized Hikvision distributor — preferred supplier for cameras', createdBy: procurementUser._id,
       },
       {
-        companyName: 'Office Depot Manila Corp.',
-        address: '456 Makati Ave, Makati City, Philippines',
-        taxType: 'vat', tin: '987-654-321-000',
-        contactPerson: 'Anna Reyes', contactNumber: '+63 918 987 6543', email: 'orders@officedepot.ph',
-        paymentTerms: 'Net 15', bankAccountName: 'Office Depot Manila Corp.', bankAccountNumber: '0987654321', bankName: 'BPI',
-        status: 'active', createdBy: procurementUser._id,
+        companyName: 'Cabletech Solutions Corp.',
+        address: '789 Shaw Blvd, Mandaluyong City',
+        taxType: 'vat', tin: '456-789-012-000',
+        contactPerson: 'Anna Reyes', contactNumber: '+63 920 456 7890', email: 'orders@cabletech.ph',
+        paymentTerms: 'Net 15', bankAccountName: 'Cabletech Solutions Corp.', bankAccountNumber: '0987654321', bankName: 'BPI',
+        status: 'active', notes: 'ISO-certified cables, bulk discount for 30+ boxes', createdBy: procurementUser._id,
       },
       {
-        companyName: 'CloudServe Solutions',
-        address: '789 BGC, Taguig City, Philippines',
-        taxType: 'vat', tin: '456-789-123-000',
-        contactPerson: 'David Cruz', contactNumber: '+63 920 456 7890', email: 'enterprise@cloudserve.ph',
-        paymentTerms: 'Net 60', bankAccountName: 'CloudServe Solutions', bankAccountNumber: '5678901234', bankName: 'Metrobank',
-        status: 'active', createdBy: accountingUser._id,
+        companyName: 'ServerPro Technologies Inc.',
+        address: '8F Rockwell Business Center, Makati City',
+        taxType: 'vat', tin: '789-012-345-000',
+        contactPerson: 'David Cruz', contactNumber: '+63 923 789 0123', email: 'enterprise@serverpro.ph',
+        paymentTerms: 'Net 30', bankAccountName: 'ServerPro Technologies Inc.', bankAccountNumber: '5678901234', bankName: 'Metrobank',
+        status: 'active', notes: 'HPE and Dell partner. Handles GPU servers and NVR equipment', createdBy: accountingUser._id,
       },
       {
-        companyName: 'FurnishPro Trading',
-        address: '321 Ortigas Center, Pasig City, Philippines',
-        taxType: 'vat', tin: '321-654-987-000',
-        contactPerson: 'Rosa Santos', contactNumber: '+63 916 321 6549', email: 'sales@furnishpro.ph',
-        paymentTerms: 'Net 30', bankAccountName: 'FurnishPro Trading', bankAccountNumber: '3216549870', bankName: 'Landbank',
-        status: 'active', createdBy: procurementUser._id,
+        companyName: 'AIVision Systems Philippines',
+        address: '30F Cyber Sigma, Mckinley Hill, Taguig City',
+        taxType: 'vat', tin: '012-345-678-000',
+        contactPerson: 'Rosa Santos', contactNumber: '+63 926 012 3456', email: 'solutions@aivision.ph',
+        paymentTerms: 'Net 45', bankAccountName: 'AIVision Systems Philippines', bankAccountNumber: '3216549870', bankName: 'Landbank',
+        status: 'active', notes: 'Exclusive AI analytics partner. Includes implementation support', createdBy: procurementUser._id,
       },
       {
-        companyName: 'PrintWorks Inc.',
-        address: '555 Quezon Ave, Quezon City, Philippines',
-        taxType: 'non_vat', tin: '555-111-222-000',
-        contactPerson: 'Leo Bautista', contactNumber: '+63 919 555 1112', email: 'info@printworks.ph',
-        paymentTerms: 'COD', bankAccountName: 'PrintWorks Inc.', bankAccountNumber: '5551112220', bankName: 'PNB',
-        status: 'active', createdBy: procurementUser._id,
+        companyName: 'SafetyGear Philippines Corp.',
+        address: '55 Commonwealth Ave, Quezon City',
+        taxType: 'non_vat', tin: '667-890-123-000',
+        contactPerson: 'Leo Bautista', contactNumber: '+63 932 678 9015', email: 'safety@safetygear.ph',
+        paymentTerms: 'COD', bankAccountName: 'SafetyGear Philippines Corp.', bankAccountNumber: '5551112220', bankName: 'PNB',
+        status: 'active', notes: 'DOLE-certified PPE supplier. Quick delivery for urgent orders', createdBy: procurementUser._id,
       },
       {
-        companyName: 'Reliable HVAC Services',
-        address: '888 Shaw Blvd, Mandaluyong City, Philippines',
-        taxType: 'non_vat', tin: '888-222-333-000',
-        contactPerson: 'Pedro Gomez', contactNumber: '+63 921 888 2223',
-        paymentTerms: 'Net 15',
-        status: 'active', notes: 'Preferred contractor for building maintenance', createdBy: procurementUser._id,
+        companyName: 'TechInstall Services Corp.',
+        address: '20 Boni Ave, Mandaluyong City',
+        taxType: 'non_vat', tin: '990-123-456-000',
+        contactPerson: 'Pedro Gomez', contactNumber: '+63 935 901 2348', email: 'projects@techinstall.ph',
+        paymentTerms: 'Net 15', bankAccountName: 'TechInstall Services Corp.',
+        status: 'active', notes: 'CCTV-specialized contractor. 10 years experience, DICT-accredited', createdBy: procurementUser._id,
       },
       {
-        companyName: 'Manila Electric Supply Co.',
-        address: '100 EDSA, Mandaluyong City, Philippines',
-        taxType: 'vat', tin: '100-200-300-000',
-        contactPerson: 'Grace Lim', contactNumber: '+63 922 100 2003', email: 'sales@mesco.ph',
+        companyName: 'HiSec Distribution Corp.',
+        address: '3F Avida Tower, Alabang, Muntinlupa City',
+        taxType: 'vat', tin: '234-567-890-000',
+        contactPerson: 'Grace Lim', contactNumber: '+63 918 234 5678', email: 'quotes@hisec.ph',
         paymentTerms: 'Net 30',
-        status: 'inactive', notes: 'Previously reliable but slow delivery recently', createdBy: accountingUser._id,
+        status: 'inactive', notes: 'Slow delivery on last 2 orders. On watch status', createdBy: accountingUser._id,
       },
     ]);
     console.log(`  Created ${suppliers.length} suppliers`);
 
-    // ─── PURCHASE ORDERS ───
+    // ─── Generate Attachments for Non-Draft PRs ────────────────
+    console.log('\nGenerating supplier quotation PDFs as attachments...');
+    let attachmentCount = 0;
+    for (const prDoc of allPrs) {
+      if (prDoc.status === 'draft') continue;
+      await attachQuotations(prDoc, prDoc.requesterId);
+      attachmentCount += prDoc.attachments.length;
+      process.stdout.write('.');
+    }
+    console.log(`\n  Generated ${attachmentCount} PDF attachments for ${allPrs.filter(p => p.status !== 'draft').length} PRs`);
+
+    // ─── Insert PRs ───────────────────────────────────────────
+    console.log(`  Inserting ${allPrs.length} purchase/job requests...`);
+    await PurchaseRequest.insertMany(allPrs);
+
+    // ─── PURCHASE ORDERS ──────────────────────────────────────
     console.log('\nCreating purchase orders...');
     const poYear = new Date().getFullYear();
     let poSeq = 0;
-    function nextPoNumber(): string {
-      poSeq++;
-      return `PO-${poYear}-${String(poSeq).padStart(5, '0')}`;
-    }
+    const nextPoNumber = () => `PO-${poYear}-${String(++poSeq).padStart(5, '0')}`;
 
-    // Find the approved PRs to link POs to (use the first few)
-    const approvedPrDocs = allPrs.filter(p => (p as any).status === 'approved');
-
+    const approvedPrDocs = allPrs.filter(p => p.status === 'approved');
     const allPos: mongoose.Document[] = [];
 
-    // PO 1: Issued PO for Development Laptops
+    // PO 1: Issued – IP Dome Cameras Batch 1
     if (approvedPrDocs[0]) {
-      const pr = approvedPrDocs[0] as any;
+      const pr = approvedPrDocs[0];
       allPos.push(new PurchaseOrder({
         poNumber: nextPoNumber(),
         purchaseRequestId: pr._id,
         sourceRequestNumber: pr.prNumber,
-        sourceRequestType: pr.requestType || 'purchase_request',
+        sourceRequestType: pr.requestType,
         supplierId: suppliers[0]._id,
-        items: pr.items.map((item: any) => ({
-          _id: new Types.ObjectId(),
-          description: item.description, quantity: item.quantity, unit: item.unit,
-          unitPrice: item.estimatedPrice, totalPrice: item.totalPrice,
-        })),
+        projectName: pr.projectName,
+        items: pr.items.map((item: any) => ({ _id: new Types.ObjectId(), description: item.description, quantity: item.quantity, unit: item.unit, unitPrice: item.estimatedPrice, totalPrice: item.totalPrice })),
         totalAmount: pr.totalAmount,
         canvassEntries: [
-          { _id: new Types.ObjectId(), supplierId: suppliers[0]._id, supplierName: 'TechHub Philippines Inc.', quotedItems: [], totalQuotedAmount: pr.totalAmount, remarks: 'Best price, local warranty', isSelected: true },
-          { _id: new Types.ObjectId(), supplierId: suppliers[2]._id, supplierName: 'CloudServe Solutions', quotedItems: [], totalQuotedAmount: pr.totalAmount * 1.08, remarks: 'Higher price but faster delivery', isSelected: false },
-          { _id: new Types.ObjectId(), supplierId: suppliers[3]._id, supplierName: 'FurnishPro Trading', quotedItems: [], totalQuotedAmount: pr.totalAmount * 1.15, remarks: 'No tech specialization', isSelected: false },
+          { _id: new Types.ObjectId(), supplierId: suppliers[0]._id, supplierName: 'TechVision Philippines Inc.', quotedItems: [], totalQuotedAmount: pr.totalAmount, remarks: 'Authorized Hikvision distributor. Best price with 2-year warranty.', isSelected: true },
+          { _id: new Types.ObjectId(), supplierId: suppliers[6]._id, supplierName: 'HiSec Distribution Corp.', quotedItems: [], totalQuotedAmount: Math.round(pr.totalAmount * 1.06), remarks: 'Higher price, Dahua brand alternative.', isSelected: false },
+          { _id: new Types.ObjectId(), supplierId: suppliers[2]._id, supplierName: 'ServerPro Technologies Inc.', quotedItems: [], totalQuotedAmount: Math.round(pr.totalAmount * 1.12), remarks: 'Not specialized in cameras, longest lead time.', isSelected: false },
         ],
         status: 'issued',
         createdBy: procurementUser._id,
         approvedBy: coo._id,
-        approvedAt: daysAgo(40),
-        issuedAt: daysAgo(38),
-        remarks: 'Delivery expected within 2 weeks.',
+        approvedAt: daysAgo(48),
+        issuedAt: daysAgo(45),
+        remarks: 'Delivery completed. All 120 cameras received and inspected.',
       }));
     }
 
-    // PO 2: Approved PO for Office Furniture
-    if (approvedPrDocs[7]) {
-      const pr = approvedPrDocs[7] as any;
+    // PO 2: Issued – Cat6 Cabling
+    if (approvedPrDocs[1]) {
+      const pr = approvedPrDocs[1];
       allPos.push(new PurchaseOrder({
         poNumber: nextPoNumber(),
         purchaseRequestId: pr._id,
         sourceRequestNumber: pr.prNumber,
-        sourceRequestType: pr.requestType || 'purchase_request',
-        supplierId: suppliers[3]._id,
-        items: pr.items.map((item: any) => ({
-          _id: new Types.ObjectId(),
-          description: item.description, quantity: item.quantity, unit: item.unit,
-          unitPrice: item.estimatedPrice, totalPrice: item.totalPrice,
-        })),
+        sourceRequestType: pr.requestType,
+        supplierId: suppliers[1]._id,
+        projectName: pr.projectName,
+        items: pr.items.map((item: any) => ({ _id: new Types.ObjectId(), description: item.description, quantity: item.quantity, unit: item.unit, unitPrice: item.estimatedPrice, totalPrice: item.totalPrice })),
         totalAmount: pr.totalAmount,
         canvassEntries: [
-          { _id: new Types.ObjectId(), supplierId: suppliers[3]._id, supplierName: 'FurnishPro Trading', quotedItems: [], totalQuotedAmount: pr.totalAmount, remarks: 'Specializes in office furniture', isSelected: true },
-          { _id: new Types.ObjectId(), supplierId: suppliers[1]._id, supplierName: 'Office Depot Manila Corp.', quotedItems: [], totalQuotedAmount: pr.totalAmount * 1.05, remarks: 'Slightly higher, longer lead time', isSelected: false },
+          { _id: new Types.ObjectId(), supplierId: suppliers[1]._id, supplierName: 'Cabletech Solutions Corp.', quotedItems: [], totalQuotedAmount: pr.totalAmount, remarks: 'ISO-certified cables. Bulk discount applied.', isSelected: true },
+          { _id: new Types.ObjectId(), supplierId: suppliers[1]._id, supplierName: 'NetInfra Philippines', quotedItems: [], totalQuotedAmount: Math.round(pr.totalAmount * 1.04), remarks: 'Free delivery above PHP 50,000.', isSelected: false },
+          { _id: new Types.ObjectId(), supplierId: suppliers[1]._id, supplierName: 'WireMax Supply Inc.', quotedItems: [], totalQuotedAmount: Math.round(pr.totalAmount * 1.09), remarks: 'Limited stock, cannot commit to delivery date.', isSelected: false },
+        ],
+        status: 'issued',
+        createdBy: procurementUser._id,
+        approvedBy: coo._id,
+        approvedAt: daysAgo(43),
+        issuedAt: daysAgo(41),
+        remarks: 'All cabling materials delivered to site warehouse.',
+      }));
+    }
+
+    // PO 3: Approved – Edge AI Server
+    if (approvedPrDocs[7]) {
+      const pr = approvedPrDocs[7];
+      allPos.push(new PurchaseOrder({
+        poNumber: nextPoNumber(),
+        purchaseRequestId: pr._id,
+        sourceRequestNumber: pr.prNumber,
+        sourceRequestType: pr.requestType,
+        supplierId: suppliers[2]._id,
+        projectName: pr.projectName,
+        items: pr.items.map((item: any) => ({ _id: new Types.ObjectId(), description: item.description, quantity: item.quantity, unit: item.unit, unitPrice: item.estimatedPrice, totalPrice: item.totalPrice })),
+        totalAmount: pr.totalAmount,
+        canvassEntries: [
+          { _id: new Types.ObjectId(), supplierId: suppliers[2]._id, supplierName: 'ServerPro Technologies Inc.', quotedItems: [], totalQuotedAmount: pr.totalAmount, remarks: 'Dell authorized partner. 3-year ProSupport included.', isSelected: true },
+          { _id: new Types.ObjectId(), supplierId: suppliers[2]._id, supplierName: 'DataCenter Philippines Corp.', quotedItems: [], totalQuotedAmount: Math.round(pr.totalAmount * 1.05), remarks: 'Lenovo alternative, includes rack installation.', isSelected: false },
+          { _id: new Types.ObjectId(), supplierId: suppliers[2]._id, supplierName: 'TechCore Systems PH', quotedItems: [], totalQuotedAmount: Math.round(pr.totalAmount * 1.10), remarks: 'Offers 24/7 support but highest price.', isSelected: false },
         ],
         status: 'approved',
         createdBy: procurementUser._id,
         approvedBy: coo._id,
-        approvedAt: daysAgo(15),
+        approvedAt: daysAgo(30),
+        remarks: 'Awaiting delivery. ETA 2 weeks from issuance.',
       }));
     }
 
-    // PO 3: Submitted PO for Office Supplies
-    if (approvedPrDocs[9]) {
-      const pr = approvedPrDocs[9] as any;
+    // PO 4: Submitted – AI Analytics License
+    if (approvedPrDocs[8]) {
+      const pr = approvedPrDocs[8];
       allPos.push(new PurchaseOrder({
         poNumber: nextPoNumber(),
         purchaseRequestId: pr._id,
         sourceRequestNumber: pr.prNumber,
-        sourceRequestType: pr.requestType || 'purchase_request',
-        supplierId: suppliers[1]._id,
-        items: pr.items.map((item: any) => ({
-          _id: new Types.ObjectId(),
-          description: item.description, quantity: item.quantity, unit: item.unit,
-          unitPrice: item.estimatedPrice, totalPrice: item.totalPrice,
-        })),
+        sourceRequestType: pr.requestType,
+        supplierId: suppliers[3]._id,
+        projectName: pr.projectName,
+        items: pr.items.map((item: any) => ({ _id: new Types.ObjectId(), description: item.description, quantity: item.quantity, unit: item.unit, unitPrice: item.estimatedPrice, totalPrice: item.totalPrice })),
         totalAmount: pr.totalAmount,
         status: 'submitted',
         createdBy: procurementUser._id,
       }));
     }
 
-    // PO 4: Draft PO for HVAC Job Request
-    if (jrApprovedId) {
-      const jrPr = allPrs.find(p => (p as any)._id.equals(jrApprovedId)) as any;
+    // PO 5: Draft – AI Commissioning JR
+    if (jrId) {
+      const jrPr = allPrs.find(p => p._id.equals(jrId));
       if (jrPr) {
         allPos.push(new PurchaseOrder({
           purchaseRequestId: jrPr._id,
           sourceRequestNumber: jrPr.prNumber,
           sourceRequestType: 'job_request',
           supplierId: suppliers[5]._id,
-          projectName: 'Building Maintenance 2026',
-          items: jrPr.items.map((item: any) => ({
-            _id: new Types.ObjectId(),
-            description: item.description, quantity: item.quantity, unit: item.unit,
-            unitPrice: item.estimatedPrice, totalPrice: item.totalPrice,
-          })),
+          projectName: jrPr.projectName,
+          items: jrPr.items.map((item: any) => ({ _id: new Types.ObjectId(), description: item.description, quantity: item.quantity, unit: item.unit, unitPrice: item.estimatedPrice, totalPrice: item.totalPrice })),
           totalAmount: jrPr.totalAmount,
           status: 'draft',
           createdBy: procurementUser._id,
-          remarks: 'Awaiting final quote confirmation from contractor.',
+          remarks: 'Awaiting final service agreement from TechInstall Services.',
         }));
       }
     }
-
-    // PO 5: Cancelled PO
-    if (approvedPrDocs[2]) {
-      const pr = approvedPrDocs[2] as any;
-      allPos.push(new PurchaseOrder({
-        poNumber: nextPoNumber(),
-        purchaseRequestId: pr._id,
-        sourceRequestNumber: pr.prNumber,
-        sourceRequestType: pr.requestType || 'purchase_request',
-        supplierId: suppliers[2]._id,
-        items: pr.items.map((item: any) => ({
-          _id: new Types.ObjectId(),
-          description: item.description, quantity: item.quantity, unit: item.unit,
-          unitPrice: item.estimatedPrice, totalPrice: item.totalPrice,
-        })),
-        totalAmount: pr.totalAmount,
-        status: 'cancelled',
-        createdBy: procurementUser._id,
-        cancellationReason: 'Vendor unable to deliver within required timeframe. Re-procuring with alternative supplier.',
-      }));
-    }
-
-    // ─── Insert all data ───
-    console.log(`  Inserting ${allPrs.length} purchase requests (incl. job requests)...`);
-    await PurchaseRequest.insertMany(allPrs);
 
     console.log(`  Inserting ${allPos.length} purchase orders...`);
     await PurchaseOrder.insertMany(allPos);
@@ -1041,60 +1362,56 @@ async function seed() {
     console.log(`  Inserting ${allNotifications.length} notifications...`);
     await Notification.insertMany(allNotifications);
 
-    // Update PR sequences
     for (const [code, count] of Object.entries(seqCounters)) {
       await PrSequence.create({ departmentCode: code, year, lastNumber: count });
     }
     console.log(`  Created PR sequences for ${Object.keys(seqCounters).length} departments`);
 
-    // ─── Summary ───
+    // ─── Summary ─────────────────────────────────────────────
     console.log('\n═══════════════════════════════════════════');
     console.log('  SEED COMPLETE');
     console.log('═══════════════════════════════════════════');
     console.log(`\n  Departments:         ${departments.length}`);
     console.log(`  Users:               ${users.length} (1 inactive)`);
     console.log(`  Suppliers:           ${suppliers.length}`);
-    console.log(`  Purchase Requests:   ${allPrs.filter(p => (p as any).requestType !== 'job_request').length}`);
-    console.log(`  Job Requests:        ${allPrs.filter(p => (p as any).requestType === 'job_request').length}`);
+    console.log(`  Purchase Requests:   ${allPrs.filter(p => p.requestType !== 'job_request').length}`);
+    console.log(`  Job Requests:        ${allPrs.filter(p => p.requestType === 'job_request').length}`);
     console.log(`  Purchase Orders:     ${allPos.length}`);
     console.log(`  Approval Records:    ${allApprovals.length}`);
     console.log(`  Notifications:       ${allNotifications.length}`);
+    console.log(`  PDF Attachments:     ${attachmentCount} files → ${UPLOADS_DIR}`);
     console.log('\n  All passwords: Password@123');
     console.log('\n  ┌───────────────────────────────────────────────────────┐');
     console.log('  │ Test Accounts                                         │');
     console.log('  ├───────────────────────────────────────────────────────┤');
-    console.log('  │ admin@prams.com              → Admin                  │');
-    console.log('  │ ceo@prams.com                → CEO                    │');
-    console.log('  │ coo@prams.com                → COO                    │');
-    console.log('  │ accounting@prams.com          → Accounting Officer     │');
-    console.log('  │ procurement@prams.com         → Procurement Officer    │');
-    console.log('  │ eng.head@prams.com            → Dept Head (ENG)        │');
-    console.log('  │ mkt.head@prams.com            → Dept Head (MKT)        │');
-    console.log('  │ hr.head@prams.com             → Dept Head (HR)         │');
-    console.log('  │ fin.head@prams.com            → Dept Head (FIN)        │');
-    console.log('  │ ops.head@prams.com            → Dept Head (OPS)        │');
-    console.log('  │ sal.head@prams.com            → Dept Head (SAL)        │');
-    console.log('  │ juan.delacruz@prams.com       → Staff (ENG)            │');
-    console.log('  │ diana.fernandez@prams.com     → Staff (MKT)            │');
-    console.log('  │ grace.santos@prams.com        → Staff (HR)             │');
-    console.log('  │ christine.navarro@prams.com   → Staff (FIN)            │');
-    console.log('  │ paolo.castro@prams.com        → Staff (OPS)            │');
-    console.log('  │ ramon.aguilar@prams.com       → Staff (SAL)            │');
+    console.log('  │ admin@wiwo.com               → Admin                  │');
+    console.log('  │ ceo@wiwo.com                 → CEO                    │');
+    console.log('  │ coo@wiwo.com                 → COO                    │');
+    console.log('  │ accounting@wiwo.com           → Accounting Officer     │');
+    console.log('  │ procurement@wiwo.com          → Procurement Officer    │');
+    console.log('  │ eng.head@wiwo.com             → Dept Head (ENG)        │');
+    console.log('  │ its.head@wiwo.com             → Dept Head (ITS)        │');
+    console.log('  │ ops.head@wiwo.com             → Dept Head (OPS)        │');
+    console.log('  │ fin.head@wiwo.com             → Dept Head (FIN)        │');
+    console.log('  │ pro.head@wiwo.com             → Dept Head (PRO)        │');
+    console.log('  │ adm.head@wiwo.com             → Dept Head (ADM)        │');
+    console.log('  │ juan.delacruz@wiwo.com        → Staff (ENG)            │');
+    console.log('  │ diana.fernandez@wiwo.com      → Staff (ITS)            │');
+    console.log('  │ grace.santos@wiwo.com         → Staff (OPS)            │');
+    console.log('  │ christine.navarro@wiwo.com    → Staff (FIN)            │');
+    console.log('  │ paolo.castro@wiwo.com         → Staff (PRO)            │');
     console.log('  └───────────────────────────────────────────────────────┘');
-    console.log('\n  PR/JR Status Distribution:');
-    console.log(`    Approved:   ${allPrs.filter(p => (p as any).status === 'approved').length}`);
-    console.log(`    Submitted:  ${allPrs.filter(p => (p as any).status === 'submitted').length}`);
-    console.log(`    In Review:  ${allPrs.filter(p => ['level1_review', 'level2_review', 'level3_review'].includes((p as any).status)).length}`);
-    console.log(`    Rejected:   ${allPrs.filter(p => (p as any).status === 'rejected').length}`);
-    console.log(`    Returned:   ${allPrs.filter(p => (p as any).status === 'returned').length}`);
-    console.log(`    Cancelled:  ${allPrs.filter(p => (p as any).status === 'cancelled').length}`);
-    console.log(`    Draft:      ${allPrs.filter(p => (p as any).status === 'draft').length}`);
-    console.log('\n  PO Status Distribution:');
-    console.log(`    Issued:     ${allPos.filter(p => (p as any).status === 'issued').length}`);
-    console.log(`    Approved:   ${allPos.filter(p => (p as any).status === 'approved').length}`);
-    console.log(`    Submitted:  ${allPos.filter(p => (p as any).status === 'submitted').length}`);
-    console.log(`    Draft:      ${allPos.filter(p => (p as any).status === 'draft').length}`);
-    console.log(`    Cancelled:  ${allPos.filter(p => (p as any).status === 'cancelled').length}`);
+    console.log('\n  PR Status Distribution:');
+    console.log(`    Approved:   ${allPrs.filter(p => p.status === 'approved').length}`);
+    console.log(`    Submitted:  ${allPrs.filter(p => p.status === 'submitted').length}`);
+    console.log(`    In Review:  ${allPrs.filter(p => ['level1_review', 'level2_review', 'level3_review'].includes(p.status)).length}`);
+    console.log(`    Rejected:   ${allPrs.filter(p => p.status === 'rejected').length}`);
+    console.log(`    Returned:   ${allPrs.filter(p => p.status === 'returned').length}`);
+    console.log(`    Cancelled:  ${allPrs.filter(p => p.status === 'cancelled').length}`);
+    console.log(`    Draft:      ${allPrs.filter(p => p.status === 'draft').length}`);
+    console.log('\n  Projects:');
+    console.log('    Project 1: CCTV Installation – Busway Line 1');
+    console.log('    Project 2: AI Camera System – Phase 1');
 
     await mongoose.disconnect();
   } catch (error) {

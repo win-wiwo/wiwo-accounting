@@ -33,9 +33,12 @@ services:
     env_file: .env
     environment:
       - MONGODB_URI=mongodb://mongodb:27017/prams?replicaSet=rs0
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
     volumes:
       - ./apps/api/src:/app/apps/api/src
       - ./packages/shared/src:/app/packages/shared/src
+      - ./apps/api/uploads:/app/uploads
     depends_on:
       mongodb:
         condition: service_healthy
@@ -51,6 +54,7 @@ services:
       - "5173:5173"
     environment:
       - VITE_API_URL=http://localhost:3000/api
+      - CHOKIDAR_USEPOLLING=true
     volumes:
       - ./apps/web/src:/app/apps/web/src
       - ./packages/shared/src:/app/packages/shared/src
