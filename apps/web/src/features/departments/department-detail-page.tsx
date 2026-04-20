@@ -63,6 +63,7 @@ export function DepartmentDetailPage() {
   });
 
   const dept = deptData?.data;
+  const deptHead = dept?.headId as unknown as { _id: string; firstName: string; lastName: string; email: string; employeeId: string } | null | undefined;
   const members = membersData?.data ?? [];
   const searchResults = (searchUsersData?.data ?? []).filter(
     (u) => !members.some((m) => m._id === u._id),
@@ -141,7 +142,7 @@ export function DepartmentDetailPage() {
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground">Department Head</p>
             <p className="mt-1 text-lg font-bold">
-              {dept.head ? `${dept.head.firstName} ${dept.head.lastName}` : 'Not assigned'}
+              {deptHead ? `${deptHead.firstName} ${deptHead.lastName}` : 'Not assigned'}
             </p>
           </CardContent>
         </Card>
@@ -182,7 +183,7 @@ export function DepartmentDetailPage() {
               </TableHeader>
               <TableBody>
                 {members.map((member) => {
-                  const isHead = dept.headId?.toString() === member._id;
+                  const isHead = deptHead?._id === member._id;
                   return (
                     <TableRow key={member._id}>
                       <TableCell>

@@ -163,7 +163,11 @@ export class DepartmentsService {
     });
 
     department.headId = user._id;
-    return department.save();
+    await department.save();
+    return this.departmentModel
+      .findById(department._id)
+      .populate('headId', 'firstName lastName email employeeId')
+      .exec() as Promise<Department>;
   }
 
   async getMembers(departmentId: string) {

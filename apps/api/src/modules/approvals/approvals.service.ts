@@ -5,7 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, FilterQuery } from 'mongoose';
+import { Model, FilterQuery, Types } from 'mongoose';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   ApprovalAction,
@@ -82,7 +82,7 @@ export class ApprovalsService {
 
     // Dept heads can only approve PRs from their own department
     if (currentLevel === ApprovalLevel.DEPT_HEAD) {
-      const dept = await this.departmentModel.findOne({ headId: user._id }).exec();
+      const dept = await this.departmentModel.findOne({ headId: new Types.ObjectId(user._id) }).exec();
       if (!dept || dept._id.toString() !== pr.departmentId.toString()) {
         throw new ForbiddenException(
           'You can only approve PRs from your own department',
@@ -183,8 +183,9 @@ export class ApprovalsService {
     const filter: FilterQuery<PurchaseRequest> = { status: pendingStatus };
 
     // Dept head can only see PRs from their department
-    if (user.role === UserRole.DEPT_HEAD && user.departmentId) {
-      const dept = await this.departmentModel.findOne({ headId: user._id }).exec();
+    if (user.role === UserRole.DEPT_HEAD) {
+      const userId = new Types.ObjectId(user._id);
+      const dept = await this.departmentModel.findOne({ headId: userId }).exec();
       if (dept) {
         filter.departmentId = dept._id;
       } else {
@@ -193,7 +194,7 @@ export class ApprovalsService {
     }
 
     // Exclude PRs created by the approver themselves
-    filter.requesterId = { $ne: user._id };
+    filter.requesterId = { $ne: new Types.ObjectId(user._id) };
 
     const skip = (Number(page) - 1) * Number(limit);
 
@@ -241,11 +242,11 @@ export class ApprovalsService {
 
     const filter: FilterQuery<PurchaseRequest> = {
       status: pendingStatus,
-      requesterId: { $ne: user._id },
+      requesterId: { $ne: new Types.ObjectId(user._id) },
     };
 
     if (user.role === UserRole.DEPT_HEAD) {
-      const dept = await this.departmentModel.findOne({ headId: user._id }).exec();
+      const dept = await this.departmentModel.findOne({ headId: new Types.ObjectId(user._id) }).exec();
       if (dept) {
         filter.departmentId = dept._id;
       } else {

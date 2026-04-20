@@ -1,19 +1,25 @@
-import { IsOptional, IsNumberString, IsBooleanString } from 'class-validator';
+import { IsOptional, IsInt, IsBoolean, Min } from 'class-validator';
+import { Type, Transform } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class QueryNotificationsDto {
   @ApiPropertyOptional()
   @IsOptional()
-  @IsNumberString()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
   page?: number;
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsNumberString()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
   limit?: number;
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsBooleanString()
-  unreadOnly?: string;
+  @Transform(({ value }) => value === 'true' || value === true)
+  @IsBoolean()
+  unreadOnly?: boolean;
 }
