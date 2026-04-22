@@ -11,13 +11,40 @@ import {
   Min,
   IsDateString,
   ArrayMinSize,
+  ArrayMaxSize,
   IsIn,
+  IsMongoId,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { PrPriority, PR_PRIORITIES } from '@prams/shared';
+import { PrPriority, PR_PRIORITIES, SourcingType } from '@prams/shared';
+
+export class SellerReferenceDto {
+  @ApiProperty({ example: 'Lazada - TechSupplies PH' })
+  @IsString()
+  @MinLength(1)
+  @MaxLength(100)
+  sellerName: string;
+
+  @ApiPropertyOptional({ example: 'https://lazada.com.ph/product/...' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  url?: string;
+
+  @ApiProperty({ example: 12500 })
+  @IsNumber()
+  @Min(0)
+  price: number;
+
+  @ApiPropertyOptional({ example: 'Free shipping, 1 year warranty' })
+  @IsString()
+  @MaxLength(500)
+  @IsOptional()
+  notes?: string;
+}
 
 export class LineItemDto {
-  @ApiProperty({ example: 'Office chair (ergonomic)' })
+  @ApiProperty({ example: 'Ergonomic office chair' })
   @IsString()
   @MinLength(1)
   @MaxLength(200)
@@ -34,16 +61,41 @@ export class LineItemDto {
   @MaxLength(20)
   unit: string;
 
-  @ApiProperty({ example: 12500 })
+  @ApiPropertyOptional({ example: 'Mesh back, lumbar support, adjustable height, 120kg capacity' })
+  @IsString()
+  @MaxLength(1000)
+  @IsOptional()
+  specifications?: string;
+
+  @ApiProperty({ enum: Object.values(SourcingType), example: SourcingType.PROCUREMENT })
+  @IsEnum(SourcingType)
+  sourcingType: SourcingType;
+
+  @ApiPropertyOptional({ example: 12500, description: 'Required for online sourcing' })
   @IsNumber()
   @Min(0)
-  estimatedPrice: number;
+  @IsOptional()
+  estimatedPrice?: number;
 
   @ApiPropertyOptional({ example: 'With lumbar support' })
   @IsString()
   @MaxLength(500)
   @IsOptional()
   notes?: string;
+
+  @ApiPropertyOptional({ type: [SellerReferenceDto], description: 'Online seller references (max 3)' })
+  @IsArray()
+  @ArrayMaxSize(3, { message: 'Maximum of 3 seller references allowed per item' })
+  @ValidateNested({ each: true })
+  @Type(() => SellerReferenceDto)
+  @IsOptional()
+  sellerReferences?: SellerReferenceDto[];
+
+  @ApiPropertyOptional({ example: 'Only one supplier available in the market for this item' })
+  @IsString()
+  @MaxLength(500)
+  @IsOptional()
+  sellerReferencesJustification?: string;
 }
 
 export class CreatePurchaseRequestDto {
@@ -64,11 +116,10 @@ export class CreatePurchaseRequestDto {
   @MaxLength(2000)
   description: string;
 
-  @ApiPropertyOptional({ example: 'Office Renovation Phase 2' })
-  @IsString()
-  @MaxLength(200)
+  @ApiPropertyOptional({ example: '6650a1b2c3d4e5f678901234' })
+  @IsMongoId()
   @IsOptional()
-  projectName?: string;
+  projectId?: string;
 
   @ApiProperty({ enum: PR_PRIORITIES, example: 'medium' })
   @IsEnum(PrPriority)
@@ -91,4 +142,37 @@ export class CreatePurchaseRequestDto {
   @IsDateString()
   @IsOptional()
   neededByDate?: string;
+}
+
+export class SubmitQuotationItemDto {
+  @ApiProperty()
+  @IsString()
+  itemId: string;
+
+  @ApiProperty({ example: 12500 })
+  @IsNumber()
+  @Min(0)
+  quotedUnitPrice: number;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  selectedSupplierId?: string;
+}
+
+export class SubmitQuotationDto {
+  @ApiProperty({ type: [SubmitQuotationItemDto] })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => SubmitQuotationItemDto)
+  items: SubmitQuotationItemDto[];
+}
+
+export class ReturnForInfoDto {
+  @ApiProperty({ example: 'Please provide exact model number and power specifications.' })
+  @IsString()
+  @MinLength(1)
+  @MaxLength(1000)
+  note: string;
 }

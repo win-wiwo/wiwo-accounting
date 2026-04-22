@@ -9,6 +9,7 @@ import {
   MaxLength,
   IsDateString,
   ArrayMinSize,
+  IsMongoId,
 } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { PrPriority, PR_PRIORITIES } from '@prams/shared';
@@ -29,11 +30,10 @@ export class UpdatePurchaseRequestDto {
   @IsOptional()
   description?: string;
 
-  @ApiPropertyOptional({ example: 'Office Renovation Phase 2' })
-  @IsString()
-  @MaxLength(200)
+  @ApiPropertyOptional()
+  @IsMongoId()
   @IsOptional()
-  projectName?: string;
+  projectId?: string;
 
   @ApiPropertyOptional({ enum: PR_PRIORITIES })
   @IsEnum(PrPriority)

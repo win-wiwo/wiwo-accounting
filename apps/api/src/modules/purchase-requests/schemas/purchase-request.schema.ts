@@ -1,6 +1,25 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
-import { PrStatus, PrPriority } from '@prams/shared';
+import { PrStatus, PrPriority, SourcingType } from '@prams/shared';
+
+@Schema({ _id: true })
+export class SellerReference {
+  _id: Types.ObjectId;
+
+  @Prop({ required: true, trim: true })
+  sellerName: string;
+
+  @Prop({ type: String, default: null })
+  url: string | null;
+
+  @Prop({ required: true, min: 0 })
+  price: number;
+
+  @Prop({ type: String, default: null })
+  notes: string | null;
+}
+
+export const SellerReferenceSchema = SchemaFactory.createForClass(SellerReference);
 
 @Schema({ _id: true })
 export class LineItem {
@@ -15,14 +34,37 @@ export class LineItem {
   @Prop({ required: true, trim: true })
   unit: string;
 
-  @Prop({ required: true, min: 0 })
+  @Prop({ type: String, default: null, trim: true })
+  specifications: string | null;
+
+  @Prop({ required: true, enum: Object.values(SourcingType), default: SourcingType.PROCUREMENT })
+  sourcingType: string;
+
+  @Prop({ required: true, min: 0, default: 0 })
   estimatedPrice: number;
 
-  @Prop({ required: true, min: 0 })
+  @Prop({ required: true, min: 0, default: 0 })
   totalPrice: number;
 
   @Prop({ type: String, default: null })
   notes: string | null;
+
+  // Online sourcing — up to 3 seller references
+  @Prop({ type: [SellerReferenceSchema], default: [] })
+  sellerReferences: SellerReference[];
+
+  @Prop({ type: String, default: null })
+  sellerReferencesJustification: string | null;
+
+  // Filled by Procurement team
+  @Prop({ type: Number, default: null })
+  quotedUnitPrice: number | null;
+
+  @Prop({ type: Types.ObjectId, ref: 'Supplier', default: null })
+  selectedSupplierId: Types.ObjectId | null;
+
+  @Prop({ type: Date, default: null })
+  quotedAt: Date | null;
 }
 
 export const LineItemSchema = SchemaFactory.createForClass(LineItem);
@@ -55,6 +97,22 @@ export class Attachment {
 
 export const AttachmentSchema = SchemaFactory.createForClass(Attachment);
 
+@Schema({ _id: true })
+export class QuotationReturn {
+  _id: Types.ObjectId;
+
+  @Prop({ required: true, trim: true })
+  note: string;
+
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  returnedBy: Types.ObjectId;
+
+  @Prop({ required: true, default: () => new Date() })
+  returnedAt: Date;
+}
+
+export const QuotationReturnSchema = SchemaFactory.createForClass(QuotationReturn);
+
 @Schema({ timestamps: true })
 export class PurchaseRequest extends Document {
   @Prop({ unique: true, sparse: true })
@@ -69,8 +127,8 @@ export class PurchaseRequest extends Document {
   @Prop({ required: true, trim: true })
   description: string;
 
-  @Prop({ type: String, default: null, trim: true })
-  projectName: string | null;
+  @Prop({ type: Types.ObjectId, ref: 'Project', default: null })
+  projectId: Types.ObjectId | null;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   requesterId: Types.ObjectId;
@@ -116,6 +174,14 @@ export class PurchaseRequest extends Document {
 
   @Prop({ type: String, default: null })
   cancellationReason: string | null;
+
+  // Set by Procurement when returning for more info
+  @Prop({ type: String, default: null })
+  quotationNote: string | null;
+
+  // Persistent history of all procurement returns
+  @Prop({ type: [QuotationReturnSchema], default: [] })
+  quotationReturnHistory: QuotationReturn[];
 
   createdAt: Date;
   updatedAt: Date;

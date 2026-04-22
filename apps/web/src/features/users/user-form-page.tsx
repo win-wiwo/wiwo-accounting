@@ -1,9 +1,8 @@
-import { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { USER_ROLES, ROLE_LABELS, type UserRole, type CreateUserDto, type UpdateUserDto } from '@prams/shared';
+import { USER_ROLES, ROLE_LABELS, type UserRole, type UserWithDepartment, type CreateUserDto, type UpdateUserDto } from '@prams/shared';
 import { useUser, useCreateUser, useUpdateUser } from '@/hooks/use-users';
 import { useDepartments } from '@/hooks/use-departments';
 import { useToast } from '@/components/ui/toast';
@@ -37,46 +36,82 @@ const updateSchema = createSchema.omit({ password: true, employeeId: true }).par
 type CreateForm = z.infer<typeof createSchema>;
 type UpdateForm = z.infer<typeof updateSchema>;
 
+interface Department {
+  _id: string;
+  name: string;
+  code: string;
+}
+
+// ─── Wrapper: fetches data, shows skeleton, then renders form ───────────────
+
 export function UserFormPage() {
   const { id } = useParams();
   const isEdit = !!id;
-  const navigate = useNavigate();
-  const { toast } = useToast();
 
   const { data: userData, isLoading: userLoading } = useUser(id ?? '');
-  const { data: deptsData } = useDepartments({ limit: 100 });
+  const { data: deptsData, isLoading: deptsLoading } = useDepartments({ limit: 100 });
+
+  const departments: Department[] = (deptsData?.data ?? []) as Department[];
+
+  if ((isEdit && userLoading) || deptsLoading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-96 w-full" />
+      </div>
+    );
+  }
+
+  const existingUser = userData?.data as UserWithDepartment | undefined;
+
+  return (
+    <UserFormContent
+      key={existingUser?._id ?? 'new'}
+      isEdit={isEdit}
+      userId={id}
+      existingUser={existingUser}
+      departments={departments}
+    />
+  );
+}
+
+// ─── Form: receives data as props, initialises form with defaultValues ───────
+
+interface UserFormContentProps {
+  isEdit: boolean;
+  userId?: string;
+  existingUser?: UserWithDepartment;
+  departments: Department[];
+}
+
+function UserFormContent({ isEdit, userId, existingUser, departments }: UserFormContentProps) {
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const createMutation = useCreateUser();
   const updateMutation = useUpdateUser();
-
-  const departments = deptsData?.data ?? [];
 
   const {
     register,
     handleSubmit,
     setValue,
     watch,
-    reset,
     formState: { errors, isSubmitting },
   } = useForm<CreateForm>({
     resolver: zodResolver(isEdit ? (updateSchema as unknown as typeof createSchema) : createSchema),
+    defaultValues: isEdit && existingUser
+      ? {
+          firstName: existingUser.firstName,
+          lastName: existingUser.lastName,
+          email: existingUser.email,
+          role: existingUser.role,
+          departmentId: existingUser.departmentId ?? undefined,
+          employeeId: existingUser.employeeId,
+        }
+      : undefined,
   });
 
   const selectedRole = watch('role');
-
-  useEffect(() => {
-    if (isEdit && userData?.data) {
-      const u = userData.data;
-      reset({
-        firstName: u.firstName,
-        lastName: u.lastName,
-        email: u.email,
-        role: u.role,
-        departmentId: u.departmentId ?? undefined,
-        employeeId: u.employeeId,
-        password: '',
-      });
-    }
-  }, [isEdit, userData, reset]);
+  const selectedDeptId = watch('departmentId');
 
   const onSubmit = async (data: CreateForm | UpdateForm) => {
     try {
@@ -84,7 +119,7 @@ export function UserFormPage() {
         const { employeeId: _eid, password: _pwd, ...rest } = data as CreateForm;
         void _eid;
         void _pwd;
-        await updateMutation.mutateAsync({ id: id!, data: rest as unknown as UpdateUserDto });
+        await updateMutation.mutateAsync({ id: userId!, data: rest as unknown as UpdateUserDto });
         toast({ title: 'User updated', variant: 'success' });
       } else {
         await createMutation.mutateAsync(data as unknown as CreateUserDto);
@@ -99,15 +134,6 @@ export function UserFormPage() {
       toast({ title: 'Error', description: message || 'Failed to save user.', variant: 'error' });
     }
   };
-
-  if (isEdit && userLoading) {
-    return (
-      <div className="space-y-6">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-96 w-full" />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -184,7 +210,7 @@ export function UserFormPage() {
               <div className="space-y-2">
                 <Label>Department</Label>
                 <Select
-                  value={watch('departmentId') || 'none'}
+                  value={selectedDeptId || 'none'}
                   onValueChange={(v) =>
                     setValue('departmentId', v === 'none' ? undefined : v, { shouldValidate: true })
                   }

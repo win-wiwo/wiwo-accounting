@@ -21,12 +21,16 @@ import {
   Eye,
   Loader2,
   FileText,
+  ExternalLink,
+  AlertCircle,
+  ShoppingCart,
 } from 'lucide-react';
 import {
   PR_STATUS_LABELS,
   PR_PRIORITY_LABELS,
   APPROVAL_LEVEL_LABELS,
   PrStatus,
+  SourcingType,
   UserRole,
   type PrStatus as PrStatusType,
   type PrPriority as PrPriorityType,
@@ -78,10 +82,14 @@ const statusVariant = (status: string) => {
     case 'level1_review':
     case 'level2_review':
     case 'level3_review':
+    case 'quoted':
       return 'info' as const;
+    case 'pending_quotation': return 'warning' as const;
     case 'approved': return 'success' as const;
     case 'rejected': return 'destructive' as const;
-    case 'returned': return 'warning' as const;
+    case 'returned':
+    case 'returned_for_info':
+      return 'warning' as const;
     case 'cancelled': return 'secondary' as const;
     default: return 'secondary' as const;
   }
@@ -131,14 +139,14 @@ export function PrDetailPage() {
 
   const pr = data?.data;
   const { data: approvalHistoryData } = useApprovalHistory(id!);
-  const approvalHistory = ((approvalHistoryData as unknown as { data: Array<{
+  const approvalHistory = ((approvalHistoryData as unknown as { data?: Array<{
     _id: string;
     approvalLevel: number;
     action: string;
     comments: string;
     actionDate: string;
     approverId: { firstName: string; lastName: string; role: string };
-  }> })?.data) ?? [];
+  }> })?.data ?? []);
 
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
@@ -308,11 +316,13 @@ export function PrDetailPage() {
   const isDraft = pr.status === PrStatus.DRAFT;
   const isSubmitted = pr.status === PrStatus.SUBMITTED;
   const isReturned = pr.status === PrStatus.RETURNED;
+  const isReturnedForInfo = pr.status === PrStatus.RETURNED_FOR_INFO;
+  const isPendingQuotation = pr.status === PrStatus.PENDING_QUOTATION;
   const isCancelled = pr.status === PrStatus.CANCELLED;
   const isOwner = requester?._id === user?._id;
-  const canEdit = isOwner && (isDraft || isReturned);
-  const canRecall = isOwner && isSubmitted;
-  const canCancel = isOwner && (isDraft || isSubmitted);
+  const canEdit = isOwner && (isDraft || isReturned || isReturnedForInfo);
+  const canRecall = isOwner && (isSubmitted || isPendingQuotation || isReturnedForInfo);
+  const canCancel = isOwner && (isDraft || isSubmitted || isPendingQuotation || isReturnedForInfo);
 
   // Determine if the current user can act on this PR as an approver
   const pendingStatuses: string[] = [PrStatus.SUBMITTED, PrStatus.LEVEL1_REVIEW, PrStatus.LEVEL2_REVIEW, PrStatus.LEVEL3_REVIEW];
@@ -451,19 +461,75 @@ export function PrDetailPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {pr.items.map((item, i) => (
-                    <TableRow key={item._id}>
-                      <TableCell className="text-muted-foreground">{i + 1}</TableCell>
-                      <TableCell>
-                        <p className="font-medium">{item.description}</p>
-                        {item.notes && <p className="text-xs text-muted-foreground">{item.notes}</p>}
-                      </TableCell>
-                      <TableCell className="text-right">{item.quantity}</TableCell>
-                      <TableCell>{item.unit}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(item.estimatedPrice)}</TableCell>
-                      <TableCell className="text-right font-medium">{formatCurrency(item.totalPrice)}</TableCell>
-                    </TableRow>
-                  ))}
+                  {pr.items.map((item, i) => {
+                    const isProcurement = item.sourcingType === SourcingType.PROCUREMENT;
+                    const displayPrice = isProcurement
+                      ? (item.quotedUnitPrice ?? 0)
+                      : (item.estimatedPrice ?? 0);
+                    const priceLabel = isProcurement && !item.quotedUnitPrice
+                      ? '—'
+                      : formatCurrency(displayPrice);
+                    return (
+                      <TableRow key={item._id}>
+                        <TableCell className="text-muted-foreground">{i + 1}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+                            <p className="font-medium">{item.description}</p>
+                            {isProcurement ? (
+                              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-0.5">
+                                <ShoppingCart className="h-2.5 w-2.5" /> Procurement
+                              </Badge>
+                            ) : (
+                              <Badge variant="info" className="text-[10px] px-1.5 py-0">Online</Badge>
+                            )}
+                          </div>
+                          {item.specifications && (
+                            <p className="text-xs text-muted-foreground bg-muted/50 rounded px-1.5 py-0.5 mt-1">
+                              {item.specifications}
+                            </p>
+                          )}
+                          {item.notes && <p className="text-xs text-muted-foreground italic mt-0.5">{item.notes}</p>}
+                          {/* Seller references for online items */}
+                          {!isProcurement && item.sellerReferences && item.sellerReferences.length > 0 && (
+                            <div className="mt-1.5 space-y-0.5">
+                              {item.sellerReferences.map((ref, ri) => (
+                                <div key={ri} className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <span>{ref.sellerName} — {formatCurrency(ref.price)}</span>
+                                  {ref.url && (
+                                    <a href={ref.url} target="_blank" rel="noopener noreferrer"
+                                      className="flex items-center gap-0.5 text-blue-600 hover:underline">
+                                      <ExternalLink className="h-3 w-3" />
+                                    </a>
+                                  )}
+                                </div>
+                              ))}
+                              {item.sellerReferencesJustification && (
+                                <p className="text-xs text-amber-700 flex items-center gap-1 mt-0.5">
+                                  <AlertCircle className="h-3 w-3 shrink-0" />
+                                  {item.sellerReferencesJustification}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                          {isProcurement && item.quotedUnitPrice && item.quotedAt && (
+                            <p className="text-xs text-emerald-700 mt-0.5">
+                              Quoted {formatDate(item.quotedAt)}
+                            </p>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">{item.quantity}</TableCell>
+                        <TableCell>{item.unit}</TableCell>
+                        <TableCell className="text-right">
+                          {isProcurement && !item.quotedUnitPrice
+                            ? <span className="text-muted-foreground text-xs">Pending</span>
+                            : priceLabel}
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
+                          {item.totalPrice > 0 ? formatCurrency(item.totalPrice) : <span className="text-muted-foreground text-xs">TBQ</span>}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
               <Separator />
@@ -471,6 +537,9 @@ export function PrDetailPage() {
                 <div className="text-right">
                   <p className="text-xs text-muted-foreground">Total Amount</p>
                   <p className="text-2xl font-bold">{formatCurrency(pr.totalAmount)}</p>
+                  {pr.items.some((i) => i.sourcingType === SourcingType.PROCUREMENT && !i.quotedUnitPrice) && (
+                    <p className="text-xs text-amber-600 mt-0.5">* Procurement items pending quotation</p>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -566,6 +635,20 @@ export function PrDetailPage() {
             </CardContent>
           </Card>
 
+          {/* Returned for Info Note */}
+          {(pr as unknown as { quotationNote?: string }).quotationNote && (
+            <Card className="border-amber-300">
+              <CardHeader>
+                <CardTitle className="text-base text-amber-700 flex items-center gap-2">
+                  <RotateCcw className="h-4 w-4" /> Returned for More Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm">{(pr as unknown as { quotationNote: string }).quotationNote}</p>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Cancellation Reason */}
           {isCancelled && (pr as unknown as { cancellationReason: string }).cancellationReason && (
             <Card className="border-destructive/30">
@@ -586,11 +669,18 @@ export function PrDetailPage() {
               <CardTitle className="text-base">Details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {pr.projectName && (
+              {pr.projectId && (
                 <>
                   <div>
-                    <p className="text-xs font-medium text-muted-foreground">Project Name</p>
-                    <p className="mt-1 text-sm font-medium">{pr.projectName}</p>
+                    <p className="text-xs font-medium text-muted-foreground">Project</p>
+                    <p className="mt-1 text-sm font-medium">
+                      {(pr.projectId as unknown as { name: string; code: string | null }).name}
+                      {(pr.projectId as unknown as { code: string | null }).code && (
+                        <span className="ml-1.5 font-mono text-xs bg-muted px-1.5 py-0.5 rounded">
+                          {(pr.projectId as unknown as { code: string | null }).code}
+                        </span>
+                      )}
+                    </p>
                   </div>
                   <Separator />
                 </>
@@ -635,6 +725,16 @@ export function PrDetailPage() {
                 <p className="text-sm text-muted-foreground">
                   Submit this PR to start the approval process.
                 </p>
+              ) : isPendingQuotation ? (
+                <div className="flex items-center gap-2 text-sm text-amber-700">
+                  <ShoppingCart className="h-4 w-4" />
+                  <span>Awaiting quotation from Procurement team.</span>
+                </div>
+              ) : isReturnedForInfo ? (
+                <div className="flex items-center gap-2 text-sm text-amber-700">
+                  <RotateCcw className="h-4 w-4" />
+                  <span>Returned for more information. Update and resubmit.</span>
+                </div>
               ) : approvalHistory.length === 0 ? (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Clock className="h-4 w-4" />
@@ -686,7 +786,9 @@ export function PrDetailPage() {
             </DialogTitle>
             <DialogDescription>
               {confirmDialog.type === 'submit' &&
-                'This will generate a PR number and route it to your department head for approval.'}
+                (pr.items.some((i) => i.sourcingType === SourcingType.PROCUREMENT)
+                  ? 'This will generate a PR number and send it to the Procurement team for quotation before approval.'
+                  : 'This will generate a PR number and route it to your department head for approval.')}
               {confirmDialog.type === 'recall' &&
                 'This will move the PR back to Draft status. You can edit and resubmit it later.'}
               {confirmDialog.type === 'delete' &&

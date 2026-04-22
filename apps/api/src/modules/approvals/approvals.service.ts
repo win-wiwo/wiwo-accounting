@@ -16,7 +16,6 @@ import {
 import { Approval } from './schemas/approval.schema';
 import { CreateApprovalDto, QueryApprovalsDto } from './dto';
 import { PurchaseRequest } from '../purchase-requests/schemas/purchase-request.schema';
-import { Department } from '../departments/schemas/department.schema';
 
 interface RequestUser {
   _id: string;
@@ -28,6 +27,7 @@ interface RequestUser {
 const STATUS_TO_LEVEL: Record<string, number> = {
   [PrStatus.SUBMITTED]: ApprovalLevel.DEPT_HEAD,
   [PrStatus.LEVEL1_REVIEW]: ApprovalLevel.DEPT_HEAD,
+  [PrStatus.QUOTED]: ApprovalLevel.DEPT_HEAD,
   [PrStatus.LEVEL2_REVIEW]: ApprovalLevel.COO,
   [PrStatus.LEVEL3_REVIEW]: ApprovalLevel.CEO,
 };
@@ -51,7 +51,6 @@ export class ApprovalsService {
   constructor(
     @InjectModel(Approval.name) private approvalModel: Model<Approval>,
     @InjectModel(PurchaseRequest.name) private prModel: Model<PurchaseRequest>,
-    @InjectModel(Department.name) private departmentModel: Model<Department>,
     private eventEmitter: EventEmitter2,
   ) {}
 
@@ -164,33 +163,30 @@ export class ApprovalsService {
   async getPendingForUser(user: RequestUser, query: QueryApprovalsDto) {
     const { page = 1, limit = 10 } = query;
 
-    // Determine which status to filter by based on the user's role
-    let pendingStatus: string;
+    // Determine which status(es) to filter by based on the user's role
+    let pendingStatuses: string[];
     switch (user.role) {
       case UserRole.DEPT_HEAD:
-        pendingStatus = PrStatus.SUBMITTED;
+        pendingStatuses = [PrStatus.SUBMITTED, PrStatus.LEVEL1_REVIEW, PrStatus.QUOTED];
         break;
       case UserRole.COO:
-        pendingStatus = PrStatus.LEVEL2_REVIEW;
+        pendingStatuses = [PrStatus.LEVEL2_REVIEW];
         break;
       case UserRole.CEO:
-        pendingStatus = PrStatus.LEVEL3_REVIEW;
+        pendingStatuses = [PrStatus.LEVEL3_REVIEW];
         break;
       default:
         return { data: [], meta: { total: 0, page: Number(page), limit: Number(limit), totalPages: 0 } };
     }
 
-    const filter: FilterQuery<PurchaseRequest> = { status: pendingStatus };
+    const filter: FilterQuery<PurchaseRequest> = { status: { $in: pendingStatuses } };
 
     // Dept head can only see PRs from their department
     if (user.role === UserRole.DEPT_HEAD) {
-      const userId = new Types.ObjectId(user._id);
-      const dept = await this.departmentModel.findOne({ headId: userId }).exec();
-      if (dept) {
-        filter.departmentId = dept._id;
-      } else {
+      if (!user.departmentId) {
         return { data: [], meta: { total: 0, page: Number(page), limit: Number(limit), totalPages: 0 } };
       }
+      filter.departmentId = new Types.ObjectId(user.departmentId);
     }
 
     // Exclude PRs created by the approver themselves
@@ -225,33 +221,29 @@ export class ApprovalsService {
    * Count of PRs pending the current user's approval.
    */
   async getPendingCount(user: RequestUser): Promise<number> {
-    let pendingStatus: string;
+    let pendingStatuses: string[];
     switch (user.role) {
       case UserRole.DEPT_HEAD:
-        pendingStatus = PrStatus.SUBMITTED;
+        pendingStatuses = [PrStatus.SUBMITTED, PrStatus.LEVEL1_REVIEW, PrStatus.QUOTED];
         break;
       case UserRole.COO:
-        pendingStatus = PrStatus.LEVEL2_REVIEW;
+        pendingStatuses = [PrStatus.LEVEL2_REVIEW];
         break;
       case UserRole.CEO:
-        pendingStatus = PrStatus.LEVEL3_REVIEW;
+        pendingStatuses = [PrStatus.LEVEL3_REVIEW];
         break;
       default:
         return 0;
     }
 
     const filter: FilterQuery<PurchaseRequest> = {
-      status: pendingStatus,
-      requesterId: { $ne: new Types.ObjectId(user._id) },
+      status: { $in: pendingStatuses },
+      requesterId: { $ne: user._id },
     };
 
     if (user.role === UserRole.DEPT_HEAD) {
-      const dept = await this.departmentModel.findOne({ headId: new Types.ObjectId(user._id) }).exec();
-      if (dept) {
-        filter.departmentId = dept._id;
-      } else {
-        return 0;
-      }
+      if (!user.departmentId) return 0;
+      filter.departmentId = new Types.ObjectId(user.departmentId);
     }
 
     return this.prModel.countDocuments(filter);

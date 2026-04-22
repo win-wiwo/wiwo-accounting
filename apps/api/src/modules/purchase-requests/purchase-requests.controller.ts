@@ -22,7 +22,7 @@ import { extname, join } from 'path';
 import { existsSync, createReadStream } from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { PurchaseRequestsService } from './purchase-requests.service';
-import { CreatePurchaseRequestDto, UpdatePurchaseRequestDto, QueryPurchaseRequestsDto } from './dto';
+import { CreatePurchaseRequestDto, UpdatePurchaseRequestDto, QueryPurchaseRequestsDto, SubmitQuotationDto, ReturnForInfoDto } from './dto';
 import { CurrentUser } from '../../common/decorators';
 import { ParseObjectIdPipe } from '../../common/pipes';
 
@@ -93,6 +93,26 @@ export class PurchaseRequestsController {
     @CurrentUser() user: { _id: string; role: string; departmentId: string | null },
   ) {
     return this.prService.recall(id, user);
+  }
+
+  @Post(':id/quotation')
+  @ApiOperation({ summary: 'Procurement: submit price quotation for a PR' })
+  async submitQuotation(
+    @Param('id', ParseObjectIdPipe) id: string,
+    @Body() dto: SubmitQuotationDto,
+    @CurrentUser() user: { _id: string; role: string; departmentId: string | null },
+  ) {
+    return this.prService.submitQuotation(id, dto, user);
+  }
+
+  @Post(':id/return-for-info')
+  @ApiOperation({ summary: 'Procurement: return PR to requester for more information' })
+  async returnForInfo(
+    @Param('id', ParseObjectIdPipe) id: string,
+    @Body() dto: ReturnForInfoDto,
+    @CurrentUser() user: { _id: string; role: string; departmentId: string | null },
+  ) {
+    return this.prService.returnForInfo(id, dto.note, user);
   }
 
   @Post(':id/cancel')

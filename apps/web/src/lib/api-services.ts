@@ -104,6 +104,7 @@ export interface PurchaseRequestsQuery {
 export interface CreatePrPayload {
   requestType?: string;
   title: string;
+  projectId?: string;
   description: string;
   priority: string;
   items: Array<{
@@ -143,6 +144,12 @@ export const purchaseRequestsApi = {
 
   cancel: (id: string, reason: string) =>
     apiClient.post<ApiResponse<PurchaseRequest>>(`/purchase-requests/${id}/cancel`, { reason }).then((r) => r.data),
+
+  submitQuotation: (id: string, items: Array<{ itemId: string; quotedUnitPrice: number; selectedSupplierId?: string }>) =>
+    apiClient.post<ApiResponse<PurchaseRequest>>(`/purchase-requests/${id}/quotation`, { items }).then((r) => r.data),
+
+  returnForInfo: (id: string, note: string) =>
+    apiClient.post<ApiResponse<PurchaseRequest>>(`/purchase-requests/${id}/return-for-info`, { note }).then((r) => r.data),
 
   uploadAttachment: (id: string, file: File) => {
     const formData = new FormData();
@@ -325,6 +332,36 @@ export const purchaseOrdersApi = {
 
   cancel: (id: string, reason: string) =>
     apiClient.post<ApiResponse<any>>(`/purchase-orders/${id}/cancel`, { reason }).then((r) => r.data),
+};
+
+// ─── Projects ────────────────────────────────────────────────
+
+export interface ProjectsQuery {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: string;
+}
+
+export const projectsApi = {
+  list: (params: ProjectsQuery = {}) =>
+    apiClient
+      .get<ApiResponse<import('@prams/shared').Project[]> & { meta: PaginationMeta }>('/projects', { params })
+      .then((r) => r.data),
+
+  listActive: () =>
+    apiClient
+      .get<ApiResponse<import('@prams/shared').Project[]>>('/projects/active')
+      .then((r) => r.data.data ?? []),
+
+  getById: (id: string) =>
+    apiClient.get<ApiResponse<import('@prams/shared').Project>>(`/projects/${id}`).then((r) => r.data),
+
+  create: (data: import('@prams/shared').CreateProjectDto) =>
+    apiClient.post<ApiResponse<import('@prams/shared').Project>>('/projects', data).then((r) => r.data),
+
+  update: (id: string, data: import('@prams/shared').UpdateProjectDto) =>
+    apiClient.patch<ApiResponse<import('@prams/shared').Project>>(`/projects/${id}`, data).then((r) => r.data),
 };
 
 // ─── Auth ────────────────────────────────────────────────────

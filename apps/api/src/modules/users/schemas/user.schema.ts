@@ -53,6 +53,13 @@ UserSchema.set('toJSON', {
     delete ret.passwordHash;
     delete ret.refreshToken;
     delete ret.__v;
+
+    if (ret.departmentId && typeof ret.departmentId === 'object' && !Array.isArray(ret.departmentId)) {
+      const dept = ret.departmentId as { _id: unknown; name: unknown; code: unknown };
+      ret.department = { _id: dept._id, name: dept.name, code: dept.code };
+      ret.departmentId = dept._id;
+    }
+
     return ret;
   },
 } as never);

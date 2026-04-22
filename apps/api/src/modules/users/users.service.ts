@@ -5,7 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, FilterQuery } from 'mongoose';
+import { Model, FilterQuery, Types } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 import { User } from './schemas/user.schema';
 import { CreateUserDto, UpdateUserDto, QueryUsersDto } from './dto';
@@ -55,7 +55,7 @@ export class UsersService {
     }
 
     if (departmentId) {
-      filter.departmentId = departmentId;
+      filter.departmentId = new Types.ObjectId(departmentId);
     }
 
     const skip = (page - 1) * limit;

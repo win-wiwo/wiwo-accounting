@@ -11,6 +11,8 @@ import {
   Search,
   Truck,
   ShoppingCart,
+  ClipboardList,
+  FolderOpen,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth.store';
@@ -43,6 +45,12 @@ const navigation: NavItem[] = [
     icon: FileText,
   },
   {
+    label: 'Procurement Queue',
+    href: '/procurement',
+    icon: ClipboardList,
+    roles: [UserRole.PROCUREMENT, UserRole.ADMIN],
+  },
+  {
     label: 'Suppliers',
     href: '/suppliers',
     icon: Truck,
@@ -73,6 +81,12 @@ const navigation: NavItem[] = [
 ];
 
 const adminNavigation: NavItem[] = [
+  {
+    label: 'Projects',
+    href: '/projects',
+    icon: FolderOpen,
+    roles: [UserRole.ADMIN, UserRole.CEO, UserRole.COO],
+  },
   {
     label: 'Users',
     href: '/users',

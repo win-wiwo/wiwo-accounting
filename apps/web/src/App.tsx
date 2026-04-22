@@ -26,6 +26,8 @@ import { SupplierDetailPage } from '@/features/suppliers/supplier-detail-page';
 import { PoListPage } from '@/features/purchase-orders/po-list-page';
 import { PoFormPage } from '@/features/purchase-orders/po-form-page';
 import { PoDetailPage } from '@/features/purchase-orders/po-detail-page';
+import { ProcurementQueuePage } from '@/features/procurement/procurement-queue-page';
+import { ProjectsPage } from '@/features/projects/projects-page';
 import { ForbiddenPage, NotFoundPage } from '@/routes/error-pages';
 
 const queryClient = new QueryClient({
@@ -188,6 +190,26 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
+              {/* Projects */}
+              <Route
+                path="/projects"
+                element={
+                  <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CEO, UserRole.COO]}>
+                    <ProjectsPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Procurement Queue */}
+              <Route
+                path="/procurement"
+                element={
+                  <ProtectedRoute allowedRoles={[UserRole.PROCUREMENT, UserRole.ADMIN]}>
+                    <ProcurementQueuePage />
+                  </ProtectedRoute>
+                }
+              />
+
               <Route path="/reports" element={<ReportsPage />} />
               <Route
                 path="/settings"

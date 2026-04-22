@@ -106,3 +106,25 @@ export function useRemoveAttachment() {
     },
   });
 }
+
+export function useSubmitQuotation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, items }: { id: string; items: Array<{ itemId: string; quotedUnitPrice: number; selectedSupplierId?: string }> }) =>
+      purchaseRequestsApi.submitQuotation(id, items),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['purchase-requests'] });
+    },
+  });
+}
+
+export function useReturnForInfo() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, note }: { id: string; note: string }) =>
+      purchaseRequestsApi.returnForInfo(id, note),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['purchase-requests'] });
+    },
+  });
+}

@@ -5,7 +5,8 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, FilterQuery } from 'mongoose';
+import { Model, FilterQuery, Types } from 'mongoose';
+import { SubmitQuotationDto } from './dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrStatus, UserRole } from '@prams/shared';
 import { PurchaseRequest } from './schemas/purchase-request.schema';
@@ -37,20 +38,24 @@ export class PurchaseRequestsService {
       throw new BadRequestException('You must be assigned to a department to create a PR');
     }
 
-    const items = dto.items.map((item) => ({
-      ...item,
-      totalPrice: item.quantity * item.estimatedPrice,
-    }));
+    const items = dto.items.map((item) => {
+      const price = item.estimatedPrice ?? 0;
+      return {
+        ...item,
+        estimatedPrice: price,
+        totalPrice: item.quantity * price,
+      };
+    });
 
     const totalAmount = items.reduce((sum, item) => sum + item.totalPrice, 0);
 
     const pr = new this.prModel({
       title: dto.title,
       description: dto.description,
-      projectName: dto.projectName || null,
+      projectId: dto.projectId ? new Types.ObjectId(dto.projectId) : null,
       requestType: dto.requestType || 'purchase_request',
-      requesterId: user._id,
-      departmentId: user.departmentId,
+      requesterId: new Types.ObjectId(user._id),
+      departmentId: new Types.ObjectId(user.departmentId),
       status: PrStatus.DRAFT,
       priority: dto.priority,
       items,
@@ -82,16 +87,20 @@ export class PurchaseRequestsService {
     const filter: FilterQuery<PurchaseRequest> = {};
     const andConditions: FilterQuery<PurchaseRequest>[] = [];
 
-    // Non-admin users can only see their own PRs or their department's PRs
+    // Role-based visibility
     if (user.role === UserRole.STAFF) {
-      filter.requesterId = user._id;
-    } else if (user.role === UserRole.DEPT_HEAD && user.departmentId) {
-      andConditions.push({
-        $or: [
-          { requesterId: user._id },
-          { departmentId: user.departmentId },
-        ],
-      });
+      filter.requesterId = new Types.ObjectId(user._id);
+    } else if (user.role === UserRole.DEPT_HEAD) {
+      if (user.departmentId) {
+        andConditions.push({
+          $or: [
+            { requesterId: new Types.ObjectId(user._id) },
+            { departmentId: new Types.ObjectId(user.departmentId) },
+          ],
+        });
+      } else {
+        filter.requesterId = new Types.ObjectId(user._id);
+      }
     }
     // COO, CEO, Admin can see all
 
@@ -119,11 +128,11 @@ export class PurchaseRequestsService {
     }
 
     if (departmentId) {
-      filter.departmentId = departmentId;
+      filter.departmentId = new Types.ObjectId(departmentId);
     }
 
     if (requesterId) {
-      filter.requesterId = requesterId;
+      filter.requesterId = new Types.ObjectId(requesterId);
     }
 
     if (query.requestType) {
@@ -167,6 +176,7 @@ export class PurchaseRequestsService {
         .find(filter)
         .populate('requesterId', 'firstName lastName email employeeId')
         .populate('departmentId', 'name code')
+        .populate('projectId', 'name code')
         .sort(sortObj)
         .skip(skip)
         .limit(limit)
@@ -190,15 +200,25 @@ export class PurchaseRequestsService {
       .findById(id)
       .populate('requesterId', 'firstName lastName email employeeId')
       .populate('departmentId', 'name code')
+      .populate('projectId', 'name code')
+      .populate('quotationReturnHistory.returnedBy', 'firstName lastName')
       .exec();
 
     if (!pr) {
       throw new NotFoundException('Purchase request not found');
     }
 
-    // Staff can only see their own
-    if (user.role === UserRole.STAFF && pr.requesterId._id.toString() !== user._id) {
-      throw new ForbiddenException('You can only view your own purchase requests');
+    if (user.role === UserRole.STAFF) {
+      if (pr.requesterId._id.toString() !== user._id) {
+        throw new ForbiddenException('You can only view your own purchase requests');
+      }
+    } else if (user.role === UserRole.DEPT_HEAD && user.departmentId) {
+      const deptId = (pr.departmentId as unknown as { _id: Types.ObjectId })._id.toString();
+      const isOwn = pr.requesterId._id.toString() === user._id;
+      const isDeptPr = deptId === user.departmentId;
+      if (!isOwn && !isDeptPr) {
+        throw new ForbiddenException('You can only view purchase requests from your department');
+      }
     }
 
     return pr;
@@ -215,15 +235,16 @@ export class PurchaseRequestsService {
       throw new ForbiddenException('You can only edit your own purchase requests');
     }
 
-    if (pr.status !== PrStatus.DRAFT && pr.status !== PrStatus.RETURNED) {
-      throw new BadRequestException('Can only edit PRs in Draft or Returned status');
+    const editableStatuses: string[] = [PrStatus.DRAFT, PrStatus.RETURNED, PrStatus.RETURNED_FOR_INFO];
+    if (!editableStatuses.includes(pr.status)) {
+      throw new BadRequestException('Can only edit PRs in Draft, Returned, or Returned for Info status');
     }
 
     if (dto.items) {
-      const items = dto.items.map((item) => ({
-        ...item,
-        totalPrice: item.quantity * item.estimatedPrice,
-      }));
+      const items = dto.items.map((item) => {
+        const price = item.estimatedPrice ?? 0;
+        return { ...item, estimatedPrice: price, totalPrice: item.quantity * price };
+      });
       const totalAmount = items.reduce((sum, item) => sum + item.totalPrice, 0);
 
       pr.set('items', items);
@@ -232,7 +253,7 @@ export class PurchaseRequestsService {
 
     if (dto.title !== undefined) pr.title = dto.title;
     if (dto.description !== undefined) pr.description = dto.description;
-    if (dto.projectName !== undefined) pr.projectName = dto.projectName || null;
+    if (dto.projectId !== undefined) pr.projectId = dto.projectId ? new Types.ObjectId(dto.projectId) : null;
     if (dto.priority !== undefined) pr.priority = dto.priority;
     if (dto.justification !== undefined) pr.justification = dto.justification;
     if (dto.neededByDate !== undefined) pr.neededByDate = new Date(dto.neededByDate);
@@ -257,8 +278,9 @@ export class PurchaseRequestsService {
       throw new ForbiddenException('You can only submit your own purchase requests');
     }
 
-    if (pr.status !== PrStatus.DRAFT && pr.status !== PrStatus.RETURNED) {
-      throw new BadRequestException('Can only submit PRs in Draft or Returned status');
+    const submittableStatuses: string[] = [PrStatus.DRAFT, PrStatus.RETURNED, PrStatus.RETURNED_FOR_INFO];
+    if (!submittableStatuses.includes(pr.status)) {
+      throw new BadRequestException('Can only submit PRs in Draft, Returned, or Returned for Info status');
     }
 
     if (!pr.items || pr.items.length === 0) {
@@ -272,15 +294,116 @@ export class PurchaseRequestsService {
       pr.prNumber = await this.prNumberingService.generatePrNumber(dept.code, prefixOverride);
     }
 
-    pr.status = PrStatus.SUBMITTED;
-    pr.currentApprovalLevel = 1;
+    // Dept heads skip level-1 review — their PRs go straight to COO (level 2)
+    const isDeptHead = user.role === UserRole.DEPT_HEAD;
+    const hasProcurementItems = pr.items.some((item) => item.sourcingType === 'procurement');
+
+    if (hasProcurementItems) {
+      pr.status = PrStatus.PENDING_QUOTATION;
+      // currentApprovalLevel = 2 signals submitQuotation to skip to COO after quoting
+      pr.currentApprovalLevel = isDeptHead ? 2 : 0;
+    } else {
+      pr.status = isDeptHead ? PrStatus.LEVEL2_REVIEW : PrStatus.LEVEL1_REVIEW;
+      pr.currentApprovalLevel = isDeptHead ? 2 : 1;
+    }
+
     pr.submittedAt = new Date();
+    pr.set('quotationNote', null);
 
     await pr.save();
 
     this.eventEmitter.emit('pr.submitted', {
       purchaseRequest: pr.toJSON(),
     });
+
+    return this.prModel
+      .findById(id)
+      .populate('requesterId', 'firstName lastName email employeeId')
+      .populate('departmentId', 'name code')
+      .exec() as Promise<PurchaseRequest>;
+  }
+
+  async submitQuotation(
+    id: string,
+    dto: SubmitQuotationDto,
+    user: RequestUser,
+  ): Promise<PurchaseRequest> {
+    const pr = await this.prModel.findById(id).exec();
+
+    if (!pr) throw new NotFoundException('Purchase request not found');
+
+    if (pr.status !== PrStatus.PENDING_QUOTATION) {
+      throw new BadRequestException('PR is not awaiting quotation');
+    }
+
+    const now = new Date();
+
+    for (const quotedItem of dto.items) {
+      const item = pr.items.find((i) => i._id.toString() === quotedItem.itemId);
+      if (!item) throw new BadRequestException(`Line item ${quotedItem.itemId} not found`);
+
+      item.quotedUnitPrice = quotedItem.quotedUnitPrice;
+      item.quotedAt = now;
+      if (quotedItem.selectedSupplierId) {
+        item.selectedSupplierId = new Types.ObjectId(quotedItem.selectedSupplierId);
+      }
+      // Recalculate totals using quoted price
+      item.estimatedPrice = quotedItem.quotedUnitPrice;
+      item.totalPrice = item.quantity * quotedItem.quotedUnitPrice;
+    }
+
+    // Recalculate PR total from quoted + existing online prices
+    pr.totalAmount = pr.items.reduce((sum, item) => sum + item.totalPrice, 0);
+
+    // If currentApprovalLevel was pre-set to 2 at submit time, the requester was a dept_head
+    // — skip level-1 and send straight to COO
+    if (pr.currentApprovalLevel >= 2) {
+      pr.status = PrStatus.LEVEL2_REVIEW;
+      pr.currentApprovalLevel = 2;
+    } else {
+      pr.status = PrStatus.QUOTED;
+      pr.currentApprovalLevel = 1;
+    }
+    pr.set('quotationNote', null);
+
+    await pr.save();
+
+    this.eventEmitter.emit('pr.quoted', { purchaseRequest: pr.toJSON(), quotedBy: user._id });
+
+    return this.prModel
+      .findById(id)
+      .populate('requesterId', 'firstName lastName email employeeId')
+      .populate('departmentId', 'name code')
+      .exec() as Promise<PurchaseRequest>;
+  }
+
+  async returnForInfo(
+    id: string,
+    note: string,
+    user: RequestUser,
+  ): Promise<PurchaseRequest> {
+    const pr = await this.prModel.findById(id).exec();
+
+    if (!pr) throw new NotFoundException('Purchase request not found');
+
+    if (pr.status !== PrStatus.PENDING_QUOTATION) {
+      throw new BadRequestException('PR is not awaiting quotation');
+    }
+
+    if (!note?.trim()) throw new BadRequestException('A note is required when returning for info');
+
+    pr.status = PrStatus.RETURNED_FOR_INFO;
+    pr.currentApprovalLevel = 0;
+    pr.set('quotationNote', note.trim());
+    pr.quotationReturnHistory.push({
+      note: note.trim(),
+      returnedBy: new Types.ObjectId(user._id),
+      returnedAt: new Date(),
+    } as any);
+
+    await pr.save();
+
+    this.eventEmitter.emit('pr.returned_for_info', { purchaseRequest: pr.toJSON(), returnedBy: user._id });
 
     return this.prModel
       .findById(id)
@@ -300,8 +423,15 @@ export class PurchaseRequestsService {
       throw new ForbiddenException('You can only recall your own purchase requests');
     }
 
-    if (pr.status !== PrStatus.SUBMITTED) {
-      throw new BadRequestException('Can only recall PRs that are in Submitted status (before review begins)');
+    const recallableStatuses: string[] = [
+      PrStatus.SUBMITTED,
+      PrStatus.LEVEL1_REVIEW,
+      PrStatus.LEVEL2_REVIEW,
+      PrStatus.PENDING_QUOTATION,
+      PrStatus.RETURNED_FOR_INFO,
+    ];
+    if (!recallableStatuses.includes(pr.status)) {
+      throw new BadRequestException('Can only recall PRs before review has started');
     }
 
     pr.status = PrStatus.DRAFT;
@@ -326,7 +456,7 @@ export class PurchaseRequestsService {
       throw new ForbiddenException('You can only cancel your own purchase requests');
     }
 
-    const cancellableStatuses: string[] = [PrStatus.DRAFT, PrStatus.SUBMITTED];
+    const cancellableStatuses: string[] = [PrStatus.DRAFT, PrStatus.SUBMITTED, PrStatus.PENDING_QUOTATION, PrStatus.RETURNED_FOR_INFO];
     if (!cancellableStatuses.includes(pr.status)) {
       throw new BadRequestException('Can only cancel PRs in Draft or Submitted status');
     }
@@ -362,9 +492,9 @@ export class PurchaseRequestsService {
       throw new ForbiddenException('You can only add attachments to your own purchase requests');
     }
 
-    const editableStatuses: string[] = [PrStatus.DRAFT, PrStatus.RETURNED];
+    const editableStatuses: string[] = [PrStatus.DRAFT, PrStatus.RETURNED, PrStatus.RETURNED_FOR_INFO];
     if (!editableStatuses.includes(pr.status)) {
-      throw new BadRequestException('Can only add attachments to PRs in Draft or Returned status');
+      throw new BadRequestException('Can only add attachments to PRs in Draft, Returned, or Returned for Info status');
     }
 
     pr.attachments.push({
@@ -440,11 +570,11 @@ export class PurchaseRequestsService {
     const matchStage: FilterQuery<PurchaseRequest> = {};
 
     if (user.role === UserRole.STAFF) {
-      matchStage.requesterId = user._id;
+      matchStage.requesterId = new Types.ObjectId(user._id);
     } else if (user.role === UserRole.DEPT_HEAD && user.departmentId) {
       matchStage.$or = [
-        { requesterId: user._id },
-        { departmentId: user.departmentId },
+        { requesterId: new Types.ObjectId(user._id) },
+        { departmentId: new Types.ObjectId(user.departmentId) },
       ];
     }
 

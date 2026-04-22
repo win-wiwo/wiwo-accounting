@@ -5,6 +5,7 @@ export function usePendingApprovals(params: ApprovalsQuery = {}) {
   return useQuery({
     queryKey: ['approvals', 'pending', params],
     queryFn: () => approvalsApi.getPending(params),
+    staleTime: 0,
   });
 }
 

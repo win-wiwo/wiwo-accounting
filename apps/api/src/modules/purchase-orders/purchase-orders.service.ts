@@ -72,7 +72,7 @@ export class PurchaseOrdersService {
       sourceRequestNumber: sourcePr.prNumber || null,
       sourceRequestType: dto.sourceRequestType,
       supplierId: dto.supplierId || null,
-      projectName: dto.projectName || sourcePr.projectName || null,
+      projectName: dto.projectName || null,
       items,
       totalAmount,
       status: 'draft',
