@@ -175,7 +175,23 @@ export default function App() {
               />
 
               {/* Search & Monitoring */}
-              <Route path="/search" element={<SearchPage />} />
+              <Route
+                path="/search"
+                element={
+                  <ProtectedRoute
+                    allowedRoles={[
+                      UserRole.ADMIN,
+                      UserRole.DEPT_HEAD,
+                      UserRole.COO,
+                      UserRole.CEO,
+                      UserRole.ACCOUNTING,
+                      UserRole.PROCUREMENT,
+                    ]}
+                  >
+                    <SearchPage />
+                  </ProtectedRoute>
+                }
+              />
 
               {/* Purchase Requests */}
               <Route path="/purchase-requests" element={<PrListPage />} />

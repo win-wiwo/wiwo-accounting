@@ -1,0 +1,4 @@
+interface:
+  display_name: "PRAMS Agent"
+  short_description: "Load PRAMS repo rules, architecture, and debugging playbooks"
+  default_prompt: "Use $prams-agent before working in the PRAMS monorepo so the repo-specific rules, architecture, and playbooks are loaded first."

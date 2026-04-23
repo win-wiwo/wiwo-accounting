@@ -17,20 +17,6 @@ import { LineItemDto } from './create-purchase-request.dto';
 
 export class UpdatePurchaseRequestDto {
   @ApiPropertyOptional()
-  @IsString()
-  @MinLength(1)
-  @MaxLength(200)
-  @IsOptional()
-  title?: string;
-
-  @ApiPropertyOptional()
-  @IsString()
-  @MinLength(1)
-  @MaxLength(2000)
-  @IsOptional()
-  description?: string;
-
-  @ApiPropertyOptional()
   @IsMongoId()
   @IsOptional()
   projectId?: string;

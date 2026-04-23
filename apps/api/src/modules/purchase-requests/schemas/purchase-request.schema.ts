@@ -56,6 +56,13 @@ export class LineItem {
   @Prop({ type: String, default: null })
   sellerReferencesJustification: string | null;
 
+  // Optional photo reference from requester to help Procurement source the right item
+  @Prop({ type: String, default: null })
+  referencePhotoPath: string | null;
+
+  @Prop({ type: String, default: null })
+  referencePhotoOriginalName: string | null;
+
   // Filled by Procurement team
   @Prop({ type: Number, default: null })
   quotedUnitPrice: number | null;
@@ -113,6 +120,19 @@ export class QuotationReturn {
 
 export const QuotationReturnSchema = SchemaFactory.createForClass(QuotationReturn);
 
+@Schema({ _id: true })
+export class RecallEvent {
+  _id: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  recalledBy: Types.ObjectId;
+
+  @Prop({ required: true, default: () => new Date() })
+  recalledAt: Date;
+}
+
+export const RecallEventSchema = SchemaFactory.createForClass(RecallEvent);
+
 @Schema({ timestamps: true })
 export class PurchaseRequest extends Document {
   @Prop({ unique: true, sparse: true })
@@ -124,7 +144,7 @@ export class PurchaseRequest extends Document {
   @Prop({ required: true, trim: true })
   title: string;
 
-  @Prop({ required: true, trim: true })
+  @Prop({ type: String, default: '', trim: true })
   description: string;
 
   @Prop({ type: Types.ObjectId, ref: 'Project', default: null })
@@ -182,6 +202,10 @@ export class PurchaseRequest extends Document {
   // Persistent history of all procurement returns
   @Prop({ type: [QuotationReturnSchema], default: [] })
   quotationReturnHistory: QuotationReturn[];
+
+  // Persistent history of all requester recalls
+  @Prop({ type: [RecallEventSchema], default: [] })
+  recallHistory: RecallEvent[];
 
   createdAt: Date;
   updatedAt: Date;

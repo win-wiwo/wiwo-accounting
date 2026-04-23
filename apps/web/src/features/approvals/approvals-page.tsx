@@ -78,7 +78,7 @@ export function ApprovalsPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>PR Number</TableHead>
-                    <TableHead>Title</TableHead>
+                    <TableHead>Request</TableHead>
                     <TableHead>Requester</TableHead>
                     <TableHead>Department</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
@@ -105,7 +105,7 @@ export function ApprovalsPage() {
                         <TableCell>
                           <div className="max-w-[240px]">
                             <p className="font-medium truncate">{pr.title}</p>
-                            <p className="text-xs text-muted-foreground truncate">{pr.description}</p>
+                            {pr.description && <p className="text-xs text-muted-foreground truncate">{pr.description}</p>}
                           </div>
                         </TableCell>
                         <TableCell className="text-sm">

@@ -138,7 +138,7 @@ export function PrListPage() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search by title or PR number..."
+                placeholder="Search by PR number or item summary..."
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                 className="pl-9"
@@ -210,7 +210,7 @@ export function PrListPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>PR Number</TableHead>
-                    <TableHead>Title</TableHead>
+                    <TableHead>Request</TableHead>
                     <TableHead>Amount</TableHead>
                     <TableHead>Priority</TableHead>
                     <TableHead>Status</TableHead>
@@ -238,7 +238,7 @@ export function PrListPage() {
                         <TableCell>
                           <div className="max-w-[280px]">
                             <p className="font-medium truncate">{pr.title}</p>
-                            <p className="text-xs text-muted-foreground truncate">{pr.description}</p>
+                            {pr.description && <p className="text-xs text-muted-foreground truncate">{pr.description}</p>}
                           </div>
                         </TableCell>
                         <TableCell className="font-medium">{formatCurrency(pr.totalAmount)}</TableCell>

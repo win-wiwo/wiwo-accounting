@@ -9,7 +9,10 @@ import type {
   DepartmentWithHead,
   CreateDepartmentDto,
   UpdateDepartmentDto,
+  Approval,
+  ApprovalHistoryEntry,
   PurchaseRequest,
+  CreatePurchaseRequestDto,
   PaginationMeta,
 } from '@prams/shared';
 
@@ -101,22 +104,7 @@ export interface PurchaseRequestsQuery {
   amountMax?: number;
 }
 
-export interface CreatePrPayload {
-  requestType?: string;
-  title: string;
-  projectId?: string;
-  description: string;
-  priority: string;
-  items: Array<{
-    description: string;
-    quantity: number;
-    unit: string;
-    estimatedPrice: number;
-    notes?: string;
-  }>;
-  justification: string;
-  neededByDate?: string;
-}
+export type CreatePrPayload = CreatePurchaseRequestDto;
 
 export const purchaseRequestsApi = {
   list: (params: PurchaseRequestsQuery = {}) =>
@@ -176,6 +164,22 @@ export const purchaseRequestsApi = {
         URL.revokeObjectURL(link.href);
       }),
 
+  uploadItemPhoto: (id: string, itemId: string, file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return apiClient
+      .post<ApiResponse<PurchaseRequest>>(`/purchase-requests/${id}/items/${itemId}/photo`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      .then((r) => r.data);
+  },
+
+  removeItemPhoto: (id: string, itemId: string) =>
+    apiClient.delete<ApiResponse<PurchaseRequest>>(`/purchase-requests/${id}/items/${itemId}/photo`).then((r) => r.data),
+
+  fetchItemPhoto: (id: string, itemId: string) =>
+    apiClient.get(`/purchase-requests/${id}/items/${itemId}/photo`, { responseType: 'blob' }).then((r) => r.data as Blob),
+
   getStats: () =>
     apiClient.get<ApiResponse<{ total: number; byStatus: Record<string, { count: number; totalAmount: number }> }>>('/purchase-requests/stats').then((r) => r.data),
 };
@@ -196,7 +200,7 @@ export interface ApprovalActionPayload {
 
 export const approvalsApi = {
   processAction: (data: ApprovalActionPayload) =>
-    apiClient.post('/approvals', data).then((r) => r.data),
+    apiClient.post<ApiResponse<Approval>>('/approvals', data).then((r) => r.data),
 
   getPending: (params: ApprovalsQuery = {}) =>
     apiClient
@@ -207,7 +211,9 @@ export const approvalsApi = {
     apiClient.get<ApiResponse<{ count: number }>>('/approvals/pending/count').then((r) => r.data),
 
   getByPurchaseRequest: (prId: string) =>
-    apiClient.get(`/approvals/purchase-request/${prId}`).then((r) => r.data),
+    apiClient
+      .get<ApiResponse<ApprovalHistoryEntry[]>>(`/approvals/purchase-request/${prId}`)
+      .then((r) => r.data),
 };
 
 // ─── Notifications ──────────────────────────────────────────

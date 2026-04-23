@@ -6,6 +6,8 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, FilterQuery, Types } from 'mongoose';
+import { unlink } from 'fs/promises';
+import { existsSync } from 'fs';
 import { SubmitQuotationDto } from './dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrStatus, UserRole } from '@prams/shared';
@@ -29,6 +31,30 @@ export class PurchaseRequestsService {
     private eventEmitter: EventEmitter2,
   ) {}
 
+  private buildRequestTitle(
+    items: Array<{ description: string }>,
+    requestType: string,
+  ): string {
+    const normalized = items
+      .map((item) => item.description.trim())
+      .filter(Boolean);
+
+    if (normalized.length === 0) {
+      return requestType === 'job_request' ? 'Job Request' : 'Purchase Request';
+    }
+
+    const [first, second] = normalized;
+    let title = first;
+
+    if (normalized.length > 2) {
+      title += ` +${normalized.length - 1} more items`;
+    } else if (second) {
+      title += ` + ${second}`;
+    }
+
+    return title.slice(0, 200);
+  }
+
   async create(dto: CreatePurchaseRequestDto, user: RequestUser): Promise<PurchaseRequest> {
     if (user.role === UserRole.ADMIN) {
       throw new ForbiddenException('Admin role cannot create purchase requests');
@@ -48,12 +74,13 @@ export class PurchaseRequestsService {
     });
 
     const totalAmount = items.reduce((sum, item) => sum + item.totalPrice, 0);
+    const requestType = dto.requestType || 'purchase_request';
 
     const pr = new this.prModel({
-      title: dto.title,
-      description: dto.description,
+      title: this.buildRequestTitle(items, requestType),
+      description: '',
       projectId: dto.projectId ? new Types.ObjectId(dto.projectId) : null,
-      requestType: dto.requestType || 'purchase_request',
+      requestType,
       requesterId: new Types.ObjectId(user._id),
       departmentId: new Types.ObjectId(user.departmentId),
       status: PrStatus.DRAFT,
@@ -202,6 +229,7 @@ export class PurchaseRequestsService {
       .populate('departmentId', 'name code')
       .populate('projectId', 'name code')
       .populate('quotationReturnHistory.returnedBy', 'firstName lastName')
+      .populate('recallHistory.recalledBy', 'firstName lastName')
       .exec();
 
     if (!pr) {
@@ -241,18 +269,28 @@ export class PurchaseRequestsService {
     }
 
     if (dto.items) {
+      const existingItemsById = new Map(
+        pr.items.map((item) => [item._id.toString(), item]),
+      );
+
       const items = dto.items.map((item) => {
         const price = item.estimatedPrice ?? 0;
-        return { ...item, estimatedPrice: price, totalPrice: item.quantity * price };
+        const existing = item._id ? existingItemsById.get(item._id) : undefined;
+        return {
+          ...item,
+          estimatedPrice: price,
+          totalPrice: item.quantity * price,
+          referencePhotoPath: existing?.referencePhotoPath ?? null,
+          referencePhotoOriginalName: existing?.referencePhotoOriginalName ?? null,
+        };
       });
       const totalAmount = items.reduce((sum, item) => sum + item.totalPrice, 0);
 
       pr.set('items', items);
       pr.totalAmount = totalAmount;
+      pr.title = this.buildRequestTitle(items, pr.requestType);
     }
 
-    if (dto.title !== undefined) pr.title = dto.title;
-    if (dto.description !== undefined) pr.description = dto.description;
     if (dto.projectId !== undefined) pr.projectId = dto.projectId ? new Types.ObjectId(dto.projectId) : null;
     if (dto.priority !== undefined) pr.priority = dto.priority;
     if (dto.justification !== undefined) pr.justification = dto.justification;
@@ -436,12 +474,24 @@ export class PurchaseRequestsService {
 
     pr.status = PrStatus.DRAFT;
     pr.currentApprovalLevel = 0;
+    pr.recallHistory.push({
+      recalledBy: new Types.ObjectId(user._id),
+      recalledAt: new Date(),
+    } as any);
     await pr.save();
+
+    this.eventEmitter.emit('pr.recalled', {
+      purchaseRequest: pr.toJSON(),
+      recalledBy: user._id,
+    });
 
     return this.prModel
       .findById(id)
       .populate('requesterId', 'firstName lastName email employeeId')
       .populate('departmentId', 'name code')
+      .populate('projectId', 'name code')
+      .populate('quotationReturnHistory.returnedBy', 'firstName lastName')
+      .populate('recallHistory.recalledBy', 'firstName lastName')
       .exec() as Promise<PurchaseRequest>;
   }
 
@@ -538,6 +588,77 @@ export class PurchaseRequestsService {
     pr.attachments = pr.attachments.filter(
       (a) => a._id.toString() !== attachmentId,
     );
+
+    await pr.save();
+
+    return this.prModel
+      .findById(id)
+      .populate('requesterId', 'firstName lastName email employeeId')
+      .populate('departmentId', 'name code')
+      .exec() as Promise<PurchaseRequest>;
+  }
+
+  async uploadItemPhoto(
+    id: string,
+    itemId: string,
+    file: Express.Multer.File,
+    user: RequestUser,
+  ): Promise<PurchaseRequest> {
+    const pr = await this.prModel.findById(id).exec();
+
+    if (!pr) throw new NotFoundException('Purchase request not found');
+
+    if (pr.requesterId.toString() !== user._id) {
+      throw new ForbiddenException('You can only modify your own purchase requests');
+    }
+
+    const editableStatuses: string[] = [PrStatus.DRAFT, PrStatus.RETURNED, PrStatus.RETURNED_FOR_INFO];
+    if (!editableStatuses.includes(pr.status)) {
+      throw new BadRequestException('Can only add photos to PRs in Draft, Returned, or Returned for Info status');
+    }
+
+    const item = pr.items.find((i) => i._id.toString() === itemId);
+    if (!item) throw new NotFoundException('Line item not found');
+
+    // Delete old photo file if it exists
+    if (item.referencePhotoPath && existsSync(item.referencePhotoPath)) {
+      await unlink(item.referencePhotoPath).catch(() => null);
+    }
+
+    item.referencePhotoPath = file.path;
+    item.referencePhotoOriginalName = file.originalname;
+
+    await pr.save();
+
+    return this.prModel
+      .findById(id)
+      .populate('requesterId', 'firstName lastName email employeeId')
+      .populate('departmentId', 'name code')
+      .exec() as Promise<PurchaseRequest>;
+  }
+
+  async removeItemPhoto(
+    id: string,
+    itemId: string,
+    user: RequestUser,
+  ): Promise<PurchaseRequest> {
+    const pr = await this.prModel.findById(id).exec();
+
+    if (!pr) throw new NotFoundException('Purchase request not found');
+
+    if (pr.requesterId.toString() !== user._id) {
+      throw new ForbiddenException('You can only modify your own purchase requests');
+    }
+
+    const item = pr.items.find((i) => i._id.toString() === itemId);
+    if (!item) throw new NotFoundException('Line item not found');
+
+    if (item.referencePhotoPath && existsSync(item.referencePhotoPath)) {
+      await unlink(item.referencePhotoPath).catch(() => null);
+    }
+
+    item.referencePhotoPath = null;
+    item.referencePhotoOriginalName = null;
 
     await pr.save();
 

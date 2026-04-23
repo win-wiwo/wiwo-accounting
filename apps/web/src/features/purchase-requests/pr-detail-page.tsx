@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   Pencil,
@@ -12,7 +12,6 @@ import {
   CheckCircle2,
   XCircle,
   RotateCcw,
-  Clock,
   Undo2,
   Ban,
   Paperclip,
@@ -24,32 +23,49 @@ import {
   ExternalLink,
   AlertCircle,
   ShoppingCart,
-} from 'lucide-react';
+  Camera,
+  ImageIcon,
+} from "lucide-react";
 import {
   PR_STATUS_LABELS,
   PR_PRIORITY_LABELS,
-  APPROVAL_LEVEL_LABELS,
   PrStatus,
   SourcingType,
   UserRole,
   type PrStatus as PrStatusType,
   type PrPriority as PrPriorityType,
-} from '@prams/shared';
-import { usePurchaseRequest, useSubmitPr, useDeletePr, useRecallPr, useCancelPr, useUploadAttachment, useRemoveAttachment } from '@/hooks/use-purchase-requests';
-import { purchaseRequestsApi } from '@/lib/api-services';
-import apiClient from '@/lib/api-client';
-import { useApprovalHistory, useProcessApproval } from '@/hooks/use-approvals';
-import { useAuthStore } from '@/stores/auth.store';
-import { useToast } from '@/components/ui/toast';
-import { PageHeader } from '@/components/layout/page-header';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Separator } from '@/components/ui/separator';
-import { Skeleton } from '@/components/ui/skeleton';
-import { EmptyState } from '@/components/ui/empty-state';
-import { Label } from '@/components/ui/label';
+} from "@prams/shared";
+import {
+  usePurchaseRequest,
+  useSubmitPr,
+  useDeletePr,
+  useRecallPr,
+  useCancelPr,
+  useUploadAttachment,
+  useRemoveAttachment,
+} from "@/hooks/use-purchase-requests";
+import { purchaseRequestsApi } from "@/lib/api-services";
+import apiClient from "@/lib/api-client";
+import { useApprovalHistory, useProcessApproval } from "@/hooks/use-approvals";
+import { useAuthStore } from "@/stores/auth.store";
+import { useToast } from "@/components/ui/toast";
+import { PageHeader } from "@/components/layout/page-header";
+import { PurchaseRequestWorkflowTimeline } from "@/components/purchase-request-workflow-timeline";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -57,68 +73,60 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 
 function formatCurrency(n: number) {
-  return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(n);
+  return new Intl.NumberFormat("en-PH", {
+    style: "currency",
+    currency: "PHP",
+  }).format(n);
 }
 
 function formatDate(d: string | null) {
-  if (!d) return '—';
-  return new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-}
-
-function formatDateTime(d: string) {
-  return new Date(d).toLocaleString('en-US', {
-    year: 'numeric', month: 'short', day: 'numeric',
-    hour: 'numeric', minute: '2-digit',
+  if (!d) return "—";
+  return new Date(d).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
   });
 }
 
 const statusVariant = (status: string) => {
   switch (status) {
-    case 'draft': return 'secondary' as const;
-    case 'submitted':
-    case 'level1_review':
-    case 'level2_review':
-    case 'level3_review':
-    case 'quoted':
-      return 'info' as const;
-    case 'pending_quotation': return 'warning' as const;
-    case 'approved': return 'success' as const;
-    case 'rejected': return 'destructive' as const;
-    case 'returned':
-    case 'returned_for_info':
-      return 'warning' as const;
-    case 'cancelled': return 'secondary' as const;
-    default: return 'secondary' as const;
+    case "draft":
+      return "secondary" as const;
+    case "submitted":
+    case "level1_review":
+    case "level2_review":
+    case "level3_review":
+    case "quoted":
+      return "info" as const;
+    case "pending_quotation":
+      return "warning" as const;
+    case "approved":
+      return "success" as const;
+    case "rejected":
+      return "destructive" as const;
+    case "returned":
+    case "returned_for_info":
+      return "warning" as const;
+    case "cancelled":
+      return "secondary" as const;
+    default:
+      return "secondary" as const;
   }
 };
 
 const priorityVariant = (priority: string) => {
   switch (priority) {
-    case 'urgent': return 'destructive' as const;
-    case 'high': return 'warning' as const;
-    case 'medium': return 'info' as const;
-    default: return 'secondary' as const;
-  }
-};
-
-const actionIcon = (action: string) => {
-  switch (action) {
-    case 'approved': return <CheckCircle2 className="h-4 w-4 text-emerald-500" />;
-    case 'rejected': return <XCircle className="h-4 w-4 text-destructive" />;
-    case 'returned': return <RotateCcw className="h-4 w-4 text-amber-500" />;
-    default: return <Clock className="h-4 w-4 text-muted-foreground" />;
-  }
-};
-
-const actionLabel = (action: string) => {
-  switch (action) {
-    case 'approved': return 'Approved';
-    case 'rejected': return 'Rejected';
-    case 'returned': return 'Returned';
-    default: return action;
+    case "urgent":
+      return "destructive" as const;
+    case "high":
+      return "warning" as const;
+    case "medium":
+      return "info" as const;
+    default:
+      return "secondary" as const;
   }
 };
 
@@ -139,28 +147,21 @@ export function PrDetailPage() {
 
   const pr = data?.data;
   const { data: approvalHistoryData } = useApprovalHistory(id!);
-  const approvalHistory = ((approvalHistoryData as unknown as { data?: Array<{
-    _id: string;
-    approvalLevel: number;
-    action: string;
-    comments: string;
-    actionDate: string;
-    approverId: { firstName: string; lastName: string; role: string };
-  }> })?.data ?? []);
+  const approvalHistory = approvalHistoryData?.data ?? [];
 
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
-    type: 'submit' | 'delete' | 'recall';
-  }>({ open: false, type: 'submit' });
+    type: "submit" | "delete" | "recall";
+  }>({ open: false, type: "submit" });
 
   const [cancelDialog, setCancelDialog] = useState(false);
-  const [cancelReason, setCancelReason] = useState('');
+  const [cancelReason, setCancelReason] = useState("");
 
   const [approvalDialog, setApprovalDialog] = useState<{
     open: boolean;
-    action: 'approved' | 'rejected' | 'returned';
-  }>({ open: false, action: 'approved' });
-  const [approvalComments, setApprovalComments] = useState('');
+    action: "approved" | "rejected" | "returned";
+  }>({ open: false, action: "approved" });
+  const [approvalComments, setApprovalComments] = useState("");
 
   const [previewDialog, setPreviewDialog] = useState<{
     open: boolean;
@@ -168,42 +169,51 @@ export function PrDetailPage() {
     mimeType: string;
     name: string;
     loading: boolean;
-  }>({ open: false, url: null, mimeType: '', name: '', loading: false });
+  }>({ open: false, url: null, mimeType: "", name: "", loading: false });
+
+  const [itemPhotoDialog, setItemPhotoDialog] = useState<{
+    open: boolean;
+    url: string | null;
+    loading: boolean;
+  }>({ open: false, url: null, loading: false });
 
   const handleConfirm = async () => {
     if (!pr) return;
     try {
-      if (confirmDialog.type === 'submit') {
+      if (confirmDialog.type === "submit") {
         await submitMutation.mutateAsync(pr._id);
-        toast({ title: 'PR submitted for approval', variant: 'success' });
-      } else if (confirmDialog.type === 'recall') {
+        toast({ title: "PR submitted for approval", variant: "success" });
+      } else if (confirmDialog.type === "recall") {
         await recallMutation.mutateAsync(pr._id);
-        toast({ title: 'PR recalled to draft', variant: 'success' });
+        toast({ title: "PR recalled to draft", variant: "success" });
       } else {
         await deleteMutation.mutateAsync(pr._id);
-        toast({ title: 'PR deleted', variant: 'success' });
-        navigate('/purchase-requests');
+        toast({ title: "PR deleted", variant: "success" });
+        navigate("/purchase-requests");
         return;
       }
     } catch {
-      toast({ title: 'Action failed', variant: 'error' });
+      toast({ title: "Action failed", variant: "error" });
     }
     setConfirmDialog({ ...confirmDialog, open: false });
   };
 
   const handleCancel = async () => {
     if (!pr || !cancelReason.trim()) {
-      toast({ title: 'Please provide a reason', variant: 'error' });
+      toast({ title: "Please provide a reason", variant: "error" });
       return;
     }
     try {
-      await cancelMutation.mutateAsync({ id: pr._id, reason: cancelReason.trim() });
-      toast({ title: 'PR cancelled', variant: 'success' });
+      await cancelMutation.mutateAsync({
+        id: pr._id,
+        reason: cancelReason.trim(),
+      });
+      toast({ title: "PR cancelled", variant: "success" });
     } catch {
-      toast({ title: 'Failed to cancel', variant: 'error' });
+      toast({ title: "Failed to cancel", variant: "error" });
     }
     setCancelDialog(false);
-    setCancelReason('');
+    setCancelReason("");
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -212,50 +222,93 @@ export function PrDetailPage() {
 
     try {
       await uploadMutation.mutateAsync({ id: pr._id, file });
-      toast({ title: 'File uploaded', variant: 'success' });
+      toast({ title: "File uploaded", variant: "success" });
     } catch {
-      toast({ title: 'Upload failed', variant: 'error' });
+      toast({ title: "Upload failed", variant: "error" });
     }
-    e.target.value = '';
+    e.target.value = "";
   };
 
   const handleRemoveAttachment = async (attachmentId: string) => {
     if (!pr) return;
     try {
       await removeMutation.mutateAsync({ id: pr._id, attachmentId });
-      toast({ title: 'Attachment removed', variant: 'success' });
+      toast({ title: "Attachment removed", variant: "success" });
     } catch {
-      toast({ title: 'Failed to remove', variant: 'error' });
+      toast({ title: "Failed to remove", variant: "error" });
     }
   };
 
-  const handlePreview = async (attachmentId: string, mimeType: string, name: string) => {
+  const handlePreview = async (
+    attachmentId: string,
+    mimeType: string,
+    name: string,
+  ) => {
     setPreviewDialog({ open: true, url: null, mimeType, name, loading: true });
     try {
       const response = await apiClient.get(
         `/purchase-requests/${id}/attachments/${attachmentId}/download`,
-        { responseType: 'blob' },
+        { responseType: "blob" },
       );
-      const blobUrl = URL.createObjectURL(new Blob([response.data], { type: mimeType }));
-      setPreviewDialog({ open: true, url: blobUrl, mimeType, name, loading: false });
+      const blobUrl = URL.createObjectURL(
+        new Blob([response.data], { type: mimeType }),
+      );
+      setPreviewDialog({
+        open: true,
+        url: blobUrl,
+        mimeType,
+        name,
+        loading: false,
+      });
     } catch {
-      setPreviewDialog({ open: false, url: null, mimeType: '', name: '', loading: false });
-      toast({ title: 'Failed to load preview', variant: 'error' });
+      setPreviewDialog({
+        open: false,
+        url: null,
+        mimeType: "",
+        name: "",
+        loading: false,
+      });
+      toast({ title: "Failed to load preview", variant: "error" });
     }
   };
 
   const closePreview = () => {
     if (previewDialog.url) URL.revokeObjectURL(previewDialog.url);
-    setPreviewDialog({ open: false, url: null, mimeType: '', name: '', loading: false });
+    setPreviewDialog({
+      open: false,
+      url: null,
+      mimeType: "",
+      name: "",
+      loading: false,
+    });
+  };
+
+  const handleViewItemPhoto = async (itemId: string) => {
+    if (!pr) return;
+    setItemPhotoDialog({ open: true, url: null, loading: true });
+    try {
+      const blob = await purchaseRequestsApi.fetchItemPhoto(pr._id, itemId);
+      const url = URL.createObjectURL(blob);
+      setItemPhotoDialog({ open: true, url, loading: false });
+    } catch {
+      setItemPhotoDialog({ open: false, url: null, loading: false });
+      toast({ title: "Failed to load photo", variant: "error" });
+    }
+  };
+
+  const closeItemPhotoDialog = () => {
+    if (itemPhotoDialog.url) URL.revokeObjectURL(itemPhotoDialog.url);
+    setItemPhotoDialog({ open: false, url: null, loading: false });
   };
 
   const handleApprovalAction = async () => {
     if (!pr) return;
     if (
-      (approvalDialog.action === 'rejected' || approvalDialog.action === 'returned') &&
+      (approvalDialog.action === "rejected" ||
+        approvalDialog.action === "returned") &&
       !approvalComments.trim()
     ) {
-      toast({ title: 'Comments are required', variant: 'error' });
+      toast({ title: "Comments are required", variant: "error" });
       return;
     }
 
@@ -266,32 +319,38 @@ export function PrDetailPage() {
         comments: approvalComments.trim(),
       });
 
-      const labels = { approved: 'approved', rejected: 'rejected', returned: 'returned for revision' };
+      const labels = {
+        approved: "approved",
+        rejected: "rejected",
+        returned: "returned for revision",
+      };
       toast({
         title: `PR ${labels[approvalDialog.action]}`,
-        variant: approvalDialog.action === 'approved' ? 'success' : 'default',
+        variant: approvalDialog.action === "approved" ? "success" : "default",
       });
     } catch {
-      toast({ title: 'Action failed', variant: 'error' });
+      toast({ title: "Action failed", variant: "error" });
     }
 
     setApprovalDialog({ ...approvalDialog, open: false });
-    setApprovalComments('');
+    setApprovalComments("");
   };
 
   const handleGenerateReport = async () => {
     if (!pr) return;
     try {
-      const response = await apiClient.get(`/reports/pr-detail/${id}`, { responseType: 'blob' });
+      const response = await apiClient.get(`/reports/pr-detail/${id}`, {
+        responseType: "blob",
+      });
       const blob = new Blob([response.data]);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
-      link.download = `PR-${pr.prNumber || 'Draft'}-Report.pdf`;
+      link.download = `PR-${pr.prNumber || "Draft"}-Report.pdf`;
       link.click();
       URL.revokeObjectURL(link.href);
-      toast({ title: 'Report downloaded', variant: 'success' });
+      toast({ title: "Report downloaded", variant: "success" });
     } catch {
-      toast({ title: 'Failed to generate report', variant: 'error' });
+      toast({ title: "Failed to generate report", variant: "error" });
     }
   };
 
@@ -300,7 +359,9 @@ export function PrDetailPage() {
       <div className="space-y-6">
         <Skeleton className="h-8 w-64" />
         <div className="grid gap-4 sm:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-20" />)}
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-20" />
+          ))}
         </div>
         <Skeleton className="h-64 w-full" />
       </div>
@@ -311,8 +372,18 @@ export function PrDetailPage() {
     return <EmptyState title="Purchase request not found" />;
   }
 
-  const requester = pr.requesterId as unknown as { _id: string; firstName: string; lastName: string; email: string; employeeId: string } | null;
-  const department = pr.departmentId as unknown as { _id: string; name: string; code: string } | null;
+  const requester = pr.requesterId as unknown as {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    employeeId: string;
+  } | null;
+  const department = pr.departmentId as unknown as {
+    _id: string;
+    name: string;
+    code: string;
+  } | null;
   const isDraft = pr.status === PrStatus.DRAFT;
   const isSubmitted = pr.status === PrStatus.SUBMITTED;
   const isReturned = pr.status === PrStatus.RETURNED;
@@ -321,25 +392,39 @@ export function PrDetailPage() {
   const isCancelled = pr.status === PrStatus.CANCELLED;
   const isOwner = requester?._id === user?._id;
   const canEdit = isOwner && (isDraft || isReturned || isReturnedForInfo);
-  const canRecall = isOwner && (isSubmitted || isPendingQuotation || isReturnedForInfo);
-  const canCancel = isOwner && (isDraft || isSubmitted || isPendingQuotation || isReturnedForInfo);
+  const canRecall =
+    isOwner && (isSubmitted || isPendingQuotation || isReturnedForInfo);
+  const canCancel =
+    isOwner &&
+    (isDraft || isSubmitted || isPendingQuotation || isReturnedForInfo);
 
   // Determine if the current user can act on this PR as an approver
-  const pendingStatuses: string[] = [PrStatus.SUBMITTED, PrStatus.LEVEL1_REVIEW, PrStatus.LEVEL2_REVIEW, PrStatus.LEVEL3_REVIEW];
+  const pendingStatuses: string[] = [
+    PrStatus.SUBMITTED,
+    PrStatus.LEVEL1_REVIEW,
+    PrStatus.LEVEL2_REVIEW,
+    PrStatus.LEVEL3_REVIEW,
+  ];
   const isPendingApproval = pendingStatuses.includes(pr.status);
-  const canApprove = isPendingApproval && !isOwner && (
-    (pr.status === PrStatus.SUBMITTED && user?.role === UserRole.DEPT_HEAD) ||
-    (pr.status === PrStatus.LEVEL2_REVIEW && user?.role === UserRole.COO) ||
-    (pr.status === PrStatus.LEVEL3_REVIEW && user?.role === UserRole.CEO)
-  );
+  const canApprove =
+    isPendingApproval &&
+    !isOwner &&
+    ((pr.status === PrStatus.SUBMITTED && user?.role === UserRole.DEPT_HEAD) ||
+      (pr.status === PrStatus.LEVEL2_REVIEW && user?.role === UserRole.COO) ||
+      (pr.status === PrStatus.LEVEL3_REVIEW && user?.role === UserRole.CEO));
 
   return (
     <div className="space-y-6">
       <PageHeader
         title={pr.title}
-        description={pr.prNumber ? `PR ${pr.prNumber}` : 'Draft — not yet submitted'}
+        description={
+          pr.prNumber ? `PR ${pr.prNumber}` : "Draft — not yet submitted"
+        }
       >
-        <Button variant="outline" onClick={() => navigate('/purchase-requests')}>
+        <Button
+          variant="outline"
+          onClick={() => navigate("/purchase-requests")}
+        >
           <ArrowLeft className="h-4 w-4" /> Back
         </Button>
         {!isDraft && (
@@ -349,26 +434,45 @@ export function PrDetailPage() {
         )}
         {canEdit && (
           <>
-            <Button variant="outline" onClick={() => navigate(`/purchase-requests/${id}/edit`)}>
+            <Button
+              variant="outline"
+              onClick={() => navigate(`/purchase-requests/${id}/edit`)}
+            >
               <Pencil className="h-4 w-4" /> Edit
             </Button>
-            <Button onClick={() => setConfirmDialog({ open: true, type: 'submit' })}>
+            <Button
+              onClick={() => setConfirmDialog({ open: true, type: "submit" })}
+            >
               <Send className="h-4 w-4" /> Submit
             </Button>
           </>
         )}
         {canRecall && (
-          <Button variant="outline" onClick={() => setConfirmDialog({ open: true, type: 'recall' })}>
+          <Button
+            variant="outline"
+            onClick={() => setConfirmDialog({ open: true, type: "recall" })}
+          >
             <Undo2 className="h-4 w-4" /> Recall
           </Button>
         )}
         {canCancel && (
-          <Button variant="outline" className="text-destructive hover:text-destructive" onClick={() => { setCancelReason(''); setCancelDialog(true); }}>
+          <Button
+            variant="outline"
+            className="text-destructive hover:text-destructive"
+            onClick={() => {
+              setCancelReason("");
+              setCancelDialog(true);
+            }}
+          >
             <Ban className="h-4 w-4" /> Cancel PR
           </Button>
         )}
         {isOwner && isDraft && (
-          <Button variant="destructive" size="icon" onClick={() => setConfirmDialog({ open: true, type: 'delete' })}>
+          <Button
+            variant="destructive"
+            size="icon"
+            onClick={() => setConfirmDialog({ open: true, type: "delete" })}
+          >
             <Trash2 className="h-4 w-4" />
           </Button>
         )}
@@ -376,19 +480,28 @@ export function PrDetailPage() {
           <>
             <Button
               className="bg-emerald-600 hover:bg-emerald-700 text-white"
-              onClick={() => { setApprovalComments(''); setApprovalDialog({ open: true, action: 'approved' }); }}
+              onClick={() => {
+                setApprovalComments("");
+                setApprovalDialog({ open: true, action: "approved" });
+              }}
             >
               <CheckCircle2 className="h-4 w-4" /> Approve
             </Button>
             <Button
               variant="outline"
-              onClick={() => { setApprovalComments(''); setApprovalDialog({ open: true, action: 'returned' }); }}
+              onClick={() => {
+                setApprovalComments("");
+                setApprovalDialog({ open: true, action: "returned" });
+              }}
             >
               <RotateCcw className="h-4 w-4" /> Return
             </Button>
             <Button
               variant="destructive"
-              onClick={() => { setApprovalComments(''); setApprovalDialog({ open: true, action: 'rejected' }); }}
+              onClick={() => {
+                setApprovalComments("");
+                setApprovalDialog({ open: true, action: "rejected" });
+              }}
             >
               <XCircle className="h-4 w-4" /> Reject
             </Button>
@@ -400,7 +513,9 @@ export function PrDetailPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardContent className="flex items-center gap-3 pt-6">
-            <div className="rounded-lg bg-muted p-2"><Hash className="h-4 w-4" /></div>
+            <div className="rounded-lg bg-muted p-2">
+              <Hash className="h-4 w-4" />
+            </div>
             <div>
               <p className="text-xs text-muted-foreground">Status</p>
               <Badge variant={statusVariant(pr.status)} className="mt-0.5">
@@ -411,30 +526,40 @@ export function PrDetailPage() {
         </Card>
         <Card>
           <CardContent className="flex items-center gap-3 pt-6">
-            <div className="rounded-lg bg-muted p-2"><User className="h-4 w-4" /></div>
+            <div className="rounded-lg bg-muted p-2">
+              <User className="h-4 w-4" />
+            </div>
             <div>
               <p className="text-xs text-muted-foreground">Requester</p>
               <p className="text-sm font-medium">
-                {requester ? `${requester.firstName} ${requester.lastName}` : '—'}
+                {requester
+                  ? `${requester.firstName} ${requester.lastName}`
+                  : "—"}
               </p>
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="flex items-center gap-3 pt-6">
-            <div className="rounded-lg bg-muted p-2"><Building2 className="h-4 w-4" /></div>
+            <div className="rounded-lg bg-muted p-2">
+              <Building2 className="h-4 w-4" />
+            </div>
             <div>
               <p className="text-xs text-muted-foreground">Department</p>
-              <p className="text-sm font-medium">{department?.name || '—'}</p>
+              <p className="text-sm font-medium">{department?.name || "—"}</p>
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="flex items-center gap-3 pt-6">
-            <div className="rounded-lg bg-muted p-2"><Calendar className="h-4 w-4" /></div>
+            <div className="rounded-lg bg-muted p-2">
+              <Calendar className="h-4 w-4" />
+            </div>
             <div>
               <p className="text-xs text-muted-foreground">Needed By</p>
-              <p className="text-sm font-medium">{formatDate(pr.neededByDate)}</p>
+              <p className="text-sm font-medium">
+                {formatDate(pr.neededByDate)}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -462,25 +587,38 @@ export function PrDetailPage() {
                 </TableHeader>
                 <TableBody>
                   {pr.items.map((item, i) => {
-                    const isProcurement = item.sourcingType === SourcingType.PROCUREMENT;
+                    const isProcurement =
+                      item.sourcingType === SourcingType.PROCUREMENT;
                     const displayPrice = isProcurement
                       ? (item.quotedUnitPrice ?? 0)
                       : (item.estimatedPrice ?? 0);
-                    const priceLabel = isProcurement && !item.quotedUnitPrice
-                      ? '—'
-                      : formatCurrency(displayPrice);
+                    const priceLabel =
+                      isProcurement && !item.quotedUnitPrice
+                        ? "—"
+                        : formatCurrency(displayPrice);
                     return (
                       <TableRow key={item._id}>
-                        <TableCell className="text-muted-foreground">{i + 1}</TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {i + 1}
+                        </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
                             <p className="font-medium">{item.description}</p>
                             {isProcurement ? (
-                              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-0.5">
-                                <ShoppingCart className="h-2.5 w-2.5" /> Procurement
+                              <Badge
+                                variant="secondary"
+                                className="text-[10px] px-1.5 py-0 gap-0.5"
+                              >
+                                <ShoppingCart className="h-2.5 w-2.5" />{" "}
+                                Procurement
                               </Badge>
                             ) : (
-                              <Badge variant="info" className="text-[10px] px-1.5 py-0">Online</Badge>
+                              <Badge
+                                variant="info"
+                                className="text-[10px] px-1.5 py-0"
+                              >
+                                Online
+                              </Badge>
                             )}
                           </div>
                           {item.specifications && (
@@ -488,44 +626,85 @@ export function PrDetailPage() {
                               {item.specifications}
                             </p>
                           )}
-                          {item.notes && <p className="text-xs text-muted-foreground italic mt-0.5">{item.notes}</p>}
-                          {/* Seller references for online items */}
-                          {!isProcurement && item.sellerReferences && item.sellerReferences.length > 0 && (
-                            <div className="mt-1.5 space-y-0.5">
-                              {item.sellerReferences.map((ref, ri) => (
-                                <div key={ri} className="flex items-center gap-1 text-xs text-muted-foreground">
-                                  <span>{ref.sellerName} — {formatCurrency(ref.price)}</span>
-                                  {ref.url && (
-                                    <a href={ref.url} target="_blank" rel="noopener noreferrer"
-                                      className="flex items-center gap-0.5 text-blue-600 hover:underline">
-                                      <ExternalLink className="h-3 w-3" />
-                                    </a>
-                                  )}
-                                </div>
-                              ))}
-                              {item.sellerReferencesJustification && (
-                                <p className="text-xs text-amber-700 flex items-center gap-1 mt-0.5">
-                                  <AlertCircle className="h-3 w-3 shrink-0" />
-                                  {item.sellerReferencesJustification}
-                                </p>
-                              )}
-                            </div>
-                          )}
-                          {isProcurement && item.quotedUnitPrice && item.quotedAt && (
-                            <p className="text-xs text-emerald-700 mt-0.5">
-                              Quoted {formatDate(item.quotedAt)}
+                          {item.notes && (
+                            <p className="text-xs text-muted-foreground italic mt-0.5">
+                              {item.notes}
                             </p>
                           )}
+                          {/* Reference photo */}
+                          {item.referencePhotoPath && (
+                            <button
+                              type="button"
+                              onClick={() => handleViewItemPhoto(item._id)}
+                              className="flex items-center gap-1 text-xs text-blue-600 hover:underline mt-0.5"
+                            >
+                              <Camera className="h-3 w-3" />
+                              Reference photo
+                            </button>
+                          )}
+                          {/* Seller references for online items */}
+                          {!isProcurement &&
+                            item.sellerReferences &&
+                            item.sellerReferences.length > 0 && (
+                              <div className="mt-1.5 space-y-0.5">
+                                {item.sellerReferences.map((ref, ri) => (
+                                  <div
+                                    key={ri}
+                                    className="flex items-center gap-1 text-xs text-muted-foreground"
+                                  >
+                                    <span>
+                                      {ref.sellerName} —{" "}
+                                      {formatCurrency(ref.price)}
+                                    </span>
+                                    {ref.url && (
+                                      <a
+                                        href={ref.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-0.5 text-blue-600 hover:underline"
+                                      >
+                                        <ExternalLink className="h-3 w-3" />
+                                      </a>
+                                    )}
+                                  </div>
+                                ))}
+                                {item.sellerReferencesJustification && (
+                                  <p className="text-xs text-amber-700 flex items-center gap-1 mt-0.5">
+                                    <AlertCircle className="h-3 w-3 shrink-0" />
+                                    {item.sellerReferencesJustification}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          {isProcurement &&
+                            item.quotedUnitPrice &&
+                            item.quotedAt && (
+                              <p className="text-xs text-emerald-700 mt-0.5">
+                                Quoted {formatDate(item.quotedAt)}
+                              </p>
+                            )}
                         </TableCell>
-                        <TableCell className="text-right">{item.quantity}</TableCell>
+                        <TableCell className="text-right">
+                          {item.quantity}
+                        </TableCell>
                         <TableCell>{item.unit}</TableCell>
                         <TableCell className="text-right">
-                          {isProcurement && !item.quotedUnitPrice
-                            ? <span className="text-muted-foreground text-xs">Pending</span>
-                            : priceLabel}
+                          {isProcurement && !item.quotedUnitPrice ? (
+                            <span className="text-muted-foreground text-xs">
+                              Pending
+                            </span>
+                          ) : (
+                            priceLabel
+                          )}
                         </TableCell>
                         <TableCell className="text-right font-medium">
-                          {item.totalPrice > 0 ? formatCurrency(item.totalPrice) : <span className="text-muted-foreground text-xs">TBQ</span>}
+                          {item.totalPrice > 0 ? (
+                            formatCurrency(item.totalPrice)
+                          ) : (
+                            <span className="text-muted-foreground text-xs">
+                              TBQ
+                            </span>
+                          )}
                         </TableCell>
                       </TableRow>
                     );
@@ -536,9 +715,17 @@ export function PrDetailPage() {
               <div className="flex justify-end p-4">
                 <div className="text-right">
                   <p className="text-xs text-muted-foreground">Total Amount</p>
-                  <p className="text-2xl font-bold">{formatCurrency(pr.totalAmount)}</p>
-                  {pr.items.some((i) => i.sourcingType === SourcingType.PROCUREMENT && !i.quotedUnitPrice) && (
-                    <p className="text-xs text-amber-600 mt-0.5">* Procurement items pending quotation</p>
+                  <p className="text-2xl font-bold">
+                    {formatCurrency(pr.totalAmount)}
+                  </p>
+                  {pr.items.some(
+                    (i) =>
+                      i.sourcingType === SourcingType.PROCUREMENT &&
+                      !i.quotedUnitPrice,
+                  ) && (
+                    <p className="text-xs text-amber-600 mt-0.5">
+                      * Procurement items pending quotation
+                    </p>
                   )}
                 </div>
               </div>
@@ -580,54 +767,73 @@ export function PrDetailPage() {
             <CardContent>
               {pr.attachments && pr.attachments.length > 0 ? (
                 <div className="space-y-2">
-                  {pr.attachments.map((att: { _id: string; originalName: string; mimeType: string; size: number }) => (
-                    <div
-                      key={att._id}
-                      className="flex items-center justify-between rounded-lg border px-3 py-2"
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Paperclip className="h-4 w-4 shrink-0 text-muted-foreground" />
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium">{att.originalName}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {(att.size / 1024).toFixed(0)} KB
-                          </p>
+                  {pr.attachments.map(
+                    (att: {
+                      _id: string;
+                      originalName: string;
+                      mimeType: string;
+                      size: number;
+                    }) => (
+                      <div
+                        key={att._id}
+                        className="flex items-center justify-between rounded-lg border px-3 py-2"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Paperclip className="h-4 w-4 shrink-0 text-muted-foreground" />
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium">
+                              {att.originalName}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {(att.size / 1024).toFixed(0)} KB
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          title="Preview"
-                          onClick={() => handlePreview(att._id, att.mimeType, att.originalName)}
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          title="Download"
-                          onClick={() =>
-                            purchaseRequestsApi.downloadAttachment(pr._id, att._id, att.originalName)
-                          }
-                        >
-                          <Download className="h-3.5 w-3.5" />
-                        </Button>
-                        {canEdit && (
+                        <div className="flex items-center gap-1">
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7 text-destructive hover:text-destructive"
-                            onClick={() => handleRemoveAttachment(att._id)}
+                            className="h-7 w-7"
+                            title="Preview"
+                            onClick={() =>
+                              handlePreview(
+                                att._id,
+                                att.mimeType,
+                                att.originalName,
+                              )
+                            }
                           >
-                            <Trash2 className="h-3.5 w-3.5" />
+                            <Eye className="h-3.5 w-3.5" />
                           </Button>
-                        )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            title="Download"
+                            onClick={() =>
+                              purchaseRequestsApi.downloadAttachment(
+                                pr._id,
+                                att._id,
+                                att.originalName,
+                              )
+                            }
+                          >
+                            <Download className="h-3.5 w-3.5" />
+                          </Button>
+                          {canEdit && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-destructive hover:text-destructive"
+                              onClick={() => handleRemoveAttachment(att._id)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ),
+                  )}
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">No attachments</p>
@@ -636,27 +842,30 @@ export function PrDetailPage() {
           </Card>
 
           {/* Returned for Info Note */}
-          {(pr as unknown as { quotationNote?: string }).quotationNote && (
+          {pr.quotationNote && (
             <Card className="border-amber-300">
               <CardHeader>
                 <CardTitle className="text-base text-amber-700 flex items-center gap-2">
-                  <RotateCcw className="h-4 w-4" /> Returned for More Information
+                  <RotateCcw className="h-4 w-4" /> Returned for More
+                  Information
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm">{(pr as unknown as { quotationNote: string }).quotationNote}</p>
+                <p className="text-sm">{pr.quotationNote}</p>
               </CardContent>
             </Card>
           )}
 
           {/* Cancellation Reason */}
-          {isCancelled && (pr as unknown as { cancellationReason: string }).cancellationReason && (
+          {isCancelled && pr.cancellationReason && (
             <Card className="border-destructive/30">
               <CardHeader>
-                <CardTitle className="text-base text-destructive">Cancellation Reason</CardTitle>
+                <CardTitle className="text-base text-destructive">
+                  Cancellation Reason
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm">{(pr as unknown as { cancellationReason: string }).cancellationReason}</p>
+                <p className="text-sm">{pr.cancellationReason}</p>
               </CardContent>
             </Card>
           )}
@@ -672,12 +881,25 @@ export function PrDetailPage() {
               {pr.projectId && (
                 <>
                   <div>
-                    <p className="text-xs font-medium text-muted-foreground">Project</p>
+                    <p className="text-xs font-medium text-muted-foreground">
+                      Project
+                    </p>
                     <p className="mt-1 text-sm font-medium">
-                      {(pr.projectId as unknown as { name: string; code: string | null }).name}
-                      {(pr.projectId as unknown as { code: string | null }).code && (
+                      {
+                        (
+                          pr.projectId as unknown as {
+                            name: string;
+                            code: string | null;
+                          }
+                        ).name
+                      }
+                      {(pr.projectId as unknown as { code: string | null })
+                        .code && (
                         <span className="ml-1.5 font-mono text-xs bg-muted px-1.5 py-0.5 rounded">
-                          {(pr.projectId as unknown as { code: string | null }).code}
+                          {
+                            (pr.projectId as unknown as { code: string | null })
+                              .code
+                          }
                         </span>
                       )}
                     </p>
@@ -686,19 +908,29 @@ export function PrDetailPage() {
                 </>
               )}
               <div>
-                <p className="text-xs font-medium text-muted-foreground">Priority</p>
+                <p className="text-xs font-medium text-muted-foreground">
+                  Priority
+                </p>
                 <Badge variant={priorityVariant(pr.priority)} className="mt-1">
                   {PR_PRIORITY_LABELS[pr.priority as PrPriorityType]}
                 </Badge>
               </div>
               <Separator />
+              {pr.description && (
+                <>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground">
+                      Description
+                    </p>
+                    <p className="mt-1 text-sm">{pr.description}</p>
+                  </div>
+                  <Separator />
+                </>
+              )}
               <div>
-                <p className="text-xs font-medium text-muted-foreground">Description</p>
-                <p className="mt-1 text-sm">{pr.description}</p>
-              </div>
-              <Separator />
-              <div>
-                <p className="text-xs font-medium text-muted-foreground">Justification</p>
+                <p className="text-xs font-medium text-muted-foreground">
+                  Purpose
+                </p>
                 <p className="mt-1 text-sm">{pr.justification}</p>
               </div>
               <Separator />
@@ -721,98 +953,71 @@ export function PrDetailPage() {
               <CardTitle className="text-base">Approval Timeline</CardTitle>
             </CardHeader>
             <CardContent>
-              {pr.status === PrStatus.DRAFT ? (
-                <p className="text-sm text-muted-foreground">
-                  Submit this PR to start the approval process.
-                </p>
-              ) : isPendingQuotation ? (
-                <div className="flex items-center gap-2 text-sm text-amber-700">
-                  <ShoppingCart className="h-4 w-4" />
-                  <span>Awaiting quotation from Procurement team.</span>
-                </div>
-              ) : isReturnedForInfo ? (
-                <div className="flex items-center gap-2 text-sm text-amber-700">
-                  <RotateCcw className="h-4 w-4" />
-                  <span>Returned for more information. Update and resubmit.</span>
-                </div>
-              ) : approvalHistory.length === 0 ? (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Clock className="h-4 w-4" />
-                  <span>Awaiting review...</span>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {approvalHistory.map((entry) => (
-                    <div key={entry._id} className="flex gap-3">
-                      <div className="mt-0.5">{actionIcon(entry.action)}</div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium">
-                            {actionLabel(entry.action)}
-                          </span>
-                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                            {APPROVAL_LEVEL_LABELS[entry.approvalLevel] || `Level ${entry.approvalLevel}`}
-                          </Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          by {entry.approverId?.firstName} {entry.approverId?.lastName}
-                        </p>
-                        {entry.comments && (
-                          <p className="mt-1 text-sm text-muted-foreground italic">
-                            &ldquo;{entry.comments}&rdquo;
-                          </p>
-                        )}
-                        <p className="mt-0.5 text-[11px] text-muted-foreground/70">
-                          {formatDateTime(entry.actionDate)}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <PurchaseRequestWorkflowTimeline
+                pr={pr}
+                approvalHistory={approvalHistory}
+              />
             </CardContent>
           </Card>
         </div>
       </div>
 
       {/* Confirm Dialog (Submit/Delete/Recall) */}
-      <Dialog open={confirmDialog.open} onOpenChange={(open) => setConfirmDialog({ ...confirmDialog, open })}>
+      <Dialog
+        open={confirmDialog.open}
+        onOpenChange={(open) => setConfirmDialog({ ...confirmDialog, open })}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {confirmDialog.type === 'submit' && 'Submit for Approval'}
-              {confirmDialog.type === 'recall' && 'Recall Purchase Request'}
-              {confirmDialog.type === 'delete' && 'Delete Purchase Request'}
+              {confirmDialog.type === "submit" && "Submit for Approval"}
+              {confirmDialog.type === "recall" && "Recall Purchase Request"}
+              {confirmDialog.type === "delete" && "Delete Purchase Request"}
             </DialogTitle>
             <DialogDescription>
-              {confirmDialog.type === 'submit' &&
-                (pr.items.some((i) => i.sourcingType === SourcingType.PROCUREMENT)
-                  ? 'This will generate a PR number and send it to the Procurement team for quotation before approval.'
-                  : 'This will generate a PR number and route it to your department head for approval.')}
-              {confirmDialog.type === 'recall' &&
-                'This will move the PR back to Draft status. You can edit and resubmit it later.'}
-              {confirmDialog.type === 'delete' &&
-                'This draft will be permanently deleted. This action cannot be undone.'}
+              {confirmDialog.type === "submit" &&
+                (pr.items.some(
+                  (i) => i.sourcingType === SourcingType.PROCUREMENT,
+                )
+                  ? "This will generate a PR number and send it to the Procurement team for quotation before approval."
+                  : "This will generate a PR number and route it to your department head for approval.")}
+              {confirmDialog.type === "recall" &&
+                "This will move the PR back to Draft status. You can edit and resubmit it later."}
+              {confirmDialog.type === "delete" &&
+                "This draft will be permanently deleted. This action cannot be undone."}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmDialog({ ...confirmDialog, open: false })}>
+            <Button
+              variant="outline"
+              onClick={() =>
+                setConfirmDialog({ ...confirmDialog, open: false })
+              }
+            >
               Cancel
             </Button>
             <Button
-              variant={confirmDialog.type === 'delete' ? 'destructive' : 'default'}
+              variant={
+                confirmDialog.type === "delete" ? "destructive" : "default"
+              }
               onClick={handleConfirm}
             >
-              {confirmDialog.type === 'submit' && 'Submit'}
-              {confirmDialog.type === 'recall' && 'Recall'}
-              {confirmDialog.type === 'delete' && 'Delete'}
+              {confirmDialog.type === "submit" && "Submit"}
+              {confirmDialog.type === "recall" && "Recall"}
+              {confirmDialog.type === "delete" && "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Cancel PR Dialog */}
-      <Dialog open={cancelDialog} onOpenChange={(open) => { setCancelDialog(open); if (!open) setCancelReason(''); }}>
+      <Dialog
+        open={cancelDialog}
+        onOpenChange={(open) => {
+          setCancelDialog(open);
+          if (!open) setCancelReason("");
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Cancel Purchase Request</DialogTitle>
@@ -834,7 +1039,13 @@ export function PrDetailPage() {
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setCancelDialog(false); setCancelReason(''); }}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setCancelDialog(false);
+                setCancelReason("");
+              }}
+            >
               Back
             </Button>
             <Button
@@ -849,14 +1060,21 @@ export function PrDetailPage() {
       </Dialog>
 
       {/* Attachment Preview Dialog */}
-      <Dialog open={previewDialog.open} onOpenChange={(open) => { if (!open) closePreview(); }}>
+      <Dialog
+        open={previewDialog.open}
+        onOpenChange={(open) => {
+          if (!open) closePreview();
+        }}
+      >
         <DialogContent
           className="max-w-4xl w-full h-[85vh] flex flex-col p-0 gap-0"
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           <DialogHeader className="flex flex-row items-center gap-2 px-4 py-3 border-b shrink-0">
             <Paperclip className="h-4 w-4 shrink-0 text-muted-foreground" />
-            <DialogTitle className="truncate text-sm font-medium">{previewDialog.name}</DialogTitle>
+            <DialogTitle className="truncate text-sm font-medium">
+              {previewDialog.name}
+            </DialogTitle>
           </DialogHeader>
           <div className="flex-1 min-h-0 bg-muted/30">
             {previewDialog.loading && (
@@ -864,8 +1082,9 @@ export function PrDetailPage() {
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
             )}
-            {!previewDialog.loading && previewDialog.url && (
-              previewDialog.mimeType.startsWith('image/') ? (
+            {!previewDialog.loading &&
+              previewDialog.url &&
+              (previewDialog.mimeType.startsWith("image/") ? (
                 <div className="flex items-center justify-center h-full p-4 overflow-auto">
                   <img
                     src={previewDialog.url}
@@ -879,43 +1098,53 @@ export function PrDetailPage() {
                   title={previewDialog.name}
                   className="w-full h-full border-0"
                 />
-              )
-            )}
+              ))}
           </div>
         </DialogContent>
       </Dialog>
 
       {/* Approval Action Dialog */}
-      <Dialog open={approvalDialog.open} onOpenChange={(open) => { setApprovalDialog({ ...approvalDialog, open }); if (!open) setApprovalComments(''); }}>
+      <Dialog
+        open={approvalDialog.open}
+        onOpenChange={(open) => {
+          setApprovalDialog({ ...approvalDialog, open });
+          if (!open) setApprovalComments("");
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {approvalDialog.action === 'approved' && 'Approve Purchase Request'}
-              {approvalDialog.action === 'rejected' && 'Reject Purchase Request'}
-              {approvalDialog.action === 'returned' && 'Return for Revision'}
+              {approvalDialog.action === "approved" &&
+                "Approve Purchase Request"}
+              {approvalDialog.action === "rejected" &&
+                "Reject Purchase Request"}
+              {approvalDialog.action === "returned" && "Return for Revision"}
             </DialogTitle>
             <DialogDescription>
-              {approvalDialog.action === 'approved' &&
-                'Approve this PR and advance it to the next approval level.'}
-              {approvalDialog.action === 'rejected' &&
-                'Reject this PR. The requester will be notified.'}
-              {approvalDialog.action === 'returned' &&
-                'Return this PR to the requester for revision.'}
+              {approvalDialog.action === "approved" &&
+                "Approve this PR and advance it to the next approval level."}
+              {approvalDialog.action === "rejected" &&
+                "Reject this PR. The requester will be notified."}
+              {approvalDialog.action === "returned" &&
+                "Return this PR to the requester for revision."}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-2">
             <Label htmlFor="approval-comments">
-              Comments {approvalDialog.action !== 'approved' && <span className="text-destructive">*</span>}
+              Comments{" "}
+              {approvalDialog.action !== "approved" && (
+                <span className="text-destructive">*</span>
+              )}
             </Label>
             <textarea
               id="approval-comments"
               rows={3}
               className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               placeholder={
-                approvalDialog.action === 'approved'
-                  ? 'Optional comments...'
-                  : 'Provide a reason (required)...'
+                approvalDialog.action === "approved"
+                  ? "Optional comments..."
+                  : "Provide a reason (required)..."
               }
               value={approvalComments}
               onChange={(e) => setApprovalComments(e.target.value)}
@@ -923,32 +1152,75 @@ export function PrDetailPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setApprovalDialog({ ...approvalDialog, open: false }); setApprovalComments(''); }}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setApprovalDialog({ ...approvalDialog, open: false });
+                setApprovalComments("");
+              }}
+            >
               Cancel
             </Button>
             <Button
               variant={
-                approvalDialog.action === 'approved'
-                  ? 'default'
-                  : approvalDialog.action === 'rejected'
-                    ? 'destructive'
-                    : 'outline'
+                approvalDialog.action === "approved"
+                  ? "default"
+                  : approvalDialog.action === "rejected"
+                    ? "destructive"
+                    : "outline"
               }
-              className={approvalDialog.action === 'approved' ? 'bg-emerald-600 hover:bg-emerald-700' : undefined}
+              className={
+                approvalDialog.action === "approved"
+                  ? "bg-emerald-600 hover:bg-emerald-700"
+                  : undefined
+              }
               onClick={handleApprovalAction}
               disabled={processApproval.isPending}
             >
-              {approvalDialog.action === 'approved' && (
-                <><CheckCircle2 className="h-4 w-4" /> Approve</>
+              {approvalDialog.action === "approved" && (
+                <>
+                  <CheckCircle2 className="h-4 w-4" /> Approve
+                </>
               )}
-              {approvalDialog.action === 'rejected' && (
-                <><XCircle className="h-4 w-4" /> Reject</>
+              {approvalDialog.action === "rejected" && (
+                <>
+                  <XCircle className="h-4 w-4" /> Reject
+                </>
               )}
-              {approvalDialog.action === 'returned' && (
-                <><RotateCcw className="h-4 w-4" /> Return</>
+              {approvalDialog.action === "returned" && (
+                <>
+                  <RotateCcw className="h-4 w-4" /> Return
+                </>
               )}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Item Reference Photo Dialog */}
+      <Dialog
+        open={itemPhotoDialog.open}
+        onOpenChange={(o) => {
+          if (!o) closeItemPhotoDialog();
+        }}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ImageIcon className="h-4 w-4" /> Reference Photo
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center justify-center min-h-48">
+            {itemPhotoDialog.loading ? (
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            ) : itemPhotoDialog.url ? (
+              <img
+                src={itemPhotoDialog.url}
+                alt="Reference photo"
+                className="max-w-full max-h-[60vh] rounded-md object-contain"
+              />
+            ) : null}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

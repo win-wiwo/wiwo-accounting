@@ -44,6 +44,11 @@ export class SellerReferenceDto {
 }
 
 export class LineItemDto {
+  @ApiPropertyOptional({ description: 'MongoDB ObjectId of an existing item (used to preserve photo on update)' })
+  @IsMongoId()
+  @IsOptional()
+  _id?: string;
+
   @ApiProperty({ example: 'Ergonomic office chair' })
   @IsString()
   @MinLength(1)
@@ -104,18 +109,6 @@ export class CreatePurchaseRequestDto {
   @IsOptional()
   requestType?: string;
 
-  @ApiProperty({ example: 'Office Furniture for New Hires' })
-  @IsString()
-  @MinLength(1)
-  @MaxLength(200)
-  title: string;
-
-  @ApiProperty({ example: 'Need to furnish workstations for 5 new engineers joining next month.' })
-  @IsString()
-  @MinLength(1)
-  @MaxLength(2000)
-  description: string;
-
   @ApiPropertyOptional({ example: '6650a1b2c3d4e5f678901234' })
   @IsMongoId()
   @IsOptional()
@@ -132,7 +125,7 @@ export class CreatePurchaseRequestDto {
   @Type(() => LineItemDto)
   items: LineItemDto[];
 
-  @ApiProperty({ example: 'Team expansion requires additional equipment.' })
+  @ApiProperty({ example: 'Team expansion requires additional equipment.', description: 'Purpose of the request' })
   @IsString()
   @MinLength(1)
   @MaxLength(2000)

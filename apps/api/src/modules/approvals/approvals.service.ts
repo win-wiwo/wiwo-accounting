@@ -81,8 +81,7 @@ export class ApprovalsService {
 
     // Dept heads can only approve PRs from their own department
     if (currentLevel === ApprovalLevel.DEPT_HEAD) {
-      const dept = await this.departmentModel.findOne({ headId: new Types.ObjectId(user._id) }).exec();
-      if (!dept || dept._id.toString() !== pr.departmentId.toString()) {
+      if (!user.departmentId || user.departmentId !== pr.departmentId.toString()) {
         throw new ForbiddenException(
           'You can only approve PRs from your own department',
         );
@@ -150,11 +149,23 @@ export class ApprovalsService {
    * Get the approval history for a specific PR.
    */
   async getByPurchaseRequest(prId: string): Promise<Approval[]> {
-    return this.approvalModel
-      .find({ purchaseRequestId: prId })
-      .populate('approverId', 'firstName lastName email role')
-      .sort({ actionDate: 1 })
+    const pr = await this.prModel
+      .findById(prId)
+      .populate({
+        path: 'approvalHistory',
+        options: { sort: { actionDate: 1 } },
+        populate: {
+          path: 'approverId',
+          select: 'firstName lastName email role',
+        },
+      })
       .exec();
+
+    if (!pr) {
+      throw new NotFoundException('Purchase request not found');
+    }
+
+    return pr.approvalHistory as unknown as Approval[];
   }
 
   /**

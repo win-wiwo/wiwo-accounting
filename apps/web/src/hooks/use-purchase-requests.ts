@@ -128,3 +128,25 @@ export function useReturnForInfo() {
     },
   });
 }
+
+export function useUploadItemPhoto() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, itemId, file }: { id: string; itemId: string; file: File }) =>
+      purchaseRequestsApi.uploadItemPhoto(id, itemId, file),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['purchase-requests'] });
+    },
+  });
+}
+
+export function useRemoveItemPhoto() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, itemId }: { id: string; itemId: string }) =>
+      purchaseRequestsApi.removeItemPhoto(id, itemId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['purchase-requests'] });
+    },
+  });
+}

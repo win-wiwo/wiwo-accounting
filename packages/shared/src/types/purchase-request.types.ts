@@ -18,6 +18,9 @@ export interface PrLineItem {
   estimatedPrice: number;
   totalPrice: number;
   notes?: string;
+  // Optional photo reference from requester
+  referencePhotoPath?: string | null;
+  referencePhotoOriginalName?: string | null;
   // Online sourcing
   sellerReferences?: SellerReference[];
   sellerReferencesJustification?: string | null;
@@ -44,6 +47,12 @@ export interface QuotationReturn {
   returnedAt: string;
 }
 
+export interface RecallHistoryEntry {
+  _id: string;
+  recalledBy: { _id: string; firstName: string; lastName: string } | string;
+  recalledAt: string;
+}
+
 export interface PurchaseRequest {
   _id: string;
   prNumber: string;
@@ -65,8 +74,10 @@ export interface PurchaseRequest {
   approvalHistory: string[];
   submittedAt: string | null;
   completedAt: string | null;
+  cancellationReason?: string | null;
   quotationNote?: string | null;
   quotationReturnHistory?: QuotationReturn[];
+  recallHistory?: RecallHistoryEntry[];
   createdAt: string;
   updatedAt: string;
 }
@@ -92,9 +103,7 @@ export interface CreateLineItemDto {
 
 export interface CreatePurchaseRequestDto {
   requestType?: 'purchase_request' | 'job_request';
-  title: string;
   projectId?: string;
-  description: string;
   priority: PrPriority;
   items: CreateLineItemDto[];
   justification: string;
@@ -102,8 +111,6 @@ export interface CreatePurchaseRequestDto {
 }
 
 export interface UpdatePurchaseRequestDto {
-  title?: string;
-  description?: string;
   priority?: PrPriority;
   items?: CreateLineItemDto[];
   justification?: string;

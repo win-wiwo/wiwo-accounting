@@ -111,7 +111,7 @@ export class NotificationsService {
     const { page = 1, limit = 20, unreadOnly } = query;
 
     const filter: FilterQuery<Notification> = { recipientId: userId };
-    if (unreadOnly === 'true') {
+    if (unreadOnly) {
       filter.isRead = false;
     }
 

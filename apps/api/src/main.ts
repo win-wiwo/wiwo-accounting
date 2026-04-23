@@ -3,10 +3,15 @@ import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
+import { mkdirSync } from 'fs';
+import { join } from 'path';
 import { AppModule } from './app.module';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 
 async function bootstrap() {
+  mkdirSync(join(process.cwd(), 'uploads', 'attachments'), { recursive: true });
+  mkdirSync(join(process.cwd(), 'uploads', 'item-photos'), { recursive: true });
+
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
 

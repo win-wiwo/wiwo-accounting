@@ -712,14 +712,15 @@ export class ReportsService {
 
       doc.moveDown(0.5);
 
-      // ── Description ──
-      doc.fontSize(12).font('Helvetica-Bold').text('Description');
-      doc.moveDown(0.2);
-      doc.fontSize(10).font('Helvetica').text(typedPr.description, { width: pageWidth });
-      doc.moveDown(0.5);
+      if (typedPr.description?.trim()) {
+        doc.fontSize(12).font('Helvetica-Bold').text('Description');
+        doc.moveDown(0.2);
+        doc.fontSize(10).font('Helvetica').text(typedPr.description, { width: pageWidth });
+        doc.moveDown(0.5);
+      }
 
-      // ── Justification ──
-      doc.fontSize(12).font('Helvetica-Bold').text('Justification');
+      // ── Purpose ──
+      doc.fontSize(12).font('Helvetica-Bold').text('Purpose');
       doc.moveDown(0.2);
       doc.fontSize(10).font('Helvetica').text(typedPr.justification, { width: pageWidth });
       doc.moveDown(0.8);

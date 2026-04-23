@@ -66,6 +66,14 @@ const navigation: NavItem[] = [
     label: 'Search & Monitor',
     href: '/search',
     icon: Search,
+    roles: [
+      UserRole.ADMIN,
+      UserRole.DEPT_HEAD,
+      UserRole.COO,
+      UserRole.CEO,
+      UserRole.ACCOUNTING,
+      UserRole.PROCUREMENT,
+    ],
   },
   {
     label: 'Approvals',

@@ -10,17 +10,13 @@ export const lineItemSchema = z.object({
 });
 
 export const createPurchaseRequestSchema = z.object({
-  title: z.string().min(1, 'Title is required').max(200).trim(),
-  description: z.string().min(1, 'Description is required').max(2000).trim(),
   priority: z.enum(PR_PRIORITIES as [string, ...string[]]),
   items: z.array(lineItemSchema).min(1, 'At least one line item is required'),
-  justification: z.string().min(1, 'Business justification is required').max(2000).trim(),
+  justification: z.string().min(1, 'Purpose is required').max(2000).trim(),
   neededByDate: z.string().datetime().optional(),
 });
 
 export const updatePurchaseRequestSchema = z.object({
-  title: z.string().min(1).max(200).trim().optional(),
-  description: z.string().min(1).max(2000).trim().optional(),
   priority: z.enum(PR_PRIORITIES as [string, ...string[]]).optional(),
   items: z.array(lineItemSchema).min(1).optional(),
   justification: z.string().min(1).max(2000).trim().optional(),

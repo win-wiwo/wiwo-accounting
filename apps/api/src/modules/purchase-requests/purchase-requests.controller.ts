@@ -148,8 +148,8 @@ export class PurchaseRequestsController {
     @UploadedFile(
       new ParseFilePipe({
         validators: [
-          new MaxFileSizeValidator({ maxSize: 10 * 1024 * 1024 }), // 10 MB
-          new FileTypeValidator({ fileType: /(pdf|jpg|jpeg|png|doc|docx|xls|xlsx)$/i }),
+          new MaxFileSizeValidator({ maxSize: 10 * 1024 * 1024 }),
+          new FileTypeValidator({ fileType: /(pdf|jpeg|png|doc|docx|xls|xlsx|msword|vnd\.openxmlformats)/i, skipMagicNumbersValidation: true }),
         ],
       }),
     )
@@ -195,6 +195,81 @@ export class PurchaseRequestsController {
     res.setHeader('Content-Disposition', `attachment; filename="${attachment.originalName}"`);
     res.setHeader('Content-Type', attachment.mimeType);
     createReadStream(attachment.storagePath).pipe(res);
+  }
+
+  @Post(':id/items/:itemId/photo')
+  @ApiOperation({ summary: 'Upload a reference photo for a line item' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: join(process.cwd(), 'uploads', 'item-photos'),
+        filename: (
+          _req: Express.Request,
+          file: Express.Multer.File,
+          cb: (error: Error | null, filename: string) => void,
+        ) => {
+          const uniqueName = `${uuidv4()}${extname(file.originalname)}`;
+          cb(null, uniqueName);
+        },
+      }),
+    }),
+  )
+  async uploadItemPhoto(
+    @Param('id', ParseObjectIdPipe) id: string,
+    @Param('itemId', ParseObjectIdPipe) itemId: string,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
+          new FileTypeValidator({ fileType: /image\/(jpeg|png|webp)/i, skipMagicNumbersValidation: true }),
+        ],
+      }),
+    )
+    file: Express.Multer.File,
+    @CurrentUser() user: { _id: string; role: string; departmentId: string | null },
+  ) {
+    return this.prService.uploadItemPhoto(id, itemId, file, user);
+  }
+
+  @Delete(':id/items/:itemId/photo')
+  @ApiOperation({ summary: 'Remove the reference photo from a line item' })
+  async removeItemPhoto(
+    @Param('id', ParseObjectIdPipe) id: string,
+    @Param('itemId', ParseObjectIdPipe) itemId: string,
+    @CurrentUser() user: { _id: string; role: string; departmentId: string | null },
+  ) {
+    return this.prService.removeItemPhoto(id, itemId, user);
+  }
+
+  @Get(':id/items/:itemId/photo')
+  @ApiOperation({ summary: 'View the reference photo for a line item' })
+  async viewItemPhoto(
+    @Param('id', ParseObjectIdPipe) id: string,
+    @Param('itemId') itemId: string,
+    @CurrentUser() user: { _id: string; role: string; departmentId: string | null },
+    @Res() res: Response,
+  ) {
+    const pr = await this.prService.findById(id, user);
+    const item = pr.items.find((i) => i._id.toString() === itemId);
+
+    if (!item?.referencePhotoPath) {
+      res.status(404).json({ message: 'No reference photo for this item' });
+      return;
+    }
+
+    if (!existsSync(item.referencePhotoPath)) {
+      res.status(404).json({ message: 'Photo file not found on disk' });
+      return;
+    }
+
+    const ext = item.referencePhotoPath.split('.').pop()?.toLowerCase();
+    const mimeMap: Record<string, string> = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp' };
+    const mime = mimeMap[ext ?? ''] ?? 'image/jpeg';
+
+    res.setHeader('Content-Disposition', `inline; filename="${item.referencePhotoOriginalName ?? 'photo'}"`);
+    res.setHeader('Content-Type', mime);
+    createReadStream(item.referencePhotoPath).pipe(res);
   }
 
   @Delete(':id')

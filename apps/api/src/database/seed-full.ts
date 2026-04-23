@@ -3,6 +3,7 @@ import * as bcrypt from 'bcrypt';
 import * as dotenv from 'dotenv';
 import * as fs from 'fs';
 import { join } from 'path';
+import { deflateSync } from 'zlib';
 import PDFDocument = require('pdfkit');
 import { v4 as uuidv4 } from 'uuid';
 
@@ -10,6 +11,7 @@ dotenv.config();
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/prams';
 const UPLOADS_DIR = join(process.cwd(), 'uploads', 'attachments');
+const ITEM_PHOTOS_DIR = join(process.cwd(), 'uploads', 'item-photos');
 
 // ─── Schemas ──────────────────────────────────────────────
 
@@ -34,21 +36,38 @@ const departmentSchema = new mongoose.Schema({
   isActive: { type: Boolean, default: true },
 }, { timestamps: true });
 
+const projectSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  code: { type: String, default: null },
+  description: { type: String, default: null },
+  status: { type: String, enum: ['active', 'completed', 'archived'], default: 'active' },
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+}, { timestamps: true });
+
 const lineItemSchema = new mongoose.Schema({
   description: { type: String, required: true },
   quantity: { type: Number, required: true },
   unit: { type: String, required: true },
+  specifications: { type: String, default: null },
+  sourcingType: { type: String, enum: ['procurement', 'online'], default: 'procurement' },
   estimatedPrice: { type: Number, required: true },
   totalPrice: { type: Number, required: true },
   notes: { type: String, default: null },
+  sellerReferences: { type: [mongoose.Schema.Types.Mixed], default: [] },
+  sellerReferencesJustification: { type: String, default: null },
+  referencePhotoPath: { type: String, default: null },
+  referencePhotoOriginalName: { type: String, default: null },
+  quotedUnitPrice: { type: Number, default: null },
+  selectedSupplierId: { type: mongoose.Schema.Types.ObjectId, default: null },
+  quotedAt: { type: Date, default: null },
 });
 
 const prSchema = new mongoose.Schema({
   prNumber: { type: String, unique: true, sparse: true },
   requestType: { type: String, enum: ['purchase_request', 'job_request'], default: 'purchase_request' },
   title: { type: String, required: true },
-  projectName: { type: String, default: null },
-  description: { type: String, required: true },
+  projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'Project', default: null },
+  description: { type: String, default: '' },
   requesterId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   departmentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Department', required: true },
   status: { type: String, required: true, default: 'draft' },
@@ -64,6 +83,9 @@ const prSchema = new mongoose.Schema({
   submittedAt: { type: Date, default: null },
   completedAt: { type: Date, default: null },
   cancellationReason: { type: String, default: null },
+  quotationNote: { type: String, default: null },
+  quotationReturnHistory: { type: [mongoose.Schema.Types.Mixed], default: [] },
+  recallHistory: { type: [mongoose.Schema.Types.Mixed], default: [] },
 }, { timestamps: true });
 
 const supplierSchema = new mongoose.Schema({
@@ -160,15 +182,32 @@ function hoursAfter(date: Date, hours: number): Date {
   return new Date(date.getTime() + hours * 60 * 60 * 1000);
 }
 
-function makeItems(items: Array<{ desc: string; qty: number; unit: string; price: number; notes?: string }>) {
+function makeItems(items: Array<{
+  desc: string;
+  qty: number;
+  unit: string;
+  price: number;
+  notes?: string;
+  specs?: string;
+  sourcingType?: 'procurement' | 'online';
+}>) {
   return items.map(i => ({
     _id: new Types.ObjectId(),
     description: i.desc,
     quantity: i.qty,
     unit: i.unit,
+    specifications: i.specs || null,
+    sourcingType: i.sourcingType || 'procurement',
     estimatedPrice: i.price,
     totalPrice: i.qty * i.price,
     notes: i.notes || null,
+    sellerReferences: [],
+    sellerReferencesJustification: null,
+    referencePhotoPath: null,
+    referencePhotoOriginalName: null,
+    quotedUnitPrice: null,
+    selectedSupplierId: null,
+    quotedAt: null,
   }));
 }
 
@@ -191,6 +230,118 @@ function ensureUploadsDir() {
   if (!fs.existsSync(UPLOADS_DIR)) {
     fs.mkdirSync(UPLOADS_DIR, { recursive: true });
   }
+  if (!fs.existsSync(ITEM_PHOTOS_DIR)) {
+    fs.mkdirSync(ITEM_PHOTOS_DIR, { recursive: true });
+  }
+}
+
+async function generateReferencePhoto(filename: string): Promise<{ storagePath: string; originalName: string }> {
+  const filepath = join(ITEM_PHOTOS_DIR, filename);
+  const createChunk = (type: string, data: Buffer) => {
+    const length = Buffer.alloc(4);
+    length.writeUInt32BE(data.length, 0);
+    const typeBuf = Buffer.from(type, 'ascii');
+    const crc = Buffer.alloc(4);
+    crc.writeUInt32BE(crc32(Buffer.concat([typeBuf, data])), 0);
+    return Buffer.concat([length, typeBuf, data, crc]);
+  };
+
+  const createPng = (seed: string) => {
+    const width = 640;
+    const height = 400;
+    const hash = hashString(seed);
+    const bg = palette(hash);
+    const accent = palette(hash * 31);
+    const stripe = palette(hash * 131);
+    const raw = Buffer.alloc((width * 4 + 1) * height);
+
+    for (let y = 0; y < height; y++) {
+      const rowStart = y * (width * 4 + 1);
+      raw[rowStart] = 0;
+
+      for (let x = 0; x < width; x++) {
+        const offset = rowStart + 1 + x * 4;
+        let color = bg;
+
+        if (x > 36 && x < width - 36 && y > 36 && y < height - 36) {
+          color = accent;
+        }
+        if (y > 84 && y < 114) {
+          color = stripe;
+        }
+        if ((x > 72 && x < width - 72 && y > 150 && y < 158) || (x > 72 && x < width - 180 && y > 182 && y < 190)) {
+          color = stripe;
+        }
+        if ((x < 8 || x > width - 9 || y < 8 || y > height - 9)) {
+          color = [24, 28, 38];
+        }
+
+        raw[offset] = color[0];
+        raw[offset + 1] = color[1];
+        raw[offset + 2] = color[2];
+        raw[offset + 3] = 255;
+      }
+    }
+
+    const signature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+    const ihdr = Buffer.alloc(13);
+    ihdr.writeUInt32BE(width, 0);
+    ihdr.writeUInt32BE(height, 4);
+    ihdr[8] = 8;
+    ihdr[9] = 6;
+    ihdr[10] = 0;
+    ihdr[11] = 0;
+    ihdr[12] = 0;
+
+    return Buffer.concat([
+      signature,
+      createChunk('IHDR', ihdr),
+      createChunk('IDAT', deflateSync(raw)),
+      createChunk('IEND', Buffer.alloc(0)),
+    ]);
+  };
+
+  const crc32 = (buffer: Buffer) => {
+    let crc = 0xffffffff;
+    for (const byte of buffer) {
+      crc ^= byte;
+      for (let i = 0; i < 8; i++) {
+        const mask = -(crc & 1);
+        crc = (crc >>> 1) ^ (0xedb88320 & mask);
+      }
+    }
+    return (crc ^ 0xffffffff) >>> 0;
+  };
+
+  const hashString = (value: string) => {
+    let hash = 2166136261;
+    for (let i = 0; i < value.length; i++) {
+      hash ^= value.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+    return hash >>> 0;
+  };
+
+  const palette = (hash: number): [number, number, number] => {
+    const hue = hash % 6;
+    const sets: Array<[number, number, number]> = [
+      [27, 79, 114],
+      [30, 101, 82],
+      [130, 79, 28],
+      [103, 58, 122],
+      [120, 62, 62],
+      [88, 89, 34],
+    ];
+    return sets[hue];
+  };
+
+  const pngBuffer = createPng(filename);
+  await fs.promises.writeFile(filepath, pngBuffer);
+
+  return {
+    storagePath: `/app/uploads/item-photos/${filename}`,
+    originalName: filename,
+  };
 }
 
 async function generateQuotationPdf(opts: {
@@ -375,9 +526,34 @@ function pickSuppliers(prTitle: string): SupplierQuoteConfig[] {
   return GENERAL_SUPPLIERS;
 }
 
+function buildRequestTitle(
+  items: Array<{ description: string }>,
+  requestType: 'purchase_request' | 'job_request' = 'purchase_request',
+): string {
+  const normalized = items
+    .map((item) => item.description.trim())
+    .filter(Boolean);
+
+  if (normalized.length === 0) {
+    return requestType === 'job_request' ? 'Job Request' : 'Purchase Request';
+  }
+
+  const [first, second] = normalized;
+  let title = first;
+
+  if (normalized.length > 2) {
+    title += ` +${normalized.length - 1} more items`;
+  } else if (second) {
+    title += ` + ${second}`;
+  }
+
+  return title.slice(0, 200);
+}
+
 async function attachQuotations(
   prDoc: any,
   uploaderId: Types.ObjectId,
+  projectName: string | null,
 ): Promise<void> {
   const suppliers = pickSuppliers(prDoc.title);
   const attachments = [];
@@ -392,7 +568,7 @@ async function attachQuotations(
       supplierContact: sup.contact,
       supplierTin: sup.tin,
       prTitle: prDoc.title,
-      projectName: prDoc.projectName || null,
+      projectName,
       items: prDoc.items.map((item: any) => ({
         ...item,
         estimatedPrice: Math.round(item.estimatedPrice * sup.multiplier),
@@ -412,6 +588,88 @@ async function attachQuotations(
   prDoc.attachments = attachments;
 }
 
+function buildCanvassEntries(
+  prDoc: any,
+  supplierDocs: mongoose.Document[],
+): any[] {
+  return pickSuppliers(prDoc.title).map((config, index) => {
+    const supplier = supplierDocs.find(
+      (doc: any) => doc.companyName === config.supplierName,
+    );
+    const quotedItems = prDoc.items.map((item: any) => {
+      const unitPrice = Math.round(item.estimatedPrice * config.multiplier);
+      return {
+        description: item.description,
+        unitPrice,
+        totalPrice: item.quantity * unitPrice,
+        remarks: index === 0 ? 'Selected quote baseline' : config.remarks,
+      };
+    });
+
+    return {
+      _id: new Types.ObjectId(),
+      supplierId: supplier?._id,
+      supplierName: config.supplierName,
+      quotedItems,
+      totalQuotedAmount: quotedItems.reduce(
+        (sum: number, item: { totalPrice: number }) => sum + item.totalPrice,
+        0,
+      ),
+      remarks: config.remarks,
+      isSelected: index === 0,
+    };
+  }).filter((entry) => entry.supplierId);
+}
+
+function applyQuotedPricingToPr(prDoc: any, supplierDocs: mongoose.Document[]) {
+  const canvassEntries = buildCanvassEntries(prDoc, supplierDocs);
+  const selected = canvassEntries.find((entry) => entry.isSelected) ?? canvassEntries[0];
+  if (!selected) return;
+
+  const quotedAtBase = prDoc.submittedAt
+    ? hoursAfter(new Date(prDoc.submittedAt), 2)
+    : new Date(prDoc.createdAt);
+
+  prDoc.items = prDoc.items.map((item: any, index: number) => {
+    const quotedItem = selected.quotedItems[index];
+    return {
+      ...item,
+      estimatedPrice: quotedItem.unitPrice,
+      totalPrice: quotedItem.totalPrice,
+      quotedUnitPrice: quotedItem.unitPrice,
+      selectedSupplierId: selected.supplierId,
+      quotedAt: quotedAtBase,
+    };
+  });
+  prDoc.totalAmount = prDoc.items.reduce(
+    (sum: number, item: { totalPrice: number }) => sum + item.totalPrice,
+    0,
+  );
+}
+
+async function attachReferencePhotos(prDoc: any): Promise<void> {
+  const title = String(prDoc.title || '').toLowerCase();
+  const shouldAttach =
+    title.includes('camera') ||
+    title.includes('pole') ||
+    title.includes('tool') ||
+    title.includes('enclosure') ||
+    title.includes('ppe');
+
+  if (!shouldAttach || !prDoc.items?.length) return;
+
+  const photoTargets = prDoc.items.slice(0, Math.min(2, prDoc.items.length));
+  for (const item of photoTargets) {
+    const filename = `${uuidv4()}.png`;
+    const photo = await generateReferencePhoto(filename);
+    item.referencePhotoPath = photo.storagePath;
+    item.referencePhotoOriginalName = `reference-${item.description
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')}.png`;
+  }
+}
+
 // ─── Main Seed ────────────────────────────────────────────
 
 async function seed() {
@@ -424,6 +682,7 @@ async function seed() {
 
     const User = mongoose.model('User', userSchema);
     const Department = mongoose.model('Department', departmentSchema);
+    const Project = mongoose.model('Project', projectSchema);
     const PurchaseRequest = mongoose.model('PurchaseRequest', prSchema);
     const Approval = mongoose.model('Approval', approvalSchema);
     const Notification = mongoose.model('Notification', notificationSchema);
@@ -436,6 +695,7 @@ async function seed() {
     await Promise.all([
       User.deleteMany({}),
       Department.deleteMany({}),
+      Project.deleteMany({}),
       PurchaseRequest.deleteMany({}),
       Approval.deleteMany({}),
       Notification.deleteMany({}),
@@ -531,6 +791,7 @@ async function seed() {
     console.log('  Assigned department heads');
 
     // ─── Purchase Requests Setup ───
+    const admin = userMap['admin@wiwo.com'];
     const ceo = userMap['ceo@wiwo.com'];
     const coo = userMap['coo@wiwo.com'];
     const engHead = userMap['eng.head@wiwo.com'];
@@ -554,6 +815,31 @@ async function seed() {
     const isabella = userMap['isabella.morales@wiwo.com'];
     const procurementUser = userMap['procurement@wiwo.com'];
     const accountingUser = userMap['accounting@wiwo.com'];
+
+    console.log('\nCreating projects...');
+    const projects = await Project.insertMany([
+      {
+        name: 'CCTV Installation – Busway Line 1',
+        code: 'BUSWAY-1',
+        description: 'Busway CCTV rollout covering station, platform, and command center infrastructure.',
+        status: 'active',
+        createdBy: admin._id,
+      },
+      {
+        name: 'AI Camera System – Phase 1',
+        code: 'AI-PH1',
+        description: 'Phase 1 deployment of AI-enabled cameras, edge compute, and analytics.',
+        status: 'active',
+        createdBy: admin._id,
+      },
+    ]);
+    const projectMap = Object.fromEntries(projects.map((project: any) => [project.name, project]));
+    const getProjectId = (projectName?: string) => projectName ? projectMap[projectName]?._id ?? null : null;
+    const getProjectName = (projectId?: Types.ObjectId | null) => {
+      if (!projectId) return null;
+      return projects.find((project: any) => project._id.equals(projectId))?.name ?? null;
+    };
+    console.log(`  Created ${projects.length} projects`);
 
     const year = new Date().getFullYear();
     const seqCounters: Record<string, number> = {};
@@ -586,6 +872,7 @@ async function seed() {
       const l3Date = hoursAfter(l2Date, 8 + Math.random() * 48);
       const reqType = opts.requestType || 'purchase_request';
       const prNumber = nextPrNumber(opts.deptCode, reqType);
+      const projectId = getProjectId(opts.projectName);
 
       const prId = new Types.ObjectId();
       const a1Id = new Types.ObjectId();
@@ -593,8 +880,8 @@ async function seed() {
       const a3Id = new Types.ObjectId();
 
       allPrs.push({
-        _id: prId, prNumber, requestType: reqType, title: opts.title,
-        projectName: opts.projectName || null, description: opts.desc,
+        _id: prId, prNumber, requestType: reqType, title: buildRequestTitle(items, reqType),
+        projectId, description: '',
         requesterId: opts.requester._id, departmentId: opts.dept._id,
         status: 'approved', priority: opts.priority, items, totalAmount: total,
         justification: opts.justification,
@@ -636,6 +923,7 @@ async function seed() {
       const reqType = opts.requestType || 'purchase_request';
       const prNumber = isDraft ? undefined : nextPrNumber(opts.deptCode, reqType);
       const submitted = isDraft ? null : hoursAfter(created, 1);
+      const projectId = getProjectId(opts.projectName);
 
       let status = opts.stage;
       let currentLevel = 0;
@@ -698,8 +986,8 @@ async function seed() {
       }
 
       allPrs.push({
-        _id: prId, prNumber, requestType: reqType, title: opts.title,
-        projectName: opts.projectName || null, description: opts.desc,
+        _id: prId, prNumber, requestType: reqType, title: buildRequestTitle(items, reqType),
+        projectId, description: '',
         requesterId: opts.requester._id, departmentId: opts.dept._id,
         status, priority: opts.priority, items, totalAmount: total,
         justification: opts.justification,
@@ -707,6 +995,9 @@ async function seed() {
         currentApprovalLevel: currentLevel, approvalHistory: approvalIds,
         submittedAt: submitted,
         cancellationReason: opts.stage === 'cancelled' ? (opts.cancelReason || 'No longer needed') : null,
+        quotationNote: null,
+        quotationReturnHistory: [],
+        recallHistory: [],
         createdAt: created, updatedAt: created,
         attachments: [],
       });
@@ -1216,12 +1507,19 @@ async function seed() {
     ]);
     console.log(`  Created ${suppliers.length} suppliers`);
 
+    for (const prDoc of allPrs) {
+      if (['approved', 'level2_review', 'level3_review'].includes(prDoc.status)) {
+        applyQuotedPricingToPr(prDoc, suppliers);
+      }
+      await attachReferencePhotos(prDoc);
+    }
+
     // ─── Generate Attachments for Non-Draft PRs ────────────────
     console.log('\nGenerating supplier quotation PDFs as attachments...');
     let attachmentCount = 0;
     for (const prDoc of allPrs) {
       if (prDoc.status === 'draft') continue;
-      await attachQuotations(prDoc, prDoc.requesterId);
+      await attachQuotations(prDoc, prDoc.requesterId, getProjectName(prDoc.projectId));
       attachmentCount += prDoc.attachments.length;
       process.stdout.write('.');
     }
@@ -1243,20 +1541,25 @@ async function seed() {
     // PO 1: Issued – IP Dome Cameras Batch 1
     if (approvedPrDocs[0]) {
       const pr = approvedPrDocs[0];
+      const canvassEntries = buildCanvassEntries(pr, suppliers);
+      const selectedEntry = canvassEntries.find((entry) => entry.isSelected) ?? canvassEntries[0];
       allPos.push(new PurchaseOrder({
         poNumber: nextPoNumber(),
         purchaseRequestId: pr._id,
         sourceRequestNumber: pr.prNumber,
         sourceRequestType: pr.requestType,
-        supplierId: suppliers[0]._id,
-        projectName: pr.projectName,
-        items: pr.items.map((item: any) => ({ _id: new Types.ObjectId(), description: item.description, quantity: item.quantity, unit: item.unit, unitPrice: item.estimatedPrice, totalPrice: item.totalPrice })),
+        supplierId: selectedEntry?.supplierId ?? null,
+        projectName: getProjectName(pr.projectId),
+        items: pr.items.map((item: any) => ({
+          _id: new Types.ObjectId(),
+          description: item.description,
+          quantity: item.quantity,
+          unit: item.unit,
+          unitPrice: item.quotedUnitPrice ?? item.estimatedPrice,
+          totalPrice: item.totalPrice,
+        })),
         totalAmount: pr.totalAmount,
-        canvassEntries: [
-          { _id: new Types.ObjectId(), supplierId: suppliers[0]._id, supplierName: 'TechVision Philippines Inc.', quotedItems: [], totalQuotedAmount: pr.totalAmount, remarks: 'Authorized Hikvision distributor. Best price with 2-year warranty.', isSelected: true },
-          { _id: new Types.ObjectId(), supplierId: suppliers[6]._id, supplierName: 'HiSec Distribution Corp.', quotedItems: [], totalQuotedAmount: Math.round(pr.totalAmount * 1.06), remarks: 'Higher price, Dahua brand alternative.', isSelected: false },
-          { _id: new Types.ObjectId(), supplierId: suppliers[2]._id, supplierName: 'ServerPro Technologies Inc.', quotedItems: [], totalQuotedAmount: Math.round(pr.totalAmount * 1.12), remarks: 'Not specialized in cameras, longest lead time.', isSelected: false },
-        ],
+        canvassEntries,
         status: 'issued',
         createdBy: procurementUser._id,
         approvedBy: coo._id,
@@ -1269,20 +1572,25 @@ async function seed() {
     // PO 2: Issued – Cat6 Cabling
     if (approvedPrDocs[1]) {
       const pr = approvedPrDocs[1];
+      const canvassEntries = buildCanvassEntries(pr, suppliers);
+      const selectedEntry = canvassEntries.find((entry) => entry.isSelected) ?? canvassEntries[0];
       allPos.push(new PurchaseOrder({
         poNumber: nextPoNumber(),
         purchaseRequestId: pr._id,
         sourceRequestNumber: pr.prNumber,
         sourceRequestType: pr.requestType,
-        supplierId: suppliers[1]._id,
-        projectName: pr.projectName,
-        items: pr.items.map((item: any) => ({ _id: new Types.ObjectId(), description: item.description, quantity: item.quantity, unit: item.unit, unitPrice: item.estimatedPrice, totalPrice: item.totalPrice })),
+        supplierId: selectedEntry?.supplierId ?? null,
+        projectName: getProjectName(pr.projectId),
+        items: pr.items.map((item: any) => ({
+          _id: new Types.ObjectId(),
+          description: item.description,
+          quantity: item.quantity,
+          unit: item.unit,
+          unitPrice: item.quotedUnitPrice ?? item.estimatedPrice,
+          totalPrice: item.totalPrice,
+        })),
         totalAmount: pr.totalAmount,
-        canvassEntries: [
-          { _id: new Types.ObjectId(), supplierId: suppliers[1]._id, supplierName: 'Cabletech Solutions Corp.', quotedItems: [], totalQuotedAmount: pr.totalAmount, remarks: 'ISO-certified cables. Bulk discount applied.', isSelected: true },
-          { _id: new Types.ObjectId(), supplierId: suppliers[1]._id, supplierName: 'NetInfra Philippines', quotedItems: [], totalQuotedAmount: Math.round(pr.totalAmount * 1.04), remarks: 'Free delivery above PHP 50,000.', isSelected: false },
-          { _id: new Types.ObjectId(), supplierId: suppliers[1]._id, supplierName: 'WireMax Supply Inc.', quotedItems: [], totalQuotedAmount: Math.round(pr.totalAmount * 1.09), remarks: 'Limited stock, cannot commit to delivery date.', isSelected: false },
-        ],
+        canvassEntries,
         status: 'issued',
         createdBy: procurementUser._id,
         approvedBy: coo._id,
@@ -1295,20 +1603,25 @@ async function seed() {
     // PO 3: Approved – Edge AI Server
     if (approvedPrDocs[7]) {
       const pr = approvedPrDocs[7];
+      const canvassEntries = buildCanvassEntries(pr, suppliers);
+      const selectedEntry = canvassEntries.find((entry) => entry.isSelected) ?? canvassEntries[0];
       allPos.push(new PurchaseOrder({
         poNumber: nextPoNumber(),
         purchaseRequestId: pr._id,
         sourceRequestNumber: pr.prNumber,
         sourceRequestType: pr.requestType,
-        supplierId: suppliers[2]._id,
-        projectName: pr.projectName,
-        items: pr.items.map((item: any) => ({ _id: new Types.ObjectId(), description: item.description, quantity: item.quantity, unit: item.unit, unitPrice: item.estimatedPrice, totalPrice: item.totalPrice })),
+        supplierId: selectedEntry?.supplierId ?? null,
+        projectName: getProjectName(pr.projectId),
+        items: pr.items.map((item: any) => ({
+          _id: new Types.ObjectId(),
+          description: item.description,
+          quantity: item.quantity,
+          unit: item.unit,
+          unitPrice: item.quotedUnitPrice ?? item.estimatedPrice,
+          totalPrice: item.totalPrice,
+        })),
         totalAmount: pr.totalAmount,
-        canvassEntries: [
-          { _id: new Types.ObjectId(), supplierId: suppliers[2]._id, supplierName: 'ServerPro Technologies Inc.', quotedItems: [], totalQuotedAmount: pr.totalAmount, remarks: 'Dell authorized partner. 3-year ProSupport included.', isSelected: true },
-          { _id: new Types.ObjectId(), supplierId: suppliers[2]._id, supplierName: 'DataCenter Philippines Corp.', quotedItems: [], totalQuotedAmount: Math.round(pr.totalAmount * 1.05), remarks: 'Lenovo alternative, includes rack installation.', isSelected: false },
-          { _id: new Types.ObjectId(), supplierId: suppliers[2]._id, supplierName: 'TechCore Systems PH', quotedItems: [], totalQuotedAmount: Math.round(pr.totalAmount * 1.10), remarks: 'Offers 24/7 support but highest price.', isSelected: false },
-        ],
+        canvassEntries,
         status: 'approved',
         createdBy: procurementUser._id,
         approvedBy: coo._id,
@@ -1320,15 +1633,25 @@ async function seed() {
     // PO 4: Submitted – AI Analytics License
     if (approvedPrDocs[8]) {
       const pr = approvedPrDocs[8];
+      const canvassEntries = buildCanvassEntries(pr, suppliers);
+      const selectedEntry = canvassEntries.find((entry) => entry.isSelected) ?? canvassEntries[0];
       allPos.push(new PurchaseOrder({
         poNumber: nextPoNumber(),
         purchaseRequestId: pr._id,
         sourceRequestNumber: pr.prNumber,
         sourceRequestType: pr.requestType,
-        supplierId: suppliers[3]._id,
-        projectName: pr.projectName,
-        items: pr.items.map((item: any) => ({ _id: new Types.ObjectId(), description: item.description, quantity: item.quantity, unit: item.unit, unitPrice: item.estimatedPrice, totalPrice: item.totalPrice })),
+        supplierId: selectedEntry?.supplierId ?? null,
+        projectName: getProjectName(pr.projectId),
+        items: pr.items.map((item: any) => ({
+          _id: new Types.ObjectId(),
+          description: item.description,
+          quantity: item.quantity,
+          unit: item.unit,
+          unitPrice: item.quotedUnitPrice ?? item.estimatedPrice,
+          totalPrice: item.totalPrice,
+        })),
         totalAmount: pr.totalAmount,
+        canvassEntries,
         status: 'submitted',
         createdBy: procurementUser._id,
       }));
@@ -1338,14 +1661,24 @@ async function seed() {
     if (jrId) {
       const jrPr = allPrs.find(p => p._id.equals(jrId));
       if (jrPr) {
+        const canvassEntries = buildCanvassEntries(jrPr, suppliers);
+        const selectedEntry = canvassEntries.find((entry) => entry.isSelected) ?? canvassEntries[0];
         allPos.push(new PurchaseOrder({
           purchaseRequestId: jrPr._id,
           sourceRequestNumber: jrPr.prNumber,
           sourceRequestType: 'job_request',
-          supplierId: suppliers[5]._id,
-          projectName: jrPr.projectName,
-          items: jrPr.items.map((item: any) => ({ _id: new Types.ObjectId(), description: item.description, quantity: item.quantity, unit: item.unit, unitPrice: item.estimatedPrice, totalPrice: item.totalPrice })),
+          supplierId: selectedEntry?.supplierId ?? null,
+          projectName: getProjectName(jrPr.projectId),
+          items: jrPr.items.map((item: any) => ({
+            _id: new Types.ObjectId(),
+            description: item.description,
+            quantity: item.quantity,
+            unit: item.unit,
+            unitPrice: item.quotedUnitPrice ?? item.estimatedPrice,
+            totalPrice: item.totalPrice,
+          })),
           totalAmount: jrPr.totalAmount,
+          canvassEntries,
           status: 'draft',
           createdBy: procurementUser._id,
           remarks: 'Awaiting final service agreement from TechInstall Services.',

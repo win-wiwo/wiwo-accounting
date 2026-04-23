@@ -1,11 +1,12 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { PR_PRIORITIES, PR_PRIORITY_LABELS, SourcingType, type PrPriority } from '@prams/shared';
+import { PR_PRIORITIES, PR_PRIORITY_LABELS, PrPriority, SourcingType, type CreatePurchaseRequestDto } from '@prams/shared';
 import { usePurchaseRequest, useCreatePr, useUpdatePr, useSubmitPr } from '@/hooks/use-purchase-requests';
-import { useActiveProjects } from '@/hooks/use-projects';
+import { purchaseRequestsApi } from '@/lib/api-services';
+import { useActiveProjects, useProject } from '@/hooks/use-projects';
 import { useToast } from '@/components/ui/toast';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
@@ -13,10 +14,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Loader2, Save, Send, Plus, Trash2, ShoppingCart, Globe, AlertCircle } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { ArrowLeft, Loader2, Save, Send, Plus, Trash2, ShoppingCart, Globe, AlertCircle, Camera, X, ImageIcon } from 'lucide-react';
 
 // ─── Schemas ────────────────────────────────────────────────────────────────
 
@@ -28,6 +34,7 @@ const sellerReferenceSchema = z.object({
 });
 
 const lineItemSchema = z.object({
+  _id: z.string().optional(),
   description: z.string().min(1, 'Required'),
   quantity: z.number({ coerce: true }).int().min(1, 'Min 1'),
   unit: z.string().min(1, 'Required'),
@@ -56,10 +63,8 @@ const lineItemSchema = z.object({
 const formSchema = z.object({
   requestType: z.enum(['purchase_request', 'job_request']).default('purchase_request'),
   isOfficeUse: z.boolean().default(false),
-  title: z.string().min(1, 'Required').max(200),
   projectId: z.string().optional(),
-  description: z.string().min(1, 'Required').max(2000),
-  priority: z.string().min(1, 'Required'),
+  priority: z.enum(PR_PRIORITIES as [PrPriority, ...PrPriority[]]),
   justification: z.string().min(1, 'Required').max(2000),
   neededByDate: z.string().optional(),
   items: z.array(lineItemSchema).min(1, 'At least one line item is required'),
@@ -75,6 +80,33 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 type LineItemForm = z.infer<typeof lineItemSchema>;
+type ProjectOption = { _id: string; name: string; code: string | null };
+
+function toProjectId(value: ProjectOption | string | null | undefined): string {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  return String(value._id);
+}
+
+function toProjectOption(value: ProjectOption | string | null | undefined): ProjectOption | null {
+  if (!value || typeof value === 'string') return null;
+  return {
+    _id: toProjectId(value),
+    name: value.name,
+    code: value.code,
+  };
+}
+
+function buildProjectOptions(
+  activeProjects: ProjectOption[] | undefined,
+  currentProject: ProjectOption | null,
+): ProjectOption[] {
+  if (!currentProject) return activeProjects ?? [];
+  if ((activeProjects ?? []).some((project) => String(project._id) === currentProject._id)) {
+    return activeProjects ?? [];
+  }
+  return [currentProject, ...(activeProjects ?? [])];
+}
 
 function formatCurrency(n: number) {
   return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(n);
@@ -215,6 +247,87 @@ function SellerReferencesSection({ itemIndex, control, register, watch, errors }
   );
 }
 
+// ─── Item Photo Widget ───────────────────────────────────────────────────────
+
+interface ItemPhotoWidgetProps {
+  index: number;
+  staged: { file: File; url: string } | null;
+  serverPhotoName?: string | null;
+  serverPhotoPreviewUrl: string | null;
+  onViewServer: () => void;
+  onStage: (index: number, file: File) => void;
+  onClearStaged: (index: number) => void;
+}
+
+function ItemPhotoWidget({
+  index, staged, serverPhotoName, serverPhotoPreviewUrl,
+  onViewServer, onStage, onClearStaged,
+}: ItemPhotoWidgetProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) onStage(index, file);
+    e.target.value = '';
+  };
+
+  // Staged photo takes visual priority over server photo
+  if (staged) {
+    return (
+      <div className="flex items-center gap-2">
+        <Camera className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+        <img src={staged.url} alt="preview" className="h-8 w-8 rounded object-cover border" />
+        <span className="text-xs text-muted-foreground truncate max-w-[140px]">{staged.file.name}</span>
+        <span className="text-[10px] text-blue-600 font-medium">pending save</span>
+        <Button
+          type="button" variant="ghost" size="icon"
+          className="h-6 w-6 text-destructive hover:text-destructive"
+          onClick={() => onClearStaged(index)}
+        >
+          <X className="h-3 w-3" />
+        </Button>
+      </div>
+    );
+  }
+
+  if (serverPhotoName) {
+    return (
+      <div className="flex items-center gap-2">
+        <Camera className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+        {serverPhotoPreviewUrl && (
+          <img src={serverPhotoPreviewUrl} alt="ref" className="h-8 w-8 rounded object-cover border" />
+        )}
+        <span className="text-xs text-muted-foreground truncate max-w-[140px]">{serverPhotoName}</span>
+        <Button type="button" variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={onViewServer}>
+          View
+        </Button>
+        <Button
+          type="button" variant="ghost" size="sm"
+          className="h-6 text-xs px-2 text-muted-foreground"
+          onClick={() => fileInputRef.current?.click()}
+        >
+          Replace
+        </Button>
+        <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFileChange} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <Camera className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+      <Button
+        type="button" variant="ghost" size="sm"
+        className="h-6 text-xs px-2 text-muted-foreground"
+        onClick={() => fileInputRef.current?.click()}
+      >
+        Add reference photo
+      </Button>
+      <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFileChange} />
+    </div>
+  );
+}
+
 // ─── Main Form ───────────────────────────────────────────────────────────────
 
 export function PrFormPage() {
@@ -225,10 +338,63 @@ export function PrFormPage() {
 
   const { data: prData, isLoading: prLoading } = usePurchaseRequest(id ?? '');
   const { data: activeProjects } = useActiveProjects();
+  const prProjectId = (() => {
+    const project = prData?.data?.projectId as ProjectOption | string | null | undefined;
+    return toProjectId(project);
+  })();
+  const { data: projectData } = useProject(prProjectId);
   const createMutation = useCreatePr();
   const updateMutation = useUpdatePr();
   const submitMutation = useSubmitPr();
   const submitActionRef = useRef<'draft' | 'submit'>('draft');
+
+  // Staged photos: keyed by item index, uploaded after PR save
+  const [stagedPhotos, setStagedPhotos] = useState<Record<number, { file: File; url: string }>>({});
+  // Server photo preview URLs loaded for thumbnail display (edit mode)
+  const [serverPhotoPreviews, setServerPhotoPreviews] = useState<Record<string, string>>({});
+  // Dialog for viewing server-side photo
+  const [photoViewDialog, setPhotoViewDialog] = useState<{ open: boolean; url: string | null }>({ open: false, url: null });
+
+  const stagePhoto = useCallback((index: number, file: File) => {
+    setStagedPhotos((prev) => {
+      if (prev[index]) URL.revokeObjectURL(prev[index].url);
+      return { ...prev, [index]: { file, url: URL.createObjectURL(file) } };
+    });
+  }, []);
+
+  const clearStagedPhoto = useCallback((index: number) => {
+    setStagedPhotos((prev) => {
+      if (prev[index]) URL.revokeObjectURL(prev[index].url);
+      const next = { ...prev };
+      delete next[index];
+      return next;
+    });
+  }, []);
+
+  // Load server photo thumbnails for existing items in edit mode
+  useEffect(() => {
+    if (!isEdit || !prData?.data?.items || !id) return;
+    prData.data.items.forEach((item) => {
+      if (item.referencePhotoPath && !serverPhotoPreviews[item._id]) {
+        purchaseRequestsApi.fetchItemPhoto(id, item._id)
+          .then((blob) => {
+            const url = URL.createObjectURL(blob);
+            setServerPhotoPreviews((prev) => ({ ...prev, [item._id]: url }));
+          })
+          .catch(() => null);
+      }
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEdit, prData?.data?.items, id]);
+
+  // Clean up object URLs on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(stagedPhotos).forEach(({ url }) => URL.revokeObjectURL(url));
+      Object.values(serverPhotoPreviews).forEach((url) => URL.revokeObjectURL(url));
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const {
     register,
@@ -251,6 +417,7 @@ export function PrFormPage() {
 
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
   const watchItems = watch('items');
+  const selectedProjectId = watch('projectId');
 
   const totalAmount = watchItems?.reduce((sum, item) => {
     if (item.sourcingType === SourcingType.ONLINE) {
@@ -260,21 +427,22 @@ export function PrFormPage() {
   }, 0) ?? 0;
 
   const hasProcurementItems = watchItems?.some((i) => i.sourcingType === SourcingType.PROCUREMENT) ?? false;
+  const currentProject = ((projectData?.data ?? null) as ProjectOption | null) ??
+    toProjectOption(prData?.data?.projectId as ProjectOption | string | null | undefined);
+  const projectOptions = buildProjectOptions(activeProjects, currentProject);
 
   useEffect(() => {
     if (isEdit && prData?.data) {
       const pr = prData.data;
-      const proj = pr.projectId as unknown as { _id: string } | null;
       reset({
         requestType: pr.requestType || 'purchase_request',
-        isOfficeUse: !proj,
-        title: pr.title,
-        projectId: proj?._id || '',
-        description: pr.description,
-        priority: pr.priority,
+        isOfficeUse: !prProjectId,
+        projectId: prProjectId,
+        priority: PR_PRIORITIES.includes(pr.priority) ? pr.priority : PrPriority.MEDIUM,
         justification: pr.justification,
         neededByDate: pr.neededByDate ? pr.neededByDate.split('T')[0] : '',
         items: pr.items.map((item) => ({
+          _id: item._id,
           description: item.description,
           quantity: item.quantity,
           unit: item.unit,
@@ -292,7 +460,13 @@ export function PrFormPage() {
         })),
       });
     }
-  }, [isEdit, prData, reset]);
+  }, [isEdit, prData, prProjectId, reset]);
+
+  useEffect(() => {
+    if (!isEdit || !prProjectId) return;
+    if (!projectOptions.some((project) => String(project._id) === prProjectId)) return;
+    setValue('projectId', prProjectId, { shouldValidate: false, shouldDirty: false });
+  }, [isEdit, prProjectId, projectOptions, setValue]);
 
   const onInvalid = () => {
     toast({ title: 'Form has errors', description: 'Please fill in all required fields before submitting.', variant: 'error' });
@@ -302,7 +476,7 @@ export function PrFormPage() {
     const action = submitActionRef.current;
     try {
       const { requestType, isOfficeUse, ...rest } = data;
-      const payload = {
+      const payload: CreatePurchaseRequestDto = {
         ...rest,
         projectId: isOfficeUse ? undefined : data.projectId || undefined,
         neededByDate: data.neededByDate ? new Date(data.neededByDate).toISOString() : undefined,
@@ -310,13 +484,26 @@ export function PrFormPage() {
       };
 
       let prId: string;
+      let savedItems: Array<{ _id: string }> = [];
+
       if (isEdit) {
-        await updateMutation.mutateAsync({ id: id!, data: payload });
+        const result = await updateMutation.mutateAsync({ id: id!, data: payload });
         prId = id!;
+        savedItems = (result.data?.items ?? []) as Array<{ _id: string }>;
       } else {
         const result = await createMutation.mutateAsync(payload);
         prId = result.data!._id;
+        savedItems = (result.data?.items ?? []) as Array<{ _id: string }>;
       }
+
+      // Upload any staged reference photos (matched by item index)
+      const photoUploads = Object.entries(stagedPhotos).map(async ([indexStr, { file }]) => {
+        const item = savedItems[parseInt(indexStr)];
+        if (item?._id) {
+          await purchaseRequestsApi.uploadItemPhoto(prId, item._id, file);
+        }
+      });
+      await Promise.all(photoUploads);
 
       if (action === 'submit') {
         await submitMutation.mutateAsync(prId);
@@ -385,12 +572,6 @@ export function PrFormPage() {
               )}
 
               <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="title">Title</Label>
-                <Input id="title" placeholder="Brief title for this request" {...register('title')} />
-                {errors.title && <p className="text-xs text-destructive">{errors.title.message}</p>}
-              </div>
-
-              <div className="space-y-2 sm:col-span-2">
                 <div className="flex items-center justify-between">
                   <Label>
                     Project {!watch('isOfficeUse') && <span className="text-destructive">*</span>}
@@ -415,15 +596,16 @@ export function PrFormPage() {
                 ) : (
                   <>
                     <Select
-                      value={watch('projectId') || ''}
+                      key={`${selectedProjectId || 'none'}:${projectOptions.length}`}
+                      value={selectedProjectId || ''}
                       onValueChange={(v) => setValue('projectId', v, { shouldValidate: true })}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select a project..." />
                       </SelectTrigger>
                       <SelectContent>
-                        {(activeProjects ?? []).map((p) => (
-                          <SelectItem key={p._id} value={p._id}>
+                        {projectOptions.map((p) => (
+                          <SelectItem key={String(p._id)} value={String(p._id)}>
                             {p.name}{p.code ? ` (${p.code})` : ''}
                           </SelectItem>
                         ))}
@@ -436,23 +618,11 @@ export function PrFormPage() {
                 )}
               </div>
 
-              <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="description">Description</Label>
-                <textarea
-                  id="description"
-                  rows={3}
-                  className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  placeholder="Detailed description of what is being requested..."
-                  {...register('description')}
-                />
-                {errors.description && <p className="text-xs text-destructive">{errors.description.message}</p>}
-              </div>
-
               <div className="space-y-2">
                 <Label>Priority</Label>
                 <Select
                   value={watch('priority')}
-                  onValueChange={(v) => setValue('priority', v, { shouldValidate: true })}
+                  onValueChange={(v) => setValue('priority', v as PrPriority, { shouldValidate: true })}
                 >
                   <SelectTrigger><SelectValue placeholder="Select priority" /></SelectTrigger>
                   <SelectContent>
@@ -470,12 +640,12 @@ export function PrFormPage() {
               </div>
 
               <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="justification">Business Justification</Label>
+                <Label htmlFor="justification">Purpose</Label>
                 <textarea
                   id="justification"
                   rows={2}
                   className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  placeholder="Why is this request necessary?"
+                  placeholder="Explain the purpose of this request..."
                   {...register('justification')}
                 />
                 {errors.justification && <p className="text-xs text-destructive">{errors.justification.message}</p>}
@@ -640,6 +810,26 @@ export function PrFormPage() {
                     {...register(`items.${index}.notes`)}
                   />
 
+                  {/* Reference Photo — available for all items */}
+                  {(() => {
+                    const itemId = watch(`items.${index}._id`);
+                    const serverItem = itemId ? prData?.data?.items?.find((i) => i._id === itemId) : null;
+                    return (
+                      <ItemPhotoWidget
+                        index={index}
+                        staged={stagedPhotos[index] ?? null}
+                        serverPhotoName={serverItem?.referencePhotoOriginalName ?? null}
+                        serverPhotoPreviewUrl={itemId ? (serverPhotoPreviews[itemId] ?? null) : null}
+                        onViewServer={() => {
+                          const url = itemId ? serverPhotoPreviews[itemId] : null;
+                          if (url) setPhotoViewDialog({ open: true, url });
+                        }}
+                        onStage={stagePhoto}
+                        onClearStaged={clearStagedPhoto}
+                      />
+                    );
+                  })()}
+
                   {/* Seller References — online only */}
                   {isOnline && (
                     <>
@@ -705,6 +895,22 @@ export function PrFormPage() {
           </Button>
         </div>
       </form>
+
+      {/* Server photo viewer */}
+      <Dialog open={photoViewDialog.open} onOpenChange={(o) => { if (!o) setPhotoViewDialog({ open: false, url: null }); }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ImageIcon className="h-4 w-4" /> Reference Photo
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center justify-center min-h-48">
+            {photoViewDialog.url && (
+              <img src={photoViewDialog.url} alt="Reference photo" className="max-w-full max-h-[60vh] rounded-md object-contain" />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
