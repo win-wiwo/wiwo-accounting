@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { PR_PRIORITIES, PR_PRIORITY_LABELS, PrPriority, SourcingType, type CreatePurchaseRequestDto } from '@prams/shared';
 import { usePurchaseRequest, useCreatePr, useUpdatePr, useSubmitPr } from '@/hooks/use-purchase-requests';
 import { purchaseRequestsApi } from '@/lib/api-services';
+import apiClient from '@/lib/api-client';
 import { useActiveProjects, useProject } from '@/hooks/use-projects';
 import { useToast } from '@/components/ui/toast';
 import { PageHeader } from '@/components/layout/page-header';
@@ -22,7 +23,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { ArrowLeft, Loader2, Save, Send, Plus, Trash2, ShoppingCart, Globe, AlertCircle, Camera, X, ImageIcon } from 'lucide-react';
+import { ArrowLeft, Loader2, Save, Send, Plus, Trash2, ShoppingCart, Globe, AlertCircle, Camera, X, ImageIcon, Paperclip, Upload, Eye, Download, FileText } from 'lucide-react';
 
 // ─── Schemas ────────────────────────────────────────────────────────────────
 
@@ -63,6 +64,7 @@ const lineItemSchema = z.object({
 const formSchema = z.object({
   requestType: z.enum(['purchase_request', 'job_request']).default('purchase_request'),
   isOfficeUse: z.boolean().default(false),
+  title: z.string().min(1, 'Title is required').max(200),
   projectId: z.string().optional(),
   priority: z.enum(PR_PRIORITIES as [PrPriority, ...PrPriority[]]),
   justification: z.string().min(1, 'Required').max(2000),
@@ -110,6 +112,16 @@ function buildProjectOptions(
 
 function formatCurrency(n: number) {
   return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(n);
+}
+
+function formatFileSize(size: number) {
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(0)} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function canPreviewMimeType(mimeType: string) {
+  return mimeType.startsWith('image/') || mimeType === 'application/pdf';
 }
 
 const defaultItem = (): LineItemForm => ({
@@ -328,6 +340,11 @@ function ItemPhotoWidget({
   );
 }
 
+interface StagedAttachment {
+  file: File;
+  url: string | null;
+}
+
 // ─── Main Form ───────────────────────────────────────────────────────────────
 
 export function PrFormPage() {
@@ -336,7 +353,7 @@ export function PrFormPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const { data: prData, isLoading: prLoading } = usePurchaseRequest(id ?? '');
+  const { data: prData, isLoading: prLoading, refetch: refetchPr } = usePurchaseRequest(id ?? '');
   const { data: activeProjects } = useActiveProjects();
   const prProjectId = (() => {
     const project = prData?.data?.projectId as ProjectOption | string | null | undefined;
@@ -347,13 +364,27 @@ export function PrFormPage() {
   const updateMutation = useUpdatePr();
   const submitMutation = useSubmitPr();
   const submitActionRef = useRef<'draft' | 'submit'>('draft');
+  const attachmentInputRef = useRef<HTMLInputElement>(null);
+  const stagedPhotosRef = useRef<Record<number, { file: File; url: string }>>({});
+  const stagedAttachmentsRef = useRef<StagedAttachment[]>([]);
+  const serverPhotoPreviewsRef = useRef<Record<string, string>>({});
+  const attachmentPreviewRef = useRef<{ url: string | null; revocable: boolean }>({ url: null, revocable: false });
 
   // Staged photos: keyed by item index, uploaded after PR save
   const [stagedPhotos, setStagedPhotos] = useState<Record<number, { file: File; url: string }>>({});
+  const [stagedAttachments, setStagedAttachments] = useState<StagedAttachment[]>([]);
   // Server photo preview URLs loaded for thumbnail display (edit mode)
   const [serverPhotoPreviews, setServerPhotoPreviews] = useState<Record<string, string>>({});
   // Dialog for viewing server-side photo
   const [photoViewDialog, setPhotoViewDialog] = useState<{ open: boolean; url: string | null }>({ open: false, url: null });
+  const [attachmentPreviewDialog, setAttachmentPreviewDialog] = useState<{
+    open: boolean;
+    url: string | null;
+    mimeType: string;
+    name: string;
+    loading: boolean;
+    revocable: boolean;
+  }>({ open: false, url: null, mimeType: '', name: '', loading: false, revocable: false });
 
   const stagePhoto = useCallback((index: number, file: File) => {
     setStagedPhotos((prev) => {
@@ -370,6 +401,51 @@ export function PrFormPage() {
       return next;
     });
   }, []);
+
+  const stageAttachments = useCallback((files: FileList | null) => {
+    if (!files?.length) return;
+    setStagedAttachments((prev) => ([
+      ...prev,
+      ...Array.from(files).map((file) => ({
+        file,
+        url: canPreviewMimeType(file.type) ? URL.createObjectURL(file) : null,
+      })),
+    ]));
+  }, []);
+
+  const clearStagedAttachment = useCallback((index: number) => {
+    setStagedAttachments((prev) => {
+      const target = prev[index];
+      if (target?.url) URL.revokeObjectURL(target.url);
+      return prev.filter((_, i) => i !== index);
+    });
+  }, []);
+
+  const closeAttachmentPreview = useCallback(() => {
+    setAttachmentPreviewDialog((prev) => {
+      if (prev.url && prev.revocable) URL.revokeObjectURL(prev.url);
+      return { open: false, url: null, mimeType: '', name: '', loading: false, revocable: false };
+    });
+  }, []);
+
+  useEffect(() => {
+    stagedPhotosRef.current = stagedPhotos;
+  }, [stagedPhotos]);
+
+  useEffect(() => {
+    stagedAttachmentsRef.current = stagedAttachments;
+  }, [stagedAttachments]);
+
+  useEffect(() => {
+    serverPhotoPreviewsRef.current = serverPhotoPreviews;
+  }, [serverPhotoPreviews]);
+
+  useEffect(() => {
+    attachmentPreviewRef.current = {
+      url: attachmentPreviewDialog.url,
+      revocable: attachmentPreviewDialog.revocable,
+    };
+  }, [attachmentPreviewDialog.revocable, attachmentPreviewDialog.url]);
 
   // Load server photo thumbnails for existing items in edit mode
   useEffect(() => {
@@ -390,10 +466,13 @@ export function PrFormPage() {
   // Clean up object URLs on unmount
   useEffect(() => {
     return () => {
-      Object.values(stagedPhotos).forEach(({ url }) => URL.revokeObjectURL(url));
-      Object.values(serverPhotoPreviews).forEach((url) => URL.revokeObjectURL(url));
+      Object.values(stagedPhotosRef.current).forEach(({ url }) => URL.revokeObjectURL(url));
+      stagedAttachmentsRef.current.forEach(({ url }) => { if (url) URL.revokeObjectURL(url); });
+      Object.values(serverPhotoPreviewsRef.current).forEach((url) => URL.revokeObjectURL(url));
+      if (attachmentPreviewRef.current.url && attachmentPreviewRef.current.revocable) {
+        URL.revokeObjectURL(attachmentPreviewRef.current.url);
+      }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const {
@@ -409,6 +488,7 @@ export function PrFormPage() {
     defaultValues: {
       requestType: 'purchase_request',
       isOfficeUse: false,
+      title: '',
       items: [defaultItem()],
       priority: 'medium',
       projectId: '',
@@ -437,6 +517,7 @@ export function PrFormPage() {
       reset({
         requestType: pr.requestType || 'purchase_request',
         isOfficeUse: !prProjectId,
+        title: pr.title || '',
         projectId: prProjectId,
         priority: PR_PRIORITIES.includes(pr.priority) ? pr.priority : PrPriority.MEDIUM,
         justification: pr.justification,
@@ -474,6 +555,9 @@ export function PrFormPage() {
 
   const onSubmit = async (data: FormData) => {
     const action = submitActionRef.current;
+    let persistedPrId: string | null = isEdit ? id ?? null : null;
+    let createdNewDraft = false;
+
     try {
       const { requestType, isOfficeUse, ...rest } = data;
       const payload: CreatePurchaseRequestDto = {
@@ -493,17 +577,23 @@ export function PrFormPage() {
       } else {
         const result = await createMutation.mutateAsync(payload);
         prId = result.data!._id;
+        persistedPrId = prId;
+        createdNewDraft = true;
         savedItems = (result.data?.items ?? []) as Array<{ _id: string }>;
       }
 
       // Upload any staged reference photos (matched by item index)
-      const photoUploads = Object.entries(stagedPhotos).map(async ([indexStr, { file }]) => {
+      const photoUploads = Object.entries(stagedPhotos).map(([indexStr, { file }]) => {
         const item = savedItems[parseInt(indexStr)];
-        if (item?._id) {
-          await purchaseRequestsApi.uploadItemPhoto(prId, item._id, file);
-        }
+        return item?._id ? { itemId: item._id, file } : null;
       });
-      await Promise.all(photoUploads);
+      for (const upload of photoUploads) {
+        if (!upload) continue;
+        await purchaseRequestsApi.uploadItemPhoto(prId, upload.itemId, upload.file);
+      }
+      for (const { file } of stagedAttachments) {
+        await purchaseRequestsApi.uploadAttachment(prId, file);
+      }
 
       if (action === 'submit') {
         await submitMutation.mutateAsync(prId);
@@ -522,6 +612,17 @@ export function PrFormPage() {
         err && typeof err === 'object' && 'response' in err
           ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
           : 'Something went wrong';
+
+      if (createdNewDraft && persistedPrId) {
+        toast({
+          title: 'Draft saved, but submission failed',
+          description: message || 'You can continue from the saved draft without creating a duplicate.',
+          variant: 'error',
+        });
+        navigate(`/purchase-requests/${persistedPrId}/edit`);
+        return;
+      }
+
       toast({ title: 'Error', description: message || 'Failed to save.', variant: 'error' });
     }
   };
@@ -538,6 +639,48 @@ export function PrFormPage() {
   const requestType = watch('requestType');
   const isJR = requestType === 'job_request';
   const typeLabel = isJR ? 'Job Request' : 'Purchase Request';
+  const existingAttachments = prData?.data?.attachments ?? [];
+
+  const handleExistingAttachmentPreview = async (
+    attachmentId: string,
+    mimeType: string,
+    name: string,
+  ) => {
+    if (!id) return;
+
+    setAttachmentPreviewDialog({ open: true, url: null, mimeType, name, loading: true, revocable: false });
+    try {
+      const response = await apiClient.get(
+        `/purchase-requests/${id}/attachments/${attachmentId}/download`,
+        { responseType: 'blob' },
+      );
+      const blobUrl = URL.createObjectURL(
+        new Blob([response.data], { type: mimeType }),
+      );
+      setAttachmentPreviewDialog({
+        open: true,
+        url: blobUrl,
+        mimeType,
+        name,
+        loading: false,
+        revocable: true,
+      });
+    } catch {
+      closeAttachmentPreview();
+      toast({ title: 'Failed to load attachment', variant: 'error' });
+    }
+  };
+
+  const handleRemoveExistingAttachment = async (attachmentId: string) => {
+    if (!id) return;
+    try {
+      await purchaseRequestsApi.removeAttachment(id, attachmentId);
+      await refetchPr();
+      toast({ title: 'Attachment removed', variant: 'success' });
+    } catch {
+      toast({ title: 'Failed to remove attachment', variant: 'error' });
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -616,6 +759,18 @@ export function PrFormPage() {
                     )}
                   </>
                 )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="title">
+                  Request Title <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="title"
+                  placeholder="e.g. Busway Phase 2 Pole Hardware"
+                  {...register('title')}
+                />
+                {errors.title && <p className="text-xs text-destructive">{errors.title.message}</p>}
               </div>
 
               <div className="space-y-2">
@@ -867,6 +1022,146 @@ export function PrFormPage() {
           </CardContent>
         </Card>
 
+        <Card>
+          <CardHeader className="flex flex-row items-start justify-between gap-4">
+            <div>
+              <CardTitle className="text-base">Supporting Documents</CardTitle>
+              <CardDescription className="mt-1 text-xs">
+                Upload files that apply to the whole request, such as proposals, specsheets, memos, accreditation documents, or requester-supplied quotations.
+              </CardDescription>
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                Use <strong>reference photo</strong> inside a line item for item-specific visuals. Use <strong>supporting documents</strong> here for whole-request files.
+              </p>
+            </div>
+            <div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => attachmentInputRef.current?.click()}
+              >
+                <Upload className="h-4 w-4" /> Add Files
+              </Button>
+              <input
+                ref={attachmentInputRef}
+                type="file"
+                multiple
+                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
+                className="hidden"
+                onChange={(e) => {
+                  stageAttachments(e.target.files);
+                  e.target.value = '';
+                }}
+              />
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {existingAttachments.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">Saved Documents</p>
+                {existingAttachments.map((attachment) => (
+                  <div key={attachment._id} className="flex items-center justify-between rounded-lg border px-3 py-2">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <Paperclip className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">{attachment.originalName}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatFileSize(attachment.size)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {canPreviewMimeType(attachment.mimeType) && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => handleExistingAttachmentPreview(attachment._id, attachment.mimeType, attachment.originalName)}
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => purchaseRequestsApi.downloadAttachment(id!, attachment._id, attachment.originalName)}
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive hover:text-destructive"
+                        onClick={() => handleRemoveExistingAttachment(attachment._id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {stagedAttachments.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">Pending Upload</p>
+                {stagedAttachments.map(({ file, url }, index) => (
+                  <div key={`${file.name}-${index}`} className="flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50/40 px-3 py-2">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <Paperclip className="h-4 w-4 shrink-0 text-blue-600" />
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">{file.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatFileSize(file.size)} <span className="text-blue-600">· pending save</span>
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {url && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => setAttachmentPreviewDialog({
+                            open: true,
+                            url,
+                            mimeType: file.type,
+                            name: file.name,
+                            loading: false,
+                            revocable: false,
+                          })}
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive hover:text-destructive"
+                        onClick={() => clearStagedAttachment(index)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {existingAttachments.length === 0 && stagedAttachments.length === 0 && (
+              <div className="rounded-md border border-dashed p-4 text-center text-sm text-muted-foreground">
+                No supporting documents yet.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Actions */}
         <div className="flex justify-end gap-3">
           <Button type="button" variant="outline" onClick={() => navigate('/purchase-requests')}>
@@ -908,6 +1203,33 @@ export function PrFormPage() {
             {photoViewDialog.url && (
               <img src={photoViewDialog.url} alt="Reference photo" className="max-w-full max-h-[60vh] rounded-md object-contain" />
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={attachmentPreviewDialog.open} onOpenChange={(o) => { if (!o) closeAttachmentPreview(); }}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-4 w-4" /> {attachmentPreviewDialog.name || 'Attachment Preview'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center justify-center min-h-48">
+            {attachmentPreviewDialog.loading ? (
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            ) : attachmentPreviewDialog.url && attachmentPreviewDialog.mimeType === 'application/pdf' ? (
+              <iframe
+                src={attachmentPreviewDialog.url}
+                title={attachmentPreviewDialog.name}
+                className="h-[70vh] w-full rounded-md border"
+              />
+            ) : attachmentPreviewDialog.url ? (
+              <img
+                src={attachmentPreviewDialog.url}
+                alt={attachmentPreviewDialog.name}
+                className="max-h-[70vh] max-w-full rounded-md object-contain"
+              />
+            ) : null}
           </div>
         </DialogContent>
       </Dialog>

@@ -55,6 +55,15 @@ export class PurchaseRequestsService {
     return title.slice(0, 200);
   }
 
+  private resolveRequestTitle(
+    title: string | undefined,
+    items: Array<{ description: string }>,
+    requestType: string,
+  ): string {
+    const normalized = title?.trim();
+    return normalized ? normalized.slice(0, 200) : this.buildRequestTitle(items, requestType);
+  }
+
   async create(dto: CreatePurchaseRequestDto, user: RequestUser): Promise<PurchaseRequest> {
     if (user.role === UserRole.ADMIN) {
       throw new ForbiddenException('Admin role cannot create purchase requests');
@@ -77,7 +86,7 @@ export class PurchaseRequestsService {
     const requestType = dto.requestType || 'purchase_request';
 
     const pr = new this.prModel({
-      title: this.buildRequestTitle(items, requestType),
+      title: this.resolveRequestTitle(dto.title, items, requestType),
       description: '',
       projectId: dto.projectId ? new Types.ObjectId(dto.projectId) : null,
       requestType,
@@ -288,9 +297,11 @@ export class PurchaseRequestsService {
 
       pr.set('items', items);
       pr.totalAmount = totalAmount;
-      pr.title = this.buildRequestTitle(items, pr.requestType);
     }
 
+    if (dto.title !== undefined) {
+      pr.title = this.resolveRequestTitle(dto.title, pr.items, pr.requestType);
+    }
     if (dto.projectId !== undefined) pr.projectId = dto.projectId ? new Types.ObjectId(dto.projectId) : null;
     if (dto.priority !== undefined) pr.priority = dto.priority;
     if (dto.justification !== undefined) pr.justification = dto.justification;

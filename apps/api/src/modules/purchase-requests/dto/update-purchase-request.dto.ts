@@ -16,6 +16,13 @@ import { PrPriority, PR_PRIORITIES } from '@prams/shared';
 import { LineItemDto } from './create-purchase-request.dto';
 
 export class UpdatePurchaseRequestDto {
+  @ApiPropertyOptional({ example: 'Busway Phase 2 Pole Hardware' })
+  @IsString()
+  @MinLength(1)
+  @MaxLength(200)
+  @IsOptional()
+  title?: string;
+
   @ApiPropertyOptional()
   @IsMongoId()
   @IsOptional()

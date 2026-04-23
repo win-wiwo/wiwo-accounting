@@ -103,6 +103,7 @@ export interface CreateLineItemDto {
 
 export interface CreatePurchaseRequestDto {
   requestType?: 'purchase_request' | 'job_request';
+  title: string;
   projectId?: string;
   priority: PrPriority;
   items: CreateLineItemDto[];
@@ -111,6 +112,7 @@ export interface CreatePurchaseRequestDto {
 }
 
 export interface UpdatePurchaseRequestDto {
+  title?: string;
   priority?: PrPriority;
   items?: CreateLineItemDto[];
   justification?: string;
