@@ -23,7 +23,11 @@ interface RequestUser {
   departmentId: string | null;
 }
 
-/** Maps PR status to the approval level that is currently reviewing */
+/**
+ * Maps PR status to the approval level that is currently reviewing.
+ * `submitted` remains here for legacy records only; new runtime transitions
+ * should enter `pending_quotation`, `level1_review`, or `level2_review`.
+ */
 const STATUS_TO_LEVEL: Record<string, number> = {
   [PrStatus.SUBMITTED]: ApprovalLevel.DEPT_HEAD,
   [PrStatus.LEVEL1_REVIEW]: ApprovalLevel.DEPT_HEAD,
@@ -178,6 +182,7 @@ export class ApprovalsService {
     let pendingStatuses: string[];
     switch (user.role) {
       case UserRole.DEPT_HEAD:
+        // `submitted` is retained for legacy compatibility only.
         pendingStatuses = [PrStatus.SUBMITTED, PrStatus.LEVEL1_REVIEW, PrStatus.QUOTED];
         break;
       case UserRole.COO:
@@ -235,6 +240,7 @@ export class ApprovalsService {
     let pendingStatuses: string[];
     switch (user.role) {
       case UserRole.DEPT_HEAD:
+        // `submitted` is retained for legacy compatibility only.
         pendingStatuses = [PrStatus.SUBMITTED, PrStatus.LEVEL1_REVIEW, PrStatus.QUOTED];
         break;
       case UserRole.COO:

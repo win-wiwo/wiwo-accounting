@@ -910,7 +910,7 @@ async function seed() {
       title: string; desc: string; justification: string; priority: string;
       requester: typeof users[0]; dept: typeof departments[0]; deptCode: string;
       deptHead: typeof users[0]; items: ReturnType<typeof makeItems>;
-      stage: 'draft' | 'submitted' | 'level1_review' | 'level2_review' | 'level3_review' | 'rejected' | 'returned' | 'cancelled';
+      stage: 'draft' | 'pending_quotation' | 'level1_review' | 'level2_review' | 'level3_review' | 'rejected' | 'returned' | 'cancelled';
       createdDaysAgo: number; neededInDays: number;
       rejectReason?: string; returnReason?: string; cancelReason?: string;
       requestType?: 'purchase_request' | 'job_request'; projectName?: string;
@@ -979,9 +979,9 @@ async function seed() {
         );
       }
 
-      if (opts.stage === 'submitted') {
+      if (opts.stage === 'pending_quotation') {
         allNotifications.push(
-          new Notification({ recipientId: opts.deptHead._id, title: 'New PR for Review', message: `${opts.requester.firstName} submitted ${prNumber}`, type: 'pr_submitted', purchaseRequestId: prId, isRead: false }),
+          new Notification({ recipientId: procurementUser._id, title: 'PR Awaiting Quotation', message: `${prNumber} requires procurement quotation`, type: 'pr_needs_action', purchaseRequestId: prId, isRead: false }),
         );
       }
 
@@ -1213,14 +1213,14 @@ async function seed() {
 
     // ─── IN-PROGRESS PRs ─────────────────────────────────────
 
-    // Submitted – waiting for ENG head
+    // Pending quotation – procurement needs to source pricing first
     createPrAtStage({
       title: 'PTZ Speed Dome Cameras – Busway Intersections',
       desc: 'Hikvision DS-2DE4425IWG-E 4MP PTZ cameras for monitoring major busway intersection points.',
       justification: 'Site survey identified 6 critical intersection points requiring PTZ coverage. Included in Phase 2 scope.',
       priority: 'high', requester: mark, dept: eng, deptCode: 'ENG', deptHead: engHead,
       createdDaysAgo: 3, neededInDays: 25,
-      stage: 'submitted',
+      stage: 'pending_quotation',
       projectName: 'CCTV Installation – Busway Line 1',
       items: makeItems([
         { desc: 'Hikvision DS-2DE4425IWG-E 4MP PTZ Camera (25x zoom)', qty: 6, unit: 'units', price: 48000 },
@@ -1229,14 +1229,14 @@ async function seed() {
       ]),
     });
 
-    // Submitted – waiting for OPS head
+    // Pending quotation – procurement needs to source pricing first
     createPrAtStage({
       title: 'Camera Mounting Poles and Hardware – Busway Phase 2',
       desc: 'Galvanized steel mounting poles and hardware for external camera installations on Phase 2 busway stations.',
       justification: 'Phase 2 stations require outdoor pole mounting for perimeter cameras. Approved scope from project engineer.',
       priority: 'medium', requester: grace, dept: ops, deptCode: 'OPS', deptHead: opsHead,
       createdDaysAgo: 2, neededInDays: 20,
-      stage: 'submitted',
+      stage: 'pending_quotation',
       projectName: 'CCTV Installation – Busway Line 1',
       items: makeItems([
         { desc: 'Galvanized Pole (4-meter, 3" diameter, with base plate)', qty: 24, unit: 'units', price: 4500 },
@@ -1246,14 +1246,14 @@ async function seed() {
       ]),
     });
 
-    // Submitted – IT dept
+    // Pending quotation – procurement needs to source pricing first
     createPrAtStage({
       title: 'Network Video Recorder – AI Backup Recording',
       desc: 'Redundant NVR for backup recording of AI camera system to ensure 30-day retention compliance.',
       justification: 'Project specs require redundant recording. Primary edge servers do not provide sufficient storage redundancy.',
       priority: 'high', requester: diana, dept: its, deptCode: 'ITS', deptHead: itsHead,
       createdDaysAgo: 4, neededInDays: 18,
-      stage: 'submitted',
+      stage: 'pending_quotation',
       projectName: 'AI Camera System – Phase 1',
       items: makeItems([
         { desc: 'Hikvision DS-96128NI-I24 128-Channel NVR', qty: 1, unit: 'unit', price: 345000 },
@@ -1736,7 +1736,7 @@ async function seed() {
     console.log('  └───────────────────────────────────────────────────────┘');
     console.log('\n  PR Status Distribution:');
     console.log(`    Approved:   ${allPrs.filter(p => p.status === 'approved').length}`);
-    console.log(`    Submitted:  ${allPrs.filter(p => p.status === 'submitted').length}`);
+    console.log(`    Pending Quotation: ${allPrs.filter(p => p.status === 'pending_quotation').length}`);
     console.log(`    In Review:  ${allPrs.filter(p => ['level1_review', 'level2_review', 'level3_review'].includes(p.status)).length}`);
     console.log(`    Rejected:   ${allPrs.filter(p => p.status === 'rejected').length}`);
     console.log(`    Returned:   ${allPrs.filter(p => p.status === 'returned').length}`);

@@ -580,9 +580,9 @@ export class PurchaseRequestsService {
       throw new ForbiddenException('You can only remove attachments from your own purchase requests');
     }
 
-    const editableStatuses: string[] = [PrStatus.DRAFT, PrStatus.RETURNED];
+    const editableStatuses: string[] = [PrStatus.DRAFT, PrStatus.RETURNED, PrStatus.RETURNED_FOR_INFO];
     if (!editableStatuses.includes(pr.status)) {
-      throw new BadRequestException('Can only remove attachments from PRs in Draft or Returned status');
+      throw new BadRequestException('Can only remove attachments from PRs in Draft, Returned, or Returned for Info status');
     }
 
     pr.attachments = pr.attachments.filter(

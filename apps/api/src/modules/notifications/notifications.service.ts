@@ -12,6 +12,7 @@ import { Notification } from './schemas/notification.schema';
 import { PurchaseRequest } from '../purchase-requests/schemas/purchase-request.schema';
 import { Department } from '../departments/schemas/department.schema';
 import { QueryNotificationsDto } from './dto';
+import { User } from '../users/schemas/user.schema';
 
 @Injectable()
 export class NotificationsService {
@@ -19,6 +20,7 @@ export class NotificationsService {
     @InjectModel(Notification.name) private notificationModel: Model<Notification>,
     @InjectModel(PurchaseRequest.name) private prModel: Model<PurchaseRequest>,
     @InjectModel(Department.name) private departmentModel: Model<Department>,
+    @InjectModel(User.name) private userModel: Model<User>,
   ) {}
 
   /**
@@ -74,20 +76,18 @@ export class NotificationsService {
    * Listen for PR submissions and notify the first-level approver (dept head).
    */
   @OnEvent('pr.submitted')
-  async handlePrSubmitted(payload: { purchaseRequest: { _id: string; title: string; prNumber: string; departmentId: string } }) {
+  async handlePrSubmitted(payload: { purchaseRequest: { _id: string; title: string; prNumber: string; departmentId: string; status: string } }) {
     const { purchaseRequest } = payload;
-    await this.notifyNextApprover({
-      _id: purchaseRequest._id,
-      title: purchaseRequest.title,
-      prNumber: purchaseRequest.prNumber,
-      departmentId: purchaseRequest.departmentId,
-      status: PrStatus.SUBMITTED,
-    });
+    await this.notifyNextApprover(purchaseRequest);
   }
 
   private async notifyNextApprover(pr: { _id: string; title: string; prNumber: string; departmentId: string; status: string }) {
     // Determine who to notify based on current status
-    if (pr.status === PrStatus.SUBMITTED || pr.status === PrStatus.LEVEL1_REVIEW) {
+    if (
+      pr.status === PrStatus.SUBMITTED ||
+      pr.status === PrStatus.LEVEL1_REVIEW ||
+      pr.status === PrStatus.QUOTED
+    ) {
       // Notify dept head
       const dept = await this.departmentModel.findById(pr.departmentId).exec();
       if (dept?.headId) {
@@ -99,9 +99,49 @@ export class NotificationsService {
           purchaseRequestId: pr._id,
         });
       }
+      return;
     }
-    // For L2/L3, we'd need to find COO/CEO users — simplified here to skip
-    // since those roles are typically known and the approval queue handles visibility
+
+    if (pr.status === PrStatus.PENDING_QUOTATION) {
+      const procurementUsers = await this.userModel
+        .find({ role: UserRole.PROCUREMENT, isActive: true })
+        .select('_id')
+        .exec();
+
+      if (procurementUsers.length > 0) {
+        await this.notificationModel.insertMany(
+          procurementUsers.map((user) => ({
+            recipientId: user._id,
+            title: 'PR Awaiting Quotation',
+            message: `PR "${pr.prNumber}" requires procurement quotation.`,
+            type: 'pr_needs_action',
+            purchaseRequestId: pr._id,
+          })),
+        );
+      }
+      return;
+    }
+
+    if (pr.status === PrStatus.LEVEL2_REVIEW || pr.status === PrStatus.LEVEL3_REVIEW) {
+      const nextRole = pr.status === PrStatus.LEVEL2_REVIEW ? UserRole.COO : UserRole.CEO;
+      const approvers = await this.userModel
+        .find({ role: nextRole, isActive: true })
+        .select('_id')
+        .exec();
+
+      if (approvers.length > 0) {
+        const roleLabel = nextRole === UserRole.COO ? 'COO' : 'CEO';
+        await this.notificationModel.insertMany(
+          approvers.map((user) => ({
+            recipientId: user._id,
+            title: `PR Awaiting ${roleLabel} Approval`,
+            message: `PR "${pr.prNumber}" requires your review.`,
+            type: 'pr_needs_action',
+            purchaseRequestId: pr._id,
+          })),
+        );
+      }
+    }
   }
 
   /**
