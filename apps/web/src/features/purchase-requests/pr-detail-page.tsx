@@ -401,6 +401,7 @@ export function PrDetailPage() {
   // Determine if the current user can act on this PR as an approver
   const pendingStatuses: string[] = [
     PrStatus.SUBMITTED,
+    PrStatus.QUOTED,
     PrStatus.LEVEL1_REVIEW,
     PrStatus.LEVEL2_REVIEW,
     PrStatus.LEVEL3_REVIEW,
@@ -409,7 +410,10 @@ export function PrDetailPage() {
   const canApprove =
     isPendingApproval &&
     !isOwner &&
-    ((pr.status === PrStatus.SUBMITTED && user?.role === UserRole.DEPT_HEAD) ||
+    (((pr.status === PrStatus.SUBMITTED ||
+      pr.status === PrStatus.LEVEL1_REVIEW ||
+      pr.status === PrStatus.QUOTED) &&
+      user?.role === UserRole.DEPT_HEAD) ||
       (pr.status === PrStatus.LEVEL2_REVIEW && user?.role === UserRole.COO) ||
       (pr.status === PrStatus.LEVEL3_REVIEW && user?.role === UserRole.CEO));
 

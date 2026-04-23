@@ -76,6 +76,8 @@ export function DashboardPage() {
   const draftCount = byStatus[PrStatus.DRAFT]?.count ?? 0;
   const pendingReviewCount =
     (byStatus[PrStatus.SUBMITTED]?.count ?? 0) +
+    (byStatus[PrStatus.PENDING_QUOTATION]?.count ?? 0) +
+    (byStatus[PrStatus.QUOTED]?.count ?? 0) +
     (byStatus[PrStatus.LEVEL1_REVIEW]?.count ?? 0) +
     (byStatus[PrStatus.LEVEL2_REVIEW]?.count ?? 0) +
     (byStatus[PrStatus.LEVEL3_REVIEW]?.count ?? 0);
