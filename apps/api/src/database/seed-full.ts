@@ -846,7 +846,7 @@ async function seed() {
 
     function nextPrNumber(deptCode: string, type: 'purchase_request' | 'job_request' = 'purchase_request'): string {
       const prefix = type === 'job_request' ? 'JR' : 'PR';
-      const key = `${prefix}-${deptCode}`;
+      const key = deptCode;
       if (!seqCounters[key]) seqCounters[key] = 0;
       seqCounters[key]++;
       return `${prefix}-${deptCode}-${year}-${String(seqCounters[key]).padStart(5, '0')}`;

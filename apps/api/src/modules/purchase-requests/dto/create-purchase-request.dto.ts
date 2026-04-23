@@ -109,6 +109,12 @@ export class CreatePurchaseRequestDto {
   @IsOptional()
   requestType?: string;
 
+  @ApiProperty({ example: 'Busway Phase 2 Pole Hardware' })
+  @IsString()
+  @MinLength(1)
+  @MaxLength(200)
+  title: string;
+
   @ApiPropertyOptional({ example: '6650a1b2c3d4e5f678901234' })
   @IsMongoId()
   @IsOptional()
