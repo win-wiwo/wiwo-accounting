@@ -10,6 +10,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   ApprovalAction,
   ApprovalLevel,
+  normalizePrStatus,
   PrStatus,
   UserRole,
 } from '@prams/shared';
@@ -24,12 +25,9 @@ interface RequestUser {
 }
 
 /**
- * Maps PR status to the approval level that is currently reviewing.
- * `submitted` remains here for legacy records only; new runtime transitions
- * should enter `pending_quotation`, `level1_review`, or `level2_review`.
+ * Maps normalized PR status to the approval level that is currently reviewing.
  */
 const STATUS_TO_LEVEL: Record<string, number> = {
-  [PrStatus.SUBMITTED]: ApprovalLevel.DEPT_HEAD,
   [PrStatus.LEVEL1_REVIEW]: ApprovalLevel.DEPT_HEAD,
   [PrStatus.QUOTED]: ApprovalLevel.DEPT_HEAD,
   [PrStatus.LEVEL2_REVIEW]: ApprovalLevel.COO,
@@ -68,7 +66,7 @@ export class ApprovalsService {
     }
 
     // Determine what level this PR is currently at
-    const currentLevel = STATUS_TO_LEVEL[pr.status];
+    const currentLevel = STATUS_TO_LEVEL[normalizePrStatus(pr.status)];
     if (!currentLevel) {
       throw new BadRequestException(
         `This PR is not pending approval (status: ${pr.status})`,
@@ -182,7 +180,6 @@ export class ApprovalsService {
     let pendingStatuses: string[];
     switch (user.role) {
       case UserRole.DEPT_HEAD:
-        // `submitted` is retained for legacy compatibility only.
         pendingStatuses = [PrStatus.SUBMITTED, PrStatus.LEVEL1_REVIEW, PrStatus.QUOTED];
         break;
       case UserRole.COO:
@@ -240,7 +237,6 @@ export class ApprovalsService {
     let pendingStatuses: string[];
     switch (user.role) {
       case UserRole.DEPT_HEAD:
-        // `submitted` is retained for legacy compatibility only.
         pendingStatuses = [PrStatus.SUBMITTED, PrStatus.LEVEL1_REVIEW, PrStatus.QUOTED];
         break;
       case UserRole.COO:

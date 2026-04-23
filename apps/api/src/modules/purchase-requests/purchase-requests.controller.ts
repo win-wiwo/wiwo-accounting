@@ -21,6 +21,7 @@ import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { existsSync, createReadStream } from 'fs';
 import { v4 as uuidv4 } from 'uuid';
+import { AttachmentCategory } from '@prams/shared';
 import { PurchaseRequestsService } from './purchase-requests.service';
 import { CreatePurchaseRequestDto, UpdatePurchaseRequestDto, QueryPurchaseRequestsDto, SubmitQuotationDto, ReturnForInfoDto } from './dto';
 import { CurrentUser } from '../../common/decorators';
@@ -87,7 +88,7 @@ export class PurchaseRequestsController {
   }
 
   @Post(':id/recall')
-  @ApiOperation({ summary: 'Recall a submitted PR back to draft (before review starts)' })
+  @ApiOperation({ summary: 'Recall a PR back to draft while it is still awaiting quotation or review' })
   async recall(
     @Param('id', ParseObjectIdPipe) id: string,
     @CurrentUser() user: { _id: string; role: string; departmentId: string | null },
@@ -116,7 +117,7 @@ export class PurchaseRequestsController {
   }
 
   @Post(':id/cancel')
-  @ApiOperation({ summary: 'Cancel a draft or submitted PR' })
+  @ApiOperation({ summary: 'Cancel a PR before approval work has started' })
   async cancel(
     @Param('id', ParseObjectIdPipe) id: string,
     @Body('reason') reason: string,
@@ -154,9 +155,44 @@ export class PurchaseRequestsController {
       }),
     )
     file: Express.Multer.File,
+    @Body('category') category: string | undefined,
     @CurrentUser() user: { _id: string; role: string; departmentId: string | null },
   ) {
-    return this.prService.addAttachment(id, file, user);
+    return this.prService.addAttachment(id, file, user, category || AttachmentCategory.SUPPORTING_DOC);
+  }
+
+  @Post(':id/quotation-attachments')
+  @ApiOperation({ summary: 'Procurement: upload quotation evidence for a purchase request' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: join(process.cwd(), 'uploads', 'attachments'),
+        filename: (
+          _req: Express.Request,
+          file: Express.Multer.File,
+          cb: (error: Error | null, filename: string) => void,
+        ) => {
+          const uniqueName = `${uuidv4()}${extname(file.originalname)}`;
+          cb(null, uniqueName);
+        },
+      }),
+    }),
+  )
+  async uploadQuotationAttachment(
+    @Param('id', ParseObjectIdPipe) id: string,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 10 * 1024 * 1024 }),
+          new FileTypeValidator({ fileType: /(pdf|jpeg|png|doc|docx|xls|xlsx|msword|vnd\.openxmlformats)/i, skipMagicNumbersValidation: true }),
+        ],
+      }),
+    )
+    file: Express.Multer.File,
+    @CurrentUser() user: { _id: string; role: string; departmentId: string | null },
+  ) {
+    return this.prService.addQuotationAttachment(id, file, user);
   }
 
   @Delete(':id/attachments/:attachmentId')
@@ -167,6 +203,16 @@ export class PurchaseRequestsController {
     @CurrentUser() user: { _id: string; role: string; departmentId: string | null },
   ) {
     return this.prService.removeAttachment(id, attachmentId, user);
+  }
+
+  @Delete(':id/quotation-attachments/:attachmentId')
+  @ApiOperation({ summary: 'Procurement: remove quotation evidence from a purchase request' })
+  async removeQuotationAttachment(
+    @Param('id', ParseObjectIdPipe) id: string,
+    @Param('attachmentId', ParseObjectIdPipe) attachmentId: string,
+    @CurrentUser() user: { _id: string; role: string; departmentId: string | null },
+  ) {
+    return this.prService.removeQuotationAttachment(id, attachmentId, user);
   }
 
   @Get(':id/attachments/:attachmentId/download')

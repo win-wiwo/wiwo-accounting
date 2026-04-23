@@ -35,13 +35,18 @@ const statusVariant = (status: string) => {
   switch (status) {
     case 'draft': return 'secondary' as const;
     case 'submitted':
+    case 'quoted':
     case 'level1_review':
     case 'level2_review':
     case 'level3_review':
       return 'info' as const;
+    case 'pending_quotation':
+      return 'warning' as const;
     case 'approved': return 'success' as const;
     case 'rejected': return 'destructive' as const;
-    case 'returned': return 'warning' as const;
+    case 'returned':
+    case 'returned_for_info':
+      return 'warning' as const;
     default: return 'secondary' as const;
   }
 };
@@ -75,7 +80,6 @@ export function DashboardPage() {
   const totalPrs = stats?.total ?? 0;
   const draftCount = byStatus[PrStatus.DRAFT]?.count ?? 0;
   const pendingReviewCount =
-    (byStatus[PrStatus.SUBMITTED]?.count ?? 0) +
     (byStatus[PrStatus.PENDING_QUOTATION]?.count ?? 0) +
     (byStatus[PrStatus.QUOTED]?.count ?? 0) +
     (byStatus[PrStatus.LEVEL1_REVIEW]?.count ?? 0) +

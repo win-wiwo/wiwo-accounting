@@ -1,3 +1,4 @@
+import { AttachmentCategory } from '../constants/attachment-categories';
 import { PrPriority, PrStatus, SourcingType } from '../constants/pr-status';
 
 export interface SellerReference {
@@ -6,6 +7,24 @@ export interface SellerReference {
   url?: string | null;
   price: number;
   notes?: string | null;
+}
+
+export interface CanvassQuotedItem {
+  itemId: string;
+  description: string;
+  unitPrice: number;
+  totalPrice: number;
+  remarks?: string | null;
+}
+
+export interface CanvassEntry {
+  _id?: string;
+  supplierId: string | { _id: string; companyName: string };
+  supplierName: string;
+  quotedItems: CanvassQuotedItem[];
+  totalQuotedAmount: number;
+  remarks?: string | null;
+  isSelected: boolean;
 }
 
 export interface PrLineItem {
@@ -26,7 +45,7 @@ export interface PrLineItem {
   sellerReferencesJustification?: string | null;
   // Filled by Procurement
   quotedUnitPrice?: number | null;
-  selectedSupplierId?: string | null;
+  selectedSupplierId?: string | { _id: string; companyName: string } | null;
   quotedAt?: string | null;
 }
 
@@ -35,6 +54,7 @@ export interface PrAttachment {
   originalName: string;
   storagePath: string;
   mimeType: string;
+  category?: AttachmentCategory | null;
   size: number;
   uploadedBy: string;
   uploadedAt: string;
@@ -76,6 +96,8 @@ export interface PurchaseRequest {
   completedAt: string | null;
   cancellationReason?: string | null;
   quotationNote?: string | null;
+  canvassEntries?: CanvassEntry[];
+  canvassJustification?: string | null;
   quotationReturnHistory?: QuotationReturn[];
   recallHistory?: RecallHistoryEntry[];
   createdAt: string;
@@ -121,9 +143,6 @@ export interface UpdatePurchaseRequestDto {
 }
 
 export interface SubmitQuotationDto {
-  items: Array<{
-    itemId: string;
-    quotedUnitPrice: number;
-    selectedSupplierId?: string;
-  }>;
+  canvassEntries: CanvassEntry[];
+  canvassJustification?: string;
 }

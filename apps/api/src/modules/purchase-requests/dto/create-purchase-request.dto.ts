@@ -148,24 +148,71 @@ export class SubmitQuotationItemDto {
   @IsString()
   itemId: string;
 
-  @ApiProperty({ example: 12500 })
+  @ApiProperty({ example: 'Network Video Recorder 128-Channel' })
+  @IsString()
+  description: string;
+
+  @ApiProperty()
   @IsNumber()
   @Min(0)
-  quotedUnitPrice: number;
+  unitPrice: number;
+
+  @ApiProperty({ example: 25000 })
+  @IsNumber()
+  @Min(0)
+  totalPrice: number;
 
   @ApiPropertyOptional()
   @IsString()
   @IsOptional()
-  selectedSupplierId?: string;
+  remarks?: string;
 }
 
-export class SubmitQuotationDto {
+export class SubmitQuotationCanvassEntryDto {
+  @ApiProperty()
+  @IsString()
+  supplierId: string;
+
+  @ApiProperty()
+  @IsString()
+  @MinLength(1)
+  supplierName: string;
+
   @ApiProperty({ type: [SubmitQuotationItemDto] })
   @IsArray()
   @ArrayMinSize(1)
   @ValidateNested({ each: true })
   @Type(() => SubmitQuotationItemDto)
-  items: SubmitQuotationItemDto[];
+  quotedItems: SubmitQuotationItemDto[];
+
+  @ApiProperty({ example: 150000 })
+  @IsNumber()
+  @Min(0)
+  totalQuotedAmount: number;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  remarks?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  isSelected?: boolean;
+}
+
+export class SubmitQuotationDto {
+  @ApiProperty({ type: [SubmitQuotationCanvassEntryDto] })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => SubmitQuotationCanvassEntryDto)
+  canvassEntries: SubmitQuotationCanvassEntryDto[];
+
+  @ApiPropertyOptional()
+  @IsString()
+  @MaxLength(1000)
+  @IsOptional()
+  canvassJustification?: string;
 }
 
 export class ReturnForInfoDto {

@@ -171,6 +171,21 @@ Recommendation:
 
 Execute in this order to minimize churn.
 
+## Current Progress Snapshot
+
+Status as of 2026-04-19:
+- Phase 1: complete
+- Phase 2: complete
+- Phase 3: complete
+- Phase 4: not started
+- Phase 5: not started
+
+Phase 3 completion notes:
+- procurement quotation uses a supplier-based canvass model
+- procurement can upload and remove quotation evidence files
+- one winning supplier is selected and written back onto quoted procurement items
+- approver and PR detail views expose canvass comparison and quotation evidence separately from requester supporting documents
+
 ### Phase 1: Stabilize Existing Flow
 
 Goal:
@@ -288,9 +303,13 @@ Use this as the next implementation queue.
 ### Queue C: Procurement Flow Improvements
 
 1. Add supplier selection during quotation
+   Status: complete
 2. Add quotation evidence upload area
+   Status: complete
 3. Add selected supplier display in PR detail and approval modal
+   Status: complete
 4. Add procurement evidence section for approvers
+   Status: complete
 
 ### Queue D: Workflow State Cleanup
 
@@ -361,6 +380,7 @@ Milestone 2:
 
 Milestone 3:
 - procurement supplier selection and quotation evidence
+  Status: complete
 
 Milestone 4:
 - status model simplification across UI/API

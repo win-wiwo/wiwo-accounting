@@ -84,6 +84,8 @@ const prSchema = new mongoose.Schema({
   completedAt: { type: Date, default: null },
   cancellationReason: { type: String, default: null },
   quotationNote: { type: String, default: null },
+  canvassEntries: { type: [mongoose.Schema.Types.Mixed], default: [] },
+  canvassJustification: { type: String, default: null },
   quotationReturnHistory: { type: [mongoose.Schema.Types.Mixed], default: [] },
   recallHistory: { type: [mongoose.Schema.Types.Mixed], default: [] },
 }, { timestamps: true });
@@ -117,7 +119,7 @@ const poLineItemSchema = new mongoose.Schema({
 const canvassEntrySchema = new mongoose.Schema({
   supplierId: { type: mongoose.Schema.Types.ObjectId, ref: 'Supplier', required: true },
   supplierName: { type: String, required: true },
-  quotedItems: [{ description: String, unitPrice: Number, totalPrice: Number, remarks: String }],
+  quotedItems: [{ itemId: mongoose.Schema.Types.ObjectId, description: String, unitPrice: Number, totalPrice: Number, remarks: String }],
   totalQuotedAmount: { type: Number, required: true },
   remarks: { type: String, default: null },
   isSelected: { type: Boolean, default: false },
@@ -580,6 +582,7 @@ async function attachQuotations(
     attachments.push({
       _id: new Types.ObjectId(),
       ...result,
+      category: prDoc.items.some((item: any) => item.sourcingType === 'procurement') ? 'canvass' : 'supporting_doc',
       uploadedBy: uploaderId,
       uploadedAt: prDoc.createdAt,
     });
@@ -599,6 +602,7 @@ function buildCanvassEntries(
     const quotedItems = prDoc.items.map((item: any) => {
       const unitPrice = Math.round(item.estimatedPrice * config.multiplier);
       return {
+        itemId: item._id,
         description: item.description,
         unitPrice,
         totalPrice: item.quantity * unitPrice,
@@ -645,6 +649,8 @@ function applyQuotedPricingToPr(prDoc: any, supplierDocs: mongoose.Document[]) {
     (sum: number, item: { totalPrice: number }) => sum + item.totalPrice,
     0,
   );
+  prDoc.canvassEntries = canvassEntries;
+  prDoc.canvassJustification = null;
 }
 
 async function attachReferencePhotos(prDoc: any): Promise<void> {

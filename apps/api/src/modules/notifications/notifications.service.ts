@@ -5,6 +5,7 @@ import { OnEvent } from '@nestjs/event-emitter';
 import {
   ApprovalAction,
   APPROVAL_LEVEL_LABELS,
+  normalizePrStatus,
   PrStatus,
   UserRole,
 } from '@prams/shared';
@@ -82,11 +83,12 @@ export class NotificationsService {
   }
 
   private async notifyNextApprover(pr: { _id: string; title: string; prNumber: string; departmentId: string; status: string }) {
+    const normalizedStatus = normalizePrStatus(pr.status);
+
     // Determine who to notify based on current status
     if (
-      pr.status === PrStatus.SUBMITTED ||
-      pr.status === PrStatus.LEVEL1_REVIEW ||
-      pr.status === PrStatus.QUOTED
+      normalizedStatus === PrStatus.LEVEL1_REVIEW ||
+      normalizedStatus === PrStatus.QUOTED
     ) {
       // Notify dept head
       const dept = await this.departmentModel.findById(pr.departmentId).exec();
@@ -102,7 +104,7 @@ export class NotificationsService {
       return;
     }
 
-    if (pr.status === PrStatus.PENDING_QUOTATION) {
+    if (normalizedStatus === PrStatus.PENDING_QUOTATION) {
       const procurementUsers = await this.userModel
         .find({ role: UserRole.PROCUREMENT, isActive: true })
         .select('_id')
@@ -122,8 +124,8 @@ export class NotificationsService {
       return;
     }
 
-    if (pr.status === PrStatus.LEVEL2_REVIEW || pr.status === PrStatus.LEVEL3_REVIEW) {
-      const nextRole = pr.status === PrStatus.LEVEL2_REVIEW ? UserRole.COO : UserRole.CEO;
+    if (normalizedStatus === PrStatus.LEVEL2_REVIEW || normalizedStatus === PrStatus.LEVEL3_REVIEW) {
+      const nextRole = normalizedStatus === PrStatus.LEVEL2_REVIEW ? UserRole.COO : UserRole.CEO;
       const approvers = await this.userModel
         .find({ role: nextRole, isActive: true })
         .select('_id')

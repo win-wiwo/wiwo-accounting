@@ -10,11 +10,12 @@ import { unlink } from 'fs/promises';
 import { existsSync } from 'fs';
 import { SubmitQuotationDto } from './dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { PrStatus, UserRole } from '@prams/shared';
+import { AttachmentCategory, normalizePrStatus, PrStatus, UserRole } from '@prams/shared';
 import { PurchaseRequest } from './schemas/purchase-request.schema';
 import { CreatePurchaseRequestDto, UpdatePurchaseRequestDto, QueryPurchaseRequestsDto } from './dto';
 import { PrNumberingService } from '../pr-numbering/pr-numbering.service';
 import { DepartmentsService } from '../departments/departments.service';
+import { Supplier } from '../suppliers/schemas/supplier.schema';
 
 interface RequestUser {
   _id: string;
@@ -26,6 +27,7 @@ interface RequestUser {
 export class PurchaseRequestsService {
   constructor(
     @InjectModel(PurchaseRequest.name) private prModel: Model<PurchaseRequest>,
+    @InjectModel(Supplier.name) private supplierModel: Model<Supplier>,
     private prNumberingService: PrNumberingService,
     private departmentsService: DepartmentsService,
     private eventEmitter: EventEmitter2,
@@ -237,6 +239,7 @@ export class PurchaseRequestsService {
       .populate('requesterId', 'firstName lastName email employeeId')
       .populate('departmentId', 'name code')
       .populate('projectId', 'name code')
+      .populate('items.selectedSupplierId', 'companyName')
       .populate('quotationReturnHistory.returnedBy', 'firstName lastName')
       .populate('recallHistory.recalledBy', 'firstName lastName')
       .exec();
@@ -381,28 +384,122 @@ export class PurchaseRequestsService {
 
     if (!pr) throw new NotFoundException('Purchase request not found');
 
+    if (!([UserRole.PROCUREMENT, UserRole.ADMIN] as string[]).includes(user.role)) {
+      throw new ForbiddenException('Only Procurement can submit quotation');
+    }
+
     if (pr.status !== PrStatus.PENDING_QUOTATION) {
       throw new BadRequestException('PR is not awaiting quotation');
     }
 
+    const procurementItems = pr.items.filter((item) => item.sourcingType === 'procurement');
+    if (procurementItems.length === 0) {
+      throw new BadRequestException('PR has no procurement items to canvass');
+    }
+
+    const quotationAttachments = pr.attachments.filter(
+      (attachment) => attachment.category === AttachmentCategory.CANVASS,
+    );
+    if (quotationAttachments.length === 0) {
+      throw new BadRequestException('At least one quotation evidence file is required');
+    }
+
+    if (!dto.canvassEntries?.length) {
+      throw new BadRequestException('At least one canvass entry is required');
+    }
+
+    const uniqueSupplierIds = new Set(dto.canvassEntries.map((entry) => entry.supplierId));
+    if (uniqueSupplierIds.size !== dto.canvassEntries.length) {
+      throw new BadRequestException('Each canvass entry must use a different supplier');
+    }
+
+    const selectedEntries = dto.canvassEntries.filter((entry) => entry.isSelected);
+    if (selectedEntries.length !== 1) {
+      throw new BadRequestException('Select exactly one winning supplier');
+    }
+
+    const canvassJustification = dto.canvassJustification?.trim() || null;
+    if (dto.canvassEntries.length < 3 && !canvassJustification) {
+      throw new BadRequestException('Provide a justification when fewer than 3 suppliers are quoted');
+    }
+
+    const procurementItemIds = new Set(procurementItems.map((item) => item._id.toString()));
+    const suppliers = await this.supplierModel.find({
+      _id: { $in: [...uniqueSupplierIds].map((supplierId) => new Types.ObjectId(supplierId)) },
+      status: 'active',
+    }).exec();
+    if (suppliers.length !== uniqueSupplierIds.size) {
+      throw new BadRequestException('One or more selected suppliers are invalid or inactive');
+    }
+    const supplierMap = new Map(
+      suppliers.map((supplier) => [supplier._id.toString(), supplier.companyName]),
+    );
+
     const now = new Date();
-
-    for (const quotedItem of dto.items) {
-      const item = pr.items.find((i) => i._id.toString() === quotedItem.itemId);
-      if (!item) throw new BadRequestException(`Line item ${quotedItem.itemId} not found`);
-
-      item.quotedUnitPrice = quotedItem.quotedUnitPrice;
-      item.quotedAt = now;
-      if (quotedItem.selectedSupplierId) {
-        item.selectedSupplierId = new Types.ObjectId(quotedItem.selectedSupplierId);
+    const normalizedEntries = dto.canvassEntries.map((entry) => {
+      const seenItemIds = new Set<string>();
+      if (entry.quotedItems.length !== procurementItems.length) {
+        throw new BadRequestException(`Supplier ${supplierMap.get(entry.supplierId) ?? entry.supplierId} must quote all procurement items`);
       }
-      // Recalculate totals using quoted price
-      item.estimatedPrice = quotedItem.quotedUnitPrice;
-      item.totalPrice = item.quantity * quotedItem.quotedUnitPrice;
+
+      const normalizedQuotedItems = entry.quotedItems.map((quotedItem) => {
+        const item = procurementItems.find((candidate) => candidate._id.toString() === quotedItem.itemId);
+        if (!item || !procurementItemIds.has(quotedItem.itemId)) {
+          throw new BadRequestException(`Invalid procurement item in canvass entry for supplier ${supplierMap.get(entry.supplierId) ?? entry.supplierId}`);
+        }
+        if (seenItemIds.has(quotedItem.itemId)) {
+          throw new BadRequestException(`Duplicate procurement item in canvass entry for supplier ${supplierMap.get(entry.supplierId) ?? entry.supplierId}`);
+        }
+        seenItemIds.add(quotedItem.itemId);
+        if (quotedItem.unitPrice <= 0) {
+          throw new BadRequestException(`Quoted prices must be greater than zero for supplier ${supplierMap.get(entry.supplierId) ?? entry.supplierId}`);
+        }
+
+        const totalPrice = item.quantity * quotedItem.unitPrice;
+        return {
+          itemId: item._id,
+          description: item.description,
+          unitPrice: quotedItem.unitPrice,
+          totalPrice,
+          remarks: quotedItem.remarks?.trim() || null,
+        };
+      });
+
+      const totalQuotedAmount = normalizedQuotedItems.reduce((sum, item) => sum + item.totalPrice, 0);
+      return {
+        supplierId: new Types.ObjectId(entry.supplierId),
+        supplierName: supplierMap.get(entry.supplierId) ?? entry.supplierName,
+        quotedItems: normalizedQuotedItems,
+        totalQuotedAmount,
+        remarks: entry.remarks?.trim() || null,
+        isSelected: Boolean(entry.isSelected),
+      };
+    });
+
+    const selectedEntry = normalizedEntries.find((entry) => entry.isSelected);
+    if (!selectedEntry) {
+      throw new BadRequestException('Select exactly one winning supplier');
+    }
+
+    for (const item of procurementItems) {
+      const selectedQuote = selectedEntry.quotedItems.find(
+        (quotedItem) => quotedItem.itemId.toString() === item._id.toString(),
+      );
+      if (!selectedQuote) {
+        throw new BadRequestException(`Winning supplier is missing a quote for ${item.description}`);
+      }
+
+      item.quotedUnitPrice = selectedQuote.unitPrice;
+      item.quotedAt = now;
+      item.selectedSupplierId = selectedEntry.supplierId;
+      item.estimatedPrice = selectedQuote.unitPrice;
+      item.totalPrice = selectedQuote.totalPrice;
     }
 
     // Recalculate PR total from quoted + existing online prices
     pr.totalAmount = pr.items.reduce((sum, item) => sum + item.totalPrice, 0);
+    pr.canvassEntries = normalizedEntries as typeof pr.canvassEntries;
+    pr.canvassJustification = canvassJustification;
 
     // If currentApprovalLevel was pre-set to 2 at submit time, the requester was a dept_head
     // — skip level-1 and send straight to COO
@@ -434,6 +531,10 @@ export class PurchaseRequestsService {
     const pr = await this.prModel.findById(id).exec();
 
     if (!pr) throw new NotFoundException('Purchase request not found');
+
+    if (!([UserRole.PROCUREMENT, UserRole.ADMIN] as string[]).includes(user.role)) {
+      throw new ForbiddenException('Only Procurement can return a PR for more info');
+    }
 
     if (pr.status !== PrStatus.PENDING_QUOTATION) {
       throw new BadRequestException('PR is not awaiting quotation');
@@ -480,7 +581,7 @@ export class PurchaseRequestsService {
       PrStatus.RETURNED_FOR_INFO,
     ];
     if (!recallableStatuses.includes(pr.status)) {
-      throw new BadRequestException('Can only recall PRs before review has started');
+      throw new BadRequestException('Can only recall PRs that are still awaiting quotation or review');
     }
 
     pr.status = PrStatus.DRAFT;
@@ -517,9 +618,16 @@ export class PurchaseRequestsService {
       throw new ForbiddenException('You can only cancel your own purchase requests');
     }
 
-    const cancellableStatuses: string[] = [PrStatus.DRAFT, PrStatus.SUBMITTED, PrStatus.PENDING_QUOTATION, PrStatus.RETURNED_FOR_INFO];
+    const cancellableStatuses: string[] = [
+      PrStatus.DRAFT,
+      PrStatus.SUBMITTED,
+      PrStatus.PENDING_QUOTATION,
+      PrStatus.LEVEL1_REVIEW,
+      PrStatus.LEVEL2_REVIEW,
+      PrStatus.RETURNED_FOR_INFO,
+    ];
     if (!cancellableStatuses.includes(pr.status)) {
-      throw new BadRequestException('Can only cancel PRs in Draft or Submitted status');
+      throw new BadRequestException('Can only cancel PRs before approval work has started');
     }
 
     if (!reason?.trim()) {
@@ -542,6 +650,7 @@ export class PurchaseRequestsService {
     id: string,
     file: Express.Multer.File,
     user: RequestUser,
+    category: string = AttachmentCategory.SUPPORTING_DOC,
   ): Promise<PurchaseRequest> {
     const pr = await this.prModel.findById(id).exec();
 
@@ -562,6 +671,45 @@ export class PurchaseRequestsService {
       originalName: file.originalname,
       storagePath: file.path,
       mimeType: file.mimetype,
+      category,
+      size: file.size,
+      uploadedBy: user._id as unknown as import('mongoose').Types.ObjectId,
+      uploadedAt: new Date(),
+    } as unknown as import('./schemas/purchase-request.schema').Attachment);
+
+    await pr.save();
+
+    return this.prModel
+      .findById(id)
+      .populate('requesterId', 'firstName lastName email employeeId')
+      .populate('departmentId', 'name code')
+      .exec() as Promise<PurchaseRequest>;
+  }
+
+  async addQuotationAttachment(
+    id: string,
+    file: Express.Multer.File,
+    user: RequestUser,
+  ): Promise<PurchaseRequest> {
+    const pr = await this.prModel.findById(id).exec();
+
+    if (!pr) {
+      throw new NotFoundException('Purchase request not found');
+    }
+
+    if (!([UserRole.PROCUREMENT, UserRole.ADMIN] as string[]).includes(user.role)) {
+      throw new ForbiddenException('Only Procurement can add quotation evidence');
+    }
+
+    if (pr.status !== PrStatus.PENDING_QUOTATION) {
+      throw new BadRequestException('Can only add quotation evidence while PR is awaiting quotation');
+    }
+
+    pr.attachments.push({
+      originalName: file.originalname,
+      storagePath: file.path,
+      mimeType: file.mimetype,
+      category: AttachmentCategory.CANVASS,
       size: file.size,
       uploadedBy: user._id as unknown as import('mongoose').Types.ObjectId,
       uploadedAt: new Date(),
@@ -600,6 +748,40 @@ export class PurchaseRequestsService {
       (a) => a._id.toString() !== attachmentId,
     );
 
+    await pr.save();
+
+    return this.prModel
+      .findById(id)
+      .populate('requesterId', 'firstName lastName email employeeId')
+      .populate('departmentId', 'name code')
+      .exec() as Promise<PurchaseRequest>;
+  }
+
+  async removeQuotationAttachment(
+    id: string,
+    attachmentId: string,
+    user: RequestUser,
+  ): Promise<PurchaseRequest> {
+    const pr = await this.prModel.findById(id).exec();
+
+    if (!pr) {
+      throw new NotFoundException('Purchase request not found');
+    }
+
+    if (!([UserRole.PROCUREMENT, UserRole.ADMIN] as string[]).includes(user.role)) {
+      throw new ForbiddenException('Only Procurement can remove quotation evidence');
+    }
+
+    if (pr.status !== PrStatus.PENDING_QUOTATION) {
+      throw new BadRequestException('Can only remove quotation evidence while PR is awaiting quotation');
+    }
+
+    const attachment = pr.attachments.find((a) => a._id.toString() === attachmentId);
+    if (!attachment || attachment.category !== AttachmentCategory.CANVASS) {
+      throw new NotFoundException('Quotation evidence not found');
+    }
+
+    pr.attachments = pr.attachments.filter((a) => a._id.toString() !== attachmentId);
     await pr.save();
 
     return this.prModel
@@ -723,7 +905,12 @@ export class PurchaseRequestsService {
 
     const result: Record<string, { count: number; totalAmount: number }> = {};
     for (const s of stats) {
-      result[s._id] = { count: s.count, totalAmount: s.totalAmount };
+      const normalizedStatus = normalizePrStatus(s._id);
+      const existing = result[normalizedStatus];
+      result[normalizedStatus] = {
+        count: (existing?.count ?? 0) + s.count,
+        totalAmount: (existing?.totalAmount ?? 0) + s.totalAmount,
+      };
     }
 
     const total = stats.reduce((sum, s) => sum + s.count, 0);

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import {
   APPROVAL_LEVEL_LABELS,
+  normalizePrStatus,
   PrStatus,
   type ApprovalHistoryEntry,
   type PurchaseRequest,
@@ -143,11 +144,12 @@ function buildTimelineEntries(
 }
 
 function CurrentState({ pr, compact = false }: { pr: PurchaseRequest; compact?: boolean }) {
+  const currentStatus = normalizePrStatus(pr.status);
   const className = compact
     ? "flex items-center gap-2 text-xs text-muted-foreground"
     : "flex items-center gap-2 text-sm text-muted-foreground";
 
-  if (pr.status === PrStatus.DRAFT) {
+  if (currentStatus === PrStatus.DRAFT) {
     return (
       <p className={compact ? "text-xs text-muted-foreground" : "text-sm text-muted-foreground"}>
         Submit this PR to start the workflow.
@@ -155,26 +157,25 @@ function CurrentState({ pr, compact = false }: { pr: PurchaseRequest; compact?: 
     );
   }
 
-  if (pr.status === PrStatus.PENDING_QUOTATION) {
+  if (currentStatus === PrStatus.PENDING_QUOTATION) {
     return (
       <div className={className}>
         <ShoppingCart className={compact ? "h-3.5 w-3.5 text-amber-600" : "h-4 w-4 text-amber-600"} />
-        <span>Awaiting quotation from Procurement.</span>
+        <span>Awaiting Procurement quotation and supporting canvass evidence.</span>
       </div>
     );
   }
 
   if (
-    pr.status === PrStatus.LEVEL1_REVIEW ||
-    pr.status === PrStatus.LEVEL2_REVIEW ||
-    pr.status === PrStatus.LEVEL3_REVIEW ||
-    pr.status === PrStatus.QUOTED ||
-    pr.status === PrStatus.SUBMITTED
+    currentStatus === PrStatus.LEVEL1_REVIEW ||
+    currentStatus === PrStatus.LEVEL2_REVIEW ||
+    currentStatus === PrStatus.LEVEL3_REVIEW ||
+    currentStatus === PrStatus.QUOTED
   ) {
     return (
       <div className={className}>
         <Clock className={compact ? "h-3.5 w-3.5" : "h-4 w-4"} />
-        <span>Awaiting next review.</span>
+        <span>Awaiting the next approval decision.</span>
       </div>
     );
   }
