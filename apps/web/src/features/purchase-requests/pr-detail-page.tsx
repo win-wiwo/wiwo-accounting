@@ -74,12 +74,16 @@ import {
 
 // ─── Resubmission Diff ──────────────────────────────────────────────────────
 
-type SnapshotItem = PreviousSubmissionSnapshot['items'][number];
+type SnapshotItem = PreviousSubmissionSnapshot["items"][number];
 
 function diffItems(
   oldItems: SnapshotItem[],
   newItems: PrLineItem[],
-): Array<{ type: 'unchanged' | 'changed' | 'removed' | 'added'; old?: SnapshotItem; new?: PrLineItem }> {
+): Array<{
+  type: "unchanged" | "changed" | "removed" | "added";
+  old?: SnapshotItem;
+  new?: PrLineItem;
+}> {
   const oldById = new Map(oldItems.map((i) => [i._id, i]));
   const newById = new Map(newItems.map((i) => [i._id, i]));
   const results: ReturnType<typeof diffItems> = [];
@@ -87,7 +91,7 @@ function diffItems(
   for (const old of oldItems) {
     const cur = newById.get(old._id);
     if (!cur) {
-      results.push({ type: 'removed', old });
+      results.push({ type: "removed", old });
     } else {
       const changed =
         old.description !== cur.description ||
@@ -95,13 +99,13 @@ function diffItems(
         old.unit !== cur.unit ||
         old.sourcingType !== cur.sourcingType ||
         old.estimatedPrice !== cur.estimatedPrice;
-      results.push({ type: changed ? 'changed' : 'unchanged', old, new: cur });
+      results.push({ type: changed ? "changed" : "unchanged", old, new: cur });
     }
   }
 
   for (const cur of newItems) {
     if (!oldById.has(cur._id)) {
-      results.push({ type: 'added', new: cur });
+      results.push({ type: "added", new: cur });
     }
   }
 
@@ -117,13 +121,21 @@ interface ResubmissionChangesProps {
   currentItems: PrLineItem[];
 }
 
-function ResubmissionChanges({ snapshot, note, currentTitle, currentPriority, currentJustification, currentItems }: ResubmissionChangesProps) {
+function ResubmissionChanges({
+  snapshot,
+  note,
+  currentTitle,
+  currentPriority,
+  currentJustification,
+  currentItems,
+}: ResubmissionChangesProps) {
   const itemDiffs = diffItems(snapshot.items, currentItems);
   const titleChanged = snapshot.title !== currentTitle;
   const priorityChanged = snapshot.priority !== currentPriority;
   const justificationChanged = snapshot.justification !== currentJustification;
-  const hasFieldChanges = titleChanged || priorityChanged || justificationChanged;
-  const hasItemChanges = itemDiffs.some((d) => d.type !== 'unchanged');
+  const hasFieldChanges =
+    titleChanged || priorityChanged || justificationChanged;
+  const hasItemChanges = itemDiffs.some((d) => d.type !== "unchanged");
 
   return (
     <Card className="border-blue-300 bg-blue-50/30">
@@ -134,7 +146,9 @@ function ResubmissionChanges({ snapshot, note, currentTitle, currentPriority, cu
         </CardTitle>
         {note && (
           <div className="mt-2 rounded-md border border-blue-200 bg-white px-3 py-2">
-            <p className="text-xs font-medium text-blue-700 mb-0.5">Requester's note</p>
+            <p className="text-xs font-medium text-blue-700 mb-0.5">
+              Requester's note
+            </p>
             <p className="text-sm text-foreground">{note}</p>
           </div>
         )}
@@ -144,23 +158,41 @@ function ResubmissionChanges({ snapshot, note, currentTitle, currentPriority, cu
           <div className="space-y-2">
             {titleChanged && (
               <div className="space-y-0.5">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Title</p>
-                <p className="text-xs line-through text-red-600 bg-red-50 rounded px-2 py-1">{snapshot.title}</p>
-                <p className="text-xs text-green-700 bg-green-50 rounded px-2 py-1">{currentTitle}</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Title
+                </p>
+                <p className="text-xs line-through text-red-600 bg-red-50 rounded px-2 py-1">
+                  {snapshot.title}
+                </p>
+                <p className="text-xs text-green-700 bg-green-50 rounded px-2 py-1">
+                  {currentTitle}
+                </p>
               </div>
             )}
             {priorityChanged && (
               <div className="space-y-0.5">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Priority</p>
-                <p className="text-xs line-through text-red-600 bg-red-50 rounded px-2 py-1 capitalize">{snapshot.priority}</p>
-                <p className="text-xs text-green-700 bg-green-50 rounded px-2 py-1 capitalize">{currentPriority}</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Priority
+                </p>
+                <p className="text-xs line-through text-red-600 bg-red-50 rounded px-2 py-1 capitalize">
+                  {snapshot.priority}
+                </p>
+                <p className="text-xs text-green-700 bg-green-50 rounded px-2 py-1 capitalize">
+                  {currentPriority}
+                </p>
               </div>
             )}
             {justificationChanged && (
               <div className="space-y-0.5">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Purpose / Justification</p>
-                <p className="text-xs line-through text-red-600 bg-red-50 rounded px-2 py-1">{snapshot.justification}</p>
-                <p className="text-xs text-green-700 bg-green-50 rounded px-2 py-1">{currentJustification}</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Purpose / Justification
+                </p>
+                <p className="text-xs line-through text-red-600 bg-red-50 rounded px-2 py-1">
+                  {snapshot.justification}
+                </p>
+                <p className="text-xs text-green-700 bg-green-50 rounded px-2 py-1">
+                  {currentJustification}
+                </p>
               </div>
             )}
           </div>
@@ -168,47 +200,78 @@ function ResubmissionChanges({ snapshot, note, currentTitle, currentPriority, cu
 
         {hasItemChanges && (
           <div className="space-y-2">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Line Items</p>
-            {itemDiffs.filter((d) => d.type !== 'unchanged').map((diff, i) => (
-              <div key={i} className="rounded-md border text-xs overflow-hidden">
-                {diff.type === 'removed' && diff.old && (
-                  <div className="bg-red-50 border-red-200 px-3 py-2 line-through text-red-700">
-                    <span className="font-medium">{diff.old.description}</span>
-                    {' — '}{diff.old.quantity} {diff.old.unit}
-                    {diff.old.estimatedPrice > 0 && ` · ₱${diff.old.estimatedPrice.toLocaleString()}/unit`}
-                    <span className="ml-1 text-[10px] no-underline not-italic font-medium bg-red-200 text-red-800 rounded px-1">removed</span>
-                  </div>
-                )}
-                {diff.type === 'added' && diff.new && (
-                  <div className="bg-green-50 border-green-200 px-3 py-2 text-green-700">
-                    <span className="font-medium">{diff.new.description}</span>
-                    {' — '}{diff.new.quantity} {diff.new.unit}
-                    {(diff.new.estimatedPrice ?? 0) > 0 && ` · ₱${(diff.new.estimatedPrice ?? 0).toLocaleString()}/unit`}
-                    <span className="ml-1 text-[10px] font-medium bg-green-200 text-green-800 rounded px-1">added</span>
-                  </div>
-                )}
-                {diff.type === 'changed' && diff.old && diff.new && (
-                  <div>
-                    <div className="bg-red-50 px-3 py-1.5 line-through text-red-700">
-                      <span className="font-medium">{diff.old.description}</span>
-                      {' — '}{diff.old.quantity} {diff.old.unit}
-                      {diff.old.estimatedPrice > 0 && ` · ₱${diff.old.estimatedPrice.toLocaleString()}/unit`}
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              Line Items
+            </p>
+            {itemDiffs
+              .filter((d) => d.type !== "unchanged")
+              .map((diff, i) => (
+                <div
+                  key={i}
+                  className="rounded-md border text-xs overflow-hidden"
+                >
+                  {diff.type === "removed" && diff.old && (
+                    <div className="bg-red-50 border-red-200 px-3 py-2 line-through text-red-700">
+                      <span className="font-medium">
+                        {diff.old.description}
+                      </span>
+                      {" — "}
+                      {diff.old.quantity} {diff.old.unit}
+                      {diff.old.estimatedPrice > 0 &&
+                        ` · ₱${diff.old.estimatedPrice.toLocaleString()}/unit`}
+                      <span className="ml-1 text-[10px] no-underline not-italic font-medium bg-red-200 text-red-800 rounded px-1">
+                        removed
+                      </span>
                     </div>
-                    <div className="bg-green-50 px-3 py-1.5 text-green-700">
-                      <span className="font-medium">{diff.new.description}</span>
-                      {' — '}{diff.new.quantity} {diff.new.unit}
-                      {(diff.new.estimatedPrice ?? 0) > 0 && ` · ₱${(diff.new.estimatedPrice ?? 0).toLocaleString()}/unit`}
-                      <span className="ml-1 text-[10px] font-medium bg-amber-200 text-amber-800 rounded px-1">modified</span>
+                  )}
+                  {diff.type === "added" && diff.new && (
+                    <div className="bg-green-50 border-green-200 px-3 py-2 text-green-700">
+                      <span className="font-medium">
+                        {diff.new.description}
+                      </span>
+                      {" — "}
+                      {diff.new.quantity} {diff.new.unit}
+                      {(diff.new.estimatedPrice ?? 0) > 0 &&
+                        ` · ₱${(diff.new.estimatedPrice ?? 0).toLocaleString()}/unit`}
+                      <span className="ml-1 text-[10px] font-medium bg-green-200 text-green-800 rounded px-1">
+                        added
+                      </span>
                     </div>
-                  </div>
-                )}
-              </div>
-            ))}
+                  )}
+                  {diff.type === "changed" && diff.old && diff.new && (
+                    <div>
+                      <div className="bg-red-50 px-3 py-1.5 line-through text-red-700">
+                        <span className="font-medium">
+                          {diff.old.description}
+                        </span>
+                        {" — "}
+                        {diff.old.quantity} {diff.old.unit}
+                        {diff.old.estimatedPrice > 0 &&
+                          ` · ₱${diff.old.estimatedPrice.toLocaleString()}/unit`}
+                      </div>
+                      <div className="bg-green-50 px-3 py-1.5 text-green-700">
+                        <span className="font-medium">
+                          {diff.new.description}
+                        </span>
+                        {" — "}
+                        {diff.new.quantity} {diff.new.unit}
+                        {(diff.new.estimatedPrice ?? 0) > 0 &&
+                          ` · ₱${(diff.new.estimatedPrice ?? 0).toLocaleString()}/unit`}
+                        <span className="ml-1 text-[10px] font-medium bg-amber-200 text-amber-800 rounded px-1">
+                          modified
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
           </div>
         )}
 
         {!hasFieldChanges && !hasItemChanges && (
-          <p className="text-xs text-muted-foreground">No tracked field changes detected.</p>
+          <p className="text-xs text-muted-foreground">
+            No tracked field changes detected.
+          </p>
         )}
       </CardContent>
     </Card>
@@ -534,21 +597,17 @@ export function PrDetailPage() {
   const canEdit = isOwner && (isDraft || isReturned || isReturnedForInfo);
   const canRecall =
     isOwner &&
-    (
-      runtimeStatus === PrStatus.LEVEL1_REVIEW ||
+    (runtimeStatus === PrStatus.LEVEL1_REVIEW ||
       runtimeStatus === PrStatus.LEVEL2_REVIEW ||
       isPendingQuotation ||
-      isReturnedForInfo
-    );
+      isReturnedForInfo);
   const canCancel =
     isOwner &&
-    (
-      isDraft ||
+    (isDraft ||
       runtimeStatus === PrStatus.LEVEL1_REVIEW ||
       runtimeStatus === PrStatus.LEVEL2_REVIEW ||
       isPendingQuotation ||
-      isReturnedForInfo
-    );
+      isReturnedForInfo);
 
   // Determine if the current user can act on this PR as an approver
   const pendingStatuses: string[] = [
@@ -564,14 +623,17 @@ export function PrDetailPage() {
     (((runtimeStatus === PrStatus.LEVEL1_REVIEW ||
       runtimeStatus === PrStatus.QUOTED) &&
       user?.role === UserRole.DEPT_HEAD) ||
-      (runtimeStatus === PrStatus.LEVEL2_REVIEW && user?.role === UserRole.COO) ||
-      (runtimeStatus === PrStatus.LEVEL3_REVIEW && user?.role === UserRole.CEO));
+      (runtimeStatus === PrStatus.LEVEL2_REVIEW &&
+        user?.role === UserRole.COO) ||
+      (runtimeStatus === PrStatus.LEVEL3_REVIEW &&
+        user?.role === UserRole.CEO));
 
   const stagePresentation = (() => {
     if (runtimeStatus === PrStatus.DRAFT) {
       return {
         title: "Draft in Progress",
-        description: "Complete the request details, attach requester documents, and submit when the package is ready.",
+        description:
+          "Complete the request details, attach requester documents, and submit when the package is ready.",
         icon: <Pencil className="h-4 w-4" />,
         tone: "border-slate-300 bg-slate-50 text-slate-800",
       };
@@ -579,14 +641,22 @@ export function PrDetailPage() {
     if (runtimeStatus === PrStatus.PENDING_QUOTATION) {
       return {
         title: "Procurement Action Required",
-        description: "Procurement will review the specs, item photos, and requester documents, then attach canvass evidence and quote the request.",
+        description:
+          "Procurement will review the specs, item photos, and requester documents, then attach canvass evidence and quote the request.",
         icon: <ShoppingCart className="h-4 w-4" />,
         tone: "border-amber-300 bg-amber-50 text-amber-900",
       };
     }
-    if (runtimeStatus === PrStatus.QUOTED || runtimeStatus === PrStatus.LEVEL1_REVIEW || runtimeStatus === PrStatus.LEVEL2_REVIEW || runtimeStatus === PrStatus.LEVEL3_REVIEW) {
+    if (
+      runtimeStatus === PrStatus.QUOTED ||
+      runtimeStatus === PrStatus.LEVEL1_REVIEW ||
+      runtimeStatus === PrStatus.LEVEL2_REVIEW ||
+      runtimeStatus === PrStatus.LEVEL3_REVIEW
+    ) {
       return {
-        title: canApprove ? "Your Approval Decision Is Needed" : "Approval in Progress",
+        title: canApprove
+          ? "Your Approval Decision Is Needed"
+          : "Approval in Progress",
         description: canApprove
           ? "Review the request context, procurement basis, and supporting files before taking action."
           : "This request has moved into the approval chain and is waiting for the next approver.",
@@ -597,7 +667,8 @@ export function PrDetailPage() {
     if (runtimeStatus === PrStatus.RETURNED_FOR_INFO) {
       return {
         title: "More Requester Information Needed",
-        description: "Procurement sent this back for clarification. Update the request package and resubmit.",
+        description:
+          "Procurement sent this back for clarification. Update the request package and resubmit.",
         icon: <RotateCcw className="h-4 w-4" />,
         tone: "border-amber-300 bg-amber-50 text-amber-900",
       };
@@ -605,7 +676,8 @@ export function PrDetailPage() {
     if (runtimeStatus === PrStatus.RETURNED) {
       return {
         title: "Revision Required",
-        description: "An approver returned this request for changes. Update the package and submit it again.",
+        description:
+          "An approver returned this request for changes. Update the package and submit it again.",
         icon: <RotateCcw className="h-4 w-4" />,
         tone: "border-amber-300 bg-amber-50 text-amber-900",
       };
@@ -613,7 +685,8 @@ export function PrDetailPage() {
     if (runtimeStatus === PrStatus.APPROVED) {
       return {
         title: "Request Approved",
-        description: "The approval workflow is complete. The approved package and procurement basis are retained below.",
+        description:
+          "The approval workflow is complete. The approved package and procurement basis are retained below.",
         icon: <CheckCircle2 className="h-4 w-4" />,
         tone: "border-emerald-300 bg-emerald-50 text-emerald-900",
       };
@@ -621,7 +694,8 @@ export function PrDetailPage() {
     if (runtimeStatus === PrStatus.REJECTED) {
       return {
         title: "Request Rejected",
-        description: "The workflow has ended. Review the timeline and comments for the reason.",
+        description:
+          "The workflow has ended. Review the timeline and comments for the reason.",
         icon: <XCircle className="h-4 w-4" />,
         tone: "border-destructive/30 bg-destructive/5 text-destructive",
       };
@@ -629,7 +703,8 @@ export function PrDetailPage() {
     if (runtimeStatus === PrStatus.CANCELLED) {
       return {
         title: "Request Cancelled",
-        description: "This request was cancelled before completion. The cancellation reason is shown below.",
+        description:
+          "This request was cancelled before completion. The cancellation reason is shown below.",
         icon: <Ban className="h-4 w-4" />,
         tone: "border-slate-300 bg-slate-50 text-slate-800",
       };
@@ -745,7 +820,9 @@ export function PrDetailPage() {
           </div>
           <div className="space-y-1">
             <p className="text-sm font-semibold">{stagePresentation.title}</p>
-            <p className="text-sm leading-6 text-current/80">{stagePresentation.description}</p>
+            <p className="text-sm leading-6 text-current/80">
+              {stagePresentation.description}
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -816,61 +893,104 @@ export function PrDetailPage() {
                 <div>
                   <CardTitle className="text-base">Line Items</CardTitle>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Item photos stay with their specific line item. Procurement-sourced items remain unpriced until canvass is complete.
+                    Item photos stay with their specific line item.
+                    Procurement-sourced items remain unpriced until canvass is
+                    complete.
                   </p>
                 </div>
                 <div className="rounded-lg border bg-muted/40 px-3 py-2 text-right">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Request Mix</p>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    Request Mix
+                  </p>
                   <p className="text-sm font-medium">
-                    {pr.items.filter((item) => item.sourcingType === SourcingType.PROCUREMENT).length} procurement
+                    {
+                      pr.items.filter(
+                        (item) =>
+                          item.sourcingType === SourcingType.PROCUREMENT,
+                      ).length
+                    }{" "}
+                    procurement
                     {" · "}
-                    {pr.items.filter((item) => item.sourcingType === SourcingType.ONLINE).length} online
+                    {
+                      pr.items.filter(
+                        (item) => item.sourcingType === SourcingType.ONLINE,
+                      ).length
+                    }{" "}
+                    online
                   </p>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-3 p-4">
               {pr.items.map((item, i) => {
-                const isProcurement = item.sourcingType === SourcingType.PROCUREMENT;
+                const isProcurement =
+                  item.sourcingType === SourcingType.PROCUREMENT;
                 const displayPrice = isProcurement
                   ? (item.quotedUnitPrice ?? 0)
                   : (item.estimatedPrice ?? 0);
-                const unitPriceLabel = isProcurement && !item.quotedUnitPrice
-                  ? "Pending quotation"
-                  : formatCurrency(displayPrice);
-                const totalLabel = item.totalPrice > 0 ? formatCurrency(item.totalPrice) : "TBQ";
+                const unitPriceLabel =
+                  isProcurement && !item.quotedUnitPrice
+                    ? "Pending quotation"
+                    : formatCurrency(displayPrice);
+                const totalLabel =
+                  item.totalPrice > 0 ? formatCurrency(item.totalPrice) : "TBQ";
 
                 return (
-                  <div key={item._id} className="rounded-xl border bg-background p-4 shadow-sm">
+                  <div
+                    key={item._id}
+                    className="rounded-xl border bg-background p-4 shadow-sm"
+                  >
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0 space-y-2">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs font-medium text-muted-foreground">Item {i + 1}</span>
+                          <span className="text-xs font-medium text-muted-foreground">
+                            Item {i + 1}
+                          </span>
                           {isProcurement ? (
-                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-0.5">
+                            <Badge
+                              variant="secondary"
+                              className="text-[10px] px-1.5 py-0 gap-0.5"
+                            >
                               <ShoppingCart className="h-2.5 w-2.5" />
                               Procurement
                             </Badge>
                           ) : (
-                            <Badge variant="info" className="text-[10px] px-1.5 py-0">
+                            <Badge
+                              variant="info"
+                              className="text-[10px] px-1.5 py-0"
+                            >
                               Online
                             </Badge>
                           )}
                         </div>
-                        <p className="text-base font-semibold leading-snug">{item.description}</p>
+                        <p className="text-base font-semibold leading-snug">
+                          {item.description}
+                        </p>
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-right sm:min-w-[260px]">
                         <div className="rounded-lg bg-muted/40 px-3 py-2">
-                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Qty</p>
-                          <p className="text-sm font-semibold">{item.quantity} {item.unit}</p>
+                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                            Qty
+                          </p>
+                          <p className="text-sm font-semibold">
+                            {item.quantity} {item.unit}
+                          </p>
                         </div>
                         <div className="rounded-lg bg-muted/40 px-3 py-2">
-                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Unit Price</p>
-                          <p className="text-sm font-semibold">{unitPriceLabel}</p>
+                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                            Unit Price
+                          </p>
+                          <p className="text-sm font-semibold">
+                            {unitPriceLabel}
+                          </p>
                         </div>
                         <div className="col-span-2 rounded-lg bg-muted/40 px-3 py-2">
-                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Line Total</p>
-                          <p className="text-base font-semibold">{totalLabel}</p>
+                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                            Line Total
+                          </p>
+                          <p className="text-base font-semibold">
+                            {totalLabel}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -886,54 +1006,76 @@ export function PrDetailPage() {
                           Reference photo
                         </button>
                       )}
-                      {isProcurement && item.quotedUnitPrice && item.quotedAt && (
-                        <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
-                          Quoted {formatDate(item.quotedAt)}
-                        </span>
-                      )}
-                      {typeof item.selectedSupplierId === "object" && item.selectedSupplierId?.companyName && (
-                        <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-800">
-                          Supplier: {item.selectedSupplierId.companyName}
-                        </span>
-                      )}
+                      {isProcurement &&
+                        item.quotedUnitPrice &&
+                        item.quotedAt && (
+                          <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+                            Quoted {formatDate(item.quotedAt)}
+                          </span>
+                        )}
+                      {typeof item.selectedSupplierId === "object" &&
+                        item.selectedSupplierId?.companyName && (
+                          <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-800">
+                            Supplier: {item.selectedSupplierId.companyName}
+                          </span>
+                        )}
                     </div>
 
                     {(item.specifications || item.notes) && (
                       <div className="mt-3 grid gap-3 sm:grid-cols-2">
                         {item.specifications && (
                           <div className="rounded-lg bg-muted/30 px-3 py-2">
-                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Specifications</p>
-                            <p className="mt-1 text-sm text-muted-foreground">{item.specifications}</p>
+                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                              Specifications
+                            </p>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                              {item.specifications}
+                            </p>
                           </div>
                         )}
                         {item.notes && (
                           <div className="rounded-lg bg-muted/30 px-3 py-2">
-                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Notes</p>
-                            <p className="mt-1 text-sm text-muted-foreground">{item.notes}</p>
+                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                              Notes
+                            </p>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                              {item.notes}
+                            </p>
                           </div>
                         )}
                       </div>
                     )}
 
-                    {!isProcurement && item.sellerReferences && item.sellerReferences.length > 0 && (
-                      <div className="mt-3 rounded-lg border border-blue-100 bg-blue-50/40 p-3">
-                        <p className="text-[11px] uppercase tracking-wide text-blue-700">Seller References</p>
-                        <div className="mt-2 space-y-1.5">
-                          {item.sellerReferences.map((ref, ri) => (
-                            <div key={ri} className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
-                              <span className="truncate">{ref.sellerName}</span>
-                              <span className="shrink-0 font-medium">{formatCurrency(ref.price)}</span>
-                            </div>
-                          ))}
-                        </div>
-                        {item.sellerReferencesJustification && (
-                          <p className="mt-2 flex items-start gap-1 text-xs text-amber-700">
-                            <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />
-                            <span>{item.sellerReferencesJustification}</span>
+                    {!isProcurement &&
+                      item.sellerReferences &&
+                      item.sellerReferences.length > 0 && (
+                        <div className="mt-3 rounded-lg border border-blue-100 bg-blue-50/40 p-3">
+                          <p className="text-[11px] uppercase tracking-wide text-blue-700">
+                            Seller References
                           </p>
-                        )}
-                      </div>
-                    )}
+                          <div className="mt-2 space-y-1.5">
+                            {item.sellerReferences.map((ref, ri) => (
+                              <div
+                                key={ri}
+                                className="flex items-center justify-between gap-3 text-xs text-muted-foreground"
+                              >
+                                <span className="truncate">
+                                  {ref.sellerName}
+                                </span>
+                                <span className="shrink-0 font-medium">
+                                  {formatCurrency(ref.price)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                          {item.sellerReferencesJustification && (
+                            <p className="mt-2 flex items-start gap-1 text-xs text-amber-700">
+                              <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />
+                              <span>{item.sellerReferencesJustification}</span>
+                            </p>
+                          )}
+                        </div>
+                      )}
                   </div>
                 );
               })}
@@ -962,45 +1104,69 @@ export function PrDetailPage() {
           {pr.canvassEntries && pr.canvassEntries.length > 0 && (
             <Card className="border-emerald-200 bg-emerald-50/40">
               <CardHeader>
-                <CardTitle className="text-base">Procurement Canvass Comparison</CardTitle>
+                <CardTitle className="text-base">
+                  Procurement Canvass Comparison
+                </CardTitle>
                 <p className="text-xs text-muted-foreground">
-                  This section shows the supplier canvass prepared by Procurement and the selected pricing basis.
+                  This section shows the supplier canvass prepared by
+                  Procurement and the selected pricing basis.
                 </p>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid gap-3 lg:grid-cols-2">
                   {pr.canvassEntries.map((entry) => (
                     <div
-                      key={entry._id ?? `${entry.supplierName}-${entry.totalQuotedAmount}`}
+                      key={
+                        entry._id ??
+                        `${entry.supplierName}-${entry.totalQuotedAmount}`
+                      }
                       className={`rounded-lg border p-4 space-y-3 shadow-sm ${entry.isSelected ? "border-emerald-400 bg-white ring-1 ring-emerald-200" : "bg-white/80"}`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="text-sm font-medium">{entry.supplierName}</p>
+                          <p className="text-sm font-medium">
+                            {entry.supplierName}
+                          </p>
                           <p className="text-xs text-muted-foreground">
-                            Total quoted: {formatCurrency(entry.totalQuotedAmount)}
+                            Total quoted:{" "}
+                            {formatCurrency(entry.totalQuotedAmount)}
                           </p>
                         </div>
-                        {entry.isSelected && <Badge variant="success">Selected</Badge>}
+                        {entry.isSelected && (
+                          <Badge variant="success">Selected</Badge>
+                        )}
                       </div>
                       <div className="space-y-1">
                         {entry.quotedItems.map((quotedItem) => (
-                          <div key={quotedItem.itemId} className="flex items-center justify-between gap-3 text-xs">
-                            <span className="truncate">{quotedItem.description}</span>
-                            <span className="font-medium">{formatCurrency(quotedItem.unitPrice)}</span>
+                          <div
+                            key={quotedItem.itemId}
+                            className="flex items-center justify-between gap-3 text-xs"
+                          >
+                            <span className="truncate">
+                              {quotedItem.description}
+                            </span>
+                            <span className="font-medium">
+                              {formatCurrency(quotedItem.unitPrice)}
+                            </span>
                           </div>
                         ))}
                       </div>
                       {entry.remarks && (
-                        <p className="text-xs text-muted-foreground italic">{entry.remarks}</p>
+                        <p className="text-xs text-muted-foreground italic">
+                          {entry.remarks}
+                        </p>
                       )}
                     </div>
                   ))}
                 </div>
                 {pr.canvassEntries.length < 3 && pr.canvassJustification && (
                   <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
-                    <p className="text-xs font-medium text-amber-800">Fewer than 3 suppliers justification</p>
-                    <p className="mt-1 text-sm text-amber-900">{pr.canvassJustification}</p>
+                    <p className="text-xs font-medium text-amber-800">
+                      Fewer than 3 suppliers justification
+                    </p>
+                    <p className="mt-1 text-sm text-amber-900">
+                      {pr.canvassJustification}
+                    </p>
                   </div>
                 )}
               </CardContent>
@@ -1011,9 +1177,13 @@ export function PrDetailPage() {
           <Card className="border-sky-200 bg-sky-50/30">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle className="text-base">Requester Supporting Documents</CardTitle>
+                <CardTitle className="text-base">
+                  Requester Supporting Documents
+                </CardTitle>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Whole-request files uploaded by the requester. Item photos stay under each line item, and Procurement quotation evidence appears in the canvass section above.
+                  Whole-request files uploaded by the requester. Item photos
+                  stay under each line item, and Procurement quotation evidence
+                  appears in the canvass section above.
                 </p>
               </div>
               {canEdit && (
@@ -1066,7 +1236,13 @@ export function PrDetailPage() {
                               {att.originalName}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              {ATTACHMENT_CATEGORY_LABELS[(att.category as AttachmentCategory) ?? AttachmentCategory.OTHER]} · {(att.size / 1024).toFixed(0)} KB
+                              {
+                                ATTACHMENT_CATEGORY_LABELS[
+                                  (att.category as AttachmentCategory) ??
+                                    AttachmentCategory.OTHER
+                                ]
+                              }{" "}
+                              · {(att.size / 1024).toFixed(0)} KB
                             </p>
                           </div>
                         </div>
@@ -1117,7 +1293,9 @@ export function PrDetailPage() {
                   )}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">No requester supporting documents.</p>
+                <p className="text-sm text-muted-foreground">
+                  No requester supporting documents.
+                </p>
               )}
             </CardContent>
           </Card>
@@ -1127,13 +1305,15 @@ export function PrDetailPage() {
             <Card className="border-amber-300">
               <CardHeader>
                 <CardTitle className="text-base text-amber-700 flex items-center gap-2">
-                  <RotateCcw className="h-4 w-4" /> Procurement Returned This Request for More Information
+                  <RotateCcw className="h-4 w-4" /> Procurement Returned This
+                  Request for More Information
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm">{pr.quotationNote}</p>
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Update the request details, item specs, photos, or requester documents, then resubmit.
+                  Update the request details, item specs, photos, or requester
+                  documents, then resubmit.
                 </p>
               </CardContent>
             </Card>
@@ -1234,12 +1414,18 @@ export function PrDetailPage() {
               <Separator />
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div className="rounded-lg bg-muted/30 px-3 py-2">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Created</p>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    Created
+                  </p>
                   <p className="mt-1 font-medium">{formatDate(pr.createdAt)}</p>
                 </div>
                 <div className="rounded-lg bg-muted/30 px-3 py-2">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Submitted</p>
-                  <p className="mt-1 font-medium">{formatDate(pr.submittedAt)}</p>
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    Submitted
+                  </p>
+                  <p className="mt-1 font-medium">
+                    {formatDate(pr.submittedAt)}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -1250,7 +1436,8 @@ export function PrDetailPage() {
             <CardHeader>
               <CardTitle className="text-base">Approval Timeline</CardTitle>
               <p className="text-xs text-muted-foreground">
-                Full workflow history, including procurement returns and approval actions.
+                Full workflow history, including procurement returns and
+                approval actions.
               </p>
             </CardHeader>
             <CardContent>
