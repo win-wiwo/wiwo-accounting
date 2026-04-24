@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PRAMS — Purchase Request Workflow</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 32px 24px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      color: #f8fafc;
+      letter-spacing: -0.5px;
+    }
+
+    header p {
+      color: #94a3b8;
+      margin-top: 6px;
+      font-size: 14px;
+    }
+
+    .badge {
+      display: inline-block;
+      background: #1e3a5f;
+      color: #60a5fa;
+      border: 1px solid #2563eb44;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 10px;
+      margin-top: 10px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .chart-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 32px;
+      margin-bottom: 32px;
+      overflow-x: auto;
+    }
+
+    .chart-card h2 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #cbd5e1;
+      margin-bottom: 24px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #334155;
+    }
+
+    .mermaid {
+      display: flex;
+      justify-content: center;
+    }
+
+    .legend-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 3px;
+    }
+
+    .legend-item strong {
+      font-size: 12px;
+      color: #e2e8f0;
+      display: block;
+    }
+
+    .legend-item span {
+      font-size: 11px;
+      color: #64748b;
+    }
+
+    .roles-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+    }
+
+    .role-card {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      padding: 14px;
+    }
+
+    .role-card .role-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: #e2e8f0;
+      margin-bottom: 6px;
+    }
+
+    .role-card .role-tag {
+      display: inline-block;
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      margin-bottom: 8px;
+    }
+
+    .role-card ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .role-card ul li {
+      font-size: 11px;
+      color: #64748b;
+      padding: 2px 0;
+      padding-left: 12px;
+      position: relative;
+    }
+
+    .role-card ul li::before {
+      content: '›';
+      position: absolute;
+      left: 0;
+      color: #475569;
+    }
+
+    .note-box {
+      background: #1a2744;
+      border: 1px solid #2563eb44;
+      border-left: 3px solid #3b82f6;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 12px;
+      font-size: 12px;
+      color: #93c5fd;
+      line-height: 1.6;
+    }
+
+    .note-box strong { color: #60a5fa; }
+
+    .warning-box {
+      background: #1a1a00;
+      border: 1px solid #ca8a0444;
+      border-left: 3px solid #f59e0b;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 12px;
+      font-size: 12px;
+      color: #fcd34d;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>PRAMS — Purchase Request Workflow</h1>
+    <p>Purchase Request and Approval Management System</p>
+    <span class="badge">Staging Branch</span>
+  </header>
+
+  <!-- ── Main Flow Chart ── -->
+  <div class="chart-card">
+    <h2>Full State Machine — PR Lifecycle</h2>
+    <div class="mermaid">
+flowchart TD
+    START([Staff or Dept Head creates PR]) --> DRAFT
+
+    DRAFT([DRAFT])
+    DRAFT -->|Submit - has procurement items| PQ
+    DRAFT -->|Submit - no procurement items - Staff| L1
+    DRAFT -->|Submit - no procurement items - Dept Head| L2
+    DRAFT -->|Cancel| CANCELLED
+
+    PQ([PENDING QUOTATION])
+    PQ -->|Procurement submits canvass - requester was Staff| QUOTED
+    PQ -->|Procurement submits canvass - requester was Dept Head| L2
+    PQ -->|Procurement returns for info| RFI
+    PQ -->|Cancel| CANCELLED
+    PQ -->|Recall by requester| DRAFT
+
+    RFI([RETURNED FOR INFO])
+    RFI -->|Requester provides info and resubmits| PQ
+    RFI -->|Cancel| CANCELLED
+    RFI -->|Recall by requester| DRAFT
+
+    QUOTED([QUOTED - Dept Head reviews canvass])
+    QUOTED -->|Approve| L2
+    QUOTED -->|Reject with comments| REJECTED
+    QUOTED -->|Return with comments| RETURNED
+
+    L1([LEVEL 1 REVIEW - Dept Head])
+    L1 -->|Approve| L2
+    L1 -->|Reject with comments| REJECTED
+    L1 -->|Return with comments| RETURNED
+    L1 -->|Cancel| CANCELLED
+    L1 -->|Recall by requester| DRAFT
+
+    L2([LEVEL 2 REVIEW - COO])
+    L2 -->|Approve| L3
+    L2 -->|Reject with comments| REJECTED
+    L2 -->|Return with comments| RETURNED
+    L2 -->|Cancel| CANCELLED
+    L2 -->|Recall by requester| DRAFT
+
+    L3([LEVEL 3 REVIEW - CEO])
+    L3 -->|Approve| APPROVED
+    L3 -->|Reject with comments| REJECTED
+    L3 -->|Return with comments| RETURNED
+
+    RETURNED([RETURNED - Back to requester])
+    RETURNED -->|Requester edits and resubmits| SUBMIT_LOGIC
+
+    SUBMIT_LOGIC{Has procurement items?}
+    SUBMIT_LOGIC -->|Yes| PQ
+    SUBMIT_LOGIC -->|No - Staff| L1
+    SUBMIT_LOGIC -->|No - Dept Head| L2
+
+    APPROVED([APPROVED])
+    REJECTED([REJECTED])
+    CANCELLED([CANCELLED])
+
+    style DRAFT fill:#1e3a5f,stroke:#3b82f6,color:#93c5fd
+    style PQ fill:#3b2200,stroke:#f59e0b,color:#fcd34d
+    style RFI fill:#3b2200,stroke:#f59e0b,color:#fcd34d
+    style QUOTED fill:#1e1e3a,stroke:#818cf8,color:#a5b4fc
+    style L1 fill:#1e1e3a,stroke:#818cf8,color:#a5b4fc
+    style L2 fill:#1e1e3a,stroke:#818cf8,color:#a5b4fc
+    style L3 fill:#1e1e3a,stroke:#818cf8,color:#a5b4fc
+    style RETURNED fill:#3b1e00,stroke:#f97316,color:#fdba74
+    style APPROVED fill:#052e16,stroke:#22c55e,color:#86efac
+    style REJECTED fill:#2d0a0a,stroke:#ef4444,color:#fca5a5
+    style CANCELLED fill:#1c1c1c,stroke:#6b7280,color:#9ca3af
+    style START fill:#0f172a,stroke:#475569,color:#94a3b8
+    style SUBMIT_LOGIC fill:#0f172a,stroke:#6366f1,color:#a5b4fc
+    </div>
+  </div>
+
+  <!-- ── Procurement Sub-flow ── -->
+  <div class="chart-card">
+    <h2>Procurement Canvassing Sub-flow</h2>
+    <div class="mermaid">
+flowchart LR
+    A([PENDING QUOTATION]) --> B["Procurement Officer\nreviews PR items"]
+    B --> C{Need more\ninfo?}
+    C -->|Yes| D["Return for Info\n+ add note"]
+    D --> E([RETURNED FOR INFO])
+    E --> F["Requester reviews\nquotation note"]
+    F --> G["Requester provides\nadditional info"]
+    G --> A
+    C -->|No| H["Upload canvass sheets\n(3 supplier quotes)"]
+    H --> I["Select winning\nsupplier + justify"]
+    I --> J["Submit quotation"]
+    J --> K{Requester\nwas Dept Head?}
+    K -->|Yes — skip L1| L([LEVEL 2 REVIEW])
+    K -->|No| M([QUOTED\nDept Head reviews canvass])
+
+    style A fill:#3b2200,stroke:#f59e0b,color:#fcd34d
+    style E fill:#3b2200,stroke:#f59e0b,color:#fcd34d
+    style L fill:#1e1e3a,stroke:#818cf8,color:#a5b4fc
+    style M fill:#1e1e3a,stroke:#818cf8,color:#a5b4fc
+    style K fill:#0f172a,stroke:#6366f1,color:#a5b4fc
+    </div>
+  </div>
+
+  <!-- ── Resubmission Sub-flow ── -->
+  <div class="chart-card">
+    <h2>Return &amp; Resubmission Sub-flow</h2>
+    <div class="mermaid">
+flowchart LR
+    A([RETURNED]) --> B["Requester sees\nchanges highlighted\nvs original submission"]
+    B --> C["Requester edits\nline items / details"]
+    C --> D["Requester adds\nresubmission note\n(optional)"]
+    D --> E{Has procurement\nitems?}
+    E -->|Yes| PQ([PENDING QUOTATION])
+    E -->|"No — Staff"| L1([LEVEL 1 REVIEW])
+    E -->|"No — Dept Head"| L2([LEVEL 2 REVIEW])
+
+    style A fill:#3b1e00,stroke:#f97316,color:#fdba74
+    style PQ fill:#3b2200,stroke:#f59e0b,color:#fcd34d
+    style L1 fill:#1e1e3a,stroke:#818cf8,color:#a5b4fc
+    style L2 fill:#1e1e3a,stroke:#818cf8,color:#a5b4fc
+    style E fill:#0f172a,stroke:#6366f1,color:#a5b4fc
+    </div>
+  </div>
+
+  <!-- ── Roles & Permissions ── -->
+  <div class="chart-card">
+    <h2>Roles &amp; Permissions</h2>
+    <div class="roles-grid">
+
+      <div class="role-card">
+        <div class="role-name">Staff</div>
+        <div class="role-tag" style="background:#1e3a5f22;color:#60a5fa;border:1px solid #3b82f644">Requester</div>
+        <ul>
+          <li>Create / edit PRs (Draft only)</li>
+          <li>Submit PRs</li>
+          <li>Recall PRs (before L3)</li>
+          <li>Cancel PRs (before L3)</li>
+          <li>Respond to Returned for Info</li>
+          <li>View own PRs</li>
+        </ul>
+      </div>
+
+      <div class="role-card">
+        <div class="role-name">Department Head</div>
+        <div class="role-tag" style="background:#1e1e3a22;color:#a5b4fc;border:1px solid #818cf844">Requester + Level 1 Approver</div>
+        <ul>
+          <li>All Staff capabilities</li>
+          <li>Submits skip to COO (Level 2)</li>
+          <li>Approve / Reject / Return\nat Level 1 (own dept only)</li>
+          <li>Review canvass (QUOTED)</li>
+          <li>Cannot approve own PRs</li>
+        </ul>
+      </div>
+
+      <div class="role-card">
+        <div class="role-name">Procurement Officer</div>
+        <div class="role-tag" style="background:#3b220022;color:#fcd34d;border:1px solid #f59e0b44">Canvassing</div>
+        <ul>
+          <li>View PRs in Pending Quotation</li>
+          <li>Upload canvass / supplier quotes</li>
+          <li>Select winning supplier</li>
+          <li>Submit quotation</li>
+          <li>Return for Info (to requester)</li>
+        </ul>
+      </div>
+
+      <div class="role-card">
+        <div class="role-name">COO</div>
+        <div class="role-tag" style="background:#1e1e3a22;color:#a5b4fc;border:1px solid #818cf844">Level 2 Approver</div>
+        <ul>
+          <li>View all PRs at Level 2</li>
+          <li>Approve / Reject / Return</li>
+          <li>Requires comments on Reject/Return</li>
+          <li>Cannot approve own PRs</li>
+        </ul>
+      </div>
+
+      <div class="role-card">
+        <div class="role-name">CEO</div>
+        <div class="role-tag" style="background:#1e1e3a22;color:#a5b4fc;border:1px solid #818cf844">Level 3 Approver</div>
+        <ul>
+          <li>View all PRs at Level 3</li>
+          <li>Approve / Reject / Return</li>
+          <li>Requires comments on Reject/Return</li>
+          <li>Cannot approve own PRs</li>
+          <li>Final approval = APPROVED</li>
+        </ul>
+      </div>
+
+      <div class="role-card">
+        <div class="role-name">Admin</div>
+        <div class="role-tag" style="background:#05291622;color:#86efac;border:1px solid #22c55e44">System Admin</div>
+        <ul>
+          <li>Manage users &amp; departments</li>
+          <li>Configure PR numbering</li>
+          <li>View all PRs (read-only)</li>
+          <li>Cannot create PRs</li>
+        </ul>
+      </div>
+
+      <div class="role-card">
+        <div class="role-name">Accounting</div>
+        <div class="role-tag" style="background:#05291622;color:#86efac;border:1px solid #22c55e44">Finance</div>
+        <ul>
+          <li>View approved PRs</li>
+          <li>Manage purchase orders</li>
+          <li>Generate reports</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Status Reference ── -->
+  <div class="chart-card">
+    <h2>Status Reference</h2>
+    <div class="legend-grid">
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#3b82f6"></div>
+        <div>
+          <strong>Draft</strong>
+          <span>Created, not yet submitted. Editable.</span>
+        </div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#f59e0b"></div>
+        <div>
+          <strong>Pending Quotation</strong>
+          <span>Awaiting procurement canvass (has procurement items).</span>
+        </div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#f59e0b"></div>
+        <div>
+          <strong>Returned for Info</strong>
+          <span>Procurement needs more info from requester.</span>
+        </div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#818cf8"></div>
+        <div>
+          <strong>Quoted</strong>
+          <span>Canvass submitted; awaiting Dept Head approval of quotes.</span>
+        </div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#818cf8"></div>
+        <div>
+          <strong>Level 1 Review</strong>
+          <span>Awaiting Department Head approval.</span>
+        </div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#818cf8"></div>
+        <div>
+          <strong>Level 2 Review</strong>
+          <span>Awaiting COO approval.</span>
+        </div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#818cf8"></div>
+        <div>
+          <strong>Level 3 Review</strong>
+          <span>Awaiting CEO approval.</span>
+        </div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#f97316"></div>
+        <div>
+          <strong>Returned</strong>
+          <span>Sent back by an approver for revision. Editable again.</span>
+        </div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#22c55e"></div>
+        <div>
+          <strong>Approved</strong>
+          <span>Final approval granted (CEO). Terminal state.</span>
+        </div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#ef4444"></div>
+        <div>
+          <strong>Rejected</strong>
+          <span>Denied by an approver. Terminal state.</span>
+        </div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#6b7280"></div>
+        <div>
+          <strong>Cancelled</strong>
+          <span>Withdrawn by requester. Terminal state.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Key Rules ── -->
+  <div class="chart-card">
+    <h2>Key Business Rules</h2>
+    <div class="note-box">
+      <strong>Dept Head skip:</strong> When a Department Head submits their own PR, it bypasses Level 1 review (since they are the Level 1 approver) and goes directly to Level 2 (COO).
+    </div>
+    <div class="note-box">
+      <strong>Procurement path:</strong> Any PR with at least one line item marked as <code>procurement</code> sourcing type goes to Pending Quotation before approval. Items marked <code>online</code> go directly to the approval chain.
+    </div>
+    <div class="note-box">
+      <strong>Self-approval blocked:</strong> No approver can approve a PR they created. This is enforced server-side regardless of role.
+    </div>
+    <div class="note-box">
+      <strong>Dept Head scope:</strong> At Level 1 review, Dept Heads can only act on PRs from their own department.
+    </div>
+    <div class="note-box">
+      <strong>Recall vs Cancel:</strong> <em>Recall</em> returns a submitted PR to Draft (available from L1, L2, Pending Quotation, Returned for Info). <em>Cancel</em> permanently withdraws it (additionally available from Draft itself). Neither is available once Level 3 review has started.
+    </div>
+    <div class="warning-box">
+      <strong>Comments required:</strong> Reject and Return actions always require a comment. The API enforces this and will reject the request without one.
+    </div>
+    <div class="note-box">
+      <strong>Resubmission diff:</strong> When a returned PR is resubmitted, the previous submission snapshot is stored so approvers can see what changed (highlighted in the UI as old vs. new values).
+    </div>
+  </div>
+
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'dark',
+      flowchart: {
+        curve: 'basis',
+        padding: 20,
+      },
+      themeVariables: {
+        primaryColor: '#1e293b',
+        primaryTextColor: '#e2e8f0',
+        primaryBorderColor: '#475569',
+        lineColor: '#475569',
+        secondaryColor: '#0f172a',
+        tertiaryColor: '#1e293b',
+        edgeLabelBackground: '#0f172a',
+        fontSize: '13px',
+      }
+    });
+  </script>
+</body>
+</html>

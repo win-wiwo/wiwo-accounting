@@ -82,6 +82,36 @@ export class NotificationsService {
     await this.notifyNextApprover(purchaseRequest);
   }
 
+  /**
+   * Notify the requester when procurement returns their PR for more information.
+   */
+  @OnEvent('pr.returned_for_info')
+  async handleReturnedForInfo(payload: { purchaseRequest: { _id: string; prNumber: string; requesterId: string }; returnedBy: string }) {
+    const { purchaseRequest } = payload;
+    await this.notificationModel.create({
+      recipientId: purchaseRequest.requesterId,
+      title: 'More Information Needed',
+      message: `Procurement needs additional information on PR "${purchaseRequest.prNumber}" before it can be canvassed.`,
+      type: 'pr_needs_action',
+      purchaseRequestId: purchaseRequest._id,
+    });
+  }
+
+  /**
+   * Notify the requester when procurement submits the canvass (PR moves to Quoted or Level 2).
+   */
+  @OnEvent('pr.quoted')
+  async handleQuoted(payload: { purchaseRequest: { _id: string; prNumber: string; requesterId: string }; quotedBy: string }) {
+    const { purchaseRequest } = payload;
+    await this.notificationModel.create({
+      recipientId: purchaseRequest.requesterId,
+      title: 'Quotation Submitted',
+      message: `Procurement has submitted a canvass for PR "${purchaseRequest.prNumber}". It is now moving through the approval chain.`,
+      type: 'approval_approved',
+      purchaseRequestId: purchaseRequest._id,
+    });
+  }
+
   private async notifyNextApprover(pr: { _id: string; title: string; prNumber: string; departmentId: string; status: string }) {
     const normalizedStatus = normalizePrStatus(pr.status);
 

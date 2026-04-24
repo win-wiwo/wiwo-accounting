@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { LogOut, User, KeyRound, Bell, CheckCheck, Search, FileText, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/auth.store';
 import { useUnreadCount, useNotifications, useMarkAsRead, useMarkAllAsRead } from '@/hooks/use-notifications';
 import { usePurchaseRequests } from '@/hooks/use-purchase-requests';
@@ -167,12 +168,22 @@ export function Header({ sidebarCollapsed }: HeaderProps) {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
 
+  const queryClient = useQueryClient();
+
   const { data: unreadData } = useUnreadCount();
-  const unreadCount = (unreadData as unknown as { count?: number })?.count ?? 0;
+  // TransformInterceptor wraps the response: { success, data: { count }, message }
+  const unreadCount = (unreadData as unknown as { data?: { count: number } })?.data?.count ?? 0;
 
   const [notifOpen, setNotifOpen] = useState(false);
-  const { data: notifData } = useNotifications({ page: 1, limit: 10 });
+  const { data: notifData } = useNotifications({ page: 1, limit: 15 });
   const notifications = ((notifData as unknown as { data?: NotificationItem[] })?.data ?? []) as NotificationItem[];
+
+  // Refetch the list whenever the popover opens so it's always fresh
+  useEffect(() => {
+    if (notifOpen) {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    }
+  }, [notifOpen, queryClient]);
 
   const markAsRead = useMarkAsRead();
   const markAllAsRead = useMarkAllAsRead();
