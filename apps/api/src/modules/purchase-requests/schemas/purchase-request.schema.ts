@@ -105,6 +105,53 @@ export class Attachment {
 export const AttachmentSchema = SchemaFactory.createForClass(Attachment);
 
 @Schema({ _id: true })
+export class CanvassQuotedItem {
+  _id: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, required: true })
+  itemId: Types.ObjectId;
+
+  @Prop({ required: true, trim: true })
+  description: string;
+
+  @Prop({ required: true, min: 0 })
+  unitPrice: number;
+
+  @Prop({ required: true, min: 0 })
+  totalPrice: number;
+
+  @Prop({ type: String, default: null })
+  remarks: string | null;
+}
+
+export const CanvassQuotedItemSchema = SchemaFactory.createForClass(CanvassQuotedItem);
+
+@Schema({ _id: true })
+export class CanvassEntry {
+  _id: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'Supplier', required: true })
+  supplierId: Types.ObjectId;
+
+  @Prop({ required: true, trim: true })
+  supplierName: string;
+
+  @Prop({ type: [CanvassQuotedItemSchema], default: [] })
+  quotedItems: CanvassQuotedItem[];
+
+  @Prop({ required: true, min: 0 })
+  totalQuotedAmount: number;
+
+  @Prop({ type: String, default: null })
+  remarks: string | null;
+
+  @Prop({ default: false })
+  isSelected: boolean;
+}
+
+export const CanvassEntrySchema = SchemaFactory.createForClass(CanvassEntry);
+
+@Schema({ _id: true })
 export class QuotationReturn {
   _id: Types.ObjectId;
 
@@ -198,6 +245,12 @@ export class PurchaseRequest extends Document {
   // Set by Procurement when returning for more info
   @Prop({ type: String, default: null })
   quotationNote: string | null;
+
+  @Prop({ type: [CanvassEntrySchema], default: [] })
+  canvassEntries: CanvassEntry[];
+
+  @Prop({ type: String, default: null })
+  canvassJustification: string | null;
 
   // Persistent history of all procurement returns
   @Prop({ type: [QuotationReturnSchema], default: [] })

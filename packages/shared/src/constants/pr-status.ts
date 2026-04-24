@@ -15,11 +15,31 @@ export const PrStatus = {
 
 export type PrStatus = (typeof PrStatus)[keyof typeof PrStatus];
 
-export const PR_STATUSES = Object.values(PrStatus);
+export const PR_ACTIVE_STATUSES = [
+  PrStatus.DRAFT,
+  PrStatus.PENDING_QUOTATION,
+  PrStatus.QUOTED,
+  PrStatus.LEVEL1_REVIEW,
+  PrStatus.LEVEL2_REVIEW,
+  PrStatus.LEVEL3_REVIEW,
+  PrStatus.APPROVED,
+  PrStatus.REJECTED,
+  PrStatus.RETURNED,
+  PrStatus.RETURNED_FOR_INFO,
+  PrStatus.CANCELLED,
+] as const;
+
+export const PR_LEGACY_STATUSES = [PrStatus.SUBMITTED] as const;
+
+export const PR_STATUSES = [...PR_ACTIVE_STATUSES];
+
+export function normalizePrStatus(status: string): string {
+  return status === PrStatus.SUBMITTED ? PrStatus.LEVEL1_REVIEW : status;
+}
 
 export const PR_STATUS_LABELS: Record<PrStatus, string> = {
   [PrStatus.DRAFT]: 'Draft',
-  [PrStatus.SUBMITTED]: 'Submitted',
+  [PrStatus.SUBMITTED]: 'Dept Head Review',
   [PrStatus.PENDING_QUOTATION]: 'Pending Quotation',
   [PrStatus.QUOTED]: 'Quoted',
   [PrStatus.LEVEL1_REVIEW]: 'Dept Head Review',

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { purchaseRequestsApi, type PurchaseRequestsQuery, type CreatePrPayload } from '@/lib/api-services';
+import type { SubmitQuotationDto } from '@prams/shared';
 
 export function usePurchaseRequests(params: PurchaseRequestsQuery = {}) {
   return useQuery({
@@ -110,8 +111,8 @@ export function useRemoveAttachment() {
 export function useSubmitQuotation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, items }: { id: string; items: Array<{ itemId: string; quotedUnitPrice: number; selectedSupplierId?: string }> }) =>
-      purchaseRequestsApi.submitQuotation(id, items),
+    mutationFn: ({ id, payload }: { id: string; payload: SubmitQuotationDto }) =>
+      purchaseRequestsApi.submitQuotation(id, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchase-requests'] });
     },

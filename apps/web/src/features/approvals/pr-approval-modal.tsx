@@ -8,7 +8,6 @@ import {
   Building2,
   Paperclip,
   Download,
-  ExternalLink,
   AlertCircle,
   ShoppingCart,
   ChevronRight,
@@ -19,6 +18,8 @@ import {
   FileText,
 } from 'lucide-react';
 import {
+  ATTACHMENT_CATEGORY_LABELS,
+  AttachmentCategory,
   PR_STATUS_LABELS,
   PR_PRIORITY_LABELS,
   SourcingType,
@@ -39,7 +40,6 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 
 function formatCurrency(n: number) {
   return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(n);
@@ -128,6 +128,14 @@ export function PrApprovalModal({
     firstName: string; lastName: string; email: string; employeeId: string;
   } | null;
   const department = pr?.departmentId as unknown as { name: string; code: string } | null;
+  const quotationAttachments = (pr?.attachments ?? []).filter((att) => att.category === AttachmentCategory.CANVASS);
+  const supportingAttachments = (pr?.attachments ?? []).filter((att) => att.category !== AttachmentCategory.CANVASS);
+
+  const reviewBanner = {
+    title: 'Approval Review Workspace',
+    description: 'Check requester context first, then validate Procurement pricing support before making a final decision.',
+    tone: 'border-blue-300 bg-blue-50 text-blue-900',
+  };
 
   const handleAction = async () => {
     if (!pr || !confirmStep) return;
@@ -311,6 +319,37 @@ export function PrApprovalModal({
               <>
                 {/* Main content — scrollable */}
                 <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                  <div className={`rounded-xl border px-4 py-3 ${reviewBanner.tone}`}>
+                    <div className="flex items-start gap-3">
+                      <div className="rounded-full bg-white/80 p-2">
+                        <CheckCircle2 className="h-4 w-4" />
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm font-semibold">{reviewBanner.title}</p>
+                        <p className="text-sm leading-6 text-current/80">{reviewBanner.description}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-4">
+                    <div className="rounded-lg border bg-muted/30 px-4 py-3">
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Stage</p>
+                      <p className="mt-1 text-sm font-semibold">{PR_STATUS_LABELS[pr.status as PrStatusType]}</p>
+                    </div>
+                    <div className="rounded-lg border bg-muted/30 px-4 py-3">
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Quote Files</p>
+                      <p className="mt-1 text-lg font-semibold">{quotationAttachments.length}</p>
+                    </div>
+                    <div className="rounded-lg border bg-muted/30 px-4 py-3">
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Requester Docs</p>
+                      <p className="mt-1 text-lg font-semibold">{supportingAttachments.length}</p>
+                    </div>
+                    <div className="rounded-lg border bg-muted/30 px-4 py-3">
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Approval History</p>
+                      <p className="mt-1 text-lg font-semibold">{approvalHistory.length}</p>
+                    </div>
+                  </div>
+
                   <div className="grid gap-4 sm:grid-cols-2">
                     {pr.description && (
                       <div>
@@ -342,90 +381,105 @@ export function PrApprovalModal({
                   {/* Line Items */}
                   <div>
                     <p className="text-xs font-medium text-muted-foreground mb-2">Line Items</p>
-                    <div className="rounded-lg border overflow-hidden">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="w-8 text-center">#</TableHead>
-                            <TableHead>Description</TableHead>
-                            <TableHead className="text-right w-16">Qty</TableHead>
-                            <TableHead className="text-right w-32">Unit Price</TableHead>
-                            <TableHead className="text-right w-32">Total</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {pr.items.map((item, i) => {
-                            const isProcurement = item.sourcingType === SourcingType.PROCUREMENT;
-                            const displayPrice = isProcurement
-                              ? (item.quotedUnitPrice ?? 0)
-                              : (item.estimatedPrice ?? 0);
-                            return (
-                              <TableRow key={item._id}>
-                                <TableCell className="text-center text-muted-foreground text-xs">{i + 1}</TableCell>
-                                <TableCell>
-                                  <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
-                                    <span className="font-medium text-sm">{item.description}</span>
-                                    {isProcurement ? (
-                                      <Badge variant="secondary" className="text-[10px] px-1 py-0 gap-0.5">
-                                        <ShoppingCart className="h-2.5 w-2.5" /> Procurement
-                                      </Badge>
-                                    ) : (
-                                      <Badge variant="info" className="text-[10px] px-1 py-0">Online</Badge>
-                                    )}
+                    <div className="space-y-3">
+                      {pr.items.map((item, i) => {
+                        const isProcurement = item.sourcingType === SourcingType.PROCUREMENT;
+                        const displayPrice = isProcurement
+                          ? (item.quotedUnitPrice ?? 0)
+                          : (item.estimatedPrice ?? 0);
+                        const unitPriceLabel = isProcurement && !item.quotedUnitPrice
+                          ? 'Pending quotation'
+                          : formatCurrency(displayPrice);
+
+                        return (
+                          <div key={item._id} className="rounded-xl border bg-background p-4 shadow-sm">
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="min-w-0 space-y-2">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-xs font-medium text-muted-foreground">Item {i + 1}</span>
+                                  {isProcurement ? (
+                                    <Badge variant="secondary" className="text-[10px] px-1 py-0 gap-0.5">
+                                      <ShoppingCart className="h-2.5 w-2.5" /> Procurement
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="info" className="text-[10px] px-1 py-0">Online</Badge>
+                                  )}
+                                </div>
+                                <p className="text-base font-semibold leading-snug">{item.description}</p>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2 text-right sm:min-w-[260px]">
+                                <div className="rounded-lg bg-muted/40 px-3 py-2">
+                                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Qty</p>
+                                  <p className="text-sm font-semibold">{item.quantity} {item.unit}</p>
+                                </div>
+                                <div className="rounded-lg bg-muted/40 px-3 py-2">
+                                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Unit Price</p>
+                                  <p className="text-sm font-semibold">{unitPriceLabel}</p>
+                                </div>
+                                <div className="col-span-2 rounded-lg bg-muted/40 px-3 py-2">
+                                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Line Total</p>
+                                  <p className="text-base font-semibold">{item.totalPrice > 0 ? formatCurrency(item.totalPrice) : 'TBQ'}</p>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {item.referencePhotoPath && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleViewItemPhoto(item._id)}
+                                  className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100"
+                                >
+                                  <Camera className="h-3 w-3" />
+                                  Reference photo
+                                </button>
+                              )}
+                              {typeof item.selectedSupplierId === 'object' && item.selectedSupplierId?.companyName && (
+                                <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-800">
+                                  Supplier: {item.selectedSupplierId.companyName}
+                                </span>
+                              )}
+                            </div>
+
+                            {(item.specifications || item.notes) && (
+                              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                                {item.specifications && (
+                                  <div className="rounded-lg bg-muted/30 px-3 py-2">
+                                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Specifications</p>
+                                    <p className="mt-1 text-sm text-muted-foreground">{item.specifications}</p>
                                   </div>
-                                  {item.specifications && (
-                                    <p className="text-xs text-muted-foreground">{item.specifications}</p>
-                                  )}
-                                  {item.notes && (
-                                    <p className="text-xs text-muted-foreground italic">{item.notes}</p>
-                                  )}
-                                  {item.referencePhotoPath && (
-                                    <button
-                                      type="button"
-                                      onClick={() => handleViewItemPhoto(item._id)}
-                                      className="mt-0.5 flex items-center gap-1 text-xs text-blue-600 hover:underline"
-                                    >
-                                      <Camera className="h-3 w-3" />
-                                      Reference photo
-                                    </button>
-                                  )}
-                                  {!isProcurement && item.sellerReferences && item.sellerReferences.length > 0 && (
-                                    <div className="mt-1 space-y-0.5">
-                                      {item.sellerReferences.map((ref, ri) => (
-                                        <div key={ri} className="flex items-center gap-1 text-xs text-muted-foreground">
-                                          <span>{ref.sellerName} — {formatCurrency(ref.price)}</span>
-                                          {ref.url && (
-                                            <a href={ref.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                                              <ExternalLink className="h-3 w-3" />
-                                            </a>
-                                          )}
-                                        </div>
-                                      ))}
-                                      {item.sellerReferencesJustification && (
-                                        <p className="text-xs text-amber-700 flex items-center gap-1">
-                                          <AlertCircle className="h-3 w-3 shrink-0" />
-                                          {item.sellerReferencesJustification}
-                                        </p>
-                                      )}
+                                )}
+                                {item.notes && (
+                                  <div className="rounded-lg bg-muted/30 px-3 py-2">
+                                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Notes</p>
+                                    <p className="mt-1 text-sm text-muted-foreground">{item.notes}</p>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {!isProcurement && item.sellerReferences && item.sellerReferences.length > 0 && (
+                              <div className="mt-3 rounded-lg border border-blue-100 bg-blue-50/40 p-3">
+                                <p className="text-[11px] uppercase tracking-wide text-blue-700">Seller References</p>
+                                <div className="mt-2 space-y-1.5">
+                                  {item.sellerReferences.map((ref, ri) => (
+                                    <div key={ri} className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                                      <span className="truncate">{ref.sellerName}</span>
+                                      <span className="shrink-0 font-medium">{formatCurrency(ref.price)}</span>
                                     </div>
-                                  )}
-                                </TableCell>
-                                <TableCell className="text-right text-sm">{item.quantity} {item.unit}</TableCell>
-                                <TableCell className="text-right text-sm">
-                                  {isProcurement && !item.quotedUnitPrice
-                                    ? <span className="text-muted-foreground text-xs">Pending</span>
-                                    : formatCurrency(displayPrice)}
-                                </TableCell>
-                                <TableCell className="text-right text-sm font-medium">
-                                  {item.totalPrice > 0
-                                    ? formatCurrency(item.totalPrice)
-                                    : <span className="text-muted-foreground text-xs">TBQ</span>}
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
+                                  ))}
+                                </div>
+                                {item.sellerReferencesJustification && (
+                                  <p className="mt-2 flex items-start gap-1 text-xs text-amber-700">
+                                    <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />
+                                    <span>{item.sellerReferencesJustification}</span>
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                     <div className="flex justify-end pt-3">
                       <div className="text-right">
@@ -438,23 +492,131 @@ export function PrApprovalModal({
                     </div>
                   </div>
 
-                  {/* Attachments */}
-                  {pr.attachments && pr.attachments.length > 0 && (
+                  {pr.canvassEntries && pr.canvassEntries.length > 0 && (
+                    <>
+                      <Separator />
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-xs font-medium text-muted-foreground">
+                            Canvass Comparison ({pr.canvassEntries.length})
+                          </p>
+                          {pr.canvassEntries.length < 3 && pr.canvassJustification && (
+                            <Badge variant="warning">Fewer than 3 justified</Badge>
+                          )}
+                        </div>
+                        <div className="grid gap-3 lg:grid-cols-2">
+                          {pr.canvassEntries.map((entry) => (
+                            <div
+                              key={entry._id ?? `${entry.supplierName}-${entry.totalQuotedAmount}`}
+                              className={`rounded-lg border p-4 space-y-3 shadow-sm ${entry.isSelected ? 'border-emerald-400 bg-white ring-1 ring-emerald-200' : 'bg-white/80'}`}
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <p className="text-sm font-medium">{entry.supplierName}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    Total quoted: {formatCurrency(entry.totalQuotedAmount)}
+                                  </p>
+                                </div>
+                                {entry.isSelected && <Badge variant="success">Selected</Badge>}
+                              </div>
+                              <div className="space-y-1">
+                                {entry.quotedItems.map((quotedItem) => (
+                                  <div key={quotedItem.itemId} className="flex items-center justify-between gap-3 text-xs">
+                                    <span className="truncate">{quotedItem.description}</span>
+                                    <span className="font-medium">{formatCurrency(quotedItem.unitPrice)}</span>
+                                  </div>
+                                ))}
+                              </div>
+                              {entry.remarks && (
+                                <p className="text-xs text-muted-foreground italic">{entry.remarks}</p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        {pr.canvassEntries.length < 3 && pr.canvassJustification && (
+                          <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
+                            <p className="text-xs font-medium text-amber-800">Fewer than 3 suppliers justification</p>
+                            <p className="mt-1 text-sm text-amber-900">{pr.canvassJustification}</p>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+
+                  {/* Quotation Evidence */}
+                  {quotationAttachments.length > 0 && (
+                    <>
+                      <Separator />
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-2">
+                      Quotation Evidence ({quotationAttachments.length})
+                    </p>
+                    <p className="mb-2 text-[11px] text-muted-foreground">
+                      Procurement-owned pricing basis: supplier quotations, canvass sheets, and comparison support for the selected supplier.
+                    </p>
+                    <div className="grid gap-1.5 sm:grid-cols-2">
+                          {quotationAttachments.map((att) => (
+                            <div key={att._id} className="flex items-center justify-between rounded-md border bg-white px-3 py-2 shadow-sm">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <Paperclip className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                                <div className="min-w-0">
+                                  <span className="block text-sm truncate">{att.originalName}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {ATTACHMENT_CATEGORY_LABELS[att.category ?? AttachmentCategory.OTHER]}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1 shrink-0">
+                                {canPreviewAttachment(att.mimeType) && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7"
+                                    title="View"
+                                    onClick={() => handlePreviewAttachment(att._id, att.mimeType, att.originalName)}
+                                  >
+                                    <Eye className="h-3.5 w-3.5" />
+                                  </Button>
+                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  title="Download"
+                                  onClick={() => purchaseRequestsApi.downloadAttachment(pr._id, att._id, att.originalName)}
+                                >
+                                  <Download className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Supporting Docs */}
+                  {supportingAttachments.length > 0 && (
                     <>
                       <Separator />
                       <div>
                         <p className="text-xs font-medium text-muted-foreground mb-2">
-                          Attachments ({pr.attachments.length})
+                          Supporting Documents ({supportingAttachments.length})
+                        </p>
+                        <p className="mb-2 text-[11px] text-muted-foreground">
+                          Requester-owned context files such as memos, brochures, technical specs, and requester-supplied proposals.
                         </p>
                         <div className="grid gap-1.5 sm:grid-cols-2">
-                          {(pr.attachments as Array<{ _id: string; originalName: string; mimeType: string; size: number }>).map((att) => (
-                            <div key={att._id} className="flex items-center justify-between rounded-md border px-3 py-2">
+                          {supportingAttachments.map((att) => (
+                            <div key={att._id} className="flex items-center justify-between rounded-md border bg-white px-3 py-2 shadow-sm">
                               <div className="flex items-center gap-2 min-w-0">
                                 <Paperclip className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                                <span className="text-sm truncate">{att.originalName}</span>
-                                <span className="text-xs text-muted-foreground shrink-0">
-                                  {(att.size / 1024).toFixed(0)} KB
-                                </span>
+                                <div className="min-w-0">
+                                  <span className="block text-sm truncate">{att.originalName}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {ATTACHMENT_CATEGORY_LABELS[att.category ?? AttachmentCategory.OTHER]}
+                                  </span>
+                                </div>
                               </div>
                               <div className="flex items-center gap-1 shrink-0">
                                 {canPreviewAttachment(att.mimeType) && (
@@ -487,13 +649,20 @@ export function PrApprovalModal({
                 </div>
 
                 {/* Right sidebar — approval history */}
-                <div className="w-64 shrink-0 border-l overflow-y-auto p-4 space-y-4">
-                  <p className="text-xs font-medium text-muted-foreground">Workflow History</p>
-                  <PurchaseRequestWorkflowTimeline
-                    pr={pr}
-                    approvalHistory={approvalHistory}
-                    compact
-                  />
+                <div className="w-72 shrink-0 border-l bg-muted/10 overflow-y-auto p-4 space-y-4">
+                  <div className="rounded-xl border bg-background p-4 shadow-sm">
+                    <p className="text-xs font-medium text-muted-foreground">Workflow History</p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      Review the sequence of procurement and approval actions before deciding.
+                    </p>
+                    <div className="mt-4">
+                      <PurchaseRequestWorkflowTimeline
+                        pr={pr}
+                        approvalHistory={approvalHistory}
+                        compact
+                      />
+                    </div>
+                  </div>
                 </div>
               </>
             ) : null}
@@ -502,11 +671,11 @@ export function PrApprovalModal({
           {/* Footer — action area */}
           <div className="border-t px-6 py-4 shrink-0">
             {confirmStep === null ? (
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <p className="text-sm text-muted-foreground">
-                  Review the details above before taking action.
+                  Confirm the request context, then compare the procurement basis before approving, returning, or rejecting.
                 </p>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <Button
                     variant="destructive"
                     onClick={() => startAction('rejected')}
@@ -543,7 +712,7 @@ export function PrApprovalModal({
                     {confirmStep === 'returned' && 'Returning for revision'}
                   </p>
                 </div>
-                <div className="flex items-end gap-3">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
                   <div className="flex-1 space-y-1">
                     <Label htmlFor="modal-comments" className="text-xs">
                       Comments
@@ -559,7 +728,7 @@ export function PrApprovalModal({
                       autoFocus
                     />
                   </div>
-                  <div className="flex items-center gap-2 pb-0.5">
+                  <div className="flex flex-wrap items-center gap-2 pb-0.5">
                     <Button variant="outline" onClick={cancelAction} disabled={processApproval.isPending}>
                       Cancel
                     </Button>

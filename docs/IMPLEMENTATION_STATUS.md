@@ -19,6 +19,21 @@
 
 **Overall: 58/60 stories implemented (~97%)**
 
+## Workflow Plan Status
+
+The workflow follow-up plan in `docs/WORKFLOW_IMPLEMENTATION_PLAN.md` is currently at:
+- Phase 1: complete
+- Phase 2: complete
+- Phase 3: complete
+- Phase 4: pending
+- Phase 5: pending
+
+Phase 3 is complete in code:
+- procurement quotation captures multi-supplier canvass entries
+- quotation evidence uploads are separated from requester supporting documents
+- winning supplier selection is stored on procurement items
+- PR detail, procurement review, and approver review all expose canvass data and quotation evidence
+
 ---
 
 ## Detailed Status by Epic

@@ -20,13 +20,16 @@ import {
   Eye,
   Loader2,
   FileText,
-  ExternalLink,
   AlertCircle,
   ShoppingCart,
   Camera,
   ImageIcon,
+  Clock3,
 } from "lucide-react";
 import {
+  ATTACHMENT_CATEGORY_LABELS,
+  AttachmentCategory,
+  normalizePrStatus,
   PR_STATUS_LABELS,
   PR_PRIORITY_LABELS,
   PrStatus,
@@ -54,14 +57,6 @@ import { PurchaseRequestWorkflowTimeline } from "@/components/purchase-request-w
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -384,38 +379,123 @@ export function PrDetailPage() {
     name: string;
     code: string;
   } | null;
-  const isDraft = pr.status === PrStatus.DRAFT;
-  const isSubmitted = pr.status === PrStatus.SUBMITTED;
-  const isReturned = pr.status === PrStatus.RETURNED;
-  const isReturnedForInfo = pr.status === PrStatus.RETURNED_FOR_INFO;
-  const isPendingQuotation = pr.status === PrStatus.PENDING_QUOTATION;
-  const isCancelled = pr.status === PrStatus.CANCELLED;
+  const runtimeStatus = normalizePrStatus(pr.status) as PrStatusType;
+  const isDraft = runtimeStatus === PrStatus.DRAFT;
+  const isReturned = runtimeStatus === PrStatus.RETURNED;
+  const isReturnedForInfo = runtimeStatus === PrStatus.RETURNED_FOR_INFO;
+  const isPendingQuotation = runtimeStatus === PrStatus.PENDING_QUOTATION;
+  const isCancelled = runtimeStatus === PrStatus.CANCELLED;
   const isOwner = requester?._id === user?._id;
   const canEdit = isOwner && (isDraft || isReturned || isReturnedForInfo);
   const canRecall =
-    isOwner && (isSubmitted || isPendingQuotation || isReturnedForInfo);
+    isOwner &&
+    (
+      runtimeStatus === PrStatus.LEVEL1_REVIEW ||
+      runtimeStatus === PrStatus.LEVEL2_REVIEW ||
+      isPendingQuotation ||
+      isReturnedForInfo
+    );
   const canCancel =
     isOwner &&
-    (isDraft || isSubmitted || isPendingQuotation || isReturnedForInfo);
+    (
+      isDraft ||
+      runtimeStatus === PrStatus.LEVEL1_REVIEW ||
+      runtimeStatus === PrStatus.LEVEL2_REVIEW ||
+      isPendingQuotation ||
+      isReturnedForInfo
+    );
 
   // Determine if the current user can act on this PR as an approver
   const pendingStatuses: string[] = [
-    PrStatus.SUBMITTED,
     PrStatus.QUOTED,
     PrStatus.LEVEL1_REVIEW,
     PrStatus.LEVEL2_REVIEW,
     PrStatus.LEVEL3_REVIEW,
   ];
-  const isPendingApproval = pendingStatuses.includes(pr.status);
+  const isPendingApproval = pendingStatuses.includes(runtimeStatus);
   const canApprove =
     isPendingApproval &&
     !isOwner &&
-    (((pr.status === PrStatus.SUBMITTED ||
-      pr.status === PrStatus.LEVEL1_REVIEW ||
-      pr.status === PrStatus.QUOTED) &&
+    (((runtimeStatus === PrStatus.LEVEL1_REVIEW ||
+      runtimeStatus === PrStatus.QUOTED) &&
       user?.role === UserRole.DEPT_HEAD) ||
-      (pr.status === PrStatus.LEVEL2_REVIEW && user?.role === UserRole.COO) ||
-      (pr.status === PrStatus.LEVEL3_REVIEW && user?.role === UserRole.CEO));
+      (runtimeStatus === PrStatus.LEVEL2_REVIEW && user?.role === UserRole.COO) ||
+      (runtimeStatus === PrStatus.LEVEL3_REVIEW && user?.role === UserRole.CEO));
+
+  const stagePresentation = (() => {
+    if (runtimeStatus === PrStatus.DRAFT) {
+      return {
+        title: "Draft in Progress",
+        description: "Complete the request details, attach requester documents, and submit when the package is ready.",
+        icon: <Pencil className="h-4 w-4" />,
+        tone: "border-slate-300 bg-slate-50 text-slate-800",
+      };
+    }
+    if (runtimeStatus === PrStatus.PENDING_QUOTATION) {
+      return {
+        title: "Procurement Action Required",
+        description: "Procurement will review the specs, item photos, and requester documents, then attach canvass evidence and quote the request.",
+        icon: <ShoppingCart className="h-4 w-4" />,
+        tone: "border-amber-300 bg-amber-50 text-amber-900",
+      };
+    }
+    if (runtimeStatus === PrStatus.QUOTED || runtimeStatus === PrStatus.LEVEL1_REVIEW || runtimeStatus === PrStatus.LEVEL2_REVIEW || runtimeStatus === PrStatus.LEVEL3_REVIEW) {
+      return {
+        title: canApprove ? "Your Approval Decision Is Needed" : "Approval in Progress",
+        description: canApprove
+          ? "Review the request context, procurement basis, and supporting files before taking action."
+          : "This request has moved into the approval chain and is waiting for the next approver.",
+        icon: <Clock3 className="h-4 w-4" />,
+        tone: "border-blue-300 bg-blue-50 text-blue-900",
+      };
+    }
+    if (runtimeStatus === PrStatus.RETURNED_FOR_INFO) {
+      return {
+        title: "More Requester Information Needed",
+        description: "Procurement sent this back for clarification. Update the request package and resubmit.",
+        icon: <RotateCcw className="h-4 w-4" />,
+        tone: "border-amber-300 bg-amber-50 text-amber-900",
+      };
+    }
+    if (runtimeStatus === PrStatus.RETURNED) {
+      return {
+        title: "Revision Required",
+        description: "An approver returned this request for changes. Update the package and submit it again.",
+        icon: <RotateCcw className="h-4 w-4" />,
+        tone: "border-amber-300 bg-amber-50 text-amber-900",
+      };
+    }
+    if (runtimeStatus === PrStatus.APPROVED) {
+      return {
+        title: "Request Approved",
+        description: "The approval workflow is complete. The approved package and procurement basis are retained below.",
+        icon: <CheckCircle2 className="h-4 w-4" />,
+        tone: "border-emerald-300 bg-emerald-50 text-emerald-900",
+      };
+    }
+    if (runtimeStatus === PrStatus.REJECTED) {
+      return {
+        title: "Request Rejected",
+        description: "The workflow has ended. Review the timeline and comments for the reason.",
+        icon: <XCircle className="h-4 w-4" />,
+        tone: "border-destructive/30 bg-destructive/5 text-destructive",
+      };
+    }
+    if (runtimeStatus === PrStatus.CANCELLED) {
+      return {
+        title: "Request Cancelled",
+        description: "This request was cancelled before completion. The cancellation reason is shown below.",
+        icon: <Ban className="h-4 w-4" />,
+        tone: "border-slate-300 bg-slate-50 text-slate-800",
+      };
+    }
+    return {
+      title: "Workflow Active",
+      description: "Review the current request package and timeline below.",
+      icon: <FileText className="h-4 w-4" />,
+      tone: "border-border bg-muted/40 text-foreground",
+    };
+  })();
 
   return (
     <div className="space-y-6">
@@ -513,6 +593,18 @@ export function PrDetailPage() {
         )}
       </PageHeader>
 
+      <Card className={stagePresentation.tone}>
+        <CardContent className="flex items-start gap-3 pt-6">
+          <div className="rounded-full bg-background/70 p-2">
+            {stagePresentation.icon}
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm font-semibold">{stagePresentation.title}</p>
+            <p className="text-sm leading-6 text-current/80">{stagePresentation.description}</p>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Status Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
@@ -570,151 +662,137 @@ export function PrDetailPage() {
       </div>
 
       {/* Details */}
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_340px]">
         <div className="lg:col-span-2 space-y-6">
           {/* Line Items */}
-          <Card>
+          <Card className="overflow-hidden">
             <CardHeader>
-              <CardTitle className="text-base">Line Items</CardTitle>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <CardTitle className="text-base">Line Items</CardTitle>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Item photos stay with their specific line item. Procurement-sourced items remain unpriced until canvass is complete.
+                  </p>
+                </div>
+                <div className="rounded-lg border bg-muted/40 px-3 py-2 text-right">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Request Mix</p>
+                  <p className="text-sm font-medium">
+                    {pr.items.filter((item) => item.sourcingType === SourcingType.PROCUREMENT).length} procurement
+                    {" · "}
+                    {pr.items.filter((item) => item.sourcingType === SourcingType.ONLINE).length} online
+                  </p>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-8">#</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="text-right">Qty</TableHead>
-                    <TableHead>Unit</TableHead>
-                    <TableHead className="text-right">Unit Price</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {pr.items.map((item, i) => {
-                    const isProcurement =
-                      item.sourcingType === SourcingType.PROCUREMENT;
-                    const displayPrice = isProcurement
-                      ? (item.quotedUnitPrice ?? 0)
-                      : (item.estimatedPrice ?? 0);
-                    const priceLabel =
-                      isProcurement && !item.quotedUnitPrice
-                        ? "—"
-                        : formatCurrency(displayPrice);
-                    return (
-                      <TableRow key={item._id}>
-                        <TableCell className="text-muted-foreground">
-                          {i + 1}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
-                            <p className="font-medium">{item.description}</p>
-                            {isProcurement ? (
-                              <Badge
-                                variant="secondary"
-                                className="text-[10px] px-1.5 py-0 gap-0.5"
-                              >
-                                <ShoppingCart className="h-2.5 w-2.5" />{" "}
-                                Procurement
-                              </Badge>
-                            ) : (
-                              <Badge
-                                variant="info"
-                                className="text-[10px] px-1.5 py-0"
-                              >
-                                Online
-                              </Badge>
-                            )}
+            <CardContent className="space-y-3 p-4">
+              {pr.items.map((item, i) => {
+                const isProcurement = item.sourcingType === SourcingType.PROCUREMENT;
+                const displayPrice = isProcurement
+                  ? (item.quotedUnitPrice ?? 0)
+                  : (item.estimatedPrice ?? 0);
+                const unitPriceLabel = isProcurement && !item.quotedUnitPrice
+                  ? "Pending quotation"
+                  : formatCurrency(displayPrice);
+                const totalLabel = item.totalPrice > 0 ? formatCurrency(item.totalPrice) : "TBQ";
+
+                return (
+                  <div key={item._id} className="rounded-xl border bg-background p-4 shadow-sm">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0 space-y-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-medium text-muted-foreground">Item {i + 1}</span>
+                          {isProcurement ? (
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-0.5">
+                              <ShoppingCart className="h-2.5 w-2.5" />
+                              Procurement
+                            </Badge>
+                          ) : (
+                            <Badge variant="info" className="text-[10px] px-1.5 py-0">
+                              Online
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-base font-semibold leading-snug">{item.description}</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-right sm:min-w-[260px]">
+                        <div className="rounded-lg bg-muted/40 px-3 py-2">
+                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Qty</p>
+                          <p className="text-sm font-semibold">{item.quantity} {item.unit}</p>
+                        </div>
+                        <div className="rounded-lg bg-muted/40 px-3 py-2">
+                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Unit Price</p>
+                          <p className="text-sm font-semibold">{unitPriceLabel}</p>
+                        </div>
+                        <div className="col-span-2 rounded-lg bg-muted/40 px-3 py-2">
+                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Line Total</p>
+                          <p className="text-base font-semibold">{totalLabel}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {item.referencePhotoPath && (
+                        <button
+                          type="button"
+                          onClick={() => handleViewItemPhoto(item._id)}
+                          className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100"
+                        >
+                          <Camera className="h-3 w-3" />
+                          Reference photo
+                        </button>
+                      )}
+                      {isProcurement && item.quotedUnitPrice && item.quotedAt && (
+                        <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+                          Quoted {formatDate(item.quotedAt)}
+                        </span>
+                      )}
+                      {typeof item.selectedSupplierId === "object" && item.selectedSupplierId?.companyName && (
+                        <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-800">
+                          Supplier: {item.selectedSupplierId.companyName}
+                        </span>
+                      )}
+                    </div>
+
+                    {(item.specifications || item.notes) && (
+                      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                        {item.specifications && (
+                          <div className="rounded-lg bg-muted/30 px-3 py-2">
+                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Specifications</p>
+                            <p className="mt-1 text-sm text-muted-foreground">{item.specifications}</p>
                           </div>
-                          {item.specifications && (
-                            <p className="text-xs text-muted-foreground bg-muted/50 rounded px-1.5 py-0.5 mt-1">
-                              {item.specifications}
-                            </p>
-                          )}
-                          {item.notes && (
-                            <p className="text-xs text-muted-foreground italic mt-0.5">
-                              {item.notes}
-                            </p>
-                          )}
-                          {/* Reference photo */}
-                          {item.referencePhotoPath && (
-                            <button
-                              type="button"
-                              onClick={() => handleViewItemPhoto(item._id)}
-                              className="flex items-center gap-1 text-xs text-blue-600 hover:underline mt-0.5"
-                            >
-                              <Camera className="h-3 w-3" />
-                              Reference photo
-                            </button>
-                          )}
-                          {/* Seller references for online items */}
-                          {!isProcurement &&
-                            item.sellerReferences &&
-                            item.sellerReferences.length > 0 && (
-                              <div className="mt-1.5 space-y-0.5">
-                                {item.sellerReferences.map((ref, ri) => (
-                                  <div
-                                    key={ri}
-                                    className="flex items-center gap-1 text-xs text-muted-foreground"
-                                  >
-                                    <span>
-                                      {ref.sellerName} —{" "}
-                                      {formatCurrency(ref.price)}
-                                    </span>
-                                    {ref.url && (
-                                      <a
-                                        href={ref.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex items-center gap-0.5 text-blue-600 hover:underline"
-                                      >
-                                        <ExternalLink className="h-3 w-3" />
-                                      </a>
-                                    )}
-                                  </div>
-                                ))}
-                                {item.sellerReferencesJustification && (
-                                  <p className="text-xs text-amber-700 flex items-center gap-1 mt-0.5">
-                                    <AlertCircle className="h-3 w-3 shrink-0" />
-                                    {item.sellerReferencesJustification}
-                                  </p>
-                                )}
-                              </div>
-                            )}
-                          {isProcurement &&
-                            item.quotedUnitPrice &&
-                            item.quotedAt && (
-                              <p className="text-xs text-emerald-700 mt-0.5">
-                                Quoted {formatDate(item.quotedAt)}
-                              </p>
-                            )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {item.quantity}
-                        </TableCell>
-                        <TableCell>{item.unit}</TableCell>
-                        <TableCell className="text-right">
-                          {isProcurement && !item.quotedUnitPrice ? (
-                            <span className="text-muted-foreground text-xs">
-                              Pending
-                            </span>
-                          ) : (
-                            priceLabel
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          {item.totalPrice > 0 ? (
-                            formatCurrency(item.totalPrice)
-                          ) : (
-                            <span className="text-muted-foreground text-xs">
-                              TBQ
-                            </span>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                        )}
+                        {item.notes && (
+                          <div className="rounded-lg bg-muted/30 px-3 py-2">
+                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Notes</p>
+                            <p className="mt-1 text-sm text-muted-foreground">{item.notes}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {!isProcurement && item.sellerReferences && item.sellerReferences.length > 0 && (
+                      <div className="mt-3 rounded-lg border border-blue-100 bg-blue-50/40 p-3">
+                        <p className="text-[11px] uppercase tracking-wide text-blue-700">Seller References</p>
+                        <div className="mt-2 space-y-1.5">
+                          {item.sellerReferences.map((ref, ri) => (
+                            <div key={ri} className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                              <span className="truncate">{ref.sellerName}</span>
+                              <span className="shrink-0 font-medium">{formatCurrency(ref.price)}</span>
+                            </div>
+                          ))}
+                        </div>
+                        {item.sellerReferencesJustification && (
+                          <p className="mt-2 flex items-start gap-1 text-xs text-amber-700">
+                            <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />
+                            <span>{item.sellerReferencesJustification}</span>
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
               <Separator />
               <div className="flex justify-end p-4">
                 <div className="text-right">
@@ -736,10 +814,63 @@ export function PrDetailPage() {
             </CardContent>
           </Card>
 
+          {pr.canvassEntries && pr.canvassEntries.length > 0 && (
+            <Card className="border-emerald-200 bg-emerald-50/40">
+              <CardHeader>
+                <CardTitle className="text-base">Procurement Canvass Comparison</CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  This section shows the supplier canvass prepared by Procurement and the selected pricing basis.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-3 lg:grid-cols-2">
+                  {pr.canvassEntries.map((entry) => (
+                    <div
+                      key={entry._id ?? `${entry.supplierName}-${entry.totalQuotedAmount}`}
+                      className={`rounded-lg border p-4 space-y-3 shadow-sm ${entry.isSelected ? "border-emerald-400 bg-white ring-1 ring-emerald-200" : "bg-white/80"}`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-medium">{entry.supplierName}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Total quoted: {formatCurrency(entry.totalQuotedAmount)}
+                          </p>
+                        </div>
+                        {entry.isSelected && <Badge variant="success">Selected</Badge>}
+                      </div>
+                      <div className="space-y-1">
+                        {entry.quotedItems.map((quotedItem) => (
+                          <div key={quotedItem.itemId} className="flex items-center justify-between gap-3 text-xs">
+                            <span className="truncate">{quotedItem.description}</span>
+                            <span className="font-medium">{formatCurrency(quotedItem.unitPrice)}</span>
+                          </div>
+                        ))}
+                      </div>
+                      {entry.remarks && (
+                        <p className="text-xs text-muted-foreground italic">{entry.remarks}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {pr.canvassEntries.length < 3 && pr.canvassJustification && (
+                  <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
+                    <p className="text-xs font-medium text-amber-800">Fewer than 3 suppliers justification</p>
+                    <p className="mt-1 text-sm text-amber-900">{pr.canvassJustification}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {/* Attachments */}
-          <Card>
+          <Card className="border-sky-200 bg-sky-50/30">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-base">Attachments</CardTitle>
+              <div>
+                <CardTitle className="text-base">Requester Supporting Documents</CardTitle>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Whole-request files uploaded by the requester. Item photos stay under each line item, and Procurement quotation evidence appears in the canvass section above.
+                </p>
+              </div>
               {canEdit && (
                 <label>
                   <input
@@ -776,6 +907,7 @@ export function PrDetailPage() {
                       _id: string;
                       originalName: string;
                       mimeType: string;
+                      category?: string | null;
                       size: number;
                     }) => (
                       <div
@@ -789,7 +921,7 @@ export function PrDetailPage() {
                               {att.originalName}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              {(att.size / 1024).toFixed(0)} KB
+                              {ATTACHMENT_CATEGORY_LABELS[(att.category as AttachmentCategory) ?? AttachmentCategory.OTHER]} · {(att.size / 1024).toFixed(0)} KB
                             </p>
                           </div>
                         </div>
@@ -840,7 +972,7 @@ export function PrDetailPage() {
                   )}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">No attachments</p>
+                <p className="text-sm text-muted-foreground">No requester supporting documents.</p>
               )}
             </CardContent>
           </Card>
@@ -850,12 +982,14 @@ export function PrDetailPage() {
             <Card className="border-amber-300">
               <CardHeader>
                 <CardTitle className="text-base text-amber-700 flex items-center gap-2">
-                  <RotateCcw className="h-4 w-4" /> Returned for More
-                  Information
+                  <RotateCcw className="h-4 w-4" /> Procurement Returned This Request for More Information
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm">{pr.quotationNote}</p>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Update the request details, item specs, photos, or requester documents, then resubmit.
+                </p>
               </CardContent>
             </Card>
           )}
@@ -877,9 +1011,12 @@ export function PrDetailPage() {
 
         {/* Sidebar Info */}
         <div className="space-y-6">
-          <Card>
+          <Card className="border-border/80 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-base">Details</CardTitle>
+              <CardTitle className="text-base">Request Snapshot</CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Core context and timing details for this request.
+              </p>
             </CardHeader>
             <CardContent className="space-y-4">
               {pr.projectId && (
@@ -938,23 +1075,26 @@ export function PrDetailPage() {
                 <p className="mt-1 text-sm">{pr.justification}</p>
               </div>
               <Separator />
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-xs text-muted-foreground">Created</p>
-                  <p className="font-medium">{formatDate(pr.createdAt)}</p>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="rounded-lg bg-muted/30 px-3 py-2">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Created</p>
+                  <p className="mt-1 font-medium">{formatDate(pr.createdAt)}</p>
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Submitted</p>
-                  <p className="font-medium">{formatDate(pr.submittedAt)}</p>
+                <div className="rounded-lg bg-muted/30 px-3 py-2">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Submitted</p>
+                  <p className="mt-1 font-medium">{formatDate(pr.submittedAt)}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Approval Timeline */}
-          <Card>
+          <Card className="border-border/80 shadow-sm">
             <CardHeader>
               <CardTitle className="text-base">Approval Timeline</CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Full workflow history, including procurement returns and approval actions.
+              </p>
             </CardHeader>
             <CardContent>
               <PurchaseRequestWorkflowTimeline

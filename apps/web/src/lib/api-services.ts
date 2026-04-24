@@ -14,6 +14,8 @@ import type {
   PurchaseRequest,
   CreatePurchaseRequestDto,
   PaginationMeta,
+  AttachmentCategory,
+  SubmitQuotationDto,
 } from '@prams/shared';
 
 // ─── Users ───────────────────────────────────────────────────
@@ -133,15 +135,16 @@ export const purchaseRequestsApi = {
   cancel: (id: string, reason: string) =>
     apiClient.post<ApiResponse<PurchaseRequest>>(`/purchase-requests/${id}/cancel`, { reason }).then((r) => r.data),
 
-  submitQuotation: (id: string, items: Array<{ itemId: string; quotedUnitPrice: number; selectedSupplierId?: string }>) =>
-    apiClient.post<ApiResponse<PurchaseRequest>>(`/purchase-requests/${id}/quotation`, { items }).then((r) => r.data),
+  submitQuotation: (id: string, payload: SubmitQuotationDto) =>
+    apiClient.post<ApiResponse<PurchaseRequest>>(`/purchase-requests/${id}/quotation`, payload).then((r) => r.data),
 
   returnForInfo: (id: string, note: string) =>
     apiClient.post<ApiResponse<PurchaseRequest>>(`/purchase-requests/${id}/return-for-info`, { note }).then((r) => r.data),
 
-  uploadAttachment: (id: string, file: File) => {
+  uploadAttachment: (id: string, file: File, category?: AttachmentCategory) => {
     const formData = new FormData();
     formData.append('file', file);
+    if (category) formData.append('category', category);
     return apiClient
       .post<ApiResponse<PurchaseRequest>>(`/purchase-requests/${id}/attachments`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -149,8 +152,21 @@ export const purchaseRequestsApi = {
       .then((r) => r.data);
   },
 
+  uploadQuotationAttachment: (id: string, file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return apiClient
+      .post<ApiResponse<PurchaseRequest>>(`/purchase-requests/${id}/quotation-attachments`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      .then((r) => r.data);
+  },
+
   removeAttachment: (id: string, attachmentId: string) =>
     apiClient.delete<ApiResponse<PurchaseRequest>>(`/purchase-requests/${id}/attachments/${attachmentId}`).then((r) => r.data),
+
+  removeQuotationAttachment: (id: string, attachmentId: string) =>
+    apiClient.delete<ApiResponse<PurchaseRequest>>(`/purchase-requests/${id}/quotation-attachments/${attachmentId}`).then((r) => r.data),
 
   downloadAttachment: (id: string, attachmentId: string, filename: string) =>
     apiClient

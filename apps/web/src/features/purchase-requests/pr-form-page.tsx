@@ -326,16 +326,21 @@ function ItemPhotoWidget({
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <Camera className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-      <Button
-        type="button" variant="ghost" size="sm"
-        className="h-6 text-xs px-2 text-muted-foreground"
-        onClick={() => fileInputRef.current?.click()}
-      >
-        Add reference photo
-      </Button>
-      <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFileChange} />
+    <div className="space-y-1.5">
+      <div className="flex items-center gap-2">
+        <Camera className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+        <Button
+          type="button" variant="ghost" size="sm"
+          className="h-6 text-xs px-2 text-muted-foreground"
+          onClick={() => fileInputRef.current?.click()}
+        >
+          Add reference photo
+        </Button>
+        <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFileChange} />
+      </div>
+      <p className="text-[11px] text-muted-foreground">
+        Use this for an image of this specific item, model, or site condition.
+      </p>
     </div>
   );
 }
@@ -804,6 +809,9 @@ export function PrFormPage() {
                   {...register('justification')}
                 />
                 {errors.justification && <p className="text-xs text-destructive">{errors.justification.message}</p>}
+                <p className="text-[11px] text-muted-foreground">
+                  Describe why this request is needed and what operations or project work it supports.
+                </p>
               </div>
             </div>
           </CardContent>
@@ -1006,10 +1014,15 @@ export function PrFormPage() {
             <div className="flex items-center justify-between rounded-lg bg-primary/5 px-6 py-3">
               <div className="text-xs text-muted-foreground">
                 {hasProcurementItems && (
-                  <p className="flex items-center gap-1">
+                  <div className="space-y-1">
+                    <p className="flex items-center gap-1">
                     <ShoppingCart className="h-3 w-3" />
                     Procurement-sourced items will be priced after Procurement team quotes them.
-                  </p>
+                    </p>
+                    <p>
+                      Add clear specs, notes, and item photos now so Procurement can canvass without sending this back.
+                    </p>
+                  </div>
                 )}
               </div>
               <div className="text-right">
@@ -1027,10 +1040,13 @@ export function PrFormPage() {
             <div>
               <CardTitle className="text-base">Supporting Documents</CardTitle>
               <CardDescription className="mt-1 text-xs">
-                Upload files that apply to the whole request, such as proposals, specsheets, memos, accreditation documents, or requester-supplied quotations.
+                Upload requester-owned files that apply to the whole request, such as proposals, specsheets, memos, accreditation documents, or requester-supplied quotations.
               </CardDescription>
               <p className="mt-2 text-[11px] text-muted-foreground">
                 Use <strong>reference photo</strong> inside a line item for item-specific visuals. Use <strong>supporting documents</strong> here for whole-request files.
+              </p>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Procurement quotation evidence is uploaded later by Procurement and does not belong in this section.
               </p>
             </div>
             <div>
@@ -1058,7 +1074,7 @@ export function PrFormPage() {
           <CardContent className="space-y-4">
             {existingAttachments.length > 0 && (
               <div className="space-y-2">
-                <p className="text-xs font-medium text-muted-foreground">Saved Documents</p>
+                <p className="text-xs font-medium text-muted-foreground">Saved Requester Documents</p>
                 {existingAttachments.map((attachment) => (
                   <div key={attachment._id} className="flex items-center justify-between rounded-lg border px-3 py-2">
                     <div className="flex min-w-0 items-center gap-2">
@@ -1108,7 +1124,7 @@ export function PrFormPage() {
 
             {stagedAttachments.length > 0 && (
               <div className="space-y-2">
-                <p className="text-xs font-medium text-muted-foreground">Pending Upload</p>
+                <p className="text-xs font-medium text-muted-foreground">Pending Requester Documents</p>
                 {stagedAttachments.map(({ file, url }, index) => (
                   <div key={`${file.name}-${index}`} className="flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50/40 px-3 py-2">
                     <div className="flex min-w-0 items-center gap-2">
@@ -1156,7 +1172,7 @@ export function PrFormPage() {
 
             {existingAttachments.length === 0 && stagedAttachments.length === 0 && (
               <div className="rounded-md border border-dashed p-4 text-center text-sm text-muted-foreground">
-                No supporting documents yet.
+                No requester supporting documents yet.
               </div>
             )}
           </CardContent>
