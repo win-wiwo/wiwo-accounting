@@ -29,6 +29,13 @@ DepartmentSchema.index({ headId: 1 });
 DepartmentSchema.set('toJSON', {
   transform: (_doc: unknown, ret: Record<string, unknown>) => {
     delete ret.__v;
+
+    if (ret.headId && typeof ret.headId === 'object' && !Array.isArray(ret.headId)) {
+      const h = ret.headId as { _id: unknown; firstName: unknown; lastName: unknown; email: unknown; employeeId: unknown };
+      ret.head = { _id: h._id, firstName: h.firstName, lastName: h.lastName, email: h.email, employeeId: h.employeeId };
+      ret.headId = h._id;
+    }
+
     return ret;
   },
 } as never);

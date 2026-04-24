@@ -37,9 +37,9 @@ export class UsersService {
   }
 
   async findAll(query: QueryUsersDto) {
-    const { page = 1, limit = 10, search, role, departmentId, sort = 'createdAt', order = 'desc' } = query;
+    const { page = 1, limit = 10, search, role, departmentId, sort = 'createdAt', order = 'desc', isActive } = query;
 
-    const filter: FilterQuery<User> = { isActive: true };
+    const filter: FilterQuery<User> = { isActive: isActive === 'false' ? false : true };
 
     if (search) {
       filter.$or = [
@@ -111,8 +111,13 @@ export class UsersService {
       }
     }
 
+    const updateData: Record<string, unknown> = { ...updateUserDto };
+    if (updateData.departmentId) {
+      updateData.departmentId = new Types.ObjectId(updateData.departmentId as string);
+    }
+
     const user = await this.userModel
-      .findByIdAndUpdate(id, { $set: updateUserDto }, { new: true })
+      .findByIdAndUpdate(id, { $set: updateData }, { new: true })
       .populate('departmentId', 'name code')
       .exec();
 
@@ -173,7 +178,7 @@ export class UsersService {
 
   async findByDepartment(departmentId: string): Promise<User[]> {
     return this.userModel
-      .find({ departmentId, isActive: true })
+      .find({ departmentId: new Types.ObjectId(departmentId), isActive: true })
       .select('-passwordHash -refreshToken')
       .exec();
   }

@@ -28,6 +28,7 @@ export interface UsersQuery {
   departmentId?: string;
   sort?: string;
   order?: 'asc' | 'desc';
+  isActive?: 'true' | 'false';
 }
 
 export const usersApi = {
@@ -86,6 +87,9 @@ export const departmentsApi = {
 
   setHead: (id: string, userId: string) =>
     apiClient.patch(`/departments/${id}/head`, { userId }).then((r) => r.data),
+
+  delete: (id: string) =>
+    apiClient.delete(`/departments/${id}`).then((r) => r.data),
 };
 
 // ─── Purchase Requests ───────────────────────────────────────
@@ -389,6 +393,8 @@ export const projectsApi = {
 // ─── Auth ────────────────────────────────────────────────────
 
 export const authApi = {
+  me: () =>
+    apiClient.get<ApiResponse<User>>('/auth/me').then((r) => r.data),
   changePassword: (currentPassword: string, newPassword: string) =>
     apiClient
       .post<ApiResponse<null>>('/auth/change-password', { currentPassword, newPassword })

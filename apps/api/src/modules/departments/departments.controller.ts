@@ -64,6 +64,15 @@ export class DepartmentsController {
     return this.departmentsService.update(id, dto);
   }
 
+  @Delete(':id')
+  @Roles(UserRole.ADMIN)
+  @UseGuards(RolesGuard)
+  @ApiOperation({ summary: 'Delete department (Admin only)' })
+  async delete(@Param('id', ParseObjectIdPipe) id: string) {
+    await this.departmentsService.delete(id);
+    return { message: 'Department deleted successfully' };
+  }
+
   @Post(':id/members')
   @Roles(UserRole.ADMIN)
   @UseGuards(RolesGuard)

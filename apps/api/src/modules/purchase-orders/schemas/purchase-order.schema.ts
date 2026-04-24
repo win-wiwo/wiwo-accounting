@@ -115,7 +115,6 @@ export class PurchaseOrder extends Document {
 
 export const PurchaseOrderSchema = SchemaFactory.createForClass(PurchaseOrder);
 
-PurchaseOrderSchema.index({ poNumber: 1 }, { unique: true, sparse: true });
 PurchaseOrderSchema.index({ purchaseRequestId: 1 });
 PurchaseOrderSchema.index({ supplierId: 1 });
 PurchaseOrderSchema.index({ status: 1, createdAt: -1 });

@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, Req } from '@nestjs/common';
+import { Controller, Post, Get, Body, UseGuards, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { Request } from 'express';
 import { AuthService } from './auth.service';
@@ -40,6 +40,13 @@ export class AuthController {
     );
 
     return this.authService.refreshTokens(payload.sub, token);
+  }
+
+  @Get('me')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get current authenticated user profile' })
+  async me(@CurrentUser() user: { _id: string; email: string; role: string; firstName: string; lastName: string; departmentId: string | null }) {
+    return this.authService.getProfile(user._id);
   }
 
   @Post('change-password')

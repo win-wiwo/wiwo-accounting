@@ -34,6 +34,9 @@ export class User extends Document {
   @Prop({ type: Date, default: null })
   lastLoginAt: Date | null;
 
+  @Prop({ type: String, default: null })
+  photoUrl: string | null;
+
   createdAt: Date;
   updatedAt: Date;
 }

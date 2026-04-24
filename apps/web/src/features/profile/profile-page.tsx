@@ -5,7 +5,8 @@ import { useAuthStore } from '@/stores/auth.store';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { resolvePhotoUrl } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 
@@ -26,6 +27,7 @@ export function ProfilePage() {
         <Card>
           <CardContent className="flex flex-col items-center pt-8 pb-6">
             <Avatar className="h-20 w-20 mb-4">
+              <AvatarImage src={resolvePhotoUrl(user.photoUrl)} alt={initials} />
               <AvatarFallback className="bg-primary/10 text-primary text-2xl">
                 {initials}
               </AvatarFallback>

@@ -131,6 +131,20 @@ export class ApprovalsService {
     } else if (dto.action === ApprovalAction.RETURNED) {
       pr.status = PrStatus.RETURNED;
       pr.currentApprovalLevel = 0;
+      pr.set('previousSubmissionSnapshot', {
+        title: pr.title,
+        priority: pr.priority,
+        justification: pr.justification,
+        items: pr.items.map((item) => ({
+          _id: item._id.toString(),
+          description: item.description,
+          quantity: item.quantity,
+          unit: item.unit,
+          sourcingType: item.sourcingType,
+          estimatedPrice: item.estimatedPrice,
+        })),
+      });
+      pr.set('resubmissionNote', null);
     }
 
     pr.approvalHistory.push(approval._id);

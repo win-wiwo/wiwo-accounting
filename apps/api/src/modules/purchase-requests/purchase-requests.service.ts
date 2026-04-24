@@ -309,6 +309,7 @@ export class PurchaseRequestsService {
     if (dto.priority !== undefined) pr.priority = dto.priority;
     if (dto.justification !== undefined) pr.justification = dto.justification;
     if (dto.neededByDate !== undefined) pr.neededByDate = new Date(dto.neededByDate);
+    if (dto.resubmissionNote !== undefined) pr.set('resubmissionNote', dto.resubmissionNote || null);
 
     await pr.save();
 

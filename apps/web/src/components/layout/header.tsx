@@ -5,11 +5,11 @@ import { useAuthStore } from '@/stores/auth.store';
 import { useUnreadCount, useNotifications, useMarkAsRead, useMarkAllAsRead } from '@/hooks/use-notifications';
 import { usePurchaseRequests } from '@/hooks/use-purchase-requests';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ROLE_LABELS, PR_STATUS_LABELS, type UserRole, type PrStatus } from '@prams/shared';
 import { Badge } from '@/components/ui/badge';
 import apiClient from '@/lib/api-client';
-import { cn } from '@/lib/utils';
+import { cn, resolvePhotoUrl } from '@/lib/utils';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import * as Popover from '@radix-ui/react-popover';
 
@@ -53,12 +53,12 @@ function QuickSearch() {
     return () => clearTimeout(timer);
   }, [query]);
 
+  const hasSearchQuery = debouncedQuery.trim().length >= 2;
   const { data, isLoading } = usePurchaseRequests(
-    debouncedQuery.length >= 2
-      ? { search: debouncedQuery, limit: 5 }
-      : { limit: 0 },
+    hasSearchQuery ? { search: debouncedQuery.trim(), limit: 5 } : {},
+    { enabled: hasSearchQuery },
   );
-  const results = debouncedQuery.length >= 2 ? (data?.data ?? []) : [];
+  const results = hasSearchQuery ? (data?.data ?? []) : [];
 
   // Close on outside click
   useEffect(() => {
@@ -112,7 +112,7 @@ function QuickSearch() {
         />
       </div>
 
-      {open && debouncedQuery.length >= 2 && (
+      {open && hasSearchQuery && (
         <div className="absolute left-0 top-full z-50 mt-1 w-full min-w-[320px] overflow-hidden rounded-lg border bg-popover shadow-lg animate-in fade-in-0 zoom-in-95">
           {isLoading ? (
             <div className="flex items-center justify-center py-6">
@@ -285,6 +285,7 @@ export function Header({ sidebarCollapsed }: HeaderProps) {
           <DropdownMenu.Trigger asChild>
             <Button variant="ghost" className="relative h-9 gap-2 px-2">
               <Avatar className="h-8 w-8">
+                <AvatarImage src={resolvePhotoUrl(user?.photoUrl)} alt={initials} />
                 <AvatarFallback className="bg-primary/10 text-primary text-xs">
                   {initials}
                 </AvatarFallback>

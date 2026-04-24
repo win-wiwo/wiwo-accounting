@@ -3,7 +3,6 @@ import * as bcrypt from 'bcrypt';
 import * as dotenv from 'dotenv';
 import * as fs from 'fs';
 import { join } from 'path';
-import { deflateSync } from 'zlib';
 import PDFDocument = require('pdfkit');
 import { v4 as uuidv4 } from 'uuid';
 
@@ -12,6 +11,7 @@ dotenv.config();
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/prams';
 const UPLOADS_DIR = join(process.cwd(), 'uploads', 'attachments');
 const ITEM_PHOTOS_DIR = join(process.cwd(), 'uploads', 'item-photos');
+const USER_PHOTOS_DIR = join(process.cwd(), 'uploads', 'user-photos');
 
 // ─── Schemas ──────────────────────────────────────────────
 
@@ -26,6 +26,7 @@ const userSchema = new mongoose.Schema({
   isActive: { type: Boolean, default: true },
   refreshToken: { type: String, default: null },
   lastLoginAt: { type: Date, default: null },
+  photoUrl: { type: String, default: null },
 }, { timestamps: true });
 
 const departmentSchema = new mongoose.Schema({
@@ -235,114 +236,148 @@ function ensureUploadsDir() {
   if (!fs.existsSync(ITEM_PHOTOS_DIR)) {
     fs.mkdirSync(ITEM_PHOTOS_DIR, { recursive: true });
   }
+  if (!fs.existsSync(USER_PHOTOS_DIR)) {
+    fs.mkdirSync(USER_PHOTOS_DIR, { recursive: true });
+  }
 }
 
-async function generateReferencePhoto(filename: string): Promise<{ storagePath: string; originalName: string }> {
-  const filepath = join(ITEM_PHOTOS_DIR, filename);
-  const createChunk = (type: string, data: Buffer) => {
-    const length = Buffer.alloc(4);
-    length.writeUInt32BE(data.length, 0);
-    const typeBuf = Buffer.from(type, 'ascii');
-    const crc = Buffer.alloc(4);
-    crc.writeUInt32BE(crc32(Buffer.concat([typeBuf, data])), 0);
-    return Buffer.concat([length, typeBuf, data, crc]);
-  };
+async function downloadDiceBearAvatar(employeeId: string, firstName: string, lastName: string, role: string): Promise<string> {
+  const seed = encodeURIComponent(`${firstName} ${lastName}`);
+  const url = `https://api.dicebear.com/9.x/avataaars/png?seed=${seed}&size=128&radius=50&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
 
-  const createPng = (seed: string) => {
-    const width = 640;
-    const height = 400;
-    const hash = hashString(seed);
-    const bg = palette(hash);
-    const accent = palette(hash * 31);
-    const stripe = palette(hash * 131);
-    const raw = Buffer.alloc((width * 4 + 1) * height);
+  const filename = `${employeeId.toLowerCase()}.png`;
+  const filePath = join(USER_PHOTOS_DIR, filename);
+  const localUrl = `/uploads/user-photos/${filename}`;
 
-    for (let y = 0; y < height; y++) {
-      const rowStart = y * (width * 4 + 1);
-      raw[rowStart] = 0;
+  if (fs.existsSync(filePath)) return localUrl;
 
-      for (let x = 0; x < width; x++) {
-        const offset = rowStart + 1 + x * 4;
-        let color = bg;
+  return new Promise((resolve, reject) => {
+    const https = require('https');
+    const file = fs.createWriteStream(filePath);
+    https.get(url, (res: any) => {
+      res.pipe(file);
+      file.on('finish', () => { file.close(); resolve(localUrl); });
+    }).on('error', (err: Error) => {
+      fs.unlink(filePath, () => {});
+      reject(err);
+    });
+  });
+}
 
-        if (x > 36 && x < width - 36 && y > 36 && y < height - 36) {
-          color = accent;
-        }
-        if (y > 84 && y < 114) {
-          color = stripe;
-        }
-        if ((x > 72 && x < width - 72 && y > 150 && y < 158) || (x > 72 && x < width - 180 && y > 182 && y < 190)) {
-          color = stripe;
-        }
-        if ((x < 8 || x > width - 9 || y < 8 || y > height - 9)) {
-          color = [24, 28, 38];
-        }
+function pickProductTheme(description: string): { bg: string; accent: string; badge: string; icon: string; specs: string[] } {
+  const d = description.toLowerCase();
 
-        raw[offset] = color[0];
-        raw[offset + 1] = color[1];
-        raw[offset + 2] = color[2];
-        raw[offset + 3] = 255;
-      }
-    }
-
-    const signature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
-    const ihdr = Buffer.alloc(13);
-    ihdr.writeUInt32BE(width, 0);
-    ihdr.writeUInt32BE(height, 4);
-    ihdr[8] = 8;
-    ihdr[9] = 6;
-    ihdr[10] = 0;
-    ihdr[11] = 0;
-    ihdr[12] = 0;
-
-    return Buffer.concat([
-      signature,
-      createChunk('IHDR', ihdr),
-      createChunk('IDAT', deflateSync(raw)),
-      createChunk('IEND', Buffer.alloc(0)),
-    ]);
-  };
-
-  const crc32 = (buffer: Buffer) => {
-    let crc = 0xffffffff;
-    for (const byte of buffer) {
-      crc ^= byte;
-      for (let i = 0; i < 8; i++) {
-        const mask = -(crc & 1);
-        crc = (crc >>> 1) ^ (0xedb88320 & mask);
-      }
-    }
-    return (crc ^ 0xffffffff) >>> 0;
-  };
-
-  const hashString = (value: string) => {
-    let hash = 2166136261;
-    for (let i = 0; i < value.length; i++) {
-      hash ^= value.charCodeAt(i);
-      hash = Math.imul(hash, 16777619);
-    }
-    return hash >>> 0;
-  };
-
-  const palette = (hash: number): [number, number, number] => {
-    const hue = hash % 6;
-    const sets: Array<[number, number, number]> = [
-      [27, 79, 114],
-      [30, 101, 82],
-      [130, 79, 28],
-      [103, 58, 122],
-      [120, 62, 62],
-      [88, 89, 34],
-    ];
-    return sets[hue];
-  };
-
-  const pngBuffer = createPng(filename);
-  await fs.promises.writeFile(filepath, pngBuffer);
+  if (d.includes('camera') || d.includes('cctv') || d.includes('dome') || d.includes('ptz') || d.includes('hikvision') || d.includes('dahua')) {
+    return {
+      bg: '#0f172a', accent: '#3b82f6', badge: 'SURVEILLANCE', icon: 'M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 7.61 17 4.5 12 4.5zm0 12.5c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z',
+      specs: ['2MP / 4MP / 8MP options', 'IP66 weatherproof', 'H.265+ compression', 'IR night vision 30m'],
+    };
+  }
+  if (d.includes('cable') || d.includes('fiber') || d.includes('conduit') || d.includes('utp') || d.includes('sfp')) {
+    return {
+      bg: '#1c1917', accent: '#f59e0b', badge: 'CABLING', icon: 'M6.5 10h-2v5h2v-5zm6 0h-2v5h2v-5zm8.5 7H2v2h19v-2zm-2.5-7h-2v5h2v-5zM11.5 1L2 6v2h19V6l-9.5-5z',
+      specs: ['Cat6A / Cat7 / OM3', 'Pure copper conductor', 'LSZH rated jacket', 'Tested to 500MHz'],
+    };
+  }
+  if (d.includes('server') || d.includes('nvr') || d.includes('nas') || d.includes('storage') || d.includes('rack')) {
+    return {
+      bg: '#0c0a09', accent: '#10b981', badge: 'SERVER / NVR', icon: 'M20 3H4v10c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4v-3h2c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2zm0 5h-2V5h2v3zM4 19h16v2H4z',
+      specs: ['Xeon / EPYC processor', 'ECC DDR5 RAM', 'RAID 5/6 support', 'Dual PSU redundancy'],
+    };
+  }
+  if (d.includes('switch') || d.includes('router') || d.includes('firewall') || d.includes('access point') || d.includes('wifi')) {
+    return {
+      bg: '#0f1729', accent: '#6366f1', badge: 'NETWORKING', icon: 'M15.9 5c-.17-.25-.44-.5-.9-.5s-.73.25-.9.5L7.08 17.5c-.17.25-.17.5 0 .75.17.25.44.5.9.5h8.04c.46 0 .73-.25.9-.5.17-.25.17-.5 0-.75L15.9 5zM12 5a7 7 0 110 14A7 7 0 0112 5z',
+      specs: ['PoE+ 802.3at/bt', '10GbE uplink', 'VLAN / QoS support', 'Managed / Layer 3'],
+    };
+  }
+  if (d.includes('ups') || d.includes('power') || d.includes('pdu') || d.includes('battery')) {
+    return {
+      bg: '#1a1000', accent: '#eab308', badge: 'POWER', icon: 'M7 2v11h3v9l7-12h-4l4-8z',
+      specs: ['Online double conversion', '10min runtime at full load', 'Pure sine wave output', 'SNMP card slot'],
+    };
+  }
+  if (d.includes('ppe') || d.includes('helmet') || d.includes('harness') || d.includes('safety') || d.includes('vest') || d.includes('glove')) {
+    return {
+      bg: '#1a0a00', accent: '#f97316', badge: 'SAFETY / PPE', icon: 'M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z',
+      specs: ['ANSI / OSHA certified', 'High-visibility class 2', 'Impact resistant shell', 'Adjustable fit system'],
+    };
+  }
+  if (d.includes('laptop') || d.includes('workstation') || d.includes('desktop') || d.includes('monitor') || d.includes('computer')) {
+    return {
+      bg: '#0a0a14', accent: '#8b5cf6', badge: 'COMPUTING', icon: 'M20 18c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z',
+      specs: ['Intel Core i7 / i9', '32GB DDR5 RAM', '1TB NVMe SSD', 'Windows 11 Pro'],
+    };
+  }
+  if (d.includes('pole') || d.includes('bracket') || d.includes('mount') || d.includes('enclosure') || d.includes('housing')) {
+    return {
+      bg: '#111827', accent: '#64748b', badge: 'MOUNTING / CIVIL', icon: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
+      specs: ['Galvanized steel', 'Hot-dip zinc coated', 'Rated for 60kg load', 'Pre-drilled mounting holes'],
+    };
+  }
 
   return {
-    storagePath: `/app/uploads/item-photos/${filename}`,
-    originalName: filename,
+    bg: '#0f172a', accent: '#0ea5e9', badge: 'EQUIPMENT', icon: 'M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14l-5-5 1.41-1.41L12 14.17l7.59-7.59L21 8l-9 9z',
+    specs: ['Industrial grade', 'CE / UL certified', '2-year warranty', 'Local support available'],
+  };
+}
+
+async function generateReferencePhoto(filename: string, itemDescription?: string): Promise<{ storagePath: string; originalName: string }> {
+  const svgFilename = filename.replace(/\.[^.]+$/, '.svg');
+  const filepath = join(ITEM_PHOTOS_DIR, svgFilename);
+  const desc = itemDescription ?? filename;
+  const theme = pickProductTheme(desc);
+
+  const labelLines = desc.length > 32
+    ? [desc.slice(0, 32), desc.slice(32, 60) + (desc.length > 60 ? '…' : '')]
+    : [desc];
+
+  const specsRows = theme.specs.map((s, i) =>
+    `<text x="32" y="${228 + i * 22}" font-size="13" fill="#94a3b8">${s}</text>`,
+  ).join('\n    ');
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400" viewBox="0 0 640 400">
+  <!-- background -->
+  <rect width="640" height="400" fill="${theme.bg}"/>
+
+  <!-- top accent bar -->
+  <rect width="640" height="6" fill="${theme.accent}"/>
+
+  <!-- product icon area -->
+  <rect x="24" y="28" width="120" height="120" rx="12" fill="${theme.accent}22"/>
+  <g transform="translate(60, 64) scale(2)" fill="${theme.accent}">
+    <path d="${theme.icon}"/>
+  </g>
+
+  <!-- badge -->
+  <rect x="156" y="28" width="${theme.badge.length * 9 + 20}" height="26" rx="5" fill="${theme.accent}33"/>
+  <text x="166" y="46" font-size="12" font-weight="700" fill="${theme.accent}" font-family="monospace" letter-spacing="1">${theme.badge}</text>
+
+  <!-- product name -->
+  ${labelLines.map((line, i) => `<text x="156" y="${78 + i * 28}" font-size="${i === 0 ? '20' : '17'}" font-weight="${i === 0 ? '700' : '400'}" fill="#f1f5f9" font-family="sans-serif">${line}</text>`).join('\n  ')}
+
+  <!-- divider -->
+  <line x1="24" y1="170" x2="616" y2="170" stroke="${theme.accent}44" stroke-width="1"/>
+
+  <!-- specs header -->
+  <text x="32" y="205" font-size="11" font-weight="600" fill="${theme.accent}99" font-family="monospace" letter-spacing="1">TECHNICAL SPECIFICATIONS</text>
+
+  <!-- specs rows -->
+  ${specsRows}
+
+  <!-- bottom note -->
+  <rect x="0" y="370" width="640" height="30" fill="${theme.accent}11"/>
+  <text x="32" y="389" font-size="11" fill="#475569" font-family="sans-serif">Reference image for procurement sourcing — actual product may vary</text>
+
+  <!-- border -->
+  <rect x="1" y="1" width="638" height="398" rx="4" fill="none" stroke="${theme.accent}33" stroke-width="1.5"/>
+</svg>`;
+
+  await fs.promises.writeFile(filepath, svg, 'utf-8');
+
+  return {
+    storagePath: join(ITEM_PHOTOS_DIR, svgFilename),
+    originalName: svgFilename,
   };
 }
 
@@ -464,7 +499,7 @@ async function generateQuotationPdf(opts: {
     stream.on('finish', () => {
       const stats = fs.statSync(filepath);
       resolve({
-        storagePath: `/app/uploads/attachments/${opts.filename}`,
+        storagePath: join(UPLOADS_DIR, opts.filename),
         originalName: opts.filename,
         mimeType: 'application/pdf',
         size: stats.size,
@@ -654,25 +689,39 @@ function applyQuotedPricingToPr(prDoc: any, supplierDocs: mongoose.Document[]) {
 }
 
 async function attachReferencePhotos(prDoc: any): Promise<void> {
+  if (!prDoc.items?.length) return;
+
+  // Attach reference photos to physical/hardware items — skip service-only PRs
   const title = String(prDoc.title || '').toLowerCase();
-  const shouldAttach =
-    title.includes('camera') ||
-    title.includes('pole') ||
-    title.includes('tool') ||
-    title.includes('enclosure') ||
-    title.includes('ppe');
+  const isServiceOnly =
+    title.includes('survey') && !title.includes('equipment') && !title.includes('camera');
 
-  if (!shouldAttach || !prDoc.items?.length) return;
+  if (isServiceOnly) return;
 
-  const photoTargets = prDoc.items.slice(0, Math.min(2, prDoc.items.length));
+  // Attach to up to 3 items per PR — any item that sounds like a physical product
+  const physicalKeywords = [
+    'camera', 'cable', 'server', 'nvr', 'switch', 'ups', 'pole', 'tool',
+    'enclosure', 'ppe', 'bracket', 'harness', 'conduit', 'fiber', 'patch',
+    'rack', 'pdu', 'gpu', 'monitor', 'keyboard', 'workstation', 'laptop',
+    'headset', 'printer', 'scanner', 'projector', 'screen', 'desk', 'chair',
+  ];
+
+  const targets = prDoc.items.filter((item: any) => {
+    const desc = String(item.description || '').toLowerCase();
+    return physicalKeywords.some((kw) => desc.includes(kw));
+  }).slice(0, 3);
+
+  // Fall back to first 2 items if nothing matched keywords
+  const photoTargets = targets.length > 0 ? targets : prDoc.items.slice(0, 2);
+
   for (const item of photoTargets) {
-    const filename = `${uuidv4()}.png`;
-    const photo = await generateReferencePhoto(filename);
+    const filename = `${uuidv4()}.svg`;
+    const photo = await generateReferencePhoto(filename, item.description);
     item.referencePhotoPath = photo.storagePath;
     item.referencePhotoOriginalName = `reference-${item.description
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '')}.png`;
+      .replace(/^-|-$/g, '')}.svg`;
   }
 }
 
@@ -716,7 +765,6 @@ async function seed() {
         fs.unlinkSync(join(UPLOADS_DIR, f));
       }
     }
-
     const password = await bcrypt.hash('Password@123', 12);
     console.log('All user passwords: Password@123');
 
@@ -735,13 +783,13 @@ async function seed() {
 
     // ─── Users ───
     console.log('\nCreating users...');
-    const users = await User.insertMany([
+    const userDataRaw = [
       // Admin
-      { employeeId: 'EMP-0001', email: 'admin@wiwo.com', passwordHash: password, firstName: 'System', lastName: 'Admin', role: 'admin', isActive: true },
+      { employeeId: 'EMP-0001', email: 'admin@wiwo.com', passwordHash: password, firstName: 'System', lastName: 'Admin', role: 'admin', isActive: true, departmentId: null },
 
       // C-level
-      { employeeId: 'EMP-0002', email: 'ceo@wiwo.com', passwordHash: password, firstName: 'Roberto', lastName: 'Santos', role: 'ceo', isActive: true },
-      { employeeId: 'EMP-0003', email: 'coo@wiwo.com', passwordHash: password, firstName: 'Maria', lastName: 'Reyes', role: 'coo', isActive: true },
+      { employeeId: 'EMP-0002', email: 'ceo@wiwo.com', passwordHash: password, firstName: 'Roberto', lastName: 'Santos', role: 'ceo', isActive: true, departmentId: null },
+      { employeeId: 'EMP-0003', email: 'coo@wiwo.com', passwordHash: password, firstName: 'Maria', lastName: 'Reyes', role: 'coo', isActive: true, departmentId: null },
 
       // Department Heads
       { employeeId: 'EMP-0010', email: 'eng.head@wiwo.com', passwordHash: password, firstName: 'Carlos', lastName: 'Garcia', role: 'dept_head', departmentId: eng._id, isActive: true },
@@ -782,7 +830,17 @@ async function seed() {
 
       // Inactive
       { employeeId: 'EMP-0199', email: 'former.employee@wiwo.com', passwordHash: password, firstName: 'Former', lastName: 'Employee', role: 'staff', departmentId: eng._id, isActive: false },
-    ]);
+    ];
+
+    console.log('  Downloading user avatars from DiceBear...');
+    const userDataWithPhotos = await Promise.all(
+      userDataRaw.map(async (u) => ({
+        ...u,
+        photoUrl: await downloadDiceBearAvatar(u.employeeId, u.firstName, u.lastName, u.role),
+      }))
+    );
+
+    const users = await User.insertMany(userDataWithPhotos);
 
     const userMap: Record<string, typeof users[0]> = {};
     for (const u of users) userMap[u.email as string] = u;
@@ -886,7 +944,7 @@ async function seed() {
       const a3Id = new Types.ObjectId();
 
       allPrs.push({
-        _id: prId, prNumber, requestType: reqType, title: buildRequestTitle(items, reqType),
+        _id: prId, prNumber, requestType: reqType, title: opts.title,
         projectId, description: '',
         requesterId: opts.requester._id, departmentId: opts.dept._id,
         status: 'approved', priority: opts.priority, items, totalAmount: total,
@@ -992,7 +1050,7 @@ async function seed() {
       }
 
       allPrs.push({
-        _id: prId, prNumber, requestType: reqType, title: buildRequestTitle(items, reqType),
+        _id: prId, prNumber, requestType: reqType, title: opts.title,
         projectId, description: '',
         requesterId: opts.requester._id, departmentId: opts.dept._id,
         status, priority: opts.priority, items, totalAmount: total,

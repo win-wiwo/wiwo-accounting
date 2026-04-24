@@ -10,6 +10,7 @@ export interface User {
   departmentId: string | null;
   isActive: boolean;
   lastLoginAt: string | null;
+  photoUrl: string | null;
   createdAt: string;
   updatedAt: string;
 }

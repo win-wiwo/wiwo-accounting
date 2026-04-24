@@ -82,3 +82,14 @@ export function useSetDepartmentHead() {
     },
   });
 }
+
+export function useDeleteDepartment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => departmentsApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['departments'] });
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+  });
+}

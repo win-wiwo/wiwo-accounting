@@ -310,7 +310,7 @@ export class PurchaseRequestsController {
     }
 
     const ext = item.referencePhotoPath.split('.').pop()?.toLowerCase();
-    const mimeMap: Record<string, string> = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp' };
+    const mimeMap: Record<string, string> = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', svg: 'image/svg+xml' };
     const mime = mimeMap[ext ?? ''] ?? 'image/jpeg';
 
     res.setHeader('Content-Disposition', `inline; filename="${item.referencePhotoOriginalName ?? 'photo'}"`);

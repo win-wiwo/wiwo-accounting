@@ -2,10 +2,18 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { purchaseRequestsApi, type PurchaseRequestsQuery, type CreatePrPayload } from '@/lib/api-services';
 import type { SubmitQuotationDto } from '@prams/shared';
 
-export function usePurchaseRequests(params: PurchaseRequestsQuery = {}) {
+interface UsePurchaseRequestsOptions {
+  enabled?: boolean;
+}
+
+export function usePurchaseRequests(
+  params: PurchaseRequestsQuery = {},
+  options: UsePurchaseRequestsOptions = {},
+) {
   return useQuery({
     queryKey: ['purchase-requests', params],
     queryFn: () => purchaseRequestsApi.list(params),
+    enabled: options.enabled ?? true,
   });
 }
 

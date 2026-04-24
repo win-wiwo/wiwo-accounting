@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "test": "node -e \"console.log('No frontend tests configured yet')\"",
     "preview": "vite preview",
     "clean": "rm -rf dist"
   },

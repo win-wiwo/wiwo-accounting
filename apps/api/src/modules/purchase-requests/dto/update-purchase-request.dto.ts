@@ -52,4 +52,10 @@ export class UpdatePurchaseRequestDto {
   @IsDateString()
   @IsOptional()
   neededByDate?: string;
+
+  @ApiPropertyOptional({ description: 'Requester note explaining what changed on resubmission' })
+  @IsString()
+  @MaxLength(1000)
+  @IsOptional()
+  resubmissionNote?: string;
 }

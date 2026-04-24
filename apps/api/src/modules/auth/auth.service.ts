@@ -43,6 +43,7 @@ export class AuthService {
         lastName: user.lastName,
         role: user.role,
         departmentId: user.departmentId,
+        photoUrl: user.photoUrl ?? null,
       },
       tokens,
     };
@@ -68,6 +69,21 @@ export class AuthService {
     await this.usersService.updateRefreshToken(user._id.toString(), tokens.refreshToken);
 
     return tokens;
+  }
+
+  async getProfile(userId: string) {
+    const user = await this.usersService.findById(userId);
+    if (!user) throw new UnauthorizedException('User not found');
+    return {
+      _id: user._id,
+      employeeId: user.employeeId,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      departmentId: user.departmentId,
+      photoUrl: user.photoUrl ?? null,
+    };
   }
 
   async changePassword(userId: string, dto: ChangePasswordDto): Promise<void> {

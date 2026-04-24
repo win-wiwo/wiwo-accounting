@@ -260,6 +260,27 @@ export class PurchaseRequest extends Document {
   @Prop({ type: [RecallEventSchema], default: [] })
   recallHistory: RecallEvent[];
 
+  // Snapshot of PR state at the time it was returned by an approver,
+  // used to generate a diff view when the requester resubmits.
+  @Prop({ type: Object, default: null })
+  previousSubmissionSnapshot: {
+    title: string;
+    priority: string;
+    justification: string;
+    items: Array<{
+      _id: string;
+      description: string;
+      quantity: number;
+      unit: string;
+      sourcingType: string;
+      estimatedPrice: number;
+    }>;
+  } | null;
+
+  // Free-text note from the requester explaining what changed on resubmission
+  @Prop({ type: String, default: null })
+  resubmissionNote: string | null;
+
   createdAt: Date;
   updatedAt: Date;
 }

@@ -37,6 +37,8 @@ import {
   UserRole,
   type PrStatus as PrStatusType,
   type PrPriority as PrPriorityType,
+  type PreviousSubmissionSnapshot,
+  type PrLineItem,
 } from "@prams/shared";
 import {
   usePurchaseRequest,
@@ -69,6 +71,149 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+
+// ─── Resubmission Diff ──────────────────────────────────────────────────────
+
+type SnapshotItem = PreviousSubmissionSnapshot['items'][number];
+
+function diffItems(
+  oldItems: SnapshotItem[],
+  newItems: PrLineItem[],
+): Array<{ type: 'unchanged' | 'changed' | 'removed' | 'added'; old?: SnapshotItem; new?: PrLineItem }> {
+  const oldById = new Map(oldItems.map((i) => [i._id, i]));
+  const newById = new Map(newItems.map((i) => [i._id, i]));
+  const results: ReturnType<typeof diffItems> = [];
+
+  for (const old of oldItems) {
+    const cur = newById.get(old._id);
+    if (!cur) {
+      results.push({ type: 'removed', old });
+    } else {
+      const changed =
+        old.description !== cur.description ||
+        old.quantity !== cur.quantity ||
+        old.unit !== cur.unit ||
+        old.sourcingType !== cur.sourcingType ||
+        old.estimatedPrice !== cur.estimatedPrice;
+      results.push({ type: changed ? 'changed' : 'unchanged', old, new: cur });
+    }
+  }
+
+  for (const cur of newItems) {
+    if (!oldById.has(cur._id)) {
+      results.push({ type: 'added', new: cur });
+    }
+  }
+
+  return results;
+}
+
+interface ResubmissionChangesProps {
+  snapshot: PreviousSubmissionSnapshot;
+  note: string | null | undefined;
+  currentTitle: string;
+  currentPriority: string;
+  currentJustification: string;
+  currentItems: PrLineItem[];
+}
+
+function ResubmissionChanges({ snapshot, note, currentTitle, currentPriority, currentJustification, currentItems }: ResubmissionChangesProps) {
+  const itemDiffs = diffItems(snapshot.items, currentItems);
+  const titleChanged = snapshot.title !== currentTitle;
+  const priorityChanged = snapshot.priority !== currentPriority;
+  const justificationChanged = snapshot.justification !== currentJustification;
+  const hasFieldChanges = titleChanged || priorityChanged || justificationChanged;
+  const hasItemChanges = itemDiffs.some((d) => d.type !== 'unchanged');
+
+  return (
+    <Card className="border-blue-300 bg-blue-50/30">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm text-blue-800 flex items-center gap-2">
+          <RotateCcw className="h-4 w-4" />
+          Changes from Previous Submission
+        </CardTitle>
+        {note && (
+          <div className="mt-2 rounded-md border border-blue-200 bg-white px-3 py-2">
+            <p className="text-xs font-medium text-blue-700 mb-0.5">Requester's note</p>
+            <p className="text-sm text-foreground">{note}</p>
+          </div>
+        )}
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {hasFieldChanges && (
+          <div className="space-y-2">
+            {titleChanged && (
+              <div className="space-y-0.5">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Title</p>
+                <p className="text-xs line-through text-red-600 bg-red-50 rounded px-2 py-1">{snapshot.title}</p>
+                <p className="text-xs text-green-700 bg-green-50 rounded px-2 py-1">{currentTitle}</p>
+              </div>
+            )}
+            {priorityChanged && (
+              <div className="space-y-0.5">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Priority</p>
+                <p className="text-xs line-through text-red-600 bg-red-50 rounded px-2 py-1 capitalize">{snapshot.priority}</p>
+                <p className="text-xs text-green-700 bg-green-50 rounded px-2 py-1 capitalize">{currentPriority}</p>
+              </div>
+            )}
+            {justificationChanged && (
+              <div className="space-y-0.5">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Purpose / Justification</p>
+                <p className="text-xs line-through text-red-600 bg-red-50 rounded px-2 py-1">{snapshot.justification}</p>
+                <p className="text-xs text-green-700 bg-green-50 rounded px-2 py-1">{currentJustification}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {hasItemChanges && (
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Line Items</p>
+            {itemDiffs.filter((d) => d.type !== 'unchanged').map((diff, i) => (
+              <div key={i} className="rounded-md border text-xs overflow-hidden">
+                {diff.type === 'removed' && diff.old && (
+                  <div className="bg-red-50 border-red-200 px-3 py-2 line-through text-red-700">
+                    <span className="font-medium">{diff.old.description}</span>
+                    {' — '}{diff.old.quantity} {diff.old.unit}
+                    {diff.old.estimatedPrice > 0 && ` · ₱${diff.old.estimatedPrice.toLocaleString()}/unit`}
+                    <span className="ml-1 text-[10px] no-underline not-italic font-medium bg-red-200 text-red-800 rounded px-1">removed</span>
+                  </div>
+                )}
+                {diff.type === 'added' && diff.new && (
+                  <div className="bg-green-50 border-green-200 px-3 py-2 text-green-700">
+                    <span className="font-medium">{diff.new.description}</span>
+                    {' — '}{diff.new.quantity} {diff.new.unit}
+                    {(diff.new.estimatedPrice ?? 0) > 0 && ` · ₱${(diff.new.estimatedPrice ?? 0).toLocaleString()}/unit`}
+                    <span className="ml-1 text-[10px] font-medium bg-green-200 text-green-800 rounded px-1">added</span>
+                  </div>
+                )}
+                {diff.type === 'changed' && diff.old && diff.new && (
+                  <div>
+                    <div className="bg-red-50 px-3 py-1.5 line-through text-red-700">
+                      <span className="font-medium">{diff.old.description}</span>
+                      {' — '}{diff.old.quantity} {diff.old.unit}
+                      {diff.old.estimatedPrice > 0 && ` · ₱${diff.old.estimatedPrice.toLocaleString()}/unit`}
+                    </div>
+                    <div className="bg-green-50 px-3 py-1.5 text-green-700">
+                      <span className="font-medium">{diff.new.description}</span>
+                      {' — '}{diff.new.quantity} {diff.new.unit}
+                      {(diff.new.estimatedPrice ?? 0) > 0 && ` · ₱${(diff.new.estimatedPrice ?? 0).toLocaleString()}/unit`}
+                      <span className="ml-1 text-[10px] font-medium bg-amber-200 text-amber-800 rounded px-1">modified</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!hasFieldChanges && !hasItemChanges && (
+          <p className="text-xs text-muted-foreground">No tracked field changes detected.</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 function formatCurrency(n: number) {
   return new Intl.NumberFormat("en-PH", {
@@ -992,6 +1137,18 @@ export function PrDetailPage() {
                 </p>
               </CardContent>
             </Card>
+          )}
+
+          {/* Resubmission diff — visible to approvers after requester resubmits */}
+          {pr.previousSubmissionSnapshot && (
+            <ResubmissionChanges
+              snapshot={pr.previousSubmissionSnapshot}
+              note={pr.resubmissionNote}
+              currentTitle={pr.title}
+              currentPriority={pr.priority}
+              currentJustification={pr.justification}
+              currentItems={pr.items}
+            />
           )}
 
           {/* Cancellation Reason */}

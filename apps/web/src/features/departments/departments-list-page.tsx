@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Users, Crown } from 'lucide-react';
-import { useDepartments } from '@/hooks/use-departments';
+import { Plus, Search, Users, Crown, Trash2 } from 'lucide-react';
+import { useDepartments, useDeleteDepartment } from '@/hooks/use-departments';
+import { useToast } from '@/components/ui/toast';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,16 +12,40 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { Pagination } from '@/components/ui/pagination';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 export function DepartmentsListPage() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; id: string; name: string }>({
+    open: false, id: '', name: '',
+  });
 
   const { data, isLoading } = useDepartments({ page, limit: 10, search: search || undefined });
+  const deleteMutation = useDeleteDepartment();
 
   const departments = data?.data ?? [];
   const meta = data?.meta;
+
+  const handleDelete = async () => {
+    try {
+      await deleteMutation.mutateAsync(confirmDelete.id);
+      toast({ title: 'Department deleted', description: `${confirmDelete.name} has been deleted.`, variant: 'success' });
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed to delete department.';
+      toast({ title: 'Cannot delete', description: msg, variant: 'error' });
+    }
+    setConfirmDelete({ open: false, id: '', name: '' });
+  };
 
   return (
     <div className="space-y-6">
@@ -112,13 +137,26 @@ export function DepartmentsListPage() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => { e.stopPropagation(); navigate(`/departments/${dept._id}/edit`); }}
-                          >
-                            Edit
-                          </Button>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => { e.stopPropagation(); navigate(`/departments/${dept._id}/edit`); }}
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setConfirmDelete({ open: true, id: dept._id, name: dept.name });
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
@@ -139,6 +177,25 @@ export function DepartmentsListPage() {
           )}
         </CardContent>
       </Card>
+      <Dialog open={confirmDelete.open} onOpenChange={(open) => setConfirmDelete({ ...confirmDelete, open })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Department</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete <span className="font-medium text-foreground">{confirmDelete.name}</span>?
+              This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmDelete({ open: false, id: '', name: '' })}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={deleteMutation.isPending}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

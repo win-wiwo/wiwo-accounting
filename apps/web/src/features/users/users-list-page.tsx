@@ -15,7 +15,8 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { Pagination } from '@/components/ui/pagination';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { resolvePhotoUrl } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
@@ -34,6 +35,7 @@ export function UsersListPage() {
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [deptFilter, setDeptFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<'active' | 'inactive'>('active');
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
     action: 'activate' | 'deactivate';
@@ -47,6 +49,7 @@ export function UsersListPage() {
     search: search || undefined,
     role: roleFilter !== 'all' ? roleFilter : undefined,
     departmentId: deptFilter !== 'all' ? deptFilter : undefined,
+    isActive: statusFilter === 'active' ? 'true' : 'false',
   });
 
   const { data: deptsData } = useDepartments({ limit: 100 });
@@ -131,6 +134,18 @@ export function UsersListPage() {
                 ))}
               </SelectContent>
             </Select>
+            <Select
+              value={statusFilter}
+              onValueChange={(v) => { setStatusFilter(v as 'active' | 'inactive'); setPage(1); }}
+            >
+              <SelectTrigger className="w-full sm:w-36">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
@@ -173,6 +188,7 @@ export function UsersListPage() {
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <Avatar className="h-9 w-9">
+                            <AvatarImage src={resolvePhotoUrl(user.photoUrl)} alt={`${user.firstName} ${user.lastName}`} />
                             <AvatarFallback className="bg-primary/10 text-primary text-xs">
                               {user.firstName[0]}{user.lastName[0]}
                             </AvatarFallback>

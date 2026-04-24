@@ -6,6 +6,7 @@ import {
   Pencil,
   Plus,
   Search,
+  Trash2,
   UserMinus,
   UserPlus,
 } from 'lucide-react';
@@ -16,6 +17,7 @@ import {
   useAddDepartmentMember,
   useRemoveDepartmentMember,
   useSetDepartmentHead,
+  useDeleteDepartment,
 } from '@/hooks/use-departments';
 import { useUsers } from '@/hooks/use-users';
 import { useToast } from '@/components/ui/toast';
@@ -25,7 +27,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { resolvePhotoUrl } from '@/lib/utils';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -47,6 +50,7 @@ export function DepartmentDetailPage() {
   const addMember = useAddDepartmentMember();
   const removeMember = useRemoveDepartmentMember();
   const setHead = useSetDepartmentHead();
+  const deleteDept = useDeleteDepartment();
 
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [memberSearch, setMemberSearch] = useState('');
@@ -55,6 +59,7 @@ export function DepartmentDetailPage() {
     userId: '',
     name: '',
   });
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   // Search for users not already in this department
   const { data: searchUsersData } = useUsers({
@@ -63,7 +68,7 @@ export function DepartmentDetailPage() {
   });
 
   const dept = deptData?.data;
-  const deptHead = dept?.headId as unknown as { _id: string; firstName: string; lastName: string; email: string; employeeId: string } | null | undefined;
+  const deptHead = dept?.head as { _id: string; firstName: string; lastName: string; email: string; employeeId: string } | null | undefined;
   const members = membersData?.data ?? [];
   const searchResults = (searchUsersData?.data ?? []).filter(
     (u) => !members.some((m) => m._id === u._id),
@@ -99,6 +104,18 @@ export function DepartmentDetailPage() {
     }
   };
 
+  const handleDelete = async () => {
+    try {
+      await deleteDept.mutateAsync(id!);
+      toast({ title: 'Department deleted', description: `${dept?.name} has been deleted.`, variant: 'success' });
+      navigate('/departments');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed to delete department.';
+      toast({ title: 'Cannot delete', description: msg, variant: 'error' });
+    }
+    setConfirmDelete(false);
+  };
+
   if (deptLoading) {
     return (
       <div className="space-y-6">
@@ -121,6 +138,9 @@ export function DepartmentDetailPage() {
         </Button>
         <Button variant="outline" onClick={() => navigate(`/departments/${id}/edit`)}>
           <Pencil className="h-4 w-4" /> Edit
+        </Button>
+        <Button variant="destructive" onClick={() => setConfirmDelete(true)}>
+          <Trash2 className="h-4 w-4" /> Delete
         </Button>
       </PageHeader>
 
@@ -189,6 +209,7 @@ export function DepartmentDetailPage() {
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <Avatar className="h-8 w-8">
+                            <AvatarImage src={resolvePhotoUrl(member.photoUrl)} alt={`${member.firstName} ${member.lastName}`} />
                             <AvatarFallback className="bg-primary/10 text-primary text-xs">
                               {member.firstName[0]}{member.lastName[0]}
                             </AvatarFallback>
@@ -282,6 +303,7 @@ export function DepartmentDetailPage() {
                     onClick={() => handleAddMember(user._id)}
                   >
                     <Avatar className="h-8 w-8">
+                      <AvatarImage src={resolvePhotoUrl(user.photoUrl)} alt={`${user.firstName} ${user.lastName}`} />
                       <AvatarFallback className="bg-primary/10 text-primary text-xs">
                         {user.firstName[0]}{user.lastName[0]}
                       </AvatarFallback>
@@ -299,7 +321,7 @@ export function DepartmentDetailPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Remove Confirm */}
+      {/* Remove Member Confirm */}
       <Dialog open={confirmRemove.open} onOpenChange={(open) => setConfirmRemove({ ...confirmRemove, open })}>
         <DialogContent>
           <DialogHeader>
@@ -314,6 +336,27 @@ export function DepartmentDetailPage() {
             </Button>
             <Button variant="destructive" onClick={handleRemoveMember}>
               Remove
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Department Confirm */}
+      <Dialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Department</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete <span className="font-medium text-foreground">{dept.name}</span>?
+              This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmDelete(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={deleteDept.isPending}>
+              Delete
             </Button>
           </DialogFooter>
         </DialogContent>

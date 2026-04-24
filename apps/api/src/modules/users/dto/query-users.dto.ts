@@ -42,4 +42,9 @@ export class QueryUsersDto {
   @IsString()
   @IsOptional()
   order?: 'asc' | 'desc' = 'desc';
+
+  @ApiPropertyOptional({ description: 'Filter by active status: "true" or "false". Omit for active-only (default).' })
+  @IsString()
+  @IsOptional()
+  isActive?: string;
 }

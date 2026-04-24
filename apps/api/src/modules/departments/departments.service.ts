@@ -170,6 +170,22 @@ export class DepartmentsService {
       .exec() as Promise<Department>;
   }
 
+  async delete(id: string): Promise<void> {
+    const department = await this.departmentModel.findById(id);
+    if (!department) {
+      throw new NotFoundException('Department not found');
+    }
+
+    const members = await this.usersService.findByDepartment(id);
+    if (members.length > 0) {
+      throw new BadRequestException(
+        `Cannot delete department with active members. Remove all ${members.length} member(s) first.`,
+      );
+    }
+
+    await this.departmentModel.findByIdAndDelete(id);
+  }
+
   async getMembers(departmentId: string) {
     const department = await this.departmentModel.findById(departmentId);
     if (!department) {

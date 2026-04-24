@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { PR_PRIORITIES, PR_PRIORITY_LABELS, PrPriority, SourcingType, type CreatePurchaseRequestDto } from '@prams/shared';
+import { PR_PRIORITIES, PR_PRIORITY_LABELS, PrPriority, PrStatus, SourcingType, type CreatePurchaseRequestDto } from '@prams/shared';
 import { usePurchaseRequest, useCreatePr, useUpdatePr, useSubmitPr } from '@/hooks/use-purchase-requests';
 import { purchaseRequestsApi } from '@/lib/api-services';
 import apiClient from '@/lib/api-client';
@@ -70,12 +70,21 @@ const formSchema = z.object({
   justification: z.string().min(1, 'Required').max(2000),
   neededByDate: z.string().optional(),
   items: z.array(lineItemSchema).min(1, 'At least one line item is required'),
+  resubmissionNote: z.string().max(1000).optional(),
+  _isReturned: z.boolean().optional(),
 }).superRefine((data, ctx) => {
   if (!data.isOfficeUse && !data.projectId) {
     ctx.addIssue({
       code: 'custom',
       path: ['projectId'],
       message: 'Select a project, or check "For office / general use" below.',
+    });
+  }
+  if (data._isReturned && !data.resubmissionNote?.trim()) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['resubmissionNote'],
+      message: 'Please describe what you changed before resubmitting.',
     });
   }
 });
@@ -465,7 +474,6 @@ export function PrFormPage() {
           .catch(() => null);
       }
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEdit, prData?.data?.items, id]);
 
   // Clean up object URLs on unmount
@@ -497,6 +505,8 @@ export function PrFormPage() {
       items: [defaultItem()],
       priority: 'medium',
       projectId: '',
+      resubmissionNote: '',
+      _isReturned: false,
     },
   });
 
@@ -527,6 +537,8 @@ export function PrFormPage() {
         priority: PR_PRIORITIES.includes(pr.priority) ? pr.priority : PrPriority.MEDIUM,
         justification: pr.justification,
         neededByDate: pr.neededByDate ? pr.neededByDate.split('T')[0] : '',
+        resubmissionNote: pr.resubmissionNote || '',
+        _isReturned: pr.status === PrStatus.RETURNED,
         items: pr.items.map((item) => ({
           _id: item._id,
           description: item.description,
@@ -564,12 +576,13 @@ export function PrFormPage() {
     let createdNewDraft = false;
 
     try {
-      const { requestType, isOfficeUse, ...rest } = data;
+      const { requestType, isOfficeUse, _isReturned, resubmissionNote, ...rest } = data;
       const payload: CreatePurchaseRequestDto = {
         ...rest,
         projectId: isOfficeUse ? undefined : data.projectId || undefined,
         neededByDate: data.neededByDate ? new Date(data.neededByDate).toISOString() : undefined,
         ...(!isEdit && { requestType }),
+        ...(isEdit && _isReturned && { resubmissionNote: resubmissionNote || undefined }),
       };
 
       let prId: string;
@@ -1177,6 +1190,32 @@ export function PrFormPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Resubmission note — only shown when editing a returned PR */}
+        {isEdit && watch('_isReturned') && (
+          <Card className="border-amber-300 bg-amber-50/40">
+            <CardHeader>
+              <CardTitle className="text-base text-amber-800 flex items-center gap-2">
+                <AlertCircle className="h-4 w-4" />
+                What changed? <span className="text-destructive">*</span>
+              </CardTitle>
+              <CardDescription className="text-amber-700 text-xs">
+                Summarize what you updated so approvers know exactly what to re-review.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <textarea
+                rows={3}
+                className="flex w-full rounded-md border border-amber-300 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-400"
+                placeholder="e.g. Replaced item 2 with a cheaper model, added 3 seller references for item 1, updated quantity of item 3 from 5 to 3..."
+                {...register('resubmissionNote')}
+              />
+              {errors.resubmissionNote && (
+                <p className="mt-1 text-xs text-destructive">{errors.resubmissionNote.message}</p>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Actions */}
         <div className="flex justify-end gap-3">

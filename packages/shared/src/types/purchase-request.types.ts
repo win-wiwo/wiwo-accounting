@@ -73,6 +73,20 @@ export interface RecallHistoryEntry {
   recalledAt: string;
 }
 
+export interface PreviousSubmissionSnapshot {
+  title: string;
+  priority: string;
+  justification: string;
+  items: Array<{
+    _id: string;
+    description: string;
+    quantity: number;
+    unit: string;
+    sourcingType: string;
+    estimatedPrice: number;
+  }>;
+}
+
 export interface PurchaseRequest {
   _id: string;
   prNumber: string;
@@ -100,6 +114,8 @@ export interface PurchaseRequest {
   canvassJustification?: string | null;
   quotationReturnHistory?: QuotationReturn[];
   recallHistory?: RecallHistoryEntry[];
+  previousSubmissionSnapshot?: PreviousSubmissionSnapshot | null;
+  resubmissionNote?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -140,6 +156,7 @@ export interface UpdatePurchaseRequestDto {
   justification?: string;
   neededByDate?: string;
   projectId?: string;
+  resubmissionNote?: string;
 }
 
 export interface SubmitQuotationDto {
