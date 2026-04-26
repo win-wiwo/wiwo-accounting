@@ -1,5 +1,15 @@
 import { useState, useMemo } from 'react';
-import { CheckCircle2, ChevronRight, ShoppingCart, RotateCcw, Clock, AlertTriangle } from 'lucide-react';
+import {
+  CheckCircle2,
+  ChevronRight,
+  ChevronLeft,
+  ShoppingCart,
+  RotateCcw,
+  Clock,
+  AlertTriangle,
+
+  ArrowUpDown,
+} from 'lucide-react';
 import {
   PR_PRIORITY_LABELS,
   APPROVAL_LEVEL_LABELS,
@@ -8,12 +18,6 @@ import {
 } from '@prams/shared';
 import { usePendingApprovals } from '@/hooks/use-approvals';
 import { useAuthStore } from '@/stores/auth.store';
-import { PageHeader } from '@/components/layout/page-header';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Pagination } from '@/components/ui/pagination';
-import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PrApprovalModal } from './pr-approval-modal';
 
@@ -22,7 +26,7 @@ function formatCurrency(amount: number) {
 }
 
 function relativeAge(dateStr: string | null | undefined): { label: string; days: number } {
-  if (!dateStr) return { label: '—', days: 0 };
+  if (!dateStr) return { label: '\u2014', days: 0 };
   const days = Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24));
   if (days === 0) return { label: 'Today', days: 0 };
   if (days === 1) return { label: '1 day ago', days: 1 };
@@ -36,36 +40,13 @@ function daysPast(dateStr: string | null | undefined): number {
 
 const PRIORITY_ORDER: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 };
 
-const priorityVariant = (priority: string) => {
-  switch (priority) {
-    case 'urgent': return 'destructive' as const;
-    case 'high': return 'warning' as const;
-    case 'medium': return 'info' as const;
-    default: return 'secondary' as const;
-  }
+/* ── Priority badge styling (matches PR list) ────────── */
+const priorityStyle: Record<string, string> = {
+  low:    'bg-zinc-100 text-zinc-500',
+  medium: 'bg-blue-50 text-blue-600',
+  high:   'bg-amber-50 text-amber-700',
+  urgent: 'bg-red-50 text-red-600',
 };
-
-function StatChip({
-  label,
-  value,
-  variant = 'default',
-}: {
-  label: string;
-  value: string | number;
-  variant?: 'default' | 'urgent' | 'warning';
-}) {
-  const styles = {
-    default: 'bg-background border-border text-foreground',
-    urgent: 'bg-red-50 border-red-200 text-destructive',
-    warning: 'bg-amber-50 border-amber-200 text-amber-700',
-  };
-  return (
-    <div className={`rounded-lg border px-4 py-2.5 min-w-[90px] ${styles[variant]}`}>
-      <p className="text-xl font-bold leading-none tabular-nums">{value}</p>
-      <p className="text-[11px] text-muted-foreground mt-1 whitespace-nowrap">{label}</p>
-    </div>
-  );
-}
 
 export function ApprovalsPage() {
   const user = useAuthStore((s) => s.user);
@@ -91,15 +72,8 @@ export function ApprovalsPage() {
   const prIds = prs.map((pr) => pr._id);
 
   // Queue intelligence stats
+  const totalPending = meta?.total ?? prs.length;
   const urgentCount = prs.filter((pr) => pr.priority === 'urgent').length;
-  const pendingQuoteCount = prs.filter((pr) => {
-    const hasProcurement = pr.items.some((i) => i.sourcingType === SourcingType.PROCUREMENT);
-    return hasProcurement && pr.totalAmount === 0;
-  }).length;
-  const knownValue = prs.reduce((sum, pr) => {
-    const hasProcurement = pr.items.some((i) => i.sourcingType === SourcingType.PROCUREMENT);
-    return hasProcurement && pr.totalAmount === 0 ? sum : sum + pr.totalAmount;
-  }, 0);
   const oldestDays = prs.reduce((max, pr) => {
     const { days } = relativeAge(pr.submittedAt);
     return days > max ? days : max;
@@ -117,63 +91,94 @@ export function ApprovalsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Approval Queue"
-        description={levelLabel ? `Pending your review as ${levelLabel}` : 'PRs awaiting your approval'}
-      />
+    <div className="space-y-6 max-w-screen-2xl">
 
-      {/* Queue intelligence stat chips */}
-      {!isLoading && prs.length > 0 && (
-        <div className="flex flex-wrap gap-3">
-          <StatChip label="Pending" value={meta?.total ?? prs.length} />
-          {urgentCount > 0 && (
-            <StatChip label="Urgent" value={urgentCount} variant="urgent" />
-          )}
-          {knownValue > 0 && (
-            <StatChip label="Known Value" value={formatCurrency(knownValue)} />
-          )}
-          {pendingQuoteCount > 0 && (
-            <StatChip label="Pending Quote" value={`+${pendingQuoteCount}`} variant="warning" />
-          )}
-          {oldestDays > 0 && (
-            <StatChip
-              label="Oldest Pending"
-              value={`${oldestDays}d`}
-              variant={oldestDays >= 7 ? 'urgent' : 'default'}
-            />
-          )}
+      {/* ── Page Header ──────────────────────────────────────── */}
+      <div className="pr-list-section flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between" style={{ animationDelay: '0s' }}>
+        <div>
+          <h1 className="text-[28px] font-bold tracking-[-0.01em] leading-tight text-zinc-900">
+            Approval Queue
+          </h1>
+          <p className="mt-1.5 text-[14px] text-zinc-500">
+            {levelLabel ? `Pending your review as ${levelLabel}` : 'PRs awaiting your approval'}
+          </p>
         </div>
-      )}
+        {/* Header metadata pills */}
+        {!isLoading && prs.length > 0 && (
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1 text-[12px] font-medium text-zinc-600 tabular-nums">
+              {totalPending} Pending
+            </span>
+            {urgentCount > 0 && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-3 py-1 text-[12px] font-medium text-red-600 tabular-nums">
+                {urgentCount} Urgent
+              </span>
+            )}
+            {oldestDays >= 5 && (
+              <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-medium tabular-nums ${oldestDays >= 10 ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-700'}`}>
+                {oldestDays}d oldest
+              </span>
+            )}
+          </div>
+        )}
+      </div>
 
-      <Card>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="space-y-3 p-6">
-              {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}
+      {/* ── Table Container ──────────────────────────────────── */}
+      <div
+        className="pr-list-section rounded-xl border border-zinc-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_16px_rgba(0,0,0,0.03)] overflow-hidden"
+        style={{ animationDelay: '0.06s' }}
+      >
+        {isLoading ? (
+          <div className="space-y-1 p-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-[52px] w-full rounded-lg" />
+            ))}
+          </div>
+        ) : prs.length === 0 ? (
+          /* ── Empty State ──────────────────────────────────── */
+          <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 mb-5">
+              <CheckCircle2 className="h-7 w-7 text-emerald-500" />
             </div>
-          ) : prs.length === 0 ? (
-            <EmptyState
-              icon={<CheckCircle2 className="h-12 w-12" />}
-              title="All caught up!"
-              description="No purchase requests are waiting for your approval."
-            />
-          ) : (
-            <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[152px]">PR Number</TableHead>
-                    <TableHead>Request</TableHead>
-                    <TableHead className="w-[160px]">Requester</TableHead>
-                    <TableHead className="text-right w-[160px]">Amount</TableHead>
-                    <TableHead className="w-[110px]">Priority</TableHead>
-                    <TableHead className="w-[120px]">Age</TableHead>
-                    <TableHead className="w-10"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {prs.map((pr, index) => {
+            <h3 className="text-[16px] font-semibold text-zinc-900 mb-1.5">All caught up</h3>
+            <p className="text-[13px] text-zinc-500 max-w-sm">
+              You have no pending approvals right now.
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* ── Table ────────────────────────────────────────── */}
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm">
+                  <tr className="border-b border-zinc-100">
+                    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+                      PR Number
+                    </th>
+                    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+                      Request
+                    </th>
+                    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+                      Requester
+                    </th>
+                    <th className="h-11 px-5 text-right text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+                      <span className="inline-flex items-center gap-1 cursor-pointer select-none hover:text-zinc-600 transition-colors duration-150">
+                        Amount <ArrowUpDown className="h-3 w-3 opacity-40" />
+                      </span>
+                    </th>
+                    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+                      Priority
+                    </th>
+                    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+                      <span className="inline-flex items-center gap-1 cursor-pointer select-none hover:text-zinc-600 transition-colors duration-150">
+                        Age <ArrowUpDown className="h-3 w-3 opacity-40" />
+                      </span>
+                    </th>
+                    <th className="h-11 w-10"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {prs.map((pr, idx) => {
                     const requester = pr.requesterId && typeof pr.requesterId === 'object'
                       ? (pr.requesterId as unknown as { firstName: string; lastName: string })
                       : null;
@@ -186,85 +191,155 @@ export function ApprovalsPage() {
                     const isOverdue = overdueDays > 0;
                     const { label: ageLabel, days: ageDays } = relativeAge(pr.submittedAt);
                     const amountIsUnknown = hasProcurement && pr.totalAmount === 0;
-                    const isUrgent = pr.priority === 'urgent';
 
                     return (
-                      <TableRow
+                      <tr
                         key={pr._id}
-                        className={`cursor-pointer transition-colors group ${
-                          isUrgent
-                            ? 'bg-red-50/40 hover:bg-red-50/70'
-                            : 'hover:bg-muted/40'
-                        }`}
-                        onClick={() => openModal(index)}
+                        className="pr-row-enter border-b border-zinc-100/60 last:border-0 cursor-pointer transition-all duration-150 hover:bg-zinc-50/80 group"
+                        style={{ animationDelay: `${0.04 + idx * 0.025}s` }}
+                        onClick={() => openModal(idx)}
                       >
-                        <TableCell className="font-mono text-sm whitespace-nowrap">
-                          {isUrgent && (
-                            <span className="inline-block w-0.5 h-4 rounded-full bg-destructive mr-2 align-middle" />
-                          )}
-                          {pr.prNumber}
-                        </TableCell>
-                        <TableCell>
-                          <div className="max-w-[280px]">
-                            <p className="font-semibold text-sm line-clamp-2 leading-snug">{pr.title}</p>
+                        {/* PR Number */}
+                        <td className="px-5 py-4">
+                          <span className="font-mono text-[13px] font-medium text-zinc-800 tracking-tight">
+                            {pr.prNumber}
+                          </span>
+                        </td>
+
+                        {/* Request */}
+                        <td className="px-5 py-4">
+                          <div className="max-w-[320px]">
+                            <p className="text-[13px] font-medium text-zinc-800 leading-snug truncate group-hover:text-zinc-950 transition-colors duration-150">
+                              {pr.title}
+                            </p>
                             <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                               {dept && (
-                                <span className="text-[11px] text-muted-foreground">{dept.name}</span>
+                                <span className="text-[11px] text-zinc-400">{dept.name}</span>
                               )}
                               {hasProcurement && (
-                                <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded px-1.5 py-0.5">
+                                <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-blue-700 bg-blue-50 border border-blue-100 rounded-full px-1.5 py-0.5">
                                   <ShoppingCart className="h-2.5 w-2.5" /> Procurement
                                 </span>
                               )}
                               {isRevised && (
-                                <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5">
+                                <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-amber-700 bg-amber-50 border border-amber-100 rounded-full px-1.5 py-0.5">
                                   <RotateCcw className="h-2.5 w-2.5" /> Revised
                                 </span>
                               )}
                               {isOverdue && (
-                                <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-destructive bg-red-50 border border-red-200 rounded px-1.5 py-0.5">
+                                <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-red-600 bg-red-50 border border-red-100 rounded-full px-1.5 py-0.5">
                                   <AlertTriangle className="h-2.5 w-2.5" /> Need Date Passed
                                 </span>
                               )}
                             </div>
                           </div>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {requester ? `${requester.firstName} ${requester.lastName}` : '—'}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <span className={`font-semibold text-sm ${amountIsUnknown ? 'text-amber-600 italic font-normal' : ''}`}>
-                            {amountIsUnknown ? 'Pending Quote' : formatCurrency(pr.totalAmount)}
+                        </td>
+
+                        {/* Requester */}
+                        <td className="px-5 py-4">
+                          <span className="text-[13px] text-zinc-500">
+                            {requester ? `${requester.firstName} ${requester.lastName}` : '\u2014'}
                           </span>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={priorityVariant(pr.priority)}>
+                        </td>
+
+                        {/* Amount */}
+                        <td className="px-5 py-4 text-right">
+                          {amountIsUnknown ? (
+                            <span className="text-[13px] italic text-amber-600">Pending Quote</span>
+                          ) : (
+                            <span className="text-[13px] font-semibold tabular-nums text-zinc-800">
+                              {formatCurrency(pr.totalAmount)}
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Priority */}
+                        <td className="px-5 py-4">
+                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${priorityStyle[pr.priority] ?? 'bg-zinc-100 text-zinc-500'}`}>
                             {PR_PRIORITY_LABELS[pr.priority as PrPriorityType]}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <span className={`text-sm flex items-center gap-1 whitespace-nowrap ${ageDays >= 7 ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
-                            {ageDays >= 5 && <Clock className="h-3 w-3 shrink-0" />}
-                            {ageLabel}
                           </span>
-                        </TableCell>
-                        <TableCell>
-                          <ChevronRight className="h-4 w-4 text-muted-foreground/50 group-hover:text-foreground transition-colors" />
-                        </TableCell>
-                      </TableRow>
+                        </td>
+
+                        {/* Age */}
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-1.5">
+                            {ageDays >= 5 && (
+                              <Clock className={`h-3 w-3 shrink-0 ${ageDays >= 10 ? 'text-red-500' : 'text-zinc-400'}`} />
+                            )}
+                            <span className={`text-[13px] tabular-nums whitespace-nowrap ${
+                              ageDays >= 10
+                                ? 'text-red-600 font-semibold'
+                                : ageDays >= 7
+                                  ? 'text-red-500 font-medium'
+                                  : 'text-zinc-400'
+                            }`}>
+                              {ageLabel}
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* Chevron */}
+                        <td className="px-3 py-4">
+                          <span className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                            <span className="text-[11px] font-medium text-zinc-400 hidden lg:inline">Review</span>
+                            <ChevronRight className="h-4 w-4 text-zinc-400" />
+                          </span>
+                        </td>
+                      </tr>
                     );
                   })}
-                </TableBody>
-              </Table>
-              {meta && (
-                <div className="border-t px-4">
-                  <Pagination page={meta.page} totalPages={meta.totalPages} total={meta.total} onPageChange={setPage} />
+                </tbody>
+              </table>
+            </div>
+
+            {/* ── Pagination ─────────────────────────────────── */}
+            {meta && meta.totalPages > 1 && (
+              <div className="flex items-center justify-between border-t border-zinc-100 px-5 py-3">
+                <div className="flex items-center gap-3">
+                  <p className="text-[12px] text-zinc-400 tabular-nums">
+                    Page {meta.page} of {meta.totalPages}
+                    <span className="text-zinc-300 mx-1.5">&middot;</span>
+                    {meta.total} total
+                  </p>
                 </div>
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setPage(page - 1)}
+                    disabled={page <= 1}
+                    className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-500 transition-all duration-150 hover:bg-zinc-50 hover:text-zinc-700 disabled:opacity-40 disabled:pointer-events-none"
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5" /> Previous
+                  </button>
+                  {getPageNumbers(meta.page, meta.totalPages).map((p, i) =>
+                    p === '...' ? (
+                      <span key={`dots-${i}`} className="px-1.5 text-[12px] text-zinc-300">...</span>
+                    ) : (
+                      <button
+                        key={p}
+                        onClick={() => setPage(p as number)}
+                        className={`h-8 w-8 rounded-lg text-[12px] font-semibold transition-all duration-150 ${
+                          p === meta.page
+                            ? 'bg-zinc-900 text-white shadow-sm'
+                            : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700'
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    ),
+                  )}
+                  <button
+                    onClick={() => setPage(page + 1)}
+                    disabled={page >= meta.totalPages}
+                    className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-500 transition-all duration-150 hover:bg-zinc-50 hover:text-zinc-700 disabled:opacity-40 disabled:pointer-events-none"
+                  >
+                    Next <ChevronRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
 
       <PrApprovalModal
         prIds={prIds}
@@ -275,4 +350,11 @@ export function ApprovalsPage() {
       />
     </div>
   );
+}
+
+function getPageNumbers(current: number, total: number): (number | string)[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  if (current <= 3) return [1, 2, 3, 4, '...', total];
+  if (current >= total - 2) return [1, '...', total - 3, total - 2, total - 1, total];
+  return [1, '...', current - 1, current, current + 1, '...', total];
 }

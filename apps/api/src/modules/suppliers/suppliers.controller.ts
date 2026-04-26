@@ -33,6 +33,12 @@ export class SuppliersController {
     return this.suppliersService.create(dto, userId);
   }
 
+  @Get('stats')
+  @ApiOperation({ summary: 'Get supplier counts by status' })
+  async getStats() {
+    return this.suppliersService.getStats();
+  }
+
   @Get()
   @ApiOperation({ summary: 'List suppliers with filtering and pagination' })
   async findAll(@Query() query: QuerySuppliersDto) {

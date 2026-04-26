@@ -4,11 +4,9 @@ import {
   Plus,
   Search,
   FileText,
-  MoreHorizontal,
-  Eye,
-  Pencil,
-  Send,
-  Trash2,
+  ChevronLeft,
+  ChevronRight,
+  ArrowUpDown,
 } from 'lucide-react';
 import {
   PR_STATUS_LABELS,
@@ -20,56 +18,32 @@ import {
   type PrStatus as PrStatusType,
   type PrPriority as PrPriorityType,
 } from '@prams/shared';
-import { usePurchaseRequests, useSubmitPr, useDeletePr } from '@/hooks/use-purchase-requests';
+import { usePurchaseRequests, usePrStats } from '@/hooks/use-purchase-requests';
 import { useAuthStore } from '@/stores/auth.store';
-import { useToast } from '@/components/ui/toast';
-import { PageHeader } from '@/components/layout/page-header';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { Pagination } from '@/components/ui/pagination';
-import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 
-const statusVariant = (status: string) => {
-  switch (status) {
-    case 'draft': return 'secondary' as const;
-    case 'submitted':
-    case 'quoted':
-    case 'level1_review':
-    case 'level2_review':
-    case 'level3_review':
-      return 'info' as const;
-    case 'pending_quotation':
-      return 'warning' as const;
-    case 'approved': return 'success' as const;
-    case 'rejected': return 'destructive' as const;
-    case 'returned':
-    case 'returned_for_info':
-      return 'warning' as const;
-    default: return 'secondary' as const;
-  }
+/* ── Status badge styling ─────────────────────────────── */
+const statusStyle: Record<string, string> = {
+  draft:              'bg-zinc-100 text-zinc-600',
+  submitted:          'bg-blue-50 text-blue-700',
+  level1_review:      'bg-blue-50 text-blue-700',
+  level2_review:      'bg-blue-50 text-blue-700',
+  level3_review:      'bg-indigo-50 text-indigo-700',
+  pending_quotation:  'bg-violet-50 text-violet-700',
+  quoted:             'bg-violet-50 text-violet-700',
+  approved:           'bg-emerald-50 text-emerald-700',
+  rejected:           'bg-red-50 text-red-600',
+  returned:           'bg-amber-50 text-amber-700',
+  returned_for_info:  'bg-amber-50 text-amber-700',
 };
 
-const priorityVariant = (priority: string) => {
-  switch (priority) {
-    case 'urgent': return 'destructive' as const;
-    case 'high': return 'warning' as const;
-    case 'medium': return 'info' as const;
-    default: return 'secondary' as const;
-  }
+/* ── Priority badge styling ───────────────────────────── */
+const priorityStyle: Record<string, string> = {
+  low:    'bg-zinc-100 text-zinc-500',
+  medium: 'bg-blue-50 text-blue-600',
+  high:   'bg-amber-50 text-amber-700',
+  urgent: 'bg-red-50 text-red-600',
 };
 
 function formatCurrency(amount: number) {
@@ -78,7 +52,6 @@ function formatCurrency(amount: number) {
 
 export function PrListPage() {
   const navigate = useNavigate();
-  const { toast } = useToast();
   const user = useAuthStore((s) => s.user);
 
   const [page, setPage] = useState(1);
@@ -86,15 +59,6 @@ export function PrListPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
-  const [confirmDialog, setConfirmDialog] = useState<{
-    open: boolean;
-    type: 'submit' | 'delete';
-    prId: string;
-    prTitle: string;
-  }>({ open: false, type: 'submit', prId: '', prTitle: '' });
-
-  const submitMutation = useSubmitPr();
-  const deleteMutation = useDeletePr();
 
   const { data, isLoading } = usePurchaseRequests({
     page,
@@ -105,52 +69,95 @@ export function PrListPage() {
     requestType: typeFilter !== 'all' ? typeFilter : undefined,
   });
 
+  const { data: statsData } = usePrStats();
+  const stats = (statsData as unknown as { data?: { total: number; byStatus: Record<string, { count: number; totalAmount: number }> } })?.data;
+  const byStatus = stats?.byStatus ?? {};
+  const totalPrs = stats?.total ?? 0;
+  const draftCount = byStatus[PrStatus.DRAFT]?.count ?? 0;
+  const inReviewCount = (byStatus[PrStatus.LEVEL1_REVIEW]?.count ?? 0)
+    + (byStatus[PrStatus.LEVEL2_REVIEW]?.count ?? 0)
+    + (byStatus[PrStatus.LEVEL3_REVIEW]?.count ?? 0);
+
   const prs = data?.data ?? [];
   const meta = data?.meta;
   const canCreate = user?.role !== UserRole.ADMIN;
 
-  const handleConfirm = async () => {
-    const { type, prId } = confirmDialog;
-    try {
-      if (type === 'submit') {
-        await submitMutation.mutateAsync(prId);
-        toast({ title: 'PR submitted', description: 'Your purchase request is now under review.', variant: 'success' });
-      } else {
-        await deleteMutation.mutateAsync(prId);
-        toast({ title: 'PR deleted', variant: 'success' });
-      }
-    } catch {
-      toast({ title: 'Action failed', variant: 'error' });
-    }
-    setConfirmDialog({ ...confirmDialog, open: false });
-  };
 
   return (
-    <div className="space-y-6">
-      <PageHeader title="Purchase Requests" description="Create and track purchase requests and job requests.">
-        {canCreate && (
-          <Button onClick={() => navigate('/purchase-requests/new')}>
-            <Plus className="h-4 w-4" />
-            New PR
-          </Button>
-        )}
-      </PageHeader>
+    <div className="space-y-6 max-w-screen-2xl">
 
-      {/* Filters */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search by PR number or item summary..."
-                value={search}
-                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                className="pl-9"
-              />
-            </div>
+      {/* ── Page Header ──────────────────────────────────────── */}
+      <div className="pr-list-section flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between" style={{ animationDelay: '0s' }}>
+        <div>
+          <h1 className="text-[28px] font-bold tracking-[-0.01em] leading-tight text-zinc-900">
+            Purchase Requests
+          </h1>
+          <p className="mt-1.5 text-[14px] text-zinc-500">
+            Create, track, and manage purchase requests.
+          </p>
+        </div>
+        <div className="flex items-center gap-4">
+          {/* Header metadata pills */}
+          <div className="hidden sm:flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1 text-[12px] font-medium text-zinc-600 tabular-nums">
+              {totalPrs} Total
+            </span>
+            {draftCount > 0 && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1 text-[12px] font-medium text-zinc-500 tabular-nums">
+                {draftCount} Draft
+              </span>
+            )}
+            {inReviewCount > 0 && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-[12px] font-medium text-blue-600 tabular-nums">
+                {inReviewCount} In Review
+              </span>
+            )}
+          </div>
+          {canCreate && (
+            <button
+              onClick={() => navigate('/purchase-requests/new')}
+              className="inline-flex items-center gap-2 rounded-[10px] px-5 py-2.5 text-[13px] font-semibold text-white transition-all duration-200 cursor-pointer"
+              style={{
+                background: 'linear-gradient(155deg, #262626 0%, #0d0d0d 100%)',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.14), 0 4px 12px rgba(0,0,0,0.11), inset 0 1px 0 rgba(255,255,255,0.07)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.18), 0 14px 36px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.10)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.14), 0 4px 12px rgba(0,0,0,0.11), inset 0 1px 0 rgba(255,255,255,0.07)';
+              }}
+            >
+              <Plus className="h-4 w-4" />
+              New PR
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* ── Search + Filters Bar ─────────────────────────────── */}
+      <div
+        className="pr-list-section rounded-xl border border-zinc-200/80 bg-white px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
+        style={{ animationDelay: '0.06s' }}
+      >
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+          {/* Search — primary control, takes available space */}
+          <div className="relative flex-1 min-w-0">
+            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 transition-colors duration-200 peer-focus:text-zinc-600" />
+            <input
+              type="text"
+              placeholder="Search by PR number or item summary..."
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              className="peer w-full h-10 rounded-lg border border-zinc-200 bg-zinc-50/60 pl-10 pr-4 text-[13px] text-zinc-800 placeholder:text-zinc-400 outline-none transition-all duration-200 focus:border-zinc-400 focus:bg-white focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]"
+            />
+          </div>
+          {/* Filters — secondary, grouped tighter */}
+          <div className="flex gap-2 flex-wrap sm:flex-nowrap shrink-0">
             <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
-              <SelectTrigger className="w-full sm:w-44">
+              <SelectTrigger className="w-full sm:w-[154px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]">
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
               <SelectContent>
@@ -163,7 +170,7 @@ export function PrListPage() {
               </SelectContent>
             </Select>
             <Select value={priorityFilter} onValueChange={(v) => { setPriorityFilter(v); setPage(1); }}>
-              <SelectTrigger className="w-full sm:w-36">
+              <SelectTrigger className="w-full sm:w-[134px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]">
                 <SelectValue placeholder="All Priorities" />
               </SelectTrigger>
               <SelectContent>
@@ -176,7 +183,7 @@ export function PrListPage() {
               </SelectContent>
             </Select>
             <Select value={typeFilter} onValueChange={(v) => { setTypeFilter(v); setPage(1); }}>
-              <SelectTrigger className="w-full sm:w-36">
+              <SelectTrigger className="w-full sm:w-[134px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]">
                 <SelectValue placeholder="All Types" />
               </SelectTrigger>
               <SelectContent>
@@ -186,179 +193,197 @@ export function PrListPage() {
               </SelectContent>
             </Select>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {/* Table */}
-      <Card>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="space-y-3 p-6">
-              {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}
+      {/* ── Table Container ──────────────────────────────────── */}
+      <div
+        className="pr-list-section rounded-xl border border-zinc-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_16px_rgba(0,0,0,0.03)] overflow-hidden"
+        style={{ animationDelay: '0.1s' }}
+      >
+        {isLoading ? (
+          <div className="space-y-1 p-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-[52px] w-full rounded-lg" />
+            ))}
+          </div>
+        ) : prs.length === 0 ? (
+          /* ── Empty State ──────────────────────────────────── */
+          <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-zinc-100 mb-5">
+              <FileText className="h-7 w-7 text-zinc-400" />
             </div>
-          ) : prs.length === 0 ? (
-            <EmptyState
-              icon={<FileText className="h-12 w-12" />}
-              title="No purchase requests"
-              description={canCreate ? 'Create your first purchase request.' : 'No purchase requests to display.'}
-              action={
-                canCreate ? (
-                  <Button onClick={() => navigate('/purchase-requests/new')}>
-                    <Plus className="h-4 w-4" /> New PR
-                  </Button>
-                ) : undefined
-              }
-            />
-          ) : (
-            <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>PR Number</TableHead>
-                    <TableHead>Request</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Priority</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead className="w-12" />
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {prs.map((pr) => {
-                    const isDraft = pr.status === PrStatus.DRAFT;
-                    const isReturned = pr.status === PrStatus.RETURNED;
-                    const isOwner = pr.requesterId && typeof pr.requesterId === 'object'
-                      ? (pr.requesterId as unknown as { _id: string })._id === user?._id
-                      : pr.requesterId === user?._id;
-
-                    return (
-                      <TableRow
+            <h3 className="text-[16px] font-semibold text-zinc-900 mb-1.5">No purchase requests</h3>
+            <p className="text-[13px] text-zinc-500 max-w-sm mb-6">
+              {canCreate
+                ? 'Get started by creating your first purchase request.'
+                : 'No purchase requests to display.'}
+            </p>
+            {canCreate && (
+              <button
+                onClick={() => navigate('/purchase-requests/new')}
+                className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-5 py-2.5 text-[13px] font-semibold text-white transition-all duration-200 hover:bg-zinc-800 hover:shadow-md"
+              >
+                <Plus className="h-4 w-4" /> Create Purchase Request
+              </button>
+            )}
+          </div>
+        ) : (
+          <>
+            {/* ── Table ────────────────────────────────────────── */}
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm">
+                  <tr className="border-b border-zinc-100">
+                    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+                      PR Number
+                    </th>
+                    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+                      Request
+                    </th>
+                    <th className="h-11 px-5 text-right text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+                      <span className="inline-flex items-center gap-1 cursor-pointer select-none hover:text-zinc-600 transition-colors duration-150">
+                        Amount <ArrowUpDown className="h-3 w-3 opacity-40" />
+                      </span>
+                    </th>
+                    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+                      Priority
+                    </th>
+                    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+                      Status
+                    </th>
+                    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+                      <span className="inline-flex items-center gap-1 cursor-pointer select-none hover:text-zinc-600 transition-colors duration-150">
+                        Date <ArrowUpDown className="h-3 w-3 opacity-40" />
+                      </span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {prs.map((pr, idx) => (
+                      <tr
                         key={pr._id}
-                        className="cursor-pointer"
+                        className="pr-row-enter border-b border-zinc-100/60 last:border-0 cursor-pointer transition-all duration-150 hover:bg-zinc-50/80 group"
+                        style={{ animationDelay: `${0.04 + idx * 0.025}s` }}
                         onClick={() => navigate(`/purchase-requests/${pr._id}`)}
                       >
-                        <TableCell className="font-mono text-sm">
-                          {pr.prNumber || <span className="text-muted-foreground italic">Draft</span>}
-                        </TableCell>
-                        <TableCell>
-                          <div className="max-w-[280px]">
-                            <p className="font-medium truncate">{pr.title}</p>
-                            {pr.description && <p className="text-xs text-muted-foreground truncate">{pr.description}</p>}
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-medium">{formatCurrency(pr.totalAmount)}</TableCell>
-                        <TableCell>
-                          <Badge variant={priorityVariant(pr.priority)}>
-                            {PR_PRIORITY_LABELS[pr.priority as PrPriorityType]}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={statusVariant(pr.status)}>
-                            {PR_STATUS_LABELS[pr.status as PrStatusType]}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {new Date(pr.createdAt).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell>
-                          <DropdownMenu.Root>
-                            <DropdownMenu.Trigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenu.Trigger>
-                            <DropdownMenu.Portal>
-                              <DropdownMenu.Content
-                                className="z-50 min-w-[160px] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md"
-                                align="end"
-                              >
-                                <DropdownMenu.Item
-                                  className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent"
-                                  onSelect={() => navigate(`/purchase-requests/${pr._id}`)}
-                                >
-                                  <Eye className="h-3.5 w-3.5" /> View
-                                </DropdownMenu.Item>
-                                {isOwner && (isDraft || isReturned) && (
-                                  <>
-                                    <DropdownMenu.Item
-                                      className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent"
-                                      onSelect={() => navigate(`/purchase-requests/${pr._id}/edit`)}
-                                    >
-                                      <Pencil className="h-3.5 w-3.5" /> Edit
-                                    </DropdownMenu.Item>
-                                    <DropdownMenu.Item
-                                      className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-blue-600 outline-none hover:bg-blue-50"
-                                      onSelect={() =>
-                                        setConfirmDialog({ open: true, type: 'submit', prId: pr._id, prTitle: pr.title })
-                                      }
-                                    >
-                                      <Send className="h-3.5 w-3.5" /> Submit
-                                    </DropdownMenu.Item>
-                                  </>
-                                )}
-                                {isOwner && isDraft && (
-                                  <>
-                                    <DropdownMenu.Separator className="my-1 h-px bg-border" />
-                                    <DropdownMenu.Item
-                                      className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-destructive outline-none hover:bg-destructive/10"
-                                      onSelect={() =>
-                                        setConfirmDialog({ open: true, type: 'delete', prId: pr._id, prTitle: pr.title })
-                                      }
-                                    >
-                                      <Trash2 className="h-3.5 w-3.5" /> Delete
-                                    </DropdownMenu.Item>
-                                  </>
-                                )}
-                              </DropdownMenu.Content>
-                            </DropdownMenu.Portal>
-                          </DropdownMenu.Root>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-              {meta && (
-                <div className="border-t px-4">
-                  <Pagination page={meta.page} totalPages={meta.totalPages} total={meta.total} onPageChange={setPage} />
-                </div>
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
+                        {/* PR Number */}
+                        <td className="px-5 py-4">
+                          {pr.prNumber ? (
+                            <span className="font-mono text-[13px] font-medium text-zinc-800 tracking-tight">
+                              {pr.prNumber}
+                            </span>
+                          ) : (
+                            <span className="text-[13px] italic text-zinc-400">Draft</span>
+                          )}
+                        </td>
 
-      {/* Confirm Dialog */}
-      <Dialog open={confirmDialog.open} onOpenChange={(open) => setConfirmDialog({ ...confirmDialog, open })}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {confirmDialog.type === 'submit' ? 'Submit Purchase Request' : 'Delete Purchase Request'}
-            </DialogTitle>
-            <DialogDescription>
-              {confirmDialog.type === 'submit'
-                ? `Submit "${confirmDialog.prTitle}" for approval? This will generate a PR number and start the approval workflow.`
-                : `Permanently delete "${confirmDialog.prTitle}"? This action cannot be undone.`}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmDialog({ ...confirmDialog, open: false })}>
-              Cancel
-            </Button>
-            <Button
-              variant={confirmDialog.type === 'delete' ? 'destructive' : 'default'}
-              onClick={handleConfirm}
-            >
-              {confirmDialog.type === 'submit' ? 'Submit' : 'Delete'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+                        {/* Request title + description */}
+                        <td className="px-5 py-4">
+                          <div className="max-w-[320px]">
+                            <p className="text-[13px] font-medium text-zinc-800 leading-snug truncate group-hover:text-zinc-950 transition-colors duration-150">
+                              {pr.title}
+                            </p>
+                            {pr.description && (
+                              <p className="text-[12px] text-zinc-400 truncate mt-0.5">{pr.description}</p>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* Amount */}
+                        <td className="px-5 py-4 text-right">
+                          <span className="text-[13px] font-semibold tabular-nums text-zinc-800">
+                            {formatCurrency(pr.totalAmount)}
+                          </span>
+                        </td>
+
+                        {/* Priority */}
+                        <td className="px-5 py-4">
+                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition-opacity duration-150 ${priorityStyle[pr.priority] ?? 'bg-zinc-100 text-zinc-500'}`}>
+                            {PR_PRIORITY_LABELS[pr.priority as PrPriorityType]}
+                          </span>
+                        </td>
+
+                        {/* Status */}
+                        <td className="px-5 py-4">
+                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition-opacity duration-150 ${statusStyle[pr.status] ?? 'bg-zinc-100 text-zinc-600'}`}>
+                            {PR_STATUS_LABELS[pr.status as PrStatusType]}
+                          </span>
+                        </td>
+
+                        {/* Date */}
+                        <td className="px-5 py-4">
+                          <span className="text-[13px] tabular-nums text-zinc-400">
+                            {new Date(pr.createdAt).toLocaleDateString('en-PH', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                            })}
+                          </span>
+                        </td>
+
+                      </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* ── Pagination ─────────────────────────────────── */}
+            {meta && meta.totalPages > 1 && (
+              <div className="flex items-center justify-between border-t border-zinc-100 px-5 py-3">
+                <div className="flex items-center gap-3">
+                  <p className="text-[12px] text-zinc-400 tabular-nums">
+                    Page {meta.page} of {meta.totalPages}
+                    <span className="text-zinc-300 mx-1.5">&middot;</span>
+                    {meta.total} total
+                  </p>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setPage(page - 1)}
+                    disabled={page <= 1}
+                    className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-500 transition-all duration-150 hover:bg-zinc-50 hover:text-zinc-700 disabled:opacity-40 disabled:pointer-events-none"
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5" /> Previous
+                  </button>
+                  {getPageNumbers(meta.page, meta.totalPages).map((p, i) =>
+                    p === '...' ? (
+                      <span key={`dots-${i}`} className="px-1.5 text-[12px] text-zinc-300">...</span>
+                    ) : (
+                      <button
+                        key={p}
+                        onClick={() => setPage(p as number)}
+                        className={`h-8 w-8 rounded-lg text-[12px] font-semibold transition-all duration-150 ${
+                          p === meta.page
+                            ? 'bg-zinc-900 text-white shadow-sm'
+                            : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700'
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    ),
+                  )}
+                  <button
+                    onClick={() => setPage(page + 1)}
+                    disabled={page >= meta.totalPages}
+                    className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-500 transition-all duration-150 hover:bg-zinc-50 hover:text-zinc-700 disabled:opacity-40 disabled:pointer-events-none"
+                  >
+                    Next <ChevronRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
     </div>
   );
+}
+
+function getPageNumbers(current: number, total: number): (number | string)[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  if (current <= 3) return [1, 2, 3, 4, '...', total];
+  if (current >= total - 2) return [1, '...', total - 3, total - 2, total - 1, total];
+  return [1, '...', current - 1, current, current + 1, '...', total];
 }

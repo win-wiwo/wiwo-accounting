@@ -1,6 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { suppliersApi, type SuppliersQuery, type CreateSupplierPayload } from '@/lib/api-services';
 
+export function useSuppliersStats() {
+  return useQuery({
+    queryKey: ['suppliers', 'stats'],
+    queryFn: () => suppliersApi.getStats(),
+  });
+}
+
 export function useSuppliers(params: SuppliersQuery = {}) {
   return useQuery({
     queryKey: ['suppliers', params],

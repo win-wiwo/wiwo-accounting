@@ -917,4 +917,148 @@ export class PurchaseRequestsService {
       byStatus: result,
     };
   }
+
+  async getManagementStats(user: RequestUser) {
+    const baseMatch: FilterQuery<PurchaseRequest> = {};
+
+    if (user.role === UserRole.STAFF) {
+      baseMatch.requesterId = new Types.ObjectId(user._id);
+    } else if (user.role === UserRole.DEPT_HEAD && user.departmentId) {
+      baseMatch.$or = [
+        { requesterId: new Types.ObjectId(user._id) },
+        { departmentId: new Types.ObjectId(user.departmentId) },
+      ];
+    }
+
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const overdueCutoff = new Date(Date.now() - 5 * 86_400_000);
+
+    const reviewStatuses = [
+      PrStatus.LEVEL1_REVIEW, PrStatus.LEVEL2_REVIEW, PrStatus.LEVEL3_REVIEW,
+      PrStatus.PENDING_QUOTATION, PrStatus.QUOTED,
+    ];
+
+    const [
+      approvalTimeResult,
+      monthlySpendResult,
+      thisMonthRequestCount,
+      overdueCount,
+      highValuePendingCount,
+      rejectionStats,
+      spendByDepartment,
+    ] = await Promise.all([
+      this.prModel.aggregate([
+        { $match: { ...baseMatch, status: PrStatus.APPROVED, submittedAt: { $ne: null }, completedAt: { $ne: null } } },
+        { $project: { diffMs: { $subtract: ['$completedAt', '$submittedAt'] } } },
+        { $group: { _id: null, avgMs: { $avg: '$diffMs' } } },
+      ]),
+
+      this.prModel.aggregate([
+        { $match: { ...baseMatch, status: PrStatus.APPROVED, completedAt: { $gte: startOfMonth } } },
+        { $group: { _id: null, total: { $sum: '$totalAmount' } } },
+      ]),
+
+      this.prModel.countDocuments({ ...baseMatch, submittedAt: { $gte: startOfMonth } }),
+
+      this.prModel.countDocuments({ ...baseMatch, status: { $in: reviewStatuses }, submittedAt: { $lte: overdueCutoff, $ne: null } }),
+
+      this.prModel.countDocuments({ ...baseMatch, status: { $in: reviewStatuses }, totalAmount: { $gte: 1_000_000 } }),
+
+      this.prModel.aggregate([
+        { $match: { ...baseMatch, status: { $in: [PrStatus.APPROVED, PrStatus.REJECTED] } } },
+        { $group: { _id: '$status', count: { $sum: 1 } } },
+      ]),
+
+      this.prModel.aggregate([
+        { $match: { ...baseMatch, status: PrStatus.APPROVED } },
+        { $group: { _id: '$departmentId', totalAmount: { $sum: '$totalAmount' }, count: { $sum: 1 } } },
+        { $lookup: { from: 'departments', localField: '_id', foreignField: '_id', as: 'dept' } },
+        { $unwind: '$dept' },
+        { $sort: { totalAmount: -1 } },
+        { $limit: 6 },
+        { $project: { _id: 0, departmentId: '$_id', departmentName: '$dept.name', totalAmount: 1, count: 1 } },
+      ]),
+    ]);
+
+    const avgMs = approvalTimeResult[0]?.avgMs ?? null;
+    const avgApprovalDays = avgMs !== null ? Math.round((avgMs / 86_400_000) * 10) / 10 : null;
+
+    const approvedForRate = rejectionStats.find((s: { _id: string; count: number }) => s._id === PrStatus.APPROVED)?.count ?? 0;
+    const rejectedForRate = rejectionStats.find((s: { _id: string; count: number }) => s._id === PrStatus.REJECTED)?.count ?? 0;
+    const rateTotal = approvedForRate + rejectedForRate;
+    const rejectionRate = rateTotal > 0 ? Math.round((rejectedForRate / rateTotal) * 100) : 0;
+
+    return {
+      avgApprovalDays,
+      thisMonthApprovedSpend: monthlySpendResult[0]?.total ?? 0,
+      thisMonthRequestCount,
+      overdueCount,
+      highValuePendingCount,
+      rejectionRate,
+      spendByDepartment,
+    };
+  }
+
+  async getProjectSpending(user: RequestUser) {
+    const matchStage: FilterQuery<PurchaseRequest> = {
+      projectId: { $ne: null },
+    };
+
+    if (user.role === UserRole.STAFF) {
+      matchStage.requesterId = new Types.ObjectId(user._id);
+    } else if (user.role === UserRole.DEPT_HEAD && user.departmentId) {
+      matchStage.$or = [
+        { requesterId: new Types.ObjectId(user._id) },
+        { departmentId: new Types.ObjectId(user.departmentId) },
+      ];
+    }
+
+    const reviewStatuses = [
+      PrStatus.LEVEL1_REVIEW, PrStatus.LEVEL2_REVIEW, PrStatus.LEVEL3_REVIEW,
+      PrStatus.PENDING_QUOTATION, PrStatus.QUOTED,
+    ];
+
+    const rows = await this.prModel.aggregate([
+      { $match: matchStage },
+      {
+        $group: {
+          _id: '$projectId',
+          approvedAmount: {
+            $sum: { $cond: [{ $eq: ['$status', PrStatus.APPROVED] }, '$totalAmount', 0] },
+          },
+          pendingAmount: {
+            $sum: { $cond: [{ $in: ['$status', reviewStatuses] }, '$totalAmount', 0] },
+          },
+          totalAmount: { $sum: '$totalAmount' },
+          count: { $sum: 1 },
+        },
+      },
+      {
+        $lookup: {
+          from: 'projects',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'project',
+        },
+      },
+      { $unwind: '$project' },
+      { $sort: { totalAmount: -1 } },
+      { $limit: 10 },
+      {
+        $project: {
+          _id: 0,
+          projectId: '$_id',
+          projectName: '$project.name',
+          projectCode: '$project.code',
+          approvedAmount: 1,
+          pendingAmount: 1,
+          totalAmount: 1,
+          count: 1,
+        },
+      },
+    ]);
+
+    return rows;
+  }
 }

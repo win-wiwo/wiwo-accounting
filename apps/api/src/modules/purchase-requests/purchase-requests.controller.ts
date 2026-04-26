@@ -59,6 +59,22 @@ export class PurchaseRequestsController {
     return this.prService.getStats(user);
   }
 
+  @Get('stats/management')
+  @ApiOperation({ summary: 'Get management-level PR statistics' })
+  async getManagementStats(
+    @CurrentUser() user: { _id: string; role: string; departmentId: string | null },
+  ) {
+    return this.prService.getManagementStats(user);
+  }
+
+  @Get('stats/by-project')
+  @ApiOperation({ summary: 'Get PR spending grouped by project' })
+  async getProjectSpending(
+    @CurrentUser() user: { _id: string; role: string; departmentId: string | null },
+  ) {
+    return this.prService.getProjectSpending(user);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get purchase request by ID' })
   async findOne(

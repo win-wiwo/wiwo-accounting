@@ -76,6 +76,12 @@ export class UpdateSupplierDto {
   @IsOptional()
   status?: string;
 
+  @ApiPropertyOptional({ example: 'Office Supplies' })
+  @IsString()
+  @MaxLength(100)
+  @IsOptional()
+  category?: string;
+
   @ApiPropertyOptional({ example: 'Preferred supplier for office supplies' })
   @IsString()
   @MaxLength(1000)

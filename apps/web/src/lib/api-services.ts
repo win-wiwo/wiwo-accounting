@@ -212,7 +212,23 @@ export const purchaseRequestsApi = {
 
   getStats: () =>
     apiClient.get<ApiResponse<{ total: number; byStatus: Record<string, { count: number; totalAmount: number }> }>>('/purchase-requests/stats').then((r) => r.data),
+
+  getProjectSpending: () =>
+    apiClient.get<ApiResponse<ProjectSpendingItem[]>>('/purchase-requests/stats/by-project').then((r) => r.data),
+
+  getManagementStats: () =>
+    apiClient.get<ApiResponse<ManagementStats>>('/purchase-requests/stats/management').then((r) => r.data),
 };
+
+export interface ProjectSpendingItem {
+  projectId: string;
+  projectName: string;
+  projectCode: string | null;
+  approvedAmount: number;
+  pendingAmount: number;
+  totalAmount: number;
+  count: number;
+}
 
 // ─── Approvals ──────────────────────────────────────────────
 
@@ -277,6 +293,9 @@ export interface SuppliersQuery {
   limit?: number;
   search?: string;
   status?: string;
+  taxType?: string;
+  sort?: string;
+  order?: 'asc' | 'desc';
 }
 
 export interface CreateSupplierPayload {
@@ -291,6 +310,7 @@ export interface CreateSupplierPayload {
   bankAccountName?: string;
   bankAccountNumber?: string;
   bankName?: string;
+  category?: string;
   notes?: string;
 }
 
@@ -308,6 +328,9 @@ export const suppliersApi = {
 
   update: (id: string, data: Partial<CreateSupplierPayload> & { status?: string }) =>
     apiClient.patch<ApiResponse<any>>(`/suppliers/${id}`, data).then((r) => r.data),
+
+  getStats: () =>
+    apiClient.get<{ data: { total: number; active: number; inactive: number; blacklisted: number; missingContact: number } }>('/suppliers/stats').then((r) => r.data),
 };
 
 // ─── Purchase Orders ────────────────────────────────────────
@@ -368,7 +391,28 @@ export const purchaseOrdersApi = {
 
   cancel: (id: string, reason: string) =>
     apiClient.post<ApiResponse<any>>(`/purchase-orders/${id}/cancel`, { reason }).then((r) => r.data),
+
+  getStats: () =>
+    apiClient.get<{ data: { total: number; open: number; issued: number; cancelled: number; activeValue: number } }>('/purchase-orders/stats').then((r) => r.data),
+
+  getMonthlyStats: () =>
+    apiClient.get<{ data: { issuedThisMonth: number } }>('/purchase-orders/stats/monthly').then((r) => r.data),
 };
+
+export interface ManagementStats {
+  avgApprovalDays: number | null;
+  thisMonthApprovedSpend: number;
+  thisMonthRequestCount: number;
+  overdueCount: number;
+  highValuePendingCount: number;
+  rejectionRate: number;
+  spendByDepartment: Array<{
+    departmentId: string;
+    departmentName: string;
+    totalAmount: number;
+    count: number;
+  }>;
+}
 
 // ─── Projects ────────────────────────────────────────────────
 

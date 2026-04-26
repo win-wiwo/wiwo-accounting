@@ -33,6 +33,19 @@ export class PurchaseOrdersController {
     return this.poService.create(dto, user);
   }
 
+  @Get('stats')
+  @ApiOperation({ summary: 'Get PO summary stats' })
+  async getStats() {
+    return this.poService.getStats();
+  }
+
+  @Get('stats/monthly')
+  @ApiOperation({ summary: 'Get monthly PO issued count' })
+  async getMonthlyStats() {
+    const count = await this.poService.getMonthlyIssuedCount();
+    return { data: { issuedThisMonth: count } };
+  }
+
   @Get()
   @ApiOperation({ summary: 'List purchase orders with filters' })
   async findAll(@Query() query: QueryPurchaseOrdersDto) {

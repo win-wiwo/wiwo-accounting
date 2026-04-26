@@ -50,7 +50,6 @@ import { PurchaseRequestWorkflowTimeline } from "@/components/purchase-request-w
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Label } from "@/components/ui/label";
@@ -285,43 +284,27 @@ function formatDate(d: string | null) {
   });
 }
 
-const statusVariant = (status: string) => {
-  switch (status) {
-    case "draft":
-      return "secondary" as const;
-    case "submitted":
-    case "level1_review":
-    case "level2_review":
-    case "level3_review":
-    case "quoted":
-      return "info" as const;
-    case "pending_quotation":
-      return "warning" as const;
-    case "approved":
-      return "success" as const;
-    case "rejected":
-      return "destructive" as const;
-    case "returned":
-    case "returned_for_info":
-      return "warning" as const;
-    case "cancelled":
-      return "secondary" as const;
-    default:
-      return "secondary" as const;
-  }
+/* ── Semantic badge styles (matches list page system) ── */
+const statusStyle: Record<string, string> = {
+  draft:              'bg-zinc-100 text-zinc-600',
+  submitted:          'bg-blue-50 text-blue-700',
+  level1_review:      'bg-blue-50 text-blue-700',
+  level2_review:      'bg-blue-50 text-blue-700',
+  level3_review:      'bg-indigo-50 text-indigo-700',
+  pending_quotation:  'bg-violet-50 text-violet-700',
+  quoted:             'bg-violet-50 text-violet-700',
+  approved:           'bg-emerald-50 text-emerald-700',
+  rejected:           'bg-red-50 text-red-600',
+  returned:           'bg-amber-50 text-amber-700',
+  returned_for_info:  'bg-amber-50 text-amber-700',
+  cancelled:          'bg-zinc-100 text-zinc-500',
 };
 
-const priorityVariant = (priority: string) => {
-  switch (priority) {
-    case "urgent":
-      return "destructive" as const;
-    case "high":
-      return "warning" as const;
-    case "medium":
-      return "info" as const;
-    default:
-      return "secondary" as const;
-  }
+const priorityStyle: Record<string, string> = {
+  low:    'bg-zinc-100 text-zinc-500',
+  medium: 'bg-blue-50 text-blue-600',
+  high:   'bg-amber-50 text-amber-700',
+  urgent: 'bg-red-50 text-red-600',
 };
 
 export function PrDetailPage() {
@@ -493,14 +476,23 @@ export function PrDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <Skeleton className="h-8 w-64" />
-        <div className="grid gap-4 sm:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-20" />
-          ))}
+      <div className="space-y-6 max-w-screen-2xl">
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-32 rounded-lg" />
+          <Skeleton className="h-6 w-80 rounded-lg" />
+          <Skeleton className="h-4 w-48 rounded-lg" />
         </div>
-        <Skeleton className="h-64 w-full" />
+        <Skeleton className="h-16 w-full rounded-xl" />
+        <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
+          <div className="space-y-4">
+            <Skeleton className="h-48 w-full rounded-xl" />
+            <Skeleton className="h-36 w-full rounded-xl" />
+          </div>
+          <div className="space-y-4">
+            <Skeleton className="h-64 w-full rounded-xl" />
+            <Skeleton className="h-40 w-full rounded-xl" />
+          </div>
+        </div>
       </div>
     );
   }
@@ -658,65 +650,69 @@ export function PrDetailPage() {
   })();
 
   return (
-    <div className="space-y-6">
-      {/* Sticky header */}
-      <div className="sticky top-0 z-10 -mx-4 bg-background/95 backdrop-blur px-4 py-3 border-b shadow-sm">
-        <div className="flex items-start justify-between gap-3 flex-wrap">
+    <div className="space-y-6 max-w-screen-2xl">
+      {/* ── Sticky header ──────────────────────────────────── */}
+      <div className="sticky top-0 z-10 -mx-4 bg-white/95 backdrop-blur-sm px-4 py-3 border-b border-zinc-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="min-w-0">
             {/* Breadcrumb */}
             <button
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground mb-1"
+              className="flex items-center gap-1.5 text-[12px] text-zinc-400 hover:text-zinc-700 transition-colors duration-150 mb-1.5"
               onClick={() => navigate("/purchase-requests")}
             >
               <ArrowLeft className="h-3 w-3" />
-              Purchase Requests
+              <span>Purchase Requests</span>
               {pr.prNumber && (
-                <><span className="mx-1">/</span><span className="font-mono">{pr.prNumber}</span></>
+                <><span className="text-zinc-300">/</span><span className="font-mono text-zinc-500">{pr.prNumber}</span></>
               )}
             </button>
             {/* Title + badges */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-base font-semibold leading-tight truncate max-w-[440px]">{pr.title}</h1>
-              <Badge variant={statusVariant(pr.status)} className="shrink-0">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h1 className="text-[18px] font-bold tracking-[-0.01em] leading-tight text-zinc-900 truncate max-w-[480px]">{pr.title}</h1>
+              <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold shrink-0 ${statusStyle[pr.status] ?? 'bg-zinc-100 text-zinc-600'}`}>
                 {PR_STATUS_LABELS[pr.status as PrStatusType]}
-              </Badge>
-              <Badge variant={priorityVariant(pr.priority)} className="shrink-0">
+              </span>
+              <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold shrink-0 ${priorityStyle[pr.priority] ?? 'bg-zinc-100 text-zinc-500'}`}>
                 {PR_PRIORITY_LABELS[pr.priority as PrPriorityType]}
-              </Badge>
+              </span>
             </div>
             {/* Amount + needed by */}
-            <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+            <div className="flex items-center gap-2.5 mt-1.5 text-[13px]">
               {hasProcurementItems && hasUnquotedItems ? (
-                <span className="text-amber-600 font-medium">Pending Quote</span>
+                <span className="text-amber-600 font-semibold">Pending Quote</span>
               ) : (
-                <span className="font-medium text-foreground">
+                <span className="font-semibold tabular-nums text-zinc-800">
                   {formatCurrency(pr.items.reduce((s, i) => s + (i.totalPrice ?? 0), 0))}
                 </span>
               )}
               {pr.neededByDate && (
-                <span>· Needed {formatDate(pr.neededByDate)}</span>
+                <span className="text-zinc-400 text-[12px]">· Needed {formatDate(pr.neededByDate)}</span>
               )}
             </div>
           </div>
           {/* Actions */}
-          <div className="flex items-center gap-1.5 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
             {!isDraft && (
-              <Button size="sm" variant="outline" onClick={handleGenerateReport}>
+              <Button size="sm" variant="outline" className="rounded-lg text-[13px] h-8" onClick={handleGenerateReport}>
                 <FileText className="h-3.5 w-3.5" /> Report
               </Button>
             )}
             {canEdit && (
               <>
-                <Button size="sm" variant="outline" onClick={() => navigate(`/purchase-requests/${id}/edit`)}>
+                <Button size="sm" variant="outline" className="rounded-lg text-[13px] h-8" onClick={() => navigate(`/purchase-requests/${id}/edit`)}>
                   <Pencil className="h-3.5 w-3.5" /> Edit
                 </Button>
-                <Button size="sm" onClick={() => setConfirmDialog({ open: true, type: "submit" })}>
+                <button
+                  className="inline-flex items-center gap-1.5 rounded-lg h-8 px-3.5 text-[13px] font-semibold text-white transition-all duration-200 hover:-translate-y-px"
+                  style={{ background: 'linear-gradient(155deg, #262626 0%, #0d0d0d 100%)', boxShadow: '0 1px 2px rgba(0,0,0,0.14), 0 3px 8px rgba(0,0,0,0.1)' }}
+                  onClick={() => setConfirmDialog({ open: true, type: "submit" })}
+                >
                   <Send className="h-3.5 w-3.5" /> Submit
-                </Button>
+                </button>
               </>
             )}
             {canRecall && (
-              <Button size="sm" variant="outline" onClick={() => setConfirmDialog({ open: true, type: "recall" })}>
+              <Button size="sm" variant="outline" className="rounded-lg text-[13px] h-8" onClick={() => setConfirmDialog({ open: true, type: "recall" })}>
                 <Undo2 className="h-3.5 w-3.5" /> Recall
               </Button>
             )}
@@ -724,39 +720,30 @@ export function PrDetailPage() {
               <Button
                 size="sm"
                 variant="outline"
-                className="text-destructive hover:text-destructive"
+                className="rounded-lg text-[13px] h-8 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
                 onClick={() => { setCancelReason(""); setCancelDialog(true); }}
               >
                 <Ban className="h-3.5 w-3.5" /> Cancel
               </Button>
             )}
             {isOwner && isDraft && (
-              <Button size="sm" variant="destructive" onClick={() => setConfirmDialog({ open: true, type: "delete" })}>
+              <Button size="sm" variant="destructive" className="rounded-lg text-[13px] h-8" onClick={() => setConfirmDialog({ open: true, type: "delete" })}>
                 <Trash2 className="h-3.5 w-3.5" /> Delete
               </Button>
             )}
             {canApprove && (
               <>
-                <Button
-                  size="sm"
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                <button
+                  className="inline-flex items-center gap-1.5 rounded-lg h-8 px-4 text-[13px] font-semibold text-white bg-emerald-600 transition-all duration-200 hover:bg-emerald-700 hover:-translate-y-px hover:shadow-md"
                   onClick={() => { setApprovalComments(""); setApprovalDialog({ open: true, action: "approved" }); }}
                 >
                   <CheckCircle2 className="h-3.5 w-3.5" />
                   {isPriceReview ? "Approve Pricing" : "Approve"}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => { setApprovalComments(""); setApprovalDialog({ open: true, action: "returned" }); }}
-                >
+                </button>
+                <Button size="sm" variant="outline" className="rounded-lg text-[13px] h-8" onClick={() => { setApprovalComments(""); setApprovalDialog({ open: true, action: "returned" }); }}>
                   <RotateCcw className="h-3.5 w-3.5" /> Return
                 </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => { setApprovalComments(""); setApprovalDialog({ open: true, action: "rejected" }); }}
-                >
+                <Button size="sm" variant="destructive" className="rounded-lg text-[13px] h-8" onClick={() => { setApprovalComments(""); setApprovalDialog({ open: true, action: "rejected" }); }}>
                   <XCircle className="h-3.5 w-3.5" /> Reject
                 </Button>
               </>
@@ -765,35 +752,29 @@ export function PrDetailPage() {
         </div>
       </div>
 
-      {/* Status banner */}
-      <div className={`flex items-start gap-3 rounded-xl border px-4 py-3.5 ${stagePresentation.tone}`}>
-        <div className="rounded-full bg-background/60 p-1.5 mt-0.5 shrink-0">
+      {/* ── Status banner ──────────────────────────────────── */}
+      <div className={`pr-detail-section flex items-start gap-3.5 rounded-xl border px-5 py-4 ${stagePresentation.tone}`} style={{ animationDelay: '0s' }}>
+        <div className="rounded-lg bg-white/70 p-2 mt-0.5 shrink-0 shadow-sm">
           {stagePresentation.icon}
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-semibold leading-tight">{stagePresentation.title}</p>
-          <p className="mt-0.5 text-xs leading-relaxed opacity-75">{stagePresentation.nextStep}</p>
+          <p className="text-[14px] font-semibold leading-tight">{stagePresentation.title}</p>
+          <p className="mt-1 text-[13px] leading-relaxed opacity-70">{stagePresentation.nextStep}</p>
         </div>
       </div>
 
-      {/* Details */}
-      <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
+      {/* ── Details ───────────────────────────────────────── */}
+      <div className="pr-detail-section grid gap-6 xl:grid-cols-[1fr_360px]" style={{ animationDelay: '0.06s' }}>
         <div className="space-y-6">
           {/* Line Items */}
-          <Card className="overflow-hidden">
-            <CardHeader>
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <CardTitle className="text-base">Line Items</CardTitle>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Item photos stay with their specific line item.
-                    Procurement-sourced items remain unpriced until canvass is
-                    complete.
-                  </p>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3 p-4">
+          <div className="rounded-xl border border-zinc-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_16px_rgba(0,0,0,0.03)] overflow-hidden">
+            <div className="px-6 pt-6 pb-4">
+              <h2 className="text-[15px] font-semibold text-zinc-900">Line Items</h2>
+              <p className="mt-1 text-[12px] text-zinc-400 leading-relaxed">
+                Procurement-sourced items remain unpriced until canvass is complete.
+              </p>
+            </div>
+            <div className="space-y-3 px-5 pb-5">
               {pr.items.map((item, i) => {
                 const isProcurement =
                   item.sourcingType === SourcingType.PROCUREMENT;
@@ -810,43 +791,37 @@ export function PrDetailPage() {
                 return (
                   <div
                     key={item._id}
-                    className="rounded-xl border bg-background p-4 shadow-sm"
+                    className="rounded-xl border border-zinc-100 bg-white p-5 transition-all duration-150 hover:border-zinc-200 hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0 space-y-2">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs font-medium text-muted-foreground">
+                          <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
                             Item {i + 1}
                           </span>
                           {isProcurement ? (
-                            <Badge
-                              variant="secondary"
-                              className="text-[10px] px-1.5 py-0 gap-0.5"
-                            >
+                            <span className="inline-flex items-center gap-1 rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-700">
                               <ShoppingCart className="h-2.5 w-2.5" />
                               Procurement
-                            </Badge>
+                            </span>
                           ) : (
-                            <Badge
-                              variant="info"
-                              className="text-[10px] px-1.5 py-0"
-                            >
+                            <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-600">
                               Online
-                            </Badge>
+                            </span>
                           )}
                         </div>
-                        <p className="text-base font-semibold leading-snug">
+                        <p className="text-[14px] font-semibold leading-snug text-zinc-900">
                           {item.description}
                         </p>
                       </div>
                       <div className="shrink-0 text-right space-y-1 min-w-[120px]">
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-[12px] text-zinc-400 tabular-nums">
                           {item.quantity} {item.unit}
                           {unitPriceLabel !== "Pending quotation" && (
                             <span className="ml-1">× {unitPriceLabel}</span>
                           )}
                         </p>
-                        <p className={`text-base font-bold ${totalLabel === "TBQ" ? "text-amber-600" : ""}`}>
+                        <p className={`text-[15px] font-bold tabular-nums ${totalLabel === "TBQ" ? "text-amber-600" : "text-zinc-900"}`}>
                           {totalLabel === "TBQ" ? "Pending Quote" : totalLabel}
                         </p>
                         {unitPriceLabel === "Pending quotation" && (
@@ -940,54 +915,64 @@ export function PrDetailPage() {
                 );
               })}
 
-              <Separator />
-              {/* Financial trust total */}
-              <div className="flex justify-end p-4">
+              {/* ── Financial Summary ────────────────────────── */}
+              <div className="border-t border-zinc-100 mx-5 pt-5 pb-2">
                 {(() => {
+                  const onlineItems = pr.items.filter((i) => i.sourcingType !== SourcingType.PROCUREMENT);
                   const procurementItems = pr.items.filter((i) => i.sourcingType === SourcingType.PROCUREMENT);
+                  const quotedProcItems = procurementItems.filter((i) => i.quotedUnitPrice);
                   const unquoted = procurementItems.filter((i) => !i.quotedUnitPrice);
-                  const onlineTotal = pr.items
-                    .filter((i) => i.sourcingType !== SourcingType.PROCUREMENT)
-                    .reduce((s, i) => s + (i.totalPrice ?? 0), 0);
-                  const quotedTotal = procurementItems
-                    .filter((i) => i.quotedUnitPrice)
-                    .reduce((s, i) => s + (i.totalPrice ?? 0), 0);
+                  const onlineTotal = onlineItems.reduce((s, i) => s + (i.totalPrice ?? 0), 0);
+                  const quotedTotal = quotedProcItems.reduce((s, i) => s + (i.totalPrice ?? 0), 0);
+                  const knownTotal = onlineTotal + quotedTotal;
+                  const allUnquoted = procurementItems.length > 0 && unquoted.length === procurementItems.length;
 
-                  if (procurementItems.length > 0 && unquoted.length === procurementItems.length) {
-                    // All procurement items unquoted
-                    return (
-                      <div className="text-right">
-                        <p className="text-xs text-muted-foreground mb-1">Total Amount</p>
-                        <p className="text-2xl font-bold text-amber-600">Pending Quote</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">Final amount available after supplier canvass.</p>
-                      </div>
-                    );
-                  }
-                  if (unquoted.length > 0) {
-                    // Mixed: some quoted, some not
-                    const knownTotal = onlineTotal + quotedTotal;
-                    return (
-                      <div className="text-right">
-                        <p className="text-xs text-muted-foreground mb-1">Total Amount</p>
-                        <p className="text-2xl font-bold">{formatCurrency(knownTotal)}</p>
-                        <p className="text-xs text-amber-600 mt-0.5">+ {unquoted.length} item{unquoted.length > 1 ? 's' : ''} pending quote</p>
-                      </div>
-                    );
-                  }
-                  // All priced
                   return (
-                    <div className="text-right">
-                      <p className="text-xs text-muted-foreground mb-1">Total Amount</p>
-                      <p className="text-2xl font-bold">{formatCurrency(pr.totalAmount)}</p>
-                      {procurementItems.length > 0 && (
-                        <p className="text-xs text-emerald-600 mt-0.5">Final amount after canvass</p>
-                      )}
+                    <div className="space-y-2.5">
+                      {/* Line breakdown */}
+                      <div className="space-y-1.5">
+                        {onlineItems.length > 0 && (
+                          <div className="flex items-center justify-between text-[12px]">
+                            <span className="text-zinc-500">{onlineItems.length} online item{onlineItems.length > 1 ? 's' : ''}</span>
+                            <span className="font-medium tabular-nums text-zinc-700">{formatCurrency(onlineTotal)}</span>
+                          </div>
+                        )}
+                        {quotedProcItems.length > 0 && (
+                          <div className="flex items-center justify-between text-[12px]">
+                            <span className="text-zinc-500">{quotedProcItems.length} quoted procurement item{quotedProcItems.length > 1 ? 's' : ''}</span>
+                            <span className="font-medium tabular-nums text-zinc-700">{formatCurrency(quotedTotal)}</span>
+                          </div>
+                        )}
+                        {unquoted.length > 0 && (
+                          <div className="flex items-center justify-between text-[12px]">
+                            <span className="text-amber-600">{unquoted.length} item{unquoted.length > 1 ? 's' : ''} pending quote</span>
+                            <span className="font-medium text-amber-600">TBD</span>
+                          </div>
+                        )}
+                      </div>
+                      {/* Grand total */}
+                      <div className="flex items-end justify-between pt-2.5 border-t border-zinc-100">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">Grand Total</p>
+                        {allUnquoted ? (
+                          <p className="text-[22px] font-bold text-amber-600 leading-none">Pending Quote</p>
+                        ) : (
+                          <div className="text-right">
+                            <p className="text-[22px] font-bold tabular-nums text-zinc-900 leading-none">{allUnquoted ? 'Pending Quote' : formatCurrency(knownTotal)}</p>
+                            {unquoted.length > 0 && (
+                              <p className="text-[11px] text-amber-600 mt-1">+ pending procurement pricing</p>
+                            )}
+                            {procurementItems.length > 0 && unquoted.length === 0 && (
+                              <p className="text-[11px] text-emerald-600 mt-1">Final amount after canvass</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   );
                 })()}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {pr.canvassEntries && pr.canvassEntries.length > 0 && (
             <Card className="border-emerald-200 bg-emerald-50/40">
@@ -1064,21 +1049,20 @@ export function PrDetailPage() {
 
           {/* Returned for Info Note */}
           {pr.quotationNote && (
-            <Card className="border-amber-300">
-              <CardHeader>
-                <CardTitle className="text-base text-amber-700 flex items-center gap-2">
-                  <RotateCcw className="h-4 w-4" /> Procurement Returned This
-                  Request for More Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm">{pr.quotationNote}</p>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Update the request details, item specs, photos, or requester
-                  documents, then resubmit.
-                </p>
-              </CardContent>
-            </Card>
+            <div className="rounded-xl border border-amber-200 bg-amber-50/50 px-5 py-4">
+              <div className="flex items-start gap-3">
+                <div className="rounded-lg bg-amber-100 p-1.5 mt-0.5 shrink-0">
+                  <RotateCcw className="h-4 w-4 text-amber-700" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[14px] font-semibold text-amber-800">Procurement Needs More Information</p>
+                  <p className="mt-2 text-[13px] leading-relaxed text-amber-900/80">{pr.quotationNote}</p>
+                  <p className="mt-2.5 text-[12px] text-amber-600">
+                    Update the request details, item specs, or photos, then resubmit.
+                  </p>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Resubmission diff — visible to approvers after requester resubmits */}
@@ -1095,70 +1079,71 @@ export function PrDetailPage() {
 
           {/* Cancellation Reason */}
           {isCancelled && pr.cancellationReason && (
-            <Card className="border-destructive/30">
-              <CardHeader>
-                <CardTitle className="text-base text-destructive">
-                  Cancellation Reason
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm">{pr.cancellationReason}</p>
-              </CardContent>
-            </Card>
+            <div className="rounded-xl border border-red-200 bg-red-50/50 px-5 py-4">
+              <div className="flex items-start gap-3">
+                <div className="rounded-lg bg-red-100 p-1.5 mt-0.5 shrink-0">
+                  <Ban className="h-4 w-4 text-red-600" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[14px] font-semibold text-red-800">Cancellation Reason</p>
+                  <p className="mt-2 text-[13px] leading-relaxed text-red-900/80">{pr.cancellationReason}</p>
+                </div>
+              </div>
+            </div>
           )}
         </div>
 
-        {/* Sidebar */}
-        <div className="space-y-4">
+        {/* ── Sidebar ────────────────────────────────────── */}
+        <div className="space-y-5">
           {/* Request Details */}
-          <Card className="border-border/80 shadow-sm">
-            <CardContent className="pt-5 space-y-5 text-sm">
+          <div className="rounded-xl border border-zinc-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+            <div className="p-6 space-y-6">
 
               {/* Ownership */}
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Ownership</p>
-                <div className="flex items-center gap-2.5">
-                  <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center shrink-0 text-muted-foreground font-semibold text-sm">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400 mb-3">Ownership</p>
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-zinc-100 flex items-center justify-center shrink-0 text-zinc-500 font-semibold text-[13px]">
                     {requester ? requester.firstName[0] : <User className="h-4 w-4" />}
                   </div>
                   <div className="min-w-0">
-                    <p className="font-semibold leading-tight truncate">
+                    <p className="text-[13px] font-semibold text-zinc-900 leading-tight truncate">
                       {requester ? `${requester.firstName} ${requester.lastName}` : "—"}
                     </p>
-                    <p className="text-xs text-muted-foreground truncate">{department?.name || "—"}</p>
+                    <p className="text-[12px] text-zinc-400 truncate mt-0.5">{department?.name || "—"}</p>
                   </div>
                 </div>
               </div>
 
-              <Separator />
+              <div className="h-px bg-zinc-100" />
 
               {/* Request Meta */}
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2.5">Request Meta</p>
-                <div className="space-y-2">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400 mb-3">Request Details</p>
+                <div className="space-y-2.5">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs text-muted-foreground">Priority</span>
-                    <Badge variant={priorityVariant(pr.priority)} className="text-xs">
+                    <span className="text-[12px] text-zinc-500">Priority</span>
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${priorityStyle[pr.priority] ?? 'bg-zinc-100 text-zinc-500'}`}>
                       {PR_PRIORITY_LABELS[pr.priority as PrPriorityType]}
-                    </Badge>
+                    </span>
                   </div>
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs text-muted-foreground">Type</span>
-                    <span className="text-xs font-medium">{pr.requestType === 'job_request' ? 'Job Request' : 'Purchase Request'}</span>
+                    <span className="text-[12px] text-zinc-500">Type</span>
+                    <span className="text-[12px] font-medium text-zinc-800">{pr.requestType === 'job_request' ? 'Job Request' : 'Purchase Request'}</span>
                   </div>
                   {pr.neededByDate && (
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs text-muted-foreground">Needed By</span>
-                      <span className="text-xs font-medium">{formatDate(pr.neededByDate)}</span>
+                      <span className="text-[12px] text-zinc-500">Needed By</span>
+                      <span className="text-[12px] font-medium text-zinc-800 tabular-nums">{formatDate(pr.neededByDate)}</span>
                     </div>
                   )}
                   {pr.projectId && (
                     <div className="flex items-start justify-between gap-2">
-                      <span className="text-xs text-muted-foreground shrink-0">Project</span>
-                      <span className="text-xs font-medium text-right">
+                      <span className="text-[12px] text-zinc-500 shrink-0">Project</span>
+                      <span className="text-[12px] font-medium text-zinc-800 text-right">
                         {(pr.projectId as unknown as { name: string; code: string | null }).name}
                         {(pr.projectId as unknown as { code: string | null }).code && (
-                          <span className="ml-1 font-mono bg-muted px-1 py-0.5 rounded text-[10px]">
+                          <span className="ml-1.5 font-mono bg-zinc-100 px-1.5 py-0.5 rounded text-[10px] text-zinc-600">
                             {(pr.projectId as unknown as { code: string | null }).code}
                           </span>
                         )}
@@ -1168,50 +1153,49 @@ export function PrDetailPage() {
                 </div>
               </div>
 
-              <Separator />
+              <div className="h-px bg-zinc-100" />
 
               {/* Business Need */}
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Business Need</p>
-                <p className="text-sm leading-relaxed text-foreground/90">{pr.justification}</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400 mb-2.5">Purpose</p>
+                <p className="text-[13px] leading-[1.7] text-zinc-700">{pr.justification}</p>
                 {pr.description && (
-                  <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{pr.description}</p>
+                  <p className="mt-2 text-[12px] leading-relaxed text-zinc-400">{pr.description}</p>
                 )}
               </div>
 
-              <Separator />
+              <div className="h-px bg-zinc-100" />
 
               {/* Audit Dates */}
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2.5">Audit Dates</p>
-                <div className="space-y-1.5">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400 mb-3">Audit Dates</p>
+                <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Created</span>
-                    <span className="text-xs font-medium">{formatDate(pr.createdAt)}</span>
+                    <span className="text-[12px] text-zinc-500">Created</span>
+                    <span className="text-[12px] font-medium text-zinc-800 tabular-nums">{formatDate(pr.createdAt)}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Submitted</span>
-                    <span className="text-xs font-medium">{formatDate(pr.submittedAt) || "—"}</span>
+                    <span className="text-[12px] text-zinc-500">Submitted</span>
+                    <span className="text-[12px] font-medium text-zinc-800 tabular-nums">{formatDate(pr.submittedAt) || "—"}</span>
                   </div>
                 </div>
               </div>
 
-            </CardContent>
-          </Card>
-
+            </div>
+          </div>
 
           {/* Approval Timeline */}
-          <Card className="border-border/80 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold">Approval Timeline</CardTitle>
-            </CardHeader>
-            <CardContent>
+          <div className="rounded-xl border border-zinc-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+            <div className="px-6 pt-5 pb-3">
+              <h3 className="text-[13px] font-semibold text-zinc-900">Approval Timeline</h3>
+            </div>
+            <div className="px-6 pb-5">
               <PurchaseRequestWorkflowTimeline
                 pr={pr}
                 approvalHistory={approvalHistory}
               />
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1373,9 +1357,9 @@ export function PrDetailPage() {
               {approvalDialog.action === "approved" &&
                 "Approve this PR and advance it to the next approval level."}
               {approvalDialog.action === "rejected" &&
-                "Reject this PR. The requester will be notified."}
+                "Reject this PR permanently. The requester will be notified."}
               {approvalDialog.action === "returned" &&
-                "Return this PR to the requester for revision."}
+                "Return this PR to the requester for revision. They can update and resubmit."}
             </DialogDescription>
           </DialogHeader>
 
@@ -1389,7 +1373,7 @@ export function PrDetailPage() {
             <textarea
               id="approval-comments"
               rows={3}
-              className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="flex w-full rounded-lg border border-zinc-200 bg-zinc-50/60 px-3 py-2.5 text-[13px] text-zinc-800 placeholder:text-zinc-400 outline-none transition-all duration-200 focus:border-zinc-400 focus:bg-white focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]"
               placeholder={
                 approvalDialog.action === "approved"
                   ? "Optional comments..."
@@ -1403,6 +1387,7 @@ export function PrDetailPage() {
           <DialogFooter>
             <Button
               variant="outline"
+              className="rounded-lg"
               onClick={() => {
                 setApprovalDialog({ ...approvalDialog, open: false });
                 setApprovalComments("");
@@ -1410,38 +1395,35 @@ export function PrDetailPage() {
             >
               Cancel
             </Button>
-            <Button
-              variant={
-                approvalDialog.action === "approved"
-                  ? "default"
-                  : approvalDialog.action === "rejected"
-                    ? "destructive"
-                    : "outline"
-              }
-              className={
-                approvalDialog.action === "approved"
-                  ? "bg-emerald-600 hover:bg-emerald-700"
-                  : undefined
-              }
-              onClick={handleApprovalAction}
-              disabled={processApproval.isPending}
-            >
-              {approvalDialog.action === "approved" && (
-                <>
-                  <CheckCircle2 className="h-4 w-4" /> Approve
-                </>
-              )}
-              {approvalDialog.action === "rejected" && (
-                <>
-                  <XCircle className="h-4 w-4" /> Reject
-                </>
-              )}
-              {approvalDialog.action === "returned" && (
-                <>
-                  <RotateCcw className="h-4 w-4" /> Return
-                </>
-              )}
-            </Button>
+            {approvalDialog.action === "approved" && (
+              <button
+                className="inline-flex items-center gap-1.5 rounded-lg h-9 px-4 text-[13px] font-semibold text-white bg-emerald-600 transition-all duration-200 hover:bg-emerald-700 hover:-translate-y-px hover:shadow-md disabled:opacity-50 disabled:pointer-events-none"
+                onClick={handleApprovalAction}
+                disabled={processApproval.isPending}
+              >
+                <CheckCircle2 className="h-4 w-4" /> Approve
+              </button>
+            )}
+            {approvalDialog.action === "rejected" && (
+              <Button
+                variant="destructive"
+                className="rounded-lg"
+                onClick={handleApprovalAction}
+                disabled={processApproval.isPending}
+              >
+                <XCircle className="h-4 w-4" /> Reject
+              </Button>
+            )}
+            {approvalDialog.action === "returned" && (
+              <Button
+                variant="outline"
+                className="rounded-lg"
+                onClick={handleApprovalAction}
+                disabled={processApproval.isPending}
+              >
+                <RotateCcw className="h-4 w-4" /> Return
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

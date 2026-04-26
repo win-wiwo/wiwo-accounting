@@ -190,13 +190,16 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
               key={item.href}
               to={item.href}
               className={cn(
-                'relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150',
+                'relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
                 isActive
                   ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm'
-                  : 'text-[oklch(0.72_0_0)] hover:bg-white/[0.07] hover:text-sidebar-foreground',
+                  : 'text-[oklch(0.72_0_0)] hover:bg-white/[0.08] hover:text-sidebar-foreground',
                 collapsed && 'justify-center px-0',
               )}
             >
+              {isActive && !collapsed && (
+                <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-full bg-white/70" />
+              )}
               <item.icon className={cn('h-4 w-4 shrink-0', isActive ? 'text-sidebar-accent-foreground' : '')} />
               {!collapsed && (
                 <span className="flex flex-1 items-center justify-between text-[13px]">
@@ -235,13 +238,16 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                   key={item.href}
                   to={item.href}
                   className={cn(
-                    'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150',
+                    'relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
                     isActive
                       ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm'
-                      : 'text-[oklch(0.72_0_0)] hover:bg-white/[0.07] hover:text-sidebar-foreground',
+                      : 'text-[oklch(0.72_0_0)] hover:bg-white/[0.08] hover:text-sidebar-foreground',
                     collapsed && 'justify-center px-0',
                   )}
                 >
+                  {isActive && !collapsed && (
+                    <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-full bg-white/70" />
+                  )}
                   <item.icon className="h-4 w-4 shrink-0" />
                   {!collapsed && <span className="text-[13px]">{item.label}</span>}
                 </Link>
@@ -253,46 +259,51 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
       {/* User Profile Section */}
       <div className="mx-4 h-px bg-sidebar-border" />
-      <div className={cn('px-3 py-4', collapsed ? 'flex flex-col items-center gap-2' : 'space-y-1')}>
-        {/* Profile link */}
-        <Link
-          to="/profile"
-          className={cn(
-            'flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all duration-150 hover:bg-white/[0.06]',
-            collapsed && 'justify-center px-0',
-          )}
-        >
-          <Avatar className="h-7 w-7 shrink-0 ring-1 ring-white/10">
-            <AvatarImage src={resolvePhotoUrl(user?.photoUrl)} alt={initials} />
-            <AvatarFallback className="bg-white/10 text-sidebar-foreground text-[11px] font-semibold">
-              {initials}
-            </AvatarFallback>
-          </Avatar>
-          {!collapsed && (
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-[13px] font-medium text-sidebar-foreground">
-                {user?.firstName} {user?.lastName}
-              </p>
-              <p className="truncate text-[11px] text-[oklch(0.62_0_0)]">
-                {ROLE_LABELS[user?.role as UserRole] || user?.role}
-              </p>
-            </div>
-          )}
-        </Link>
+      <div className={cn('px-3 py-5', collapsed ? 'flex flex-col items-center gap-2.5' : '')}>
+        <div className={cn(
+          !collapsed && 'rounded-xl border border-white/[0.06] bg-white/[0.04] p-1.5 space-y-0.5',
+          collapsed && 'flex flex-col items-center gap-2.5',
+        )}>
+          {/* Profile link */}
+          <Link
+            to="/profile"
+            className={cn(
+              'flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all duration-200 hover:bg-white/[0.07]',
+              collapsed && 'justify-center px-0',
+            )}
+          >
+            <Avatar className="h-7 w-7 shrink-0 ring-1 ring-white/10">
+              <AvatarImage src={resolvePhotoUrl(user?.photoUrl)} alt={initials} />
+              <AvatarFallback className="bg-white/10 text-sidebar-foreground text-[11px] font-semibold">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            {!collapsed && (
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[13px] font-medium text-sidebar-foreground">
+                  {user?.firstName} {user?.lastName}
+                </p>
+                <p className="truncate text-[11px] text-[oklch(0.58_0_0)]">
+                  {ROLE_LABELS[user?.role as UserRole] || user?.role}
+                </p>
+              </div>
+            )}
+          </Link>
 
-        {/* Logout */}
-        <Button
-          variant="ghost"
-          size={collapsed ? 'icon' : 'sm'}
-          onClick={handleLogout}
-          className={cn(
-            'text-[oklch(0.65_0_0)] hover:bg-white/[0.07] hover:text-sidebar-foreground',
-            collapsed ? 'h-9 w-9' : 'w-full justify-start gap-3 px-3 text-[13px]',
-          )}
-        >
-          <LogOut className="h-4 w-4 shrink-0" />
-          {!collapsed && 'Sign out'}
-        </Button>
+          {/* Logout */}
+          <Button
+            variant="ghost"
+            size={collapsed ? 'icon' : 'sm'}
+            onClick={handleLogout}
+            className={cn(
+              'text-[oklch(0.60_0_0)] hover:bg-white/[0.07] hover:text-sidebar-foreground transition-all duration-200',
+              collapsed ? 'h-9 w-9' : 'w-full justify-start gap-3 px-3 text-[13px]',
+            )}
+          >
+            <LogOut className="h-4 w-4 shrink-0" />
+            {!collapsed && 'Sign out'}
+          </Button>
+        </div>
       </div>
     </aside>
   );

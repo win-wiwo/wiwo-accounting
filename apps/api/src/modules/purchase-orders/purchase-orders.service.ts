@@ -372,6 +372,37 @@ export class PurchaseOrdersService {
    * Generates a PO number in the format PO-YYYY-NNNNN.
    * Uses findOneAndUpdate with $inc for atomic increment.
    */
+  async getStats() {
+    const [statusCounts, activeValueResult] = await Promise.all([
+      this.poModel.aggregate([
+        { $group: { _id: '$status', count: { $sum: 1 } } },
+      ]),
+      this.poModel.aggregate([
+        { $match: { status: { $in: ['draft', 'submitted', 'approved', 'issued'] } } },
+        { $group: { _id: null, sum: { $sum: '$totalAmount' } } },
+      ]),
+    ]);
+
+    const byStatus: Record<string, number> = {};
+    for (const entry of statusCounts) {
+      byStatus[entry._id] = entry.count;
+    }
+
+    const total = Object.values(byStatus).reduce((a, b) => a + b, 0);
+    const open = (byStatus['draft'] ?? 0) + (byStatus['submitted'] ?? 0) + (byStatus['approved'] ?? 0);
+    const issued = byStatus['issued'] ?? 0;
+    const cancelled = byStatus['cancelled'] ?? 0;
+    const activeValue = activeValueResult[0]?.sum ?? 0;
+
+    return { data: { total, open, issued, cancelled, activeValue } };
+  }
+
+  async getMonthlyIssuedCount(): Promise<number> {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    return this.poModel.countDocuments({ status: 'issued', issuedAt: { $gte: startOfMonth } });
+  }
+
   private async generatePoNumber(): Promise<string> {
     const year = new Date().getFullYear();
 

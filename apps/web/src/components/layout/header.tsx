@@ -94,8 +94,8 @@ function QuickSearch() {
 
   return (
     <div ref={containerRef} className="relative hidden md:block">
-      <div className="relative">
-        <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[oklch(0.58_0_0)]" />
+      <div className="relative group/search">
+        <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[oklch(0.44_0_0)] transition-colors duration-200 group-focus-within/search:text-[oklch(0.65_0_0)]" />
         <input
           ref={inputRef}
           type="text"
@@ -104,18 +104,18 @@ function QuickSearch() {
           onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
           onFocus={() => setOpen(true)}
           onKeyDown={handleKeyDown}
-          className="h-8 w-56 rounded-lg border border-sidebar-border bg-white/5 pl-8 pr-3 text-sm text-sidebar-foreground placeholder:text-[oklch(0.58_0_0)] focus:border-sidebar-ring focus:bg-white/[0.07] focus:outline-none focus:ring-1 focus:ring-sidebar-ring lg:w-72"
+          className="header-search"
         />
       </div>
 
       {open && hasSearchQuery && (
-        <div className="absolute left-0 top-full z-50 mt-1 w-full min-w-[320px] overflow-hidden rounded-lg border bg-popover shadow-lg animate-in fade-in-0 zoom-in-95">
+        <div className="absolute left-0 top-full z-50 mt-2 w-full min-w-[320px] overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-[0_4px_24px_rgba(0,0,0,0.12)] animate-in fade-in-0 zoom-in-95">
           {isLoading ? (
             <div className="flex items-center justify-center py-6">
-              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />
             </div>
           ) : results.length === 0 ? (
-            <div className="py-6 text-center text-sm text-muted-foreground">
+            <div className="py-6 text-center text-[13px] text-zinc-400">
               No results found
             </div>
           ) : (
@@ -123,33 +123,33 @@ function QuickSearch() {
               {results.map((pr) => (
                 <div
                   key={pr._id}
-                  className="flex cursor-pointer items-center gap-3 border-b px-3 py-2.5 last:border-0 hover:bg-muted/50 transition-colors"
+                  className="flex cursor-pointer items-center gap-3 border-b border-zinc-100 px-4 py-3 last:border-0 hover:bg-zinc-50 transition-colors duration-150"
                   onClick={() => {
                     navigate(`/purchase-requests/${pr._id}`);
                     setOpen(false);
                     setQuery('');
                   }}
                 >
-                  <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <FileText className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{pr.title}</p>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <p className="truncate text-[13px] font-medium text-zinc-800">{pr.title}</p>
+                    <div className="flex items-center gap-2 text-[11px] text-zinc-400 mt-0.5">
                       <span className="font-mono">{pr.prNumber || 'Draft'}</span>
-                      <span>&middot;</span>
+                      <span>·</span>
                       <span>{PR_STATUS_LABELS[pr.status as PrStatus]}</span>
                     </div>
                   </div>
                 </div>
               ))}
               <div
-                className="cursor-pointer border-t bg-muted/30 px-3 py-2 text-center text-xs font-medium text-primary hover:bg-muted/50 transition-colors"
+                className="cursor-pointer border-t border-zinc-100 bg-zinc-50/50 px-4 py-2.5 text-center text-[12px] font-medium text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50 transition-colors duration-150"
                 onClick={() => {
                   navigate(`/search?search=${encodeURIComponent(query.trim())}`);
                   setOpen(false);
                   setQuery('');
                 }}
               >
-                View all results
+                View all results →
               </div>
             </>
           )}

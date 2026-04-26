@@ -98,7 +98,7 @@ function AnimatedMockup() {
             <div
               key={pr.title}
               className="hero-anim flex items-center gap-3 rounded-lg bg-white/[0.04] px-3 py-2.5"
-              style={{ animation: `heroFadeUp 0.7s ease-out ${0.1 + i * 0.12}s both` }}
+              style={{ animation: `heroFadeUp 0.6s cubic-bezier(0.16,1,0.3,1) ${0.1 + i * 0.1}s both` }}
             >
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[12px] font-medium text-white/75">{pr.title}</p>
@@ -121,7 +121,7 @@ function AnimatedMockup() {
                 style={{
                   height: `${h}%`,
                   backgroundColor: i === 9 ? 'rgba(255,255,255,0.55)' : `rgba(255,255,255,${0.15 + (h / 100) * 0.2})`,
-                  animation: `heroBarGrow 1.4s ease-out ${0.05 * i}s both`,
+                  animation: `heroBarGrow 1.1s cubic-bezier(0.25,1,0.5,1) ${0.04 * i}s both`,
                 }}
               />
             ))}
@@ -172,7 +172,7 @@ export function LoginPage() {
       <div className="relative hidden overflow-hidden lg:flex lg:w-[58%] xl:w-[60%] flex-col bg-[#131313]">
         <div
           className="pointer-events-none absolute inset-0"
-          style={{ background: 'radial-gradient(ellipse 80% 60% at 55% 50%, rgba(255,255,255,0.035) 0%, transparent 65%)' }}
+          style={{ background: 'radial-gradient(ellipse 90% 70% at 55% 48%, rgba(255,255,255,0.05) 0%, transparent 62%)' }}
           aria-hidden
         />
         <div className="relative flex flex-1 flex-col justify-between p-12 xl:p-16">
@@ -216,7 +216,7 @@ export function LoginPage() {
 
         {/* Form wrapper */}
         <div
-          className="login-anim relative w-full max-w-[420px]"
+          className="login-anim relative w-full max-w-[440px]"
           style={{ animation: 'loginSlideUp 0.6s cubic-bezier(0.16,1,0.3,1) both' }}
         >
 
@@ -224,23 +224,23 @@ export function LoginPage() {
           <div className="login-card">
             <div className="login-card-rule" />
 
-            <div className="px-10 py-9">
+            <div className="px-11 py-10">
 
               {/* Brand + heading */}
               <div
                 className="login-anim mb-8"
-                style={{ animation: 'loginSlideUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.06s both' }}
+                style={{ animation: 'loginSlideUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.05s both' }}
               >
                 <div className="mb-5 hidden items-center gap-2.5 lg:flex">
                   {/*<img src={wiwoLogo} alt="WIWO" className="h-5 rounded opacity-60" />*/}
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
                     Wilson Works
                   </span>
                 </div>
                 <h2 className="text-[26px] font-bold tracking-[-0.01em] text-zinc-900">
                   Welcome back
                 </h2>
-                <p className="mt-1.5 text-[13.5px] leading-relaxed text-zinc-400">
+                <p className="mt-1.5 text-[13.5px] leading-relaxed text-zinc-500">
                   Sign in to access your procurement workspace.
                 </p>
               </div>
@@ -261,11 +261,11 @@ export function LoginPage() {
                 {/* Email */}
                 <div
                   className="login-anim space-y-2"
-                  style={{ animation: 'loginSlideUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.12s both' }}
+                  style={{ animation: 'loginSlideUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.10s both' }}
                 >
                   <label
                     htmlFor="email"
-                    className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-400"
+                    className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-500"
                   >
                     Email address
                   </label>
@@ -286,11 +286,11 @@ export function LoginPage() {
                 {/* Password */}
                 <div
                   className="login-anim space-y-2"
-                  style={{ animation: 'loginSlideUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.20s both' }}
+                  style={{ animation: 'loginSlideUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.17s both' }}
                 >
                   <label
                     htmlFor="password"
-                    className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-400"
+                    className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-500"
                   >
                     Password
                   </label>
@@ -306,7 +306,7 @@ export function LoginPage() {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-300 transition-colors duration-150 hover:text-zinc-600"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 transition-colors duration-200 hover:text-zinc-700"
                       tabIndex={-1}
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -320,7 +320,7 @@ export function LoginPage() {
                 {/* Submit */}
                 <div
                   className="login-anim pt-[6px]"
-                  style={{ animation: 'loginSlideUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.28s both' }}
+                  style={{ animation: 'loginSlideUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.24s both' }}
                 >
                   <button type="submit" disabled={isSubmitting} className="login-btn">
                     <span className="login-btn-sheen" aria-hidden />
@@ -334,13 +334,13 @@ export function LoginPage() {
           {/* Footer */}
           <div
             className="login-anim mt-5 flex flex-col items-center gap-2"
-            style={{ animation: 'loginSlideUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.36s both' }}
+            style={{ animation: 'loginSlideUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.30s both' }}
           >
             <div className="flex items-center gap-1.5">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 opacity-80" />
-              <span className="text-[11px] text-zinc-400">Secured internal access</span>
+              <span className="text-[11px] text-zinc-500">Secured internal access</span>
             </div>
-            <p className="text-[11px] text-zinc-400/70">
+            <p className="text-[11px] text-zinc-400">
               Contact your administrator if you need an account.
             </p>
           </div>

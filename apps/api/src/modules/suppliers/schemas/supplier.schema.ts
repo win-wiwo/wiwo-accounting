@@ -39,6 +39,9 @@ export class Supplier extends Document {
   @Prop({ required: true, enum: ['active', 'inactive', 'blacklisted'], default: 'active' })
   status: string;
 
+  @Prop({ type: String, default: null, trim: true })
+  category: string | null;
+
   @Prop({ type: String, default: null })
   notes: string | null;
 

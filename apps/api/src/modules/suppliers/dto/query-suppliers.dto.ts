@@ -28,6 +28,12 @@ export class QuerySuppliersDto {
   @IsOptional()
   status?: string;
 
+  @ApiPropertyOptional({ example: 'vat', enum: ['vat', 'non_vat'] })
+  @IsString()
+  @IsIn(['vat', 'non_vat'])
+  @IsOptional()
+  taxType?: string;
+
   @ApiPropertyOptional({ example: 'companyName', enum: ['companyName', 'createdAt', 'status'] })
   @IsString()
   @IsIn(['companyName', 'createdAt', 'status'])

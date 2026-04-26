@@ -17,7 +17,6 @@ import {
   XCircle,
   Undo2,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
 type TimelineEntry = {
@@ -202,58 +201,80 @@ export function PurchaseRequestWorkflowTimeline({
     return <CurrentState pr={pr} compact={compact} />;
   }
 
-  return (
-    <div className={compact ? "space-y-3" : "space-y-4"}>
-      {entries.map((entry, index) => (
-        <div key={entry.id} className={compact ? "text-xs" : "flex gap-3"}>
-          <div className={compact ? "flex items-center gap-1.5" : "mt-0.5"}>
-            {entry.icon}
-            {compact && <span className="font-medium">{entry.title}</span>}
+  if (compact) {
+    return (
+      <div className="space-y-3">
+        {entries.map((entry, index) => (
+          <div key={entry.id} className="text-xs">
+            <div className="flex items-center gap-1.5">
+              {entry.icon}
+              <span className="font-medium">{entry.title}</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              {entry.levelLabel && (
+                <p className="text-muted-foreground mt-0.5">{entry.levelLabel}</p>
+              )}
+              {entry.actor && (
+                <p className="text-muted-foreground mt-0.5">{entry.actor}</p>
+              )}
+              {entry.note && (
+                <p className="mt-1 italic text-muted-foreground">&ldquo;{entry.note}&rdquo;</p>
+              )}
+              <p className="mt-0.5 text-muted-foreground/60">{formatDateTime(entry.date)}</p>
+              {index < entries.length - 1 && <Separator className="mt-2" />}
+            </div>
           </div>
-          <div className="flex-1 min-w-0">
-            {!compact && (
+        ))}
+        <CurrentState pr={pr} compact />
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      {/* Vertical connector line */}
+      {entries.length > 1 && (
+        <div className="absolute left-[11px] top-[22px] bottom-8 w-px bg-zinc-200" />
+      )}
+      <div className="space-y-5">
+        {entries.map((entry) => (
+          <div key={entry.id} className="flex gap-3 relative">
+            <div className="mt-0.5 shrink-0 z-[1] rounded-full bg-white p-[3px]">
+              {entry.icon}
+            </div>
+            <div className="flex-1 min-w-0 pb-0.5">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">{entry.title}</span>
+                <span className="text-[13px] font-semibold text-zinc-800">{entry.title}</span>
                 {entry.levelLabel && (
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                  <span className="inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-600">
                     {entry.levelLabel}
-                  </Badge>
+                  </span>
                 )}
               </div>
-            )}
-            {compact && entry.levelLabel && (
-              <p className="text-muted-foreground mt-0.5">{entry.levelLabel}</p>
-            )}
-            {entry.actor && (
-              <p className={compact ? "text-muted-foreground mt-0.5" : "text-xs text-muted-foreground"}>
-                {compact ? entry.actor : `by ${entry.actor}`}
+              {entry.actor && (
+                <p className="text-[12px] text-zinc-500 mt-0.5">by {entry.actor}</p>
+              )}
+              {entry.note && (
+                <p className="mt-1.5 text-[12px] leading-relaxed text-zinc-500 italic rounded-lg bg-zinc-50 px-3 py-2 border border-zinc-100">
+                  &ldquo;{entry.note}&rdquo;
+                </p>
+              )}
+              <p className="mt-1 text-[11px] tabular-nums text-zinc-400">
+                {formatDateTime(entry.date)}
               </p>
-            )}
-            {entry.note && (
-              <p
-                className={
-                  compact
-                    ? "mt-1 italic text-muted-foreground"
-                    : "mt-1 text-sm text-muted-foreground italic"
-                }
-              >
-                {compact ? `"${entry.note}"` : `“${entry.note}”`}
-              </p>
-            )}
-            <p
-              className={
-                compact
-                  ? "mt-0.5 text-muted-foreground/60"
-                  : "mt-0.5 text-[11px] text-muted-foreground/70"
-              }
-            >
-              {formatDateTime(entry.date)}
-            </p>
-            {compact && index < entries.length - 1 && <Separator className="mt-2" />}
+            </div>
+          </div>
+        ))}
+        {/* Current state */}
+        <div className="flex gap-3 relative">
+          <div className="mt-1 shrink-0 z-[1] flex items-center justify-center w-[22px]">
+            <span className="block h-2 w-2 rounded-full bg-zinc-300 animate-pulse" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <CurrentState pr={pr} />
           </div>
         </div>
-      ))}
-      <CurrentState pr={pr} compact={compact} />
+      </div>
     </div>
   );
 }

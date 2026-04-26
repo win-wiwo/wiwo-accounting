@@ -1,6 +1,22 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { purchaseOrdersApi, type PurchaseOrdersQuery, type CreatePurchaseOrderPayload } from '@/lib/api-services';
 
+export function usePoStats() {
+  return useQuery({
+    queryKey: ['purchase-orders', 'stats'],
+    queryFn: () => purchaseOrdersApi.getStats(),
+    select: (data) => data?.data,
+  });
+}
+
+export function usePoMonthlyStats() {
+  return useQuery({
+    queryKey: ['purchase-orders', 'stats', 'monthly'],
+    queryFn: () => purchaseOrdersApi.getMonthlyStats(),
+    select: (data) => data?.data?.issuedThisMonth ?? 0,
+  });
+}
+
 export function usePurchaseOrders(params: PurchaseOrdersQuery = {}) {
   return useQuery({
     queryKey: ['purchase-orders', params],

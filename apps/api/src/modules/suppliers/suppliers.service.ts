@@ -29,7 +29,7 @@ export class SuppliersService {
   }
 
   async findAll(query: QuerySuppliersDto) {
-    const { page = 1, limit = 10, search, status, sort = 'companyName', order = 'asc' } = query;
+    const { page = 1, limit = 10, search, status, taxType, sort = 'companyName', order = 'asc' } = query;
 
     const filter: FilterQuery<Supplier> = {};
 
@@ -43,6 +43,10 @@ export class SuppliersService {
 
     if (status) {
       filter.status = status;
+    }
+
+    if (taxType) {
+      filter.taxType = taxType;
     }
 
     const skip = (page - 1) * limit;
@@ -81,6 +85,22 @@ export class SuppliersService {
     }
 
     return supplier;
+  }
+
+  async getStats() {
+    const [total, active, inactive, blacklisted, missingContact] = await Promise.all([
+      this.supplierModel.countDocuments({}),
+      this.supplierModel.countDocuments({ status: 'active' }),
+      this.supplierModel.countDocuments({ status: 'inactive' }),
+      this.supplierModel.countDocuments({ status: 'blacklisted' }),
+      this.supplierModel.countDocuments({
+        $and: [
+          { status: 'active' },
+          { $or: [{ contactPerson: null }, { contactNumber: null }, { email: null }] },
+        ],
+      }),
+    ]);
+    return { data: { total, active, inactive, blacklisted, missingContact } };
   }
 
   async update(id: string, dto: UpdateSupplierDto): Promise<Supplier> {

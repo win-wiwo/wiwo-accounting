@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { purchaseRequestsApi, type PurchaseRequestsQuery, type CreatePrPayload } from '@/lib/api-services';
+import { purchaseRequestsApi, type PurchaseRequestsQuery, type CreatePrPayload, type ProjectSpendingItem, type ManagementStats } from '@/lib/api-services';
 import type { SubmitQuotationDto } from '@prams/shared';
 
 interface UsePurchaseRequestsOptions {
@@ -29,6 +29,22 @@ export function usePrStats() {
   return useQuery({
     queryKey: ['purchase-requests', 'stats'],
     queryFn: () => purchaseRequestsApi.getStats(),
+  });
+}
+
+export function useProjectSpending() {
+  return useQuery({
+    queryKey: ['purchase-requests', 'stats', 'by-project'],
+    queryFn: () => purchaseRequestsApi.getProjectSpending(),
+    select: (data) => (data as unknown as { data?: ProjectSpendingItem[] })?.data ?? [],
+  });
+}
+
+export function useManagementStats() {
+  return useQuery({
+    queryKey: ['purchase-requests', 'stats', 'management'],
+    queryFn: () => purchaseRequestsApi.getManagementStats(),
+    select: (data) => (data as unknown as { data?: ManagementStats })?.data ?? null,
   });
 }
 

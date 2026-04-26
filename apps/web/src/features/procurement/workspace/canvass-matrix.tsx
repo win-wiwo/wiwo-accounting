@@ -2,8 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, Trophy } from 'lucide-react';
+import { Plus, Trash2, Trophy, TrendingDown, AlertTriangle, Info, CheckCircle } from 'lucide-react';
 import { formatCurrency } from './utils';
 import type { DraftCanvassEntry } from './use-canvass';
 
@@ -43,7 +42,6 @@ export function CanvassMatrix({
       }
     }
     if (minLocalId) cheapestPerItem[item._id] = minLocalId;
-    // Only mark highest if there are at least 2 priced entries and highest != cheapest
     const pricedCount = entries.filter((e) => Number(e.quotedPrices[item._id]) > 0).length;
     if (maxLocalId && pricedCount >= 2 && maxLocalId !== minLocalId) {
       highestPerItem[item._id] = maxLocalId;
@@ -73,191 +71,245 @@ export function CanvassMatrix({
   }
   const savings = nextBestTotal > 0 && winnerTotal > 0 ? nextBestTotal - winnerTotal : 0;
 
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-sm font-semibold">Supplier Comparison</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Quote every item per supplier. Green = lowest price. Red = highest.
-          </p>
-        </div>
-        <Button type="button" variant="outline" size="sm" onClick={onAddEntry}>
-          <Plus className="h-4 w-4" /> Add Supplier
-        </Button>
-      </div>
+  // Lowest total
+  const lowestTotal = totals.filter((t) => t > 0).length > 0 ? Math.min(...totals.filter((t) => t > 0)) : 0;
+  const winnerAboveCheapestPercent = winnerTotal > 0 && lowestTotal > 0 && winnerTotal !== lowestTotal
+    ? ((winnerTotal - lowestTotal) / lowestTotal * 100).toFixed(1)
+    : null;
 
-      {/* Matrix table */}
-      <div className="overflow-x-auto rounded-lg border">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b bg-muted/40">
-              <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground w-[200px]">Item</th>
-              <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground w-[60px]">Qty</th>
-              {entries.map((entry, i) => {
-                return (
-                  <th key={entry.localId} className={`text-left px-3 py-2 min-w-[180px] ${entry.isSelected ? 'bg-emerald-50' : ''}`}>
-                    <div className="space-y-1.5">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-medium text-muted-foreground">Supplier {i + 1}</span>
-                        {entry.isSelected && (
-                          <Badge variant="success" className="text-[9px] px-1 py-0">
-                            <Trophy className="h-2.5 w-2.5 mr-0.5" /> Winner
-                          </Badge>
-                        )}
-                      </div>
-                      <Select
-                        value={entry.supplierId || 'none'}
-                        onValueChange={(v) => onUpdateEntry(entry.localId, { supplierId: v === 'none' ? '' : v })}
-                      >
-                        <SelectTrigger className="h-8 text-xs">
-                          <SelectValue placeholder="Select supplier" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">Select supplier</SelectItem>
-                          {suppliers.map((s) => (
-                            <SelectItem key={s._id} value={s._id}>{s.companyName}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <div className="flex items-center gap-1">
-                        {!entry.isSelected && (
-                          <Button
-                            type="button" size="sm" variant="ghost"
-                            className="h-6 text-[10px] px-1.5 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50"
-                            onClick={() => onSetWinner(entry.localId)}
-                          >
-                            <Trophy className="h-3 w-3" /> Set Winner
-                          </Button>
-                        )}
-                        {entries.length > 1 && (
-                          <Button
-                            type="button" size="icon" variant="ghost"
-                            className="h-6 w-6 text-destructive hover:text-destructive"
-                            title="Remove supplier"
-                            onClick={() => onRemoveEntry(entry.localId)}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </th>
-                );
-              })}
-            </tr>
-          </thead>
-          <tbody>
-            {procItems.map((item: ProcItem) => (
-              <tr key={item._id} className="border-b last:border-0">
-                <td className="px-3 py-2">
-                  <p className="font-medium text-xs">{item.description}</p>
-                  {item.specifications && (
-                    <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">{item.specifications}</p>
-                  )}
-                </td>
-                <td className="px-3 py-2 text-xs text-muted-foreground">
-                  {item.quantity} {item.unit}
-                </td>
-                {entries.map((entry) => {
-                  const price = Number(entry.quotedPrices[item._id]) || 0;
-                  const isCheapest = cheapestPerItem[item._id] === entry.localId && price > 0;
-                  const isHighest = highestPerItem[item._id] === entry.localId && price > 0;
-                  const lineTotal = price * item.quantity;
+  // All prices filled check
+  const allItemsQuoted = entries.length > 0 && entries.every((entry) =>
+    procItems.every((item: ProcItem) => Number(entry.quotedPrices[item._id]) > 0),
+  );
+
+  // Selection state
+  const hasSelection = entries.some((e) => e.isSelected && e.supplierId);
+  const isOnlySupplier = entries.filter((e) => e.supplierId).length === 1;
+
+  return (
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="rounded-xl border border-zinc-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+        <div className="flex items-center justify-between px-5 pt-5 pb-3">
+          <div>
+            <h3 className="text-[15px] font-semibold text-zinc-900">Supplier Comparison</h3>
+            <p className="text-[12px] text-zinc-400 mt-0.5">
+              Quote every item per supplier. <span className="text-emerald-600">Green</span> = lowest price. <span className="text-red-500">Red</span> = highest.
+            </p>
+          </div>
+          <Button type="button" variant="outline" size="sm" className="text-[12px] h-8" onClick={onAddEntry}>
+            <Plus className="h-3.5 w-3.5" /> Add Supplier
+          </Button>
+        </div>
+
+        {/* Comparison Intelligence Chips */}
+        {entries.length > 0 && (
+          <div className="px-5 pb-3 flex flex-wrap gap-2">
+            {allItemsQuoted && (
+              <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 border border-emerald-100 px-2 py-1 text-[11px] text-emerald-700">
+                All required items quoted
+              </span>
+            )}
+            {hasSelection && isOnlySupplier && (
+              <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 border border-blue-100 px-2 py-1 text-[11px] text-blue-700">
+                <Info className="h-3 w-3" /> Single supplier — justification required
+              </span>
+            )}
+            {winnerAboveCheapestPercent && (
+              <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 border border-amber-100 px-2 py-1 text-[11px] text-amber-700">
+                <AlertTriangle className="h-3 w-3" /> Selected is +{winnerAboveCheapestPercent}% above cheapest
+              </span>
+            )}
+            {savings > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 border border-emerald-100 px-2 py-1 text-[11px] text-emerald-700">
+                <TrendingDown className="h-3 w-3" /> {formatCurrency(savings)} savings vs next best
+              </span>
+            )}
+            {!hasSelection && entries.some((e) => e.supplierId) && (
+              <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 border border-amber-100 px-2 py-1 text-[11px] text-amber-700">
+                <AlertTriangle className="h-3 w-3" /> Winner selection required
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Matrix Table */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-[13px]">
+            <thead>
+              <tr className="border-t border-b border-zinc-100 bg-zinc-50/50">
+                <th className="text-left px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400 w-[200px]">Item</th>
+                <th className="text-left px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400 w-[60px]">Qty</th>
+                {entries.map((entry, i) => {
                   return (
-                    <td
-                      key={entry.localId}
-                      className={`px-3 py-2 ${entry.isSelected ? 'bg-emerald-50/50' : ''} ${isCheapest ? 'bg-emerald-50' : ''} ${isHighest ? 'bg-red-50/40' : ''}`}
-                    >
-                      <div className="space-y-1">
-                        <div className="relative">
-                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">P</span>
-                          <Input
-                            type="number"
-                            min={0}
-                            step="0.01"
-                            placeholder="0.00"
-                            className="h-8 text-xs pl-6"
-                            value={entry.quotedPrices[item._id] ?? ''}
-                            onChange={(e) => onUpdateEntry(entry.localId, {
-                              quotedPrices: { ...entry.quotedPrices, [item._id]: e.target.value },
-                            })}
-                          />
+                    <th key={entry.localId} className={`text-left px-4 py-2.5 min-w-[190px] ${entry.isSelected ? 'bg-emerald-50/40' : ''}`}>
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">Supplier {i + 1}</span>
+                          {entry.isSelected && entry.supplierId && !isOnlySupplier && (
+                            <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-100 px-1.5 py-0 text-[9px] font-semibold text-emerald-700 border border-emerald-200">
+                              <Trophy className="h-2.5 w-2.5" /> Winner
+                            </span>
+                          )}
+                          {entry.isSelected && entry.supplierId && isOnlySupplier && (
+                            <span className="inline-flex items-center gap-0.5 rounded-full bg-blue-50 px-1.5 py-0 text-[9px] font-semibold text-blue-600 border border-blue-100">
+                              Only Supplier
+                            </span>
+                          )}
                         </div>
-                        {price > 0 && (
-                          <p className={`text-[10px] ${isCheapest ? 'text-emerald-700 font-semibold' : isHighest ? 'text-red-500' : 'text-muted-foreground'}`}>
-                            = {formatCurrency(lineTotal)}
-                          </p>
-                        )}
+                        <Select
+                          value={entry.supplierId || 'none'}
+                          onValueChange={(v) => onUpdateEntry(entry.localId, { supplierId: v === 'none' ? '' : v })}
+                        >
+                          <SelectTrigger className="h-8 text-[12px] bg-white">
+                            <SelectValue placeholder="Select supplier" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Select supplier</SelectItem>
+                            {suppliers.map((s) => (
+                              <SelectItem key={s._id} value={s._id}>{s.companyName}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <div className="flex items-center gap-1">
+                          {!entry.isSelected && (
+                            <Button
+                              type="button" size="sm" variant="ghost"
+                              className="h-6 text-[10px] px-1.5 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50"
+                              onClick={() => onSetWinner(entry.localId)}
+                            >
+                              <Trophy className="h-3 w-3" /> Set Winner
+                            </Button>
+                          )}
+                          {entries.length > 1 && (
+                            <Button
+                              type="button" size="icon" variant="ghost"
+                              className="h-6 w-6 text-red-400 hover:text-red-600 hover:bg-red-50"
+                              title="Remove supplier"
+                              onClick={() => onRemoveEntry(entry.localId)}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
+                    </th>
+                  );
+                })}
+              </tr>
+            </thead>
+            <tbody>
+              {procItems.map((item: ProcItem) => (
+                <tr key={item._id} className="border-b border-zinc-100/60 last:border-0 hover:bg-zinc-50/40 transition-colors duration-150">
+                  <td className="px-5 py-2.5">
+                    <p className="font-medium text-[12px] text-zinc-800">{item.description}</p>
+                    {item.specifications && (
+                      <p className="text-[11px] text-zinc-400 mt-0.5 line-clamp-1">{item.specifications}</p>
+                    )}
+                  </td>
+                  <td className="px-5 py-2.5 text-[12px] text-zinc-400 tabular-nums">
+                    {item.quantity} {item.unit}
+                  </td>
+                  {entries.map((entry) => {
+                    const price = Number(entry.quotedPrices[item._id]) || 0;
+                    const isCheapest = cheapestPerItem[item._id] === entry.localId && price > 0;
+                    const isHighest = highestPerItem[item._id] === entry.localId && price > 0;
+                    const lineTotal = price * item.quantity;
+                    return (
+                      <td
+                        key={entry.localId}
+                        className={`px-4 py-2.5 ${entry.isSelected ? 'bg-emerald-50/30' : ''} ${isCheapest ? 'bg-emerald-50/50' : ''} ${isHighest ? 'bg-red-50/30' : ''}`}
+                      >
+                        <div className="space-y-1">
+                          <div className="relative">
+                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-zinc-400 font-medium">P</span>
+                            <Input
+                              type="number"
+                              min={0}
+                              step="0.01"
+                              placeholder="0.00"
+                              className={`h-8 text-[12px] pl-7 tabular-nums bg-white ${isCheapest ? 'border-emerald-300 focus-visible:ring-emerald-300' : ''} ${isHighest ? 'border-red-200 focus-visible:ring-red-200' : ''}`}
+                              value={entry.quotedPrices[item._id] ?? ''}
+                              onChange={(e) => onUpdateEntry(entry.localId, {
+                                quotedPrices: { ...entry.quotedPrices, [item._id]: e.target.value },
+                              })}
+                            />
+                          </div>
+                          {price > 0 && (
+                            <p className={`text-[10px] tabular-nums ${isCheapest ? 'text-emerald-700 font-semibold' : isHighest ? 'text-red-500' : 'text-zinc-400'}`}>
+                              = {formatCurrency(lineTotal)}
+                            </p>
+                          )}
+                        </div>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+              {/* Totals row */}
+              <tr className="border-t-2 border-zinc-200 bg-zinc-50/80">
+                <td className="px-5 py-3 font-semibold text-[12px] uppercase tracking-[0.06em] text-zinc-400" colSpan={2}>Total</td>
+                {entries.map((entry, i) => {
+                  const total = totals[i];
+                  const supplier = suppliers.find((s) => s._id === entry.supplierId);
+                  const isLowest = total > 0 && total === lowestTotal && entries.filter((e) => totals[entries.indexOf(e)] > 0).length > 1;
+                  return (
+                    <td key={entry.localId} className={`px-4 py-3 ${entry.isSelected ? 'bg-emerald-50/50' : ''}`}>
+                      <div className="flex items-center gap-1.5">
+                        {entry.isSelected && total > 0 && <CheckCircle className="h-4 w-4 text-emerald-600 shrink-0" />}
+                        <p className={`text-[15px] font-bold tabular-nums ${entry.isSelected ? 'text-emerald-700' : isLowest ? 'text-emerald-600' : 'text-zinc-800'}`}>
+                          {total > 0 ? formatCurrency(total) : '\u2014'}
+                        </p>
+                      </div>
+                      {supplier && <p className="text-[10px] text-zinc-400 mt-0.5">{supplier.companyName}</p>}
                     </td>
                   );
                 })}
               </tr>
-            ))}
-            {/* Totals row */}
-            <tr className="border-t-2 bg-muted/20">
-              <td className="px-3 py-2 font-semibold text-xs" colSpan={2}>Total</td>
-              {entries.map((entry, i) => {
-                const total = totals[i];
-                const supplier = suppliers.find((s) => s._id === entry.supplierId);
-                return (
-                  <td key={entry.localId} className={`px-3 py-2 ${entry.isSelected ? 'bg-emerald-50/50' : ''}`}>
-                    <p className="text-sm font-bold">{total > 0 ? formatCurrency(total) : '—'}</p>
-                    {supplier && <p className="text-[10px] text-muted-foreground">{supplier.companyName}</p>}
-                  </td>
-                );
-              })}
-            </tr>
-          </tbody>
-        </table>
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      {/* Savings indicator */}
-      {savings > 0 && (
-        <div className="flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2">
-          <Trophy className="h-4 w-4 text-emerald-600 shrink-0" />
-          <p className="text-sm">
-            <span className="font-semibold text-emerald-700">{formatCurrency(savings)}</span>
-            <span className="text-muted-foreground"> savings vs next best quote</span>
-          </p>
-        </div>
-      )}
-
       {/* Per-supplier remarks */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {entries.map((entry, i) => {
-          const supplier = suppliers.find((s) => s._id === entry.supplierId);
-          return (
-            <div key={entry.localId} className="space-y-1">
-              <Label className="text-xs">
-                {supplier?.companyName || `Supplier ${i + 1}`} — Terms / Notes
-              </Label>
-              <textarea
-                rows={2}
-                className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-xs shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
-                placeholder="Lead time, warranty, payment terms..."
-                value={entry.remarks}
-                onChange={(e) => onUpdateEntry(entry.localId, { remarks: e.target.value })}
-              />
-            </div>
-          );
-        })}
+      <div className="rounded-xl border border-zinc-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5">
+        <h4 className="text-[13px] font-semibold text-zinc-900 mb-3">Supplier Terms & Notes</h4>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {entries.map((entry, i) => {
+            const supplier = suppliers.find((s) => s._id === entry.supplierId);
+            return (
+              <div key={entry.localId} className="space-y-1.5">
+                <Label className="text-[12px] text-zinc-500">
+                  {supplier?.companyName || `Supplier ${i + 1}`}
+                </Label>
+                <textarea
+                  rows={2}
+                  className="flex w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[12px] shadow-sm placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-300 resize-none transition-shadow duration-150"
+                  placeholder="Lead time, warranty, payment terms..."
+                  value={entry.remarks}
+                  onChange={(e) => onUpdateEntry(entry.localId, { remarks: e.target.value })}
+                />
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Justification for fewer than 3 */}
       {entries.length < 3 && (
-        <div className="space-y-1">
-          <Label className="text-xs">
-            Justification for Fewer than 3 Suppliers <span className="text-destructive">*</span>
-          </Label>
+        <div className="rounded-xl border border-amber-200/80 bg-amber-50/30 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5 space-y-2">
+          <div>
+            <h4 className="text-[13px] font-semibold text-amber-900">Justification for Fewer than 3 Suppliers</h4>
+            <p className="text-[11px] text-amber-700/70 mt-0.5">Explain why only one or two suppliers could be canvassed</p>
+          </div>
           <textarea
-            rows={2}
-            className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
-            placeholder="Explain why only one or two suppliers could be canvassed."
+            rows={3}
+            className="flex w-full rounded-lg border border-amber-300 bg-white px-3 py-2.5 text-[13px] shadow-sm placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 resize-none transition-shadow duration-150"
+            placeholder="e.g. Only one authorized dealer in the Philippines for this product, or sole-source OEM requirement..."
             value={canvassJustification}
             onChange={(e) => onJustificationChange(e.target.value)}
           />
+          <p className="text-[10px] text-red-500 font-medium">Required before submission</p>
         </div>
       )}
     </div>
