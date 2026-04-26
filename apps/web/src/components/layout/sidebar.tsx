@@ -1,4 +1,5 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import wiwoLogo from '@/assets/wilsonworks.png';
 import {
   LayoutDashboard,
   FileText,
@@ -13,13 +14,16 @@ import {
   ShoppingCart,
   ClipboardList,
   FolderOpen,
+  LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth.store';
-import { UserRole } from '@prams/shared';
+import { UserRole, ROLE_LABELS } from '@prams/shared';
 import { usePendingCount } from '@/hooks/use-approvals';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { resolvePhotoUrl } from '@/lib/utils';
+import apiClient from '@/lib/api-client';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -43,6 +47,12 @@ const navigation: NavItem[] = [
     label: 'Purchase Requests',
     href: '/purchase-requests',
     icon: FileText,
+  },
+  {
+    label: 'Approvals',
+    href: '/approvals',
+    icon: CheckSquare,
+    roles: [UserRole.DEPT_HEAD, UserRole.COO, UserRole.CEO],
   },
   {
     label: 'Procurement Queue',
@@ -74,12 +84,6 @@ const navigation: NavItem[] = [
       UserRole.ACCOUNTING,
       UserRole.PROCUREMENT,
     ],
-  },
-  {
-    label: 'Approvals',
-    href: '/approvals',
-    icon: CheckSquare,
-    roles: [UserRole.DEPT_HEAD, UserRole.COO, UserRole.CEO],
   },
   {
     label: 'Reports',
@@ -117,7 +121,8 @@ const adminNavigation: NavItem[] = [
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const location = useLocation();
-  const user = useAuthStore((s) => s.user);
+  const navigate = useNavigate();
+  const { user, logout } = useAuthStore();
 
   const filterByRole = (items: NavItem[]) =>
     items.filter((item) => {
@@ -133,39 +138,51 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const visibleNav = filterByRole(navigation);
   const visibleAdmin = filterByRole(adminNavigation);
 
+  const initials = user ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase() : '??';
+
+  const handleLogout = async () => {
+    try {
+      await apiClient.post('/auth/logout');
+    } catch {
+      // proceed with logout even if API call fails
+    }
+    logout();
+    navigate('/login');
+  };
+
   return (
     <aside
       className={cn(
-        'fixed left-0 top-0 z-40 flex h-screen flex-col border-r bg-sidebar transition-all duration-300',
+        'fixed left-0 top-0 z-40 flex h-screen flex-col bg-sidebar transition-all duration-300',
         collapsed ? 'w-16' : 'w-64',
       )}
     >
       {/* Logo */}
-      <div className="flex h-16 items-center justify-between px-4">
+      <div className={cn('flex h-16 items-center px-4', collapsed ? 'justify-center' : 'justify-between')}>
         {!collapsed && (
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-              <FileText className="h-4 w-4 text-primary-foreground" />
-            </div>
-            <span className="text-lg font-bold tracking-tight">PRAMS</span>
+          <div className="flex items-center gap-2.5">
+            <img src={wiwoLogo} alt="WIWO" className="h-7 rounded" />
+            {/*<span className="text-base font-bold tracking-tight text-sidebar-foreground">WIWO PR</span>*/}
           </div>
         )}
-        <Button
-          variant="ghost"
-          size="icon"
+        <button
           onClick={onToggle}
-          className={cn('h-8 w-8', collapsed && 'mx-auto')}
+          className={cn(
+            'flex h-7 w-7 items-center justify-center rounded-lg text-[oklch(0.55_0_0)] transition-colors hover:bg-white/5 hover:text-sidebar-foreground',
+            collapsed && 'mx-auto',
+          )}
         >
           <ChevronLeft
-            className={cn('h-4 w-4 transition-transform', collapsed && 'rotate-180')}
+            className={cn('h-4 w-4 transition-transform duration-300', collapsed && 'rotate-180')}
           />
-        </Button>
+        </button>
       </div>
 
-      <Separator />
+      {/* Divider */}
+      <div className="mx-4 h-px bg-sidebar-border" />
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+      <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
         {visibleNav.map((item) => {
           const isActive = location.pathname.startsWith(item.href);
           return (
@@ -173,26 +190,26 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
               key={item.href}
               to={item.href}
               className={cn(
-                'relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+                'relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150',
                 isActive
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                  : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
+                  ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm'
+                  : 'text-[oklch(0.72_0_0)] hover:bg-white/[0.07] hover:text-sidebar-foreground',
                 collapsed && 'justify-center px-0',
               )}
             >
-              <item.icon className="h-5 w-5 shrink-0" />
+              <item.icon className={cn('h-4 w-4 shrink-0', isActive ? 'text-sidebar-accent-foreground' : '')} />
               {!collapsed && (
-                <span className="flex flex-1 items-center justify-between">
+                <span className="flex flex-1 items-center justify-between text-[13px]">
                   {item.label}
                   {item.href === '/approvals' && pendingCount > 0 && (
-                    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
+                    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-foreground/10 px-1.5 text-[10px] font-bold text-sidebar-accent-foreground bg-[oklch(0.577_0.245_27.325)]">
                       {pendingCount}
                     </span>
                   )}
                 </span>
               )}
               {collapsed && item.href === '/approvals' && pendingCount > 0 && (
-                <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground">
+                <span className="absolute right-1 top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-[oklch(0.577_0.245_27.325)] px-0.5 text-[8px] font-bold text-white">
                   {pendingCount}
                 </span>
               )}
@@ -202,12 +219,15 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
         {visibleAdmin.length > 0 && (
           <>
-            <Separator className="my-3" />
-            {!collapsed && (
-              <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Administration
-              </p>
-            )}
+            <div className="my-3 flex items-center gap-2">
+              <div className="h-px flex-1 bg-sidebar-border" />
+              {!collapsed && (
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-[oklch(0.52_0_0)]">
+                  Admin
+                </span>
+              )}
+              <div className="h-px flex-1 bg-sidebar-border" />
+            </div>
             {visibleAdmin.map((item) => {
               const isActive = location.pathname.startsWith(item.href);
               return (
@@ -215,21 +235,65 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                   key={item.href}
                   to={item.href}
                   className={cn(
-                    'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+                    'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150',
                     isActive
-                      ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                      : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
+                      ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm'
+                      : 'text-[oklch(0.72_0_0)] hover:bg-white/[0.07] hover:text-sidebar-foreground',
                     collapsed && 'justify-center px-0',
                   )}
                 >
-                  <item.icon className="h-5 w-5 shrink-0" />
-                  {!collapsed && <span>{item.label}</span>}
+                  <item.icon className="h-4 w-4 shrink-0" />
+                  {!collapsed && <span className="text-[13px]">{item.label}</span>}
                 </Link>
               );
             })}
           </>
         )}
       </nav>
+
+      {/* User Profile Section */}
+      <div className="mx-4 h-px bg-sidebar-border" />
+      <div className={cn('px-3 py-4', collapsed ? 'flex flex-col items-center gap-2' : 'space-y-1')}>
+        {/* Profile link */}
+        <Link
+          to="/profile"
+          className={cn(
+            'flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all duration-150 hover:bg-white/[0.06]',
+            collapsed && 'justify-center px-0',
+          )}
+        >
+          <Avatar className="h-7 w-7 shrink-0 ring-1 ring-white/10">
+            <AvatarImage src={resolvePhotoUrl(user?.photoUrl)} alt={initials} />
+            <AvatarFallback className="bg-white/10 text-sidebar-foreground text-[11px] font-semibold">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
+          {!collapsed && (
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[13px] font-medium text-sidebar-foreground">
+                {user?.firstName} {user?.lastName}
+              </p>
+              <p className="truncate text-[11px] text-[oklch(0.62_0_0)]">
+                {ROLE_LABELS[user?.role as UserRole] || user?.role}
+              </p>
+            </div>
+          )}
+        </Link>
+
+        {/* Logout */}
+        <Button
+          variant="ghost"
+          size={collapsed ? 'icon' : 'sm'}
+          onClick={handleLogout}
+          className={cn(
+            'text-[oklch(0.65_0_0)] hover:bg-white/[0.07] hover:text-sidebar-foreground',
+            collapsed ? 'h-9 w-9' : 'w-full justify-start gap-3 px-3 text-[13px]',
+          )}
+        >
+          <LogOut className="h-4 w-4 shrink-0" />
+          {!collapsed && 'Sign out'}
+        </Button>
+      </div>
     </aside>
   );
 }

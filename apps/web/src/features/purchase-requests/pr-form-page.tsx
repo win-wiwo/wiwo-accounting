@@ -1,467 +1,36 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { useForm, useFieldArray, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { PR_PRIORITIES, PR_PRIORITY_LABELS, PrPriority, PrStatus, SourcingType, type CreatePurchaseRequestDto } from '@prams/shared';
-import { usePurchaseRequest, useCreatePr, useUpdatePr, useSubmitPr } from '@/hooks/use-purchase-requests';
+import { useEffect, useState } from 'react';
+import { ArrowLeft, Loader2, Save, Send, ImageIcon } from 'lucide-react';
 import { purchaseRequestsApi } from '@/lib/api-services';
-import apiClient from '@/lib/api-client';
-import { useActiveProjects, useProject } from '@/hooks/use-projects';
-import { useToast } from '@/components/ui/toast';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Separator } from '@/components/ui/separator';
+import { Stepper } from '@/components/ui/stepper';
+import { StickyFooter } from '@/components/ui/sticky-footer';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { ArrowLeft, Loader2, Save, Send, Plus, Trash2, ShoppingCart, Globe, AlertCircle, Camera, X, ImageIcon, Paperclip, Upload, Eye, Download, FileText } from 'lucide-react';
-
-// ─── Schemas ────────────────────────────────────────────────────────────────
-
-const sellerReferenceSchema = z.object({
-  sellerName: z.string().min(1, 'Seller name required').max(100),
-  url: z.string().max(1000).optional(),
-  price: z.number({ coerce: true }).min(0, 'Price required'),
-  notes: z.string().max(500).optional(),
-});
-
-const lineItemSchema = z.object({
-  _id: z.string().optional(),
-  description: z.string().min(1, 'Required'),
-  quantity: z.number({ coerce: true }).int().min(1, 'Min 1'),
-  unit: z.string().min(1, 'Required'),
-  specifications: z.string().max(1000).optional(),
-  sourcingType: z.enum([SourcingType.PROCUREMENT, SourcingType.ONLINE]),
-  estimatedPrice: z.number({ coerce: true }).min(0).optional(),
-  notes: z.string().max(500).optional(),
-  sellerReferences: z.array(sellerReferenceSchema).max(3).optional(),
-  sellerReferencesJustification: z.string().max(500).optional(),
-}).superRefine((item, ctx) => {
-  if (item.sourcingType === SourcingType.ONLINE) {
-    if (!item.estimatedPrice || item.estimatedPrice <= 0) {
-      ctx.addIssue({ code: 'custom', path: ['estimatedPrice'], message: 'Price required for online-sourced items' });
-    }
-    const refs = item.sellerReferences ?? [];
-    if (refs.length < 3 && !item.sellerReferencesJustification?.trim()) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['sellerReferencesJustification'],
-        message: `Justify why only ${refs.length} seller${refs.length === 1 ? '' : 's'} provided (3 required)`,
-      });
-    }
-  }
-});
-
-const formSchema = z.object({
-  requestType: z.enum(['purchase_request', 'job_request']).default('purchase_request'),
-  isOfficeUse: z.boolean().default(false),
-  title: z.string().min(1, 'Title is required').max(200),
-  projectId: z.string().optional(),
-  priority: z.enum(PR_PRIORITIES as [PrPriority, ...PrPriority[]]),
-  justification: z.string().min(1, 'Required').max(2000),
-  neededByDate: z.string().optional(),
-  items: z.array(lineItemSchema).min(1, 'At least one line item is required'),
-  resubmissionNote: z.string().max(1000).optional(),
-  _isReturned: z.boolean().optional(),
-}).superRefine((data, ctx) => {
-  if (!data.isOfficeUse && !data.projectId) {
-    ctx.addIssue({
-      code: 'custom',
-      path: ['projectId'],
-      message: 'Select a project, or check "For office / general use" below.',
-    });
-  }
-  if (data._isReturned && !data.resubmissionNote?.trim()) {
-    ctx.addIssue({
-      code: 'custom',
-      path: ['resubmissionNote'],
-      message: 'Please describe what you changed before resubmitting.',
-    });
-  }
-});
-
-type FormData = z.infer<typeof formSchema>;
-type LineItemForm = z.infer<typeof lineItemSchema>;
-type ProjectOption = { _id: string; name: string; code: string | null };
-
-function toProjectId(value: ProjectOption | string | null | undefined): string {
-  if (!value) return '';
-  if (typeof value === 'string') return value;
-  return String(value._id);
-}
-
-function toProjectOption(value: ProjectOption | string | null | undefined): ProjectOption | null {
-  if (!value || typeof value === 'string') return null;
-  return {
-    _id: toProjectId(value),
-    name: value.name,
-    code: value.code,
-  };
-}
-
-function buildProjectOptions(
-  activeProjects: ProjectOption[] | undefined,
-  currentProject: ProjectOption | null,
-): ProjectOption[] {
-  if (!currentProject) return activeProjects ?? [];
-  if ((activeProjects ?? []).some((project) => String(project._id) === currentProject._id)) {
-    return activeProjects ?? [];
-  }
-  return [currentProject, ...(activeProjects ?? [])];
-}
-
-function formatCurrency(n: number) {
-  return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(n);
-}
-
-function formatFileSize(size: number) {
-  if (size < 1024) return `${size} B`;
-  if (size < 1024 * 1024) return `${(size / 1024).toFixed(0)} KB`;
-  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function canPreviewMimeType(mimeType: string) {
-  return mimeType.startsWith('image/') || mimeType === 'application/pdf';
-}
-
-const defaultItem = (): LineItemForm => ({
-  description: '',
-  quantity: 1,
-  unit: 'pcs',
-  specifications: '',
-  sourcingType: SourcingType.PROCUREMENT,
-  estimatedPrice: 0,
-  notes: '',
-  sellerReferences: [],
-  sellerReferencesJustification: '',
-});
-
-// ─── Seller References sub-form ──────────────────────────────────────────────
-
-interface SellerRefsProps {
-  itemIndex: number;
-  control: ReturnType<typeof useForm<FormData>>['control'];
-  register: ReturnType<typeof useForm<FormData>>['register'];
-  watch: ReturnType<typeof useForm<FormData>>['watch'];
-  errors: ReturnType<typeof useForm<FormData>>['formState']['errors'];
-}
-
-function SellerReferencesSection({ itemIndex, control, register, watch, errors }: SellerRefsProps) {
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: `items.${itemIndex}.sellerReferences`,
-  });
-
-  const refs = watch(`items.${itemIndex}.sellerReferences`) ?? [];
-  const needsJustification = refs.length < 3;
-  const itemErrors = errors.items?.[itemIndex] as Record<string, { message?: string }> | undefined;
-
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-xs font-medium">Seller References</p>
-          <p className="text-[11px] text-muted-foreground">
-            {refs.length}/3 sellers added
-            {refs.length < 3 && <span className="text-amber-600 ml-1">— justification required below</span>}
-          </p>
-        </div>
-        {fields.length < 3 && (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="h-7 text-xs"
-            onClick={() => append({ sellerName: '', url: '', price: 0, notes: '' })}
-          >
-            <Plus className="h-3 w-3" /> Add Seller
-          </Button>
-        )}
-      </div>
-
-      {fields.map((field, si) => (
-        <div key={field.id} className="rounded-md border bg-muted/30 p-3 space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-medium text-muted-foreground">Seller {si + 1}</span>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 text-destructive hover:text-destructive"
-              onClick={() => remove(si)}
-            >
-              <Trash2 className="h-3 w-3" />
-            </Button>
-          </div>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <div className="space-y-1">
-              <Label className="text-[11px]">Seller Name *</Label>
-              <Input
-                className="h-7 text-xs"
-                placeholder="e.g. Lazada PH - TechSupplies"
-                {...register(`items.${itemIndex}.sellerReferences.${si}.sellerName`)}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-[11px]">Price (PHP) *</Label>
-              <Input
-                className="h-7 text-xs"
-                type="number"
-                min={0}
-                step="0.01"
-                {...register(`items.${itemIndex}.sellerReferences.${si}.price`, { valueAsNumber: true })}
-              />
-            </div>
-          </div>
-          <div className="space-y-1">
-            <Label className="text-[11px]">Product URL</Label>
-            <Input
-              className="h-7 text-xs"
-              placeholder="https://..."
-              {...register(`items.${itemIndex}.sellerReferences.${si}.url`)}
-            />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-[11px]">Notes</Label>
-            <Input
-              className="h-7 text-xs"
-              placeholder="e.g. includes shipping, 1yr warranty"
-              {...register(`items.${itemIndex}.sellerReferences.${si}.notes`)}
-            />
-          </div>
-        </div>
-      ))}
-
-      {fields.length === 0 && (
-        <div className="rounded-md border border-dashed p-3 text-center text-xs text-muted-foreground">
-          No sellers added yet. Add at least 1, ideally 3.
-        </div>
-      )}
-
-      {needsJustification && (
-        <div className="space-y-1">
-          <Label className="text-xs flex items-center gap-1 text-amber-700">
-            <AlertCircle className="h-3 w-3" />
-            Justify why fewer than 3 sellers <span className="text-destructive">*</span>
-          </Label>
-          <textarea
-            rows={2}
-            className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-xs shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            placeholder="e.g. Only one supplier carries this specific model in the Philippines..."
-            {...register(`items.${itemIndex}.sellerReferencesJustification`)}
-          />
-          {itemErrors?.sellerReferencesJustification && (
-            <p className="text-xs text-destructive">{itemErrors.sellerReferencesJustification.message}</p>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Item Photo Widget ───────────────────────────────────────────────────────
-
-interface ItemPhotoWidgetProps {
-  index: number;
-  staged: { file: File; url: string } | null;
-  serverPhotoName?: string | null;
-  serverPhotoPreviewUrl: string | null;
-  onViewServer: () => void;
-  onStage: (index: number, file: File) => void;
-  onClearStaged: (index: number) => void;
-}
-
-function ItemPhotoWidget({
-  index, staged, serverPhotoName, serverPhotoPreviewUrl,
-  onViewServer, onStage, onClearStaged,
-}: ItemPhotoWidgetProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) onStage(index, file);
-    e.target.value = '';
-  };
-
-  // Staged photo takes visual priority over server photo
-  if (staged) {
-    return (
-      <div className="flex items-center gap-2">
-        <Camera className="h-3.5 w-3.5 text-blue-500 shrink-0" />
-        <img src={staged.url} alt="preview" className="h-8 w-8 rounded object-cover border" />
-        <span className="text-xs text-muted-foreground truncate max-w-[140px]">{staged.file.name}</span>
-        <span className="text-[10px] text-blue-600 font-medium">pending save</span>
-        <Button
-          type="button" variant="ghost" size="icon"
-          className="h-6 w-6 text-destructive hover:text-destructive"
-          onClick={() => onClearStaged(index)}
-        >
-          <X className="h-3 w-3" />
-        </Button>
-      </div>
-    );
-  }
-
-  if (serverPhotoName) {
-    return (
-      <div className="flex items-center gap-2">
-        <Camera className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-        {serverPhotoPreviewUrl && (
-          <img src={serverPhotoPreviewUrl} alt="ref" className="h-8 w-8 rounded object-cover border" />
-        )}
-        <span className="text-xs text-muted-foreground truncate max-w-[140px]">{serverPhotoName}</span>
-        <Button type="button" variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={onViewServer}>
-          View
-        </Button>
-        <Button
-          type="button" variant="ghost" size="sm"
-          className="h-6 text-xs px-2 text-muted-foreground"
-          onClick={() => fileInputRef.current?.click()}
-        >
-          Replace
-        </Button>
-        <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFileChange} />
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-1.5">
-      <div className="flex items-center gap-2">
-        <Camera className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-        <Button
-          type="button" variant="ghost" size="sm"
-          className="h-6 text-xs px-2 text-muted-foreground"
-          onClick={() => fileInputRef.current?.click()}
-        >
-          Add reference photo
-        </Button>
-        <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFileChange} />
-      </div>
-      <p className="text-[11px] text-muted-foreground">
-        Use this for an image of this specific item, model, or site condition.
-      </p>
-    </div>
-  );
-}
-
-interface StagedAttachment {
-  file: File;
-  url: string | null;
-}
-
-// ─── Main Form ───────────────────────────────────────────────────────────────
+import { STEP_LABELS, STEP_FIELDS } from './form/schemas';
+import { useStagedFiles } from './form/use-staged-files';
+import { usePrForm } from './form/use-pr-form';
+import { StepBasics } from './form/step-basics';
+import { StepItems } from './form/step-items';
+import { StepReview } from './form/step-review';
+import { HowItWorks } from './form/how-it-works';
 
 export function PrFormPage() {
-  const { id } = useParams();
-  const isEdit = !!id;
-  const navigate = useNavigate();
-  const { toast } = useToast();
+  const stagedFiles = useStagedFiles();
+  const pr = usePrForm(stagedFiles);
+  const { form, isEdit, id, prData, prLoading, navigate } = pr;
 
-  const { data: prData, isLoading: prLoading, refetch: refetchPr } = usePurchaseRequest(id ?? '');
-  const { data: activeProjects } = useActiveProjects();
-  const prProjectId = (() => {
-    const project = prData?.data?.projectId as ProjectOption | string | null | undefined;
-    return toProjectId(project);
-  })();
-  const { data: projectData } = useProject(prProjectId);
-  const createMutation = useCreatePr();
-  const updateMutation = useUpdatePr();
-  const submitMutation = useSubmitPr();
-  const submitActionRef = useRef<'draft' | 'submit'>('draft');
-  const attachmentInputRef = useRef<HTMLInputElement>(null);
-  const stagedPhotosRef = useRef<Record<number, { file: File; url: string }>>({});
-  const stagedAttachmentsRef = useRef<StagedAttachment[]>([]);
-  const serverPhotoPreviewsRef = useRef<Record<string, string>>({});
-  const attachmentPreviewRef = useRef<{ url: string | null; revocable: boolean }>({ url: null, revocable: false });
+  const [step, setStep] = useState(0);
 
-  // Staged photos: keyed by item index, uploaded after PR save
-  const [stagedPhotos, setStagedPhotos] = useState<Record<number, { file: File; url: string }>>({});
-  const [stagedAttachments, setStagedAttachments] = useState<StagedAttachment[]>([]);
-  // Server photo preview URLs loaded for thumbnail display (edit mode)
+  // Server photo previews (edit mode)
   const [serverPhotoPreviews, setServerPhotoPreviews] = useState<Record<string, string>>({});
-  // Dialog for viewing server-side photo
-  const [photoViewDialog, setPhotoViewDialog] = useState<{ open: boolean; url: string | null }>({ open: false, url: null });
-  const [attachmentPreviewDialog, setAttachmentPreviewDialog] = useState<{
-    open: boolean;
-    url: string | null;
-    mimeType: string;
-    name: string;
-    loading: boolean;
-    revocable: boolean;
-  }>({ open: false, url: null, mimeType: '', name: '', loading: false, revocable: false });
 
-  const stagePhoto = useCallback((index: number, file: File) => {
-    setStagedPhotos((prev) => {
-      if (prev[index]) URL.revokeObjectURL(prev[index].url);
-      return { ...prev, [index]: { file, url: URL.createObjectURL(file) } };
-    });
-  }, []);
-
-  const clearStagedPhoto = useCallback((index: number) => {
-    setStagedPhotos((prev) => {
-      if (prev[index]) URL.revokeObjectURL(prev[index].url);
-      const next = { ...prev };
-      delete next[index];
-      return next;
-    });
-  }, []);
-
-  const stageAttachments = useCallback((files: FileList | null) => {
-    if (!files?.length) return;
-    setStagedAttachments((prev) => ([
-      ...prev,
-      ...Array.from(files).map((file) => ({
-        file,
-        url: canPreviewMimeType(file.type) ? URL.createObjectURL(file) : null,
-      })),
-    ]));
-  }, []);
-
-  const clearStagedAttachment = useCallback((index: number) => {
-    setStagedAttachments((prev) => {
-      const target = prev[index];
-      if (target?.url) URL.revokeObjectURL(target.url);
-      return prev.filter((_, i) => i !== index);
-    });
-  }, []);
-
-  const closeAttachmentPreview = useCallback(() => {
-    setAttachmentPreviewDialog((prev) => {
-      if (prev.url && prev.revocable) URL.revokeObjectURL(prev.url);
-      return { open: false, url: null, mimeType: '', name: '', loading: false, revocable: false };
-    });
-  }, []);
-
-  useEffect(() => {
-    stagedPhotosRef.current = stagedPhotos;
-  }, [stagedPhotos]);
-
-  useEffect(() => {
-    stagedAttachmentsRef.current = stagedAttachments;
-  }, [stagedAttachments]);
-
-  useEffect(() => {
-    serverPhotoPreviewsRef.current = serverPhotoPreviews;
-  }, [serverPhotoPreviews]);
-
-  useEffect(() => {
-    attachmentPreviewRef.current = {
-      url: attachmentPreviewDialog.url,
-      revocable: attachmentPreviewDialog.revocable,
-    };
-  }, [attachmentPreviewDialog.revocable, attachmentPreviewDialog.url]);
-
-  // Load server photo thumbnails for existing items in edit mode
+  // Load server photo thumbnails for existing items
   useEffect(() => {
     if (!isEdit || !prData?.data?.items || !id) return;
     prData.data.items.forEach((item) => {
@@ -476,174 +45,62 @@ export function PrFormPage() {
     });
   }, [isEdit, prData?.data?.items, id]);
 
-  // Clean up object URLs on unmount
+  // Cleanup server photo URLs
   useEffect(() => {
+    const urls = serverPhotoPreviews;
     return () => {
-      Object.values(stagedPhotosRef.current).forEach(({ url }) => URL.revokeObjectURL(url));
-      stagedAttachmentsRef.current.forEach(({ url }) => { if (url) URL.revokeObjectURL(url); });
-      Object.values(serverPhotoPreviewsRef.current).forEach((url) => URL.revokeObjectURL(url));
-      if (attachmentPreviewRef.current.url && attachmentPreviewRef.current.revocable) {
-        URL.revokeObjectURL(attachmentPreviewRef.current.url);
-      }
+      Object.values(urls).forEach((url) => URL.revokeObjectURL(url));
     };
   }, []);
 
-  const {
-    register,
-    handleSubmit,
-    control,
-    setValue,
-    watch,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm<FormData>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      requestType: 'purchase_request',
-      isOfficeUse: false,
-      title: '',
-      items: [defaultItem()],
-      priority: 'medium',
-      projectId: '',
-      resubmissionNote: '',
-      _isReturned: false,
-    },
-  });
+  const requestType = form.watch('requestType');
+  const isJR = requestType === 'job_request';
+  const typeLabel = isJR ? 'Job Request' : 'Purchase Request';
 
-  const { fields, append, remove } = useFieldArray({ control, name: 'items' });
-  const watchItems = watch('items');
-  const selectedProjectId = watch('projectId');
+  // ─── Step navigation ──────────────────────────────────────────────────────
 
-  const totalAmount = watchItems?.reduce((sum, item) => {
-    if (item.sourcingType === SourcingType.ONLINE) {
-      return sum + (Number(item.quantity) || 0) * (Number(item.estimatedPrice) || 0);
+  const goToStep = (target: number) => {
+    if (target < step) {
+      setStep(target);
+      return;
     }
-    return sum; // procurement items: price not known yet
-  }, 0) ?? 0;
-
-  const hasProcurementItems = watchItems?.some((i) => i.sourcingType === SourcingType.PROCUREMENT) ?? false;
-  const currentProject = ((projectData?.data ?? null) as ProjectOption | null) ??
-    toProjectOption(prData?.data?.projectId as ProjectOption | string | null | undefined);
-  const projectOptions = buildProjectOptions(activeProjects, currentProject);
-
-  useEffect(() => {
-    if (isEdit && prData?.data) {
-      const pr = prData.data;
-      reset({
-        requestType: pr.requestType || 'purchase_request',
-        isOfficeUse: !prProjectId,
-        title: pr.title || '',
-        projectId: prProjectId,
-        priority: PR_PRIORITIES.includes(pr.priority) ? pr.priority : PrPriority.MEDIUM,
-        justification: pr.justification,
-        neededByDate: pr.neededByDate ? pr.neededByDate.split('T')[0] : '',
-        resubmissionNote: pr.resubmissionNote || '',
-        _isReturned: pr.status === PrStatus.RETURNED,
-        items: pr.items.map((item) => ({
-          _id: item._id,
-          description: item.description,
-          quantity: item.quantity,
-          unit: item.unit,
-          specifications: item.specifications || '',
-          sourcingType: (item.sourcingType as SourcingType) || SourcingType.PROCUREMENT,
-          estimatedPrice: item.estimatedPrice,
-          notes: item.notes || '',
-          sellerReferences: item.sellerReferences?.map((r) => ({
-            sellerName: r.sellerName,
-            url: r.url || '',
-            price: r.price,
-            notes: r.notes || '',
-          })) ?? [],
-          sellerReferencesJustification: item.sellerReferencesJustification || '',
-        })),
-      });
-    }
-  }, [isEdit, prData, prProjectId, reset]);
-
-  useEffect(() => {
-    if (!isEdit || !prProjectId) return;
-    if (!projectOptions.some((project) => String(project._id) === prProjectId)) return;
-    setValue('projectId', prProjectId, { shouldValidate: false, shouldDirty: false });
-  }, [isEdit, prProjectId, projectOptions, setValue]);
-
-  const onInvalid = () => {
-    toast({ title: 'Form has errors', description: 'Please fill in all required fields before submitting.', variant: 'error' });
+    // Validate before advancing
+    advanceToStep(target);
   };
 
-  const onSubmit = async (data: FormData) => {
-    const action = submitActionRef.current;
-    let persistedPrId: string | null = isEdit ? id ?? null : null;
-    let createdNewDraft = false;
-
-    try {
-      const { requestType, isOfficeUse, _isReturned, resubmissionNote, ...rest } = data;
-      const payload: CreatePurchaseRequestDto = {
-        ...rest,
-        projectId: isOfficeUse ? undefined : data.projectId || undefined,
-        neededByDate: data.neededByDate ? new Date(data.neededByDate).toISOString() : undefined,
-        ...(!isEdit && { requestType }),
-        ...(isEdit && _isReturned && { resubmissionNote: resubmissionNote || undefined }),
-      };
-
-      let prId: string;
-      let savedItems: Array<{ _id: string }> = [];
-
-      if (isEdit) {
-        const result = await updateMutation.mutateAsync({ id: id!, data: payload });
-        prId = id!;
-        savedItems = (result.data?.items ?? []) as Array<{ _id: string }>;
-      } else {
-        const result = await createMutation.mutateAsync(payload);
-        prId = result.data!._id;
-        persistedPrId = prId;
-        createdNewDraft = true;
-        savedItems = (result.data?.items ?? []) as Array<{ _id: string }>;
+  const advanceToStep = async (target: number) => {
+    // Validate all steps between current and target
+    for (let s = step; s < target; s++) {
+      const fieldNames = STEP_FIELDS[s as keyof typeof STEP_FIELDS] as readonly string[];
+      if (fieldNames.length > 0) {
+        const valid = await form.trigger(fieldNames as Parameters<typeof form.trigger>[0]);
+        if (!valid) {
+          setStep(s);
+          return;
+        }
       }
-
-      // Upload any staged reference photos (matched by item index)
-      const photoUploads = Object.entries(stagedPhotos).map(([indexStr, { file }]) => {
-        const item = savedItems[parseInt(indexStr)];
-        return item?._id ? { itemId: item._id, file } : null;
-      });
-      for (const upload of photoUploads) {
-        if (!upload) continue;
-        await purchaseRequestsApi.uploadItemPhoto(prId, upload.itemId, upload.file);
-      }
-      for (const { file } of stagedAttachments) {
-        await purchaseRequestsApi.uploadAttachment(prId, file);
-      }
-
-      if (action === 'submit') {
-        await submitMutation.mutateAsync(prId);
-        const hasProcurement = data.items.some((i) => i.sourcingType === SourcingType.PROCUREMENT);
-        toast({
-          title: hasProcurement ? 'Sent to Procurement Queue' : 'Submitted for Approval',
-          variant: 'success',
-        });
-      } else {
-        toast({ title: isEdit ? 'PR updated' : 'Saved as draft', variant: 'success' });
-      }
-
-      navigate('/purchase-requests');
-    } catch (err: unknown) {
-      const message =
-        err && typeof err === 'object' && 'response' in err
-          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
-          : 'Something went wrong';
-
-      if (createdNewDraft && persistedPrId) {
-        toast({
-          title: 'Draft saved, but submission failed',
-          description: message || 'You can continue from the saved draft without creating a duplicate.',
-          variant: 'error',
-        });
-        navigate(`/purchase-requests/${persistedPrId}/edit`);
-        return;
-      }
-
-      toast({ title: 'Error', description: message || 'Failed to save.', variant: 'error' });
     }
+    setStep(target);
   };
+
+  const handleNext = () => advanceToStep(step + 1);
+  const handleBack = () => setStep(Math.max(0, step - 1));
+
+  // ─── Draft save (any step, skips validation) ──────────────────────────────
+
+  const handleDraftSave = () => {
+    pr.submitActionRef.current = 'draft';
+    form.handleSubmit(pr.onSubmit, pr.onInvalid)();
+  };
+
+  // ─── Submit (step 4 only) ────────────────────────────────────────────────
+
+  const handleSubmit = () => {
+    pr.submitActionRef.current = 'submit';
+    form.handleSubmit(pr.onSubmit, pr.onInvalid)();
+  };
+
+  // ─── Loading state ────────────────────────────────────────────────────────
 
   if (isEdit && prLoading) {
     return (
@@ -654,51 +111,8 @@ export function PrFormPage() {
     );
   }
 
-  const requestType = watch('requestType');
-  const isJR = requestType === 'job_request';
-  const typeLabel = isJR ? 'Job Request' : 'Purchase Request';
-  const existingAttachments = prData?.data?.attachments ?? [];
-
-  const handleExistingAttachmentPreview = async (
-    attachmentId: string,
-    mimeType: string,
-    name: string,
-  ) => {
-    if (!id) return;
-
-    setAttachmentPreviewDialog({ open: true, url: null, mimeType, name, loading: true, revocable: false });
-    try {
-      const response = await apiClient.get(
-        `/purchase-requests/${id}/attachments/${attachmentId}/download`,
-        { responseType: 'blob' },
-      );
-      const blobUrl = URL.createObjectURL(
-        new Blob([response.data], { type: mimeType }),
-      );
-      setAttachmentPreviewDialog({
-        open: true,
-        url: blobUrl,
-        mimeType,
-        name,
-        loading: false,
-        revocable: true,
-      });
-    } catch {
-      closeAttachmentPreview();
-      toast({ title: 'Failed to load attachment', variant: 'error' });
-    }
-  };
-
-  const handleRemoveExistingAttachment = async (attachmentId: string) => {
-    if (!id) return;
-    try {
-      await purchaseRequestsApi.removeAttachment(id, attachmentId);
-      await refetchPr();
-      toast({ title: 'Attachment removed', variant: 'success' });
-    } catch {
-      toast({ title: 'Failed to remove attachment', variant: 'error' });
-    }
-  };
+  const isSubmitting = form.formState.isSubmitting;
+  const isLastStep = step === STEP_LABELS.length - 1;
 
   return (
     <div className="space-y-6">
@@ -708,546 +122,97 @@ export function PrFormPage() {
         </Button>
       </PageHeader>
 
-      <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-6">
-        {/* Basic Info */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Request Details</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              {!isEdit && (
-                <div className="space-y-2 sm:col-span-2">
-                  <Label>Request Type</Label>
-                  <Select
-                    value={requestType}
-                    onValueChange={(v) => setValue('requestType', v as 'purchase_request' | 'job_request', { shouldValidate: true })}
-                  >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="purchase_request">Purchase Request (PR)</SelectItem>
-                      <SelectItem value="job_request">Job Request (JR)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+      <HowItWorks />
+
+      <Stepper
+        steps={STEP_LABELS}
+        currentStep={step}
+        onStepClick={goToStep}
+      />
+
+      <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
+        {step === 0 && (
+          <StepBasics form={form} isEdit={isEdit} projectOptions={pr.projectOptions} />
+        )}
+
+        {step === 1 && (
+          <StepItems
+            form={form}
+            fields={pr.fields}
+            append={pr.append}
+            remove={pr.remove}
+            totalAmount={pr.totalAmount}
+            hasProcurementItems={pr.hasProcurementItems}
+            stagedFiles={stagedFiles}
+            prData={prData}
+            serverPhotoPreviews={serverPhotoPreviews}
+          />
+        )}
+
+        {step === 2 && (
+          <StepReview
+            form={form}
+            projectOptions={pr.projectOptions}
+            totalAmount={pr.totalAmount}
+            hasProcurementItems={pr.hasProcurementItems}
+            stagedPhotosCount={Object.keys(stagedFiles.stagedPhotos).length}
+            onGoToStep={goToStep}
+          />
+        )}
+
+        {/* Sticky footer with navigation */}
+        <StickyFooter>
+          <div className="flex items-center justify-between">
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={() => navigate('/purchase-requests')}>
+                Cancel
+              </Button>
+              {step > 0 && (
+                <Button type="button" variant="outline" onClick={handleBack}>
+                  Back
+                </Button>
               )}
-
-              <div className="space-y-2 sm:col-span-2">
-                <div className="flex items-center justify-between">
-                  <Label>
-                    Project {!watch('isOfficeUse') && <span className="text-destructive">*</span>}
-                  </Label>
-                  <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      className="h-3.5 w-3.5 rounded"
-                      {...register('isOfficeUse')}
-                      onChange={(e) => {
-                        setValue('isOfficeUse', e.target.checked, { shouldValidate: true });
-                        if (e.target.checked) setValue('projectId', '', { shouldValidate: true });
-                      }}
-                    />
-                    <span className="text-xs text-muted-foreground">For office / general use</span>
-                  </label>
-                </div>
-                {watch('isOfficeUse') ? (
-                  <div className="rounded-md border border-dashed bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
-                    Not tied to a project — general office or overhead expense.
-                  </div>
-                ) : (
-                  <>
-                    <Select
-                      key={`${selectedProjectId || 'none'}:${projectOptions.length}`}
-                      value={selectedProjectId || ''}
-                      onValueChange={(v) => setValue('projectId', v, { shouldValidate: true })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a project..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {projectOptions.map((p) => (
-                          <SelectItem key={String(p._id)} value={String(p._id)}>
-                            {p.name}{p.code ? ` (${p.code})` : ''}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.projectId && (
-                      <p className="text-xs text-destructive">{errors.projectId.message}</p>
-                    )}
-                  </>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="title">
-                  Request Title <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="title"
-                  placeholder="e.g. Busway Phase 2 Pole Hardware"
-                  {...register('title')}
-                />
-                {errors.title && <p className="text-xs text-destructive">{errors.title.message}</p>}
-              </div>
-
-              <div className="space-y-2">
-                <Label>Priority</Label>
-                <Select
-                  value={watch('priority')}
-                  onValueChange={(v) => setValue('priority', v as PrPriority, { shouldValidate: true })}
-                >
-                  <SelectTrigger><SelectValue placeholder="Select priority" /></SelectTrigger>
-                  <SelectContent>
-                    {PR_PRIORITIES.map((p) => (
-                      <SelectItem key={p} value={p}>{PR_PRIORITY_LABELS[p as PrPriority]}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.priority && <p className="text-xs text-destructive">{errors.priority.message}</p>}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="neededByDate">Needed By</Label>
-                <Input id="neededByDate" type="date" {...register('neededByDate')} />
-              </div>
-
-              <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="justification">Purpose</Label>
-                <textarea
-                  id="justification"
-                  rows={2}
-                  className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  placeholder="Explain the purpose of this request..."
-                  {...register('justification')}
-                />
-                {errors.justification && <p className="text-xs text-destructive">{errors.justification.message}</p>}
-                <p className="text-[11px] text-muted-foreground">
-                  Describe why this request is needed and what operations or project work it supports.
-                </p>
-              </div>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Line Items */}
-        <Card>
-          <CardHeader className="flex flex-row items-start justify-between">
-            <div>
-              <CardTitle className="text-base">Line Items</CardTitle>
-              <CardDescription className="mt-1 text-xs">
-                Choose <strong>Procurement</strong> if the Procurement team will source the price, or{' '}
-                <strong>Online</strong> if you've already found sellers.
-              </CardDescription>
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => append(defaultItem())}
-            >
-              <Plus className="h-4 w-4" /> Add Item
-            </Button>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {errors.items && typeof errors.items === 'object' && 'message' in errors.items && (
-              <p className="text-xs text-destructive">{errors.items.message as string}</p>
-            )}
-
-            {fields.map((field, index) => {
-              const item = watchItems?.[index];
-              const isOnline = item?.sourcingType === SourcingType.ONLINE;
-              const qty = Number(item?.quantity) || 0;
-              const price = isOnline ? Number(item?.estimatedPrice) || 0 : 0;
-              const lineTotal = qty * price;
-              const itemErrors = errors.items?.[index] as Record<string, { message?: string }> | undefined;
-
-              return (
-                <div key={field.id} className="rounded-lg border p-4 space-y-4">
-                  {/* Item header */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-muted-foreground">Item {index + 1}</span>
-                      <Controller
-                        control={control}
-                        name={`items.${index}.sourcingType`}
-                        render={({ field: f }) => (
-                          <div className="flex rounded-md border overflow-hidden">
-                            <button
-                              type="button"
-                              onClick={() => f.onChange(SourcingType.PROCUREMENT)}
-                              className={`flex items-center gap-1 px-2.5 py-1 text-xs transition-colors ${
-                                f.value === SourcingType.PROCUREMENT
-                                  ? 'bg-primary text-primary-foreground'
-                                  : 'bg-background text-muted-foreground hover:bg-muted'
-                              }`}
-                            >
-                              <ShoppingCart className="h-3 w-3" />
-                              Procurement
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => f.onChange(SourcingType.ONLINE)}
-                              className={`flex items-center gap-1 px-2.5 py-1 text-xs transition-colors ${
-                                f.value === SourcingType.ONLINE
-                                  ? 'bg-blue-600 text-white'
-                                  : 'bg-background text-muted-foreground hover:bg-muted'
-                              }`}
-                            >
-                              <Globe className="h-3 w-3" />
-                              Online
-                            </button>
-                          </div>
-                        )}
-                      />
-                    </div>
-                    {fields.length > 1 && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-destructive hover:text-destructive"
-                        onClick={() => remove(index)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
-                  </div>
-
-                  {/* Core item fields */}
-                  <div className="grid gap-3 sm:grid-cols-12">
-                    <div className="space-y-1 sm:col-span-5">
-                      <Label className="text-xs">Description *</Label>
-                      <Input placeholder="Item description" {...register(`items.${index}.description`)} />
-                      {itemErrors?.description && (
-                        <p className="text-xs text-destructive">{itemErrors.description.message}</p>
-                      )}
-                    </div>
-                    <div className="space-y-1 sm:col-span-2">
-                      <Label className="text-xs">Quantity *</Label>
-                      <Input type="number" min={1} {...register(`items.${index}.quantity`, { valueAsNumber: true })} />
-                      {itemErrors?.quantity && (
-                        <p className="text-xs text-destructive">{itemErrors.quantity.message}</p>
-                      )}
-                    </div>
-                    <div className="space-y-1 sm:col-span-1">
-                      <Label className="text-xs">Unit *</Label>
-                      <Input placeholder="pcs" {...register(`items.${index}.unit`)} />
-                      {itemErrors?.unit && (
-                        <p className="text-xs text-destructive">{itemErrors.unit.message}</p>
-                      )}
-                    </div>
-
-                    {isOnline ? (
-                      <div className="space-y-1 sm:col-span-2">
-                        <Label className="text-xs">Unit Price *</Label>
-                        <Input
-                          type="number"
-                          min={0}
-                          step="0.01"
-                          {...register(`items.${index}.estimatedPrice`, { valueAsNumber: true })}
-                        />
-                        {itemErrors?.estimatedPrice && (
-                          <p className="text-xs text-destructive">{itemErrors.estimatedPrice.message}</p>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="flex items-end sm:col-span-2">
-                        <div className="w-full rounded-md bg-muted/50 px-3 py-2 text-center text-xs text-muted-foreground">
-                          TBD by Procurement
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="flex items-end sm:col-span-2">
-                      <div className="w-full rounded-md bg-muted/50 px-3 py-2 text-right text-sm font-medium">
-                        {isOnline ? formatCurrency(lineTotal) : '—'}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Specifications */}
-                  <div className="space-y-1">
-                    <Label className="text-xs">
-                      Specifications {!isOnline && <span className="text-muted-foreground">(helps Procurement source the right item)</span>}
-                    </Label>
-                    <textarea
-                      rows={2}
-                      className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-xs shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                      placeholder="Exact model, brand, dimensions, capacity, color, etc."
-                      {...register(`items.${index}.specifications`)}
-                    />
-                  </div>
-
-                  {/* Notes */}
-                  <Input
-                    placeholder="Additional notes (optional)"
-                    className="text-xs"
-                    {...register(`items.${index}.notes`)}
-                  />
-
-                  {/* Reference Photo — available for all items */}
-                  {(() => {
-                    const itemId = watch(`items.${index}._id`);
-                    const serverItem = itemId ? prData?.data?.items?.find((i) => i._id === itemId) : null;
-                    return (
-                      <ItemPhotoWidget
-                        index={index}
-                        staged={stagedPhotos[index] ?? null}
-                        serverPhotoName={serverItem?.referencePhotoOriginalName ?? null}
-                        serverPhotoPreviewUrl={itemId ? (serverPhotoPreviews[itemId] ?? null) : null}
-                        onViewServer={() => {
-                          const url = itemId ? serverPhotoPreviews[itemId] : null;
-                          if (url) setPhotoViewDialog({ open: true, url });
-                        }}
-                        onStage={stagePhoto}
-                        onClearStaged={clearStagedPhoto}
-                      />
-                    );
-                  })()}
-
-                  {/* Seller References — online only */}
-                  {isOnline && (
-                    <>
-                      <Separator />
-                      <SellerReferencesSection
-                        itemIndex={index}
-                        control={control}
-                        register={register}
-                        watch={watch}
-                        errors={errors}
-                      />
-                    </>
-                  )}
-                </div>
-              );
-            })}
-
-            {/* Total */}
-            <div className="flex items-center justify-between rounded-lg bg-primary/5 px-6 py-3">
-              <div className="text-xs text-muted-foreground">
-                {hasProcurementItems && (
-                  <div className="space-y-1">
-                    <p className="flex items-center gap-1">
-                    <ShoppingCart className="h-3 w-3" />
-                    Procurement-sourced items will be priced after Procurement team quotes them.
-                    </p>
-                    <p>
-                      Add clear specs, notes, and item photos now so Procurement can canvass without sending this back.
-                    </p>
-                  </div>
-                )}
-              </div>
-              <div className="text-right">
-                <p className="text-xs text-muted-foreground">
-                  {hasProcurementItems ? 'Online items subtotal' : 'Total Amount'}
-                </p>
-                <p className="text-xl font-bold">{formatCurrency(totalAmount)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-start justify-between gap-4">
-            <div>
-              <CardTitle className="text-base">Supporting Documents</CardTitle>
-              <CardDescription className="mt-1 text-xs">
-                Upload requester-owned files that apply to the whole request, such as proposals, specsheets, memos, accreditation documents, or requester-supplied quotations.
-              </CardDescription>
-              <p className="mt-2 text-[11px] text-muted-foreground">
-                Use <strong>reference photo</strong> inside a line item for item-specific visuals. Use <strong>supporting documents</strong> here for whole-request files.
-              </p>
-              <p className="mt-1 text-[11px] text-muted-foreground">
-                Procurement quotation evidence is uploaded later by Procurement and does not belong in this section.
-              </p>
-            </div>
-            <div>
+            <div className="flex gap-2">
+              {/* Draft save available from any step */}
               <Button
                 type="button"
                 variant="outline"
-                size="sm"
-                onClick={() => attachmentInputRef.current?.click()}
+                disabled={isSubmitting}
+                onClick={handleDraftSave}
               >
-                <Upload className="h-4 w-4" /> Add Files
+                {isSubmitting && pr.submitActionRef.current === 'draft'
+                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                  : <Save className="h-4 w-4" />}
+                Save Draft
               </Button>
-              <input
-                ref={attachmentInputRef}
-                type="file"
-                multiple
-                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
-                className="hidden"
-                onChange={(e) => {
-                  stageAttachments(e.target.files);
-                  e.target.value = '';
-                }}
-              />
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {existingAttachments.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs font-medium text-muted-foreground">Saved Requester Documents</p>
-                {existingAttachments.map((attachment) => (
-                  <div key={attachment._id} className="flex items-center justify-between rounded-lg border px-3 py-2">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <Paperclip className="h-4 w-4 shrink-0 text-muted-foreground" />
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium">{attachment.originalName}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatFileSize(attachment.size)}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      {canPreviewMimeType(attachment.mimeType) && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => handleExistingAttachmentPreview(attachment._id, attachment.mimeType, attachment.originalName)}
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={() => purchaseRequestsApi.downloadAttachment(id!, attachment._id, attachment.originalName)}
-                      >
-                        <Download className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-destructive hover:text-destructive"
-                        onClick={() => handleRemoveExistingAttachment(attachment._id)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
 
-            {stagedAttachments.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs font-medium text-muted-foreground">Pending Requester Documents</p>
-                {stagedAttachments.map(({ file, url }, index) => (
-                  <div key={`${file.name}-${index}`} className="flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50/40 px-3 py-2">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <Paperclip className="h-4 w-4 shrink-0 text-blue-600" />
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium">{file.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatFileSize(file.size)} <span className="text-blue-600">· pending save</span>
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      {url && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => setAttachmentPreviewDialog({
-                            open: true,
-                            url,
-                            mimeType: file.type,
-                            name: file.name,
-                            loading: false,
-                            revocable: false,
-                          })}
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-destructive hover:text-destructive"
-                        onClick={() => clearStagedAttachment(index)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {existingAttachments.length === 0 && stagedAttachments.length === 0 && (
-              <div className="rounded-md border border-dashed p-4 text-center text-sm text-muted-foreground">
-                No requester supporting documents yet.
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Resubmission note — only shown when editing a returned PR */}
-        {isEdit && watch('_isReturned') && (
-          <Card className="border-amber-300 bg-amber-50/40">
-            <CardHeader>
-              <CardTitle className="text-base text-amber-800 flex items-center gap-2">
-                <AlertCircle className="h-4 w-4" />
-                What changed? <span className="text-destructive">*</span>
-              </CardTitle>
-              <CardDescription className="text-amber-700 text-xs">
-                Summarize what you updated so approvers know exactly what to re-review.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <textarea
-                rows={3}
-                className="flex w-full rounded-md border border-amber-300 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-400"
-                placeholder="e.g. Replaced item 2 with a cheaper model, added 3 seller references for item 1, updated quantity of item 3 from 5 to 3..."
-                {...register('resubmissionNote')}
-              />
-              {errors.resubmissionNote && (
-                <p className="mt-1 text-xs text-destructive">{errors.resubmissionNote.message}</p>
+              {isLastStep ? (
+                <Button
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={handleSubmit}
+                >
+                  {isSubmitting && pr.submitActionRef.current === 'submit'
+                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                    : <Send className="h-4 w-4" />}
+                  Submit for Approval
+                </Button>
+              ) : (
+                <Button type="button" onClick={handleNext}>
+                  Continue
+                </Button>
               )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Actions */}
-        <div className="flex justify-end gap-3">
-          <Button type="button" variant="outline" onClick={() => navigate('/purchase-requests')}>
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            variant="outline"
-            disabled={isSubmitting}
-            onClick={() => { submitActionRef.current = 'draft'; }}
-          >
-            {isSubmitting && submitActionRef.current === 'draft'
-              ? <Loader2 className="h-4 w-4 animate-spin" />
-              : <Save className="h-4 w-4" />}
-            Save as Draft
-          </Button>
-          <Button
-            type="submit"
-            disabled={isSubmitting}
-            onClick={() => { submitActionRef.current = 'submit'; }}
-          >
-            {isSubmitting && submitActionRef.current === 'submit'
-              ? <Loader2 className="h-4 w-4 animate-spin" />
-              : <Send className="h-4 w-4" />}
-            {hasProcurementItems ? 'Submit to Procurement' : 'Submit for Approval'}
-          </Button>
-        </div>
+            </div>
+          </div>
+        </StickyFooter>
       </form>
 
-      {/* Server photo viewer */}
-      <Dialog open={photoViewDialog.open} onOpenChange={(o) => { if (!o) setPhotoViewDialog({ open: false, url: null }); }}>
+      {/* Server photo viewer dialog */}
+      <Dialog
+        open={stagedFiles.photoViewDialog.open}
+        onOpenChange={(o) => { if (!o) stagedFiles.setPhotoViewDialog({ open: false, url: null }); }}
+      >
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -1255,39 +220,13 @@ export function PrFormPage() {
             </DialogTitle>
           </DialogHeader>
           <div className="flex items-center justify-center min-h-48">
-            {photoViewDialog.url && (
-              <img src={photoViewDialog.url} alt="Reference photo" className="max-w-full max-h-[60vh] rounded-md object-contain" />
+            {stagedFiles.photoViewDialog.url && (
+              <img src={stagedFiles.photoViewDialog.url} alt="Reference photo" className="max-w-full max-h-[60vh] rounded-md object-contain" />
             )}
           </div>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={attachmentPreviewDialog.open} onOpenChange={(o) => { if (!o) closeAttachmentPreview(); }}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileText className="h-4 w-4" /> {attachmentPreviewDialog.name || 'Attachment Preview'}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="flex items-center justify-center min-h-48">
-            {attachmentPreviewDialog.loading ? (
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            ) : attachmentPreviewDialog.url && attachmentPreviewDialog.mimeType === 'application/pdf' ? (
-              <iframe
-                src={attachmentPreviewDialog.url}
-                title={attachmentPreviewDialog.name}
-                className="h-[70vh] w-full rounded-md border"
-              />
-            ) : attachmentPreviewDialog.url ? (
-              <img
-                src={attachmentPreviewDialog.url}
-                alt={attachmentPreviewDialog.name}
-                className="max-h-[70vh] max-w-full rounded-md object-contain"
-              />
-            ) : null}
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

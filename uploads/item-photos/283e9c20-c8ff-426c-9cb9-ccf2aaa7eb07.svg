@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400" viewBox="0 0 640 400">
+  <!-- background -->
+  <rect width="640" height="400" fill="#0c0a09"/>
+
+  <!-- top accent bar -->
+  <rect width="640" height="6" fill="#10b981"/>
+
+  <!-- product icon area -->
+  <rect x="24" y="28" width="120" height="120" rx="12" fill="#10b98122"/>
+  <g transform="translate(60, 64) scale(2)" fill="#10b981">
+    <path d="M20 3H4v10c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4v-3h2c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2zm0 5h-2V5h2v3zM4 19h16v2H4z"/>
+  </g>
+
+  <!-- badge -->
+  <rect x="156" y="28" width="128" height="26" rx="5" fill="#10b98133"/>
+  <text x="166" y="46" font-size="12" font-weight="700" fill="#10b981" font-family="monospace" letter-spacing="1">SERVER / NVR</text>
+
+  <!-- product name -->
+  <text x="156" y="78" font-size="20" font-weight="700" fill="#f1f5f9" font-family="sans-serif">2U Rackmount Server Case with Ra</text>
+  <text x="156" y="106" font-size="17" font-weight="400" fill="#f1f5f9" font-family="sans-serif">ils</text>
+
+  <!-- divider -->
+  <line x1="24" y1="170" x2="616" y2="170" stroke="#10b98144" stroke-width="1"/>
+
+  <!-- specs header -->
+  <text x="32" y="205" font-size="11" font-weight="600" fill="#10b98199" font-family="monospace" letter-spacing="1">TECHNICAL SPECIFICATIONS</text>
+
+  <!-- specs rows -->
+  <text x="32" y="228" font-size="13" fill="#94a3b8">Xeon / EPYC processor</text>
+    <text x="32" y="250" font-size="13" fill="#94a3b8">ECC DDR5 RAM</text>
+    <text x="32" y="272" font-size="13" fill="#94a3b8">RAID 5/6 support</text>
+    <text x="32" y="294" font-size="13" fill="#94a3b8">Dual PSU redundancy</text>
+
+  <!-- bottom note -->
+  <rect x="0" y="370" width="640" height="30" fill="#10b98111"/>
+  <text x="32" y="389" font-size="11" fill="#475569" font-family="sans-serif">Reference image for procurement sourcing — actual product may vary</text>
+
+  <!-- border -->
+  <rect x="1" y="1" width="638" height="398" rx="4" fill="none" stroke="#10b98133" stroke-width="1.5"/>
+</svg>

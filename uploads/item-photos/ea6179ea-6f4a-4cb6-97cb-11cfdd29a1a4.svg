@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400" viewBox="0 0 640 400">
+  <!-- background -->
+  <rect width="640" height="400" fill="#1c1917"/>
+
+  <!-- top accent bar -->
+  <rect width="640" height="6" fill="#f59e0b"/>
+
+  <!-- product icon area -->
+  <rect x="24" y="28" width="120" height="120" rx="12" fill="#f59e0b22"/>
+  <g transform="translate(60, 64) scale(2)" fill="#f59e0b">
+    <path d="M6.5 10h-2v5h2v-5zm6 0h-2v5h2v-5zm8.5 7H2v2h19v-2zm-2.5-7h-2v5h2v-5zM11.5 1L2 6v2h19V6l-9.5-5z"/>
+  </g>
+
+  <!-- badge -->
+  <rect x="156" y="28" width="83" height="26" rx="5" fill="#f59e0b33"/>
+  <text x="166" y="46" font-size="12" font-weight="700" fill="#f59e0b" font-family="monospace" letter-spacing="1">CABLING</text>
+
+  <!-- product name -->
+  <text x="156" y="78" font-size="20" font-weight="700" fill="#f1f5f9" font-family="sans-serif">Metal Conduit (1.5", 3m length, </text>
+  <text x="156" y="106" font-size="17" font-weight="400" fill="#f1f5f9" font-family="sans-serif">server room)</text>
+
+  <!-- divider -->
+  <line x1="24" y1="170" x2="616" y2="170" stroke="#f59e0b44" stroke-width="1"/>
+
+  <!-- specs header -->
+  <text x="32" y="205" font-size="11" font-weight="600" fill="#f59e0b99" font-family="monospace" letter-spacing="1">TECHNICAL SPECIFICATIONS</text>
+
+  <!-- specs rows -->
+  <text x="32" y="228" font-size="13" fill="#94a3b8">Cat6A / Cat7 / OM3</text>
+    <text x="32" y="250" font-size="13" fill="#94a3b8">Pure copper conductor</text>
+    <text x="32" y="272" font-size="13" fill="#94a3b8">LSZH rated jacket</text>
+    <text x="32" y="294" font-size="13" fill="#94a3b8">Tested to 500MHz</text>
+
+  <!-- bottom note -->
+  <rect x="0" y="370" width="640" height="30" fill="#f59e0b11"/>
+  <text x="32" y="389" font-size="11" fill="#475569" font-family="sans-serif">Reference image for procurement sourcing — actual product may vary</text>
+
+  <!-- border -->
+  <rect x="1" y="1" width="638" height="398" rx="4" fill="none" stroke="#f59e0b33" stroke-width="1.5"/>
+</svg>

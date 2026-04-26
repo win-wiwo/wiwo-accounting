@@ -8,17 +8,22 @@ export function AppLayout() {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-sidebar">
       <Sidebar collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />
       <Header sidebarCollapsed={collapsed} />
       <main
         className={cn(
-          'min-h-[calc(100vh-4rem)] pt-16 transition-all duration-300',
+          'pt-16 transition-all duration-300',
           collapsed ? 'ml-16' : 'ml-64',
         )}
       >
-        <div className="p-6">
-          <Outlet />
+        {/* White rounded content panel — the signature DEMURE-style inner card */}
+        <div className="p-3">
+          <div className="min-h-[calc(100vh-4rem-1.5rem)] rounded-2xl bg-[#f9f9f9]">
+            <div className="p-6 lg:p-8">
+              <Outlet />
+            </div>
+          </div>
         </div>
       </main>
     </div>

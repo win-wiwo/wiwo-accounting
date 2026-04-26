@@ -12,6 +12,7 @@ import {
   ApprovalLevel,
   normalizePrStatus,
   PrStatus,
+  SourcingType,
   UserRole,
 } from '@prams/shared';
 import { Approval } from './schemas/approval.schema';
@@ -29,7 +30,7 @@ interface RequestUser {
  */
 const STATUS_TO_LEVEL: Record<string, number> = {
   [PrStatus.LEVEL1_REVIEW]: ApprovalLevel.DEPT_HEAD,
-  [PrStatus.QUOTED]: ApprovalLevel.DEPT_HEAD,
+  [PrStatus.QUOTED]: ApprovalLevel.COO,
   [PrStatus.LEVEL2_REVIEW]: ApprovalLevel.COO,
   [PrStatus.LEVEL3_REVIEW]: ApprovalLevel.CEO,
 };
@@ -118,33 +119,64 @@ export class ApprovalsService {
 
     // Transition the PR status
     if (dto.action === ApprovalAction.APPROVED) {
-      const nextStatus = NEXT_STATUS_AFTER_APPROVE[currentLevel];
-      pr.status = nextStatus;
-      pr.currentApprovalLevel = currentLevel + 1;
-
-      if (nextStatus === PrStatus.APPROVED) {
+      if (currentLevel === ApprovalLevel.CEO) {
+        // CEO approval: check if PR needs procurement
+        const hasProcurementItems = pr.items.some(
+          (item) => item.sourcingType === SourcingType.PROCUREMENT,
+        );
+        if (hasProcurementItems) {
+          pr.status = PrStatus.PENDING_QUOTATION;
+          pr.currentApprovalLevel = currentLevel + 1;
+        } else {
+          pr.status = PrStatus.APPROVED;
+          pr.completedAt = new Date();
+          pr.currentApprovalLevel = currentLevel + 1;
+        }
+      } else if (pr.status === PrStatus.QUOTED) {
+        // COO price sign-off: procurement is done, finalize
+        pr.status = PrStatus.APPROVED;
         pr.completedAt = new Date();
+        pr.currentApprovalLevel = currentLevel + 1;
+      } else {
+        // Normal approval chain progression
+        const nextStatus = NEXT_STATUS_AFTER_APPROVE[currentLevel];
+        pr.status = nextStatus;
+        pr.currentApprovalLevel = currentLevel + 1;
+        if (nextStatus === PrStatus.APPROVED) {
+          pr.completedAt = new Date();
+        }
       }
     } else if (dto.action === ApprovalAction.REJECTED) {
       pr.status = PrStatus.REJECTED;
       pr.completedAt = new Date();
     } else if (dto.action === ApprovalAction.RETURNED) {
-      pr.status = PrStatus.RETURNED;
-      pr.currentApprovalLevel = 0;
-      pr.set('previousSubmissionSnapshot', {
-        title: pr.title,
-        priority: pr.priority,
-        justification: pr.justification,
-        items: pr.items.map((item) => ({
-          _id: item._id.toString(),
-          description: item.description,
-          quantity: item.quantity,
-          unit: item.unit,
-          sourcingType: item.sourcingType,
-          estimatedPrice: item.estimatedPrice,
-        })),
-      });
-      pr.set('resubmissionNote', null);
+      if (pr.status === PrStatus.QUOTED) {
+        // Return to procurement, not to requester
+        pr.status = PrStatus.PENDING_QUOTATION;
+        pr.quotationReturnHistory.push({
+          returnedBy: new Types.ObjectId(user._id),
+          note: dto.comments,
+          returnedAt: new Date(),
+        } as any);
+      } else {
+        // Normal return: back to requester
+        pr.status = PrStatus.RETURNED;
+        pr.currentApprovalLevel = 0;
+        pr.set('previousSubmissionSnapshot', {
+          title: pr.title,
+          priority: pr.priority,
+          justification: pr.justification,
+          items: pr.items.map((item) => ({
+            _id: item._id.toString(),
+            description: item.description,
+            quantity: item.quantity,
+            unit: item.unit,
+            sourcingType: item.sourcingType,
+            estimatedPrice: item.estimatedPrice,
+          })),
+        });
+        pr.set('resubmissionNote', null);
+      }
     }
 
     pr.approvalHistory.push(approval._id);
@@ -194,10 +226,10 @@ export class ApprovalsService {
     let pendingStatuses: string[];
     switch (user.role) {
       case UserRole.DEPT_HEAD:
-        pendingStatuses = [PrStatus.SUBMITTED, PrStatus.LEVEL1_REVIEW, PrStatus.QUOTED];
+        pendingStatuses = [PrStatus.SUBMITTED, PrStatus.LEVEL1_REVIEW];
         break;
       case UserRole.COO:
-        pendingStatuses = [PrStatus.LEVEL2_REVIEW];
+        pendingStatuses = [PrStatus.LEVEL2_REVIEW, PrStatus.QUOTED];
         break;
       case UserRole.CEO:
         pendingStatuses = [PrStatus.LEVEL3_REVIEW];
@@ -251,10 +283,10 @@ export class ApprovalsService {
     let pendingStatuses: string[];
     switch (user.role) {
       case UserRole.DEPT_HEAD:
-        pendingStatuses = [PrStatus.SUBMITTED, PrStatus.LEVEL1_REVIEW, PrStatus.QUOTED];
+        pendingStatuses = [PrStatus.SUBMITTED, PrStatus.LEVEL1_REVIEW];
         break;
       case UserRole.COO:
-        pendingStatuses = [PrStatus.LEVEL2_REVIEW];
+        pendingStatuses = [PrStatus.LEVEL2_REVIEW, PrStatus.QUOTED];
         break;
       case UserRole.CEO:
         pendingStatuses = [PrStatus.LEVEL3_REVIEW];

@@ -8,6 +8,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, FilterQuery, Types } from 'mongoose';
 import { unlink } from 'fs/promises';
 import { existsSync } from 'fs';
+import { join } from 'path';
 import { SubmitQuotationDto } from './dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AttachmentCategory, normalizePrStatus, PrStatus, UserRole } from '@prams/shared';
@@ -347,17 +348,14 @@ export class PurchaseRequestsService {
       pr.prNumber = await this.prNumberingService.generatePrNumber(dept.code, prefixOverride);
     }
 
-    // Dept heads skip level-1 review — their PRs go straight to COO (level 2)
+    // All PRs go to approval first — procurement happens after approval chain
     const isDeptHead = user.role === UserRole.DEPT_HEAD;
-    const hasProcurementItems = pr.items.some((item) => item.sourcingType === 'procurement');
-
-    if (hasProcurementItems) {
-      pr.status = PrStatus.PENDING_QUOTATION;
-      // currentApprovalLevel = 2 signals submitQuotation to skip to COO after quoting
-      pr.currentApprovalLevel = isDeptHead ? 2 : 0;
+    if (isDeptHead) {
+      pr.status = PrStatus.LEVEL2_REVIEW;
+      pr.currentApprovalLevel = 2;
     } else {
-      pr.status = isDeptHead ? PrStatus.LEVEL2_REVIEW : PrStatus.LEVEL1_REVIEW;
-      pr.currentApprovalLevel = isDeptHead ? 2 : 1;
+      pr.status = PrStatus.LEVEL1_REVIEW;
+      pr.currentApprovalLevel = 1;
     }
 
     pr.submittedAt = new Date();
@@ -502,15 +500,9 @@ export class PurchaseRequestsService {
     pr.canvassEntries = normalizedEntries as typeof pr.canvassEntries;
     pr.canvassJustification = canvassJustification;
 
-    // If currentApprovalLevel was pre-set to 2 at submit time, the requester was a dept_head
-    // — skip level-1 and send straight to COO
-    if (pr.currentApprovalLevel >= 2) {
-      pr.status = PrStatus.LEVEL2_REVIEW;
-      pr.currentApprovalLevel = 2;
-    } else {
-      pr.status = PrStatus.QUOTED;
-      pr.currentApprovalLevel = 1;
-    }
+    // All procurement PRs go to COO for price sign-off
+    pr.status = PrStatus.QUOTED;
+    pr.currentApprovalLevel = 2;
     pr.set('quotationNote', null);
 
     await pr.save();
@@ -578,7 +570,6 @@ export class PurchaseRequestsService {
       PrStatus.SUBMITTED,
       PrStatus.LEVEL1_REVIEW,
       PrStatus.LEVEL2_REVIEW,
-      PrStatus.PENDING_QUOTATION,
       PrStatus.RETURNED_FOR_INFO,
     ];
     if (!recallableStatuses.includes(pr.status)) {
@@ -622,7 +613,6 @@ export class PurchaseRequestsService {
     const cancellableStatuses: string[] = [
       PrStatus.DRAFT,
       PrStatus.SUBMITTED,
-      PrStatus.PENDING_QUOTATION,
       PrStatus.LEVEL1_REVIEW,
       PrStatus.LEVEL2_REVIEW,
       PrStatus.RETURNED_FOR_INFO,
@@ -815,8 +805,11 @@ export class PurchaseRequestsService {
     if (!item) throw new NotFoundException('Line item not found');
 
     // Delete old photo file if it exists
-    if (item.referencePhotoPath && existsSync(item.referencePhotoPath)) {
-      await unlink(item.referencePhotoPath).catch(() => null);
+    if (item.referencePhotoPath) {
+      const oldPath = item.referencePhotoPath.startsWith('/')
+        ? item.referencePhotoPath
+        : join(process.cwd(), item.referencePhotoPath);
+      if (existsSync(oldPath)) await unlink(oldPath).catch(() => null);
     }
 
     item.referencePhotoPath = file.path;
@@ -847,8 +840,11 @@ export class PurchaseRequestsService {
     const item = pr.items.find((i) => i._id.toString() === itemId);
     if (!item) throw new NotFoundException('Line item not found');
 
-    if (item.referencePhotoPath && existsSync(item.referencePhotoPath)) {
-      await unlink(item.referencePhotoPath).catch(() => null);
+    if (item.referencePhotoPath) {
+      const photoPath = item.referencePhotoPath.startsWith('/')
+        ? item.referencePhotoPath
+        : join(process.cwd(), item.referencePhotoPath);
+      if (existsSync(photoPath)) await unlink(photoPath).catch(() => null);
     }
 
     item.referencePhotoPath = null;

@@ -304,18 +304,23 @@ export class PurchaseRequestsController {
       return;
     }
 
-    if (!existsSync(item.referencePhotoPath)) {
+    // Resolve path: support both absolute and relative (to cwd) paths
+    const photoPath = item.referencePhotoPath.startsWith('/')
+      ? item.referencePhotoPath
+      : join(process.cwd(), item.referencePhotoPath);
+
+    if (!existsSync(photoPath)) {
       res.status(404).json({ message: 'Photo file not found on disk' });
       return;
     }
 
-    const ext = item.referencePhotoPath.split('.').pop()?.toLowerCase();
+    const ext = photoPath.split('.').pop()?.toLowerCase();
     const mimeMap: Record<string, string> = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', svg: 'image/svg+xml' };
     const mime = mimeMap[ext ?? ''] ?? 'image/jpeg';
 
     res.setHeader('Content-Disposition', `inline; filename="${item.referencePhotoOriginalName ?? 'photo'}"`);
     res.setHeader('Content-Type', mime);
-    createReadStream(item.referencePhotoPath).pipe(res);
+    createReadStream(photoPath).pipe(res);
   }
 
   @Delete(':id')

@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400" viewBox="0 0 640 400">
+  <!-- background -->
+  <rect width="640" height="400" fill="#0f172a"/>
+
+  <!-- top accent bar -->
+  <rect width="640" height="6" fill="#3b82f6"/>
+
+  <!-- product icon area -->
+  <rect x="24" y="28" width="120" height="120" rx="12" fill="#3b82f622"/>
+  <g transform="translate(60, 64) scale(2)" fill="#3b82f6">
+    <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 7.61 17 4.5 12 4.5zm0 12.5c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+  </g>
+
+  <!-- badge -->
+  <rect x="156" y="28" width="128" height="26" rx="5" fill="#3b82f633"/>
+  <text x="166" y="46" font-size="12" font-weight="700" fill="#3b82f6" font-family="monospace" letter-spacing="1">SURVEILLANCE</text>
+
+  <!-- product name -->
+  <text x="156" y="78" font-size="20" font-weight="700" fill="#f1f5f9" font-family="sans-serif">Camera Junction Box (Outdoor-rat</text>
+  <text x="156" y="106" font-size="17" font-weight="400" fill="#f1f5f9" font-family="sans-serif">ed, IP67)</text>
+
+  <!-- divider -->
+  <line x1="24" y1="170" x2="616" y2="170" stroke="#3b82f644" stroke-width="1"/>
+
+  <!-- specs header -->
+  <text x="32" y="205" font-size="11" font-weight="600" fill="#3b82f699" font-family="monospace" letter-spacing="1">TECHNICAL SPECIFICATIONS</text>
+
+  <!-- specs rows -->
+  <text x="32" y="228" font-size="13" fill="#94a3b8">2MP / 4MP / 8MP options</text>
+    <text x="32" y="250" font-size="13" fill="#94a3b8">IP66 weatherproof</text>
+    <text x="32" y="272" font-size="13" fill="#94a3b8">H.265+ compression</text>
+    <text x="32" y="294" font-size="13" fill="#94a3b8">IR night vision 30m</text>
+
+  <!-- bottom note -->
+  <rect x="0" y="370" width="640" height="30" fill="#3b82f611"/>
+  <text x="32" y="389" font-size="11" fill="#475569" font-family="sans-serif">Reference image for procurement sourcing — actual product may vary</text>
+
+  <!-- border -->
+  <rect x="1" y="1" width="638" height="398" rx="4" fill="none" stroke="#3b82f633" stroke-width="1.5"/>
+</svg>

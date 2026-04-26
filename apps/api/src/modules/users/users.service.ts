@@ -7,6 +7,8 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, FilterQuery, Types } from 'mongoose';
 import * as bcrypt from 'bcrypt';
+import { existsSync, unlinkSync } from 'fs';
+import { join } from 'path';
 import { User } from './schemas/user.schema';
 import { CreateUserDto, UpdateUserDto, QueryUsersDto } from './dto';
 
@@ -174,6 +176,24 @@ export class UsersService {
 
     const passwordHash = await bcrypt.hash(newPassword, 12);
     await this.userModel.findByIdAndUpdate(id, { passwordHash, refreshToken: null }).exec();
+  }
+
+  async uploadPhoto(id: string, file: Express.Multer.File): Promise<User> {
+    const user = await this.userModel.findById(id).exec();
+    if (!user) throw new NotFoundException('User not found');
+
+    if (user.photoUrl && user.photoUrl.startsWith('/uploads/')) {
+      const oldPath = join(process.cwd(), user.photoUrl);
+      if (existsSync(oldPath)) unlinkSync(oldPath);
+    }
+
+    const photoUrl = `/uploads/user-photos/${file.filename}`;
+    const updated = await this.userModel
+      .findByIdAndUpdate(id, { $set: { photoUrl } }, { new: true })
+      .populate('departmentId', 'name code')
+      .exec();
+
+    return updated!;
   }
 
   async findByDepartment(departmentId: string): Promise<User[]> {

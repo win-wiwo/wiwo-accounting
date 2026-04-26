@@ -51,6 +51,16 @@ export const usersApi = {
 
   activate: (id: string) =>
     apiClient.patch<ApiResponse<User>>(`/users/${id}/activate`).then((r) => r.data),
+
+  uploadPhoto: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return apiClient
+      .post<ApiResponse<User>>('/users/me/photo', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      .then((r) => r.data);
+  },
 };
 
 // ─── Departments ─────────────────────────────────────────────

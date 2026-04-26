@@ -1,7 +1,10 @@
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { KeyRound, Mail, Building2, Shield, Hash } from 'lucide-react';
-import { ROLE_LABELS, type UserRole } from '@prams/shared';
+import { KeyRound, Mail, Building2, Shield, Hash, Camera, Loader2 } from 'lucide-react';
+import { ROLE_LABELS, type UserRole, type User } from '@prams/shared';
 import { useAuthStore } from '@/stores/auth.store';
+import { usersApi } from '@/lib/api-services';
+import { useToast } from '@/components/ui/toast';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,10 +16,28 @@ import { Separator } from '@/components/ui/separator';
 export function ProfilePage() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
+  const setUser = useAuthStore((s) => s.setUser);
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   if (!user) return null;
 
   const initials = `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
+
+  const handlePhotoUpload = async (file: File | null) => {
+    if (!file) return;
+    try {
+      setIsUploading(true);
+      const result = await usersApi.uploadPhoto(file);
+      setUser(result.data as User);
+      toast({ title: 'Profile photo updated', variant: 'success' });
+    } catch {
+      toast({ title: 'Failed to upload photo', description: 'Please try a JPG, PNG, or WebP image under 5 MB.', variant: 'error' });
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -26,12 +47,32 @@ export function ProfilePage() {
         {/* Profile Card */}
         <Card>
           <CardContent className="flex flex-col items-center pt-8 pb-6">
-            <Avatar className="h-20 w-20 mb-4">
-              <AvatarImage src={resolvePhotoUrl(user.photoUrl)} alt={initials} />
-              <AvatarFallback className="bg-primary/10 text-primary text-2xl">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
+            <div className="relative mb-4 group">
+              <Avatar className="h-20 w-20">
+                <AvatarImage src={resolvePhotoUrl(user.photoUrl)} alt={initials} />
+                <AvatarFallback className="bg-primary/10 text-primary text-2xl">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+              >
+                {isUploading
+                  ? <Loader2 className="h-5 w-5 text-white animate-spin" />
+                  : <Camera className="h-5 w-5 text-white" />
+                }
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                className="hidden"
+                onChange={(e) => { handlePhotoUpload(e.target.files?.[0] ?? null); e.target.value = ''; }}
+              />
+            </div>
             <h2 className="text-lg font-semibold">{user.firstName} {user.lastName}</h2>
             <p className="text-sm text-muted-foreground">{user.email}</p>
             <Badge variant="secondary" className="mt-2">

@@ -40,8 +40,8 @@ export function normalizePrStatus(status: string): string {
 export const PR_STATUS_LABELS: Record<PrStatus, string> = {
   [PrStatus.DRAFT]: 'Draft',
   [PrStatus.SUBMITTED]: 'Dept Head Review',
-  [PrStatus.PENDING_QUOTATION]: 'Pending Quotation',
-  [PrStatus.QUOTED]: 'Quoted',
+  [PrStatus.PENDING_QUOTATION]: 'Pending Procurement',
+  [PrStatus.QUOTED]: 'Price Review',
   [PrStatus.LEVEL1_REVIEW]: 'Dept Head Review',
   [PrStatus.LEVEL2_REVIEW]: 'COO Review',
   [PrStatus.LEVEL3_REVIEW]: 'CEO Review',

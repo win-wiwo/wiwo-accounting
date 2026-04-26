@@ -60,21 +60,29 @@ The accounting department issued Memorandum 2026-001 defining **three major proc
 
 **Purpose:** Request purchase of goods essential to daily operations.
 
-**Workflow:**
+**Workflow (Approve First, Procure After):**
 ```
 Office Personnel (Preparer)
-    ↓ fills form
-Department Head (Certifier)
-    ↓ certifies items are essential
-    ↓ signs and approves
-COO - Patrick Ryan L. Po (Approver)
+    ↓ fills form and submits
+Department Head (Level 1 — certifies need)
     ↓ approves
-CEO - Cesar Manuel S. Lorenzo (Final Approver)
-    ↓ certifies
-Accounting Department (Receives approved form)
+COO - Patrick Ryan L. Po (Level 2 — approves need)
+    ↓ approves
+CEO - Cesar Manuel S. Lorenzo (Level 3 — final need-approval)
+    ↓ approves
+    ├─ (no procurement items) → APPROVED → Accounting receives
+    └─ (has procurement items) → Pending Procurement
+         ↓
+Procurement Officer (Sources suppliers, gathers 3+ quotes)
+    ↓ submits canvass & quotation
+COO - Patrick Ryan L. Po (Price Review — validates supplier & pricing)
+    ↓ approves pricing
+APPROVED → Accounting Department (Receives approved form)
     ↓
 Procurement Officer (Creates Purchase Order)
 ```
+
+> **Design rationale:** Management approves the *need* before procurement spends time sourcing. This prevents wasted canvassing effort on requests that may be rejected. The COO reviews pricing separately to ensure spend matches what was approved.
 
 **Form Fields:**
 | Field | Type | Required | Notes |
@@ -105,11 +113,13 @@ Procurement Officer (Creates Purchase Order)
 
 **Rejection Criteria:** Incomplete documentary attachments and signatures → returned to department.
 
-**Current PRAMS Status:** ✅ Mostly implemented. Needs alignment:
-- [ ] Add "Project Name" field (separate from purpose)
+**Current PRAMS Status:** ✅ Mostly implemented. Workflow redesigned Apr 2026 ("Approve First, Procure After"). Remaining alignment:
+- [x] Approval chain completed before procurement (v2 workflow)
+- [x] COO price sign-off on supplier selection
+- [x] Project field implemented
+- [x] Item photo/screenshot attachment category
 - [ ] Add "Certified by" (Dept Head) signature block distinct from approval
-- [ ] Enforce minimum 3 canvass attachments
-- [ ] Add picture/screenshot attachment category
+- [ ] Enforce minimum 3 canvass attachments (currently validated but with justification override)
 - [ ] PDF export should match exact Annex A layout
 
 ---

@@ -38,7 +38,7 @@ services:
     volumes:
       - ./apps/api/src:/app/apps/api/src
       - ./packages/shared/src:/app/packages/shared/src
-      - ./apps/api/uploads:/app/apps/api/uploads
+      - ./uploads:/app/uploads
     depends_on:
       mongodb:
         condition: service_healthy

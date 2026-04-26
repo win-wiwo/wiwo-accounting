@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400" viewBox="0 0 640 400">
+  <!-- background -->
+  <rect width="640" height="400" fill="#0a0a14"/>
+
+  <!-- top accent bar -->
+  <rect width="640" height="6" fill="#8b5cf6"/>
+
+  <!-- product icon area -->
+  <rect x="24" y="28" width="120" height="120" rx="12" fill="#8b5cf622"/>
+  <g transform="translate(60, 64) scale(2)" fill="#8b5cf6">
+    <path d="M20 18c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/>
+  </g>
+
+  <!-- badge -->
+  <rect x="156" y="28" width="101" height="26" rx="5" fill="#8b5cf633"/>
+  <text x="166" y="46" font-size="12" font-weight="700" fill="#8b5cf6" font-family="monospace" letter-spacing="1">COMPUTING</text>
+
+  <!-- product name -->
+  <text x="156" y="78" font-size="20" font-weight="700" fill="#f1f5f9" font-family="sans-serif">VMS Client Workstation License (</text>
+  <text x="156" y="106" font-size="17" font-weight="400" fill="#f1f5f9" font-family="sans-serif">5 concurrent)</text>
+
+  <!-- divider -->
+  <line x1="24" y1="170" x2="616" y2="170" stroke="#8b5cf644" stroke-width="1"/>
+
+  <!-- specs header -->
+  <text x="32" y="205" font-size="11" font-weight="600" fill="#8b5cf699" font-family="monospace" letter-spacing="1">TECHNICAL SPECIFICATIONS</text>
+
+  <!-- specs rows -->
+  <text x="32" y="228" font-size="13" fill="#94a3b8">Intel Core i7 / i9</text>
+    <text x="32" y="250" font-size="13" fill="#94a3b8">32GB DDR5 RAM</text>
+    <text x="32" y="272" font-size="13" fill="#94a3b8">1TB NVMe SSD</text>
+    <text x="32" y="294" font-size="13" fill="#94a3b8">Windows 11 Pro</text>
+
+  <!-- bottom note -->
+  <rect x="0" y="370" width="640" height="30" fill="#8b5cf611"/>
+  <text x="32" y="389" font-size="11" fill="#475569" font-family="sans-serif">Reference image for procurement sourcing — actual product may vary</text>
+
+  <!-- border -->
+  <rect x="1" y="1" width="638" height="398" rx="4" fill="none" stroke="#8b5cf633" stroke-width="1.5"/>
+</svg>

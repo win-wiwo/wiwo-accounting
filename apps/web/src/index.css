@@ -3,7 +3,7 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  --color-background: oklch(1 0 0);
+  --color-background: oklch(0.985 0 0);
   --color-foreground: oklch(0.145 0 0);
   --color-card: oklch(1 0 0);
   --color-card-foreground: oklch(0.145 0 0);
@@ -27,21 +27,160 @@
   --color-chart-3: oklch(0.398 0.07 227.392);
   --color-chart-4: oklch(0.828 0.189 84.429);
   --color-chart-5: oklch(0.769 0.188 70.08);
-  --color-sidebar: oklch(0.985 0 0);
-  --color-sidebar-foreground: oklch(0.145 0 0);
-  --color-sidebar-primary: oklch(0.205 0.042 265.755);
-  --color-sidebar-primary-foreground: oklch(0.985 0 0);
-  --color-sidebar-accent: oklch(0.97 0.001 286.375);
-  --color-sidebar-accent-foreground: oklch(0.205 0.042 265.755);
-  --color-sidebar-border: oklch(0.922 0.004 286.32);
-  --color-sidebar-ring: oklch(0.205 0.042 265.755);
-  --radius-sm: 0.25rem;
-  --radius-md: 0.375rem;
-  --radius-lg: 0.5rem;
-  --radius-xl: 0.75rem;
+  --color-sidebar: oklch(0.15 0 0);
+  --color-sidebar-foreground: oklch(0.85 0 0);
+  --color-sidebar-primary: oklch(0.985 0 0);
+  --color-sidebar-primary-foreground: oklch(0.15 0 0);
+  --color-sidebar-accent: oklch(0.98 0 0);
+  --color-sidebar-accent-foreground: oklch(0.15 0 0);
+  --color-sidebar-border: oklch(0.22 0 0);
+  --color-sidebar-ring: oklch(0.55 0 0);
+  --color-sidebar-muted: oklch(0.5 0 0);
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
 
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
     "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+}
+
+/* ── Login hero animations ──────────────────────────────── */
+@keyframes heroFloat {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-16px); }
+}
+@keyframes heroFloat2 {
+  0%, 100% { transform: translateY(0px) translateX(0px); }
+  50%       { transform: translateY(-10px) translateX(4px); }
+}
+@keyframes heroFadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes heroBarGrow {
+  from { transform: scaleY(0); opacity: 0; }
+  to   { transform: scaleY(1); opacity: 1; }
+}
+@keyframes heroShimmer {
+  0%       { transform: translateX(-100%); opacity: 0; }
+  10%      { opacity: 1; }
+  80%      { opacity: 1; }
+  100%     { transform: translateX(350%); opacity: 0; }
+}
+@keyframes heroPulse {
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 0.8; }
+}
+
+/* ── Login right-panel CSS classes ─────────────────────── */
+.login-panel-bg {
+  background: radial-gradient(ellipse 130% 110% at 80% 110%, #e2e2e2 0%, #eeeeee 35%, #f7f7f7 65%, #ffffff 100%);
+}
+.login-card {
+  background: rgba(255,255,255,0.93);
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 20px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.95),
+    0 2px 6px rgba(0,0,0,0.04),
+    0 20px 64px rgba(0,0,0,0.08);
+  overflow: hidden;
+}
+.login-card-rule {
+  height: 1.5px;
+  background: linear-gradient(90deg, transparent 0%, rgba(18,18,18,0.6) 25%, rgba(18,18,18,0.6) 75%, transparent 100%);
+}
+.login-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0,0,0,0.07) 30%, rgba(0,0,0,0.07) 70%, transparent);
+  margin-bottom: 1.75rem;
+}
+.login-input {
+  height: 50px;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(0,0,0,0.12);
+  background: rgba(245,245,245,0.6);
+  padding: 0 1rem;
+  font-size: 14px;
+  color: #1a1a1a;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  width: 100%;
+  outline: none;
+}
+.login-input::placeholder { color: #bbbbbb; }
+.login-input:focus {
+  border-color: rgba(30,30,30,0.7);
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(0,0,0,0.07);
+}
+.login-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 50px;
+  width: 100%;
+  border-radius: 0.75rem;
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: #ffffff;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(160deg, #242424 0%, #0c0c0c 100%);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.06);
+  transform: translateY(0);
+  transition: transform 0.18s cubic-bezier(0.16,1,0.3,1), box-shadow 0.18s ease;
+  cursor: pointer;
+}
+.login-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.09);
+}
+.login-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.06);
+}
+.login-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.login-btn-sheen {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.065) 50%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.45s ease;
+  pointer-events: none;
+}
+.login-btn:hover .login-btn-sheen { opacity: 1; }
+.login-glow {
+  position: absolute;
+  width: 520px;
+  height: 520px;
+  border-radius: 50%;
+  left: 50%;
+  top: 50%;
+  background: radial-gradient(circle, rgba(0,0,0,0.025) 0%, transparent 68%);
+  pointer-events: none;
+  animation: loginGlow 14s ease-in-out infinite;
+}
+
+@keyframes loginSlideUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes loginGlow {
+  0%, 100% { transform: translate(-50%, -50%) scale(1);    opacity: 0.55; }
+  50%       { transform: translate(-47%, -53%) scale(1.08); opacity: 0.9;  }
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .hero-anim, .login-anim {
+    animation: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
 }
 
 @layer base {

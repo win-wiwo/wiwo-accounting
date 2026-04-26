@@ -198,18 +198,17 @@ purchase-request-system/
         │  Storage │ │ (SMTP) │ │ SSE Gateway  │
         └──────────┘ └────────┘ └──────────────┘
 
-Data Flow for Purchase Request Lifecycle:
+Data Flow for Purchase Request Lifecycle (Approve First, Procure After):
 
-  User creates PR         PR submitted           Approver reviews
-  ┌──────────┐      ┌──────────────┐      ┌──────────────────┐
-  │  DRAFT   │─────▶│  SUBMITTED   │─────▶│  UNDER REVIEW    │
-  └──────────┘      └──────────────┘      └────────┬─────────┘
-                                                    │
-                              ┌──────────────┬──────┴──────┐
-                              ▼              ▼             ▼
-                        ┌──────────┐  ┌──────────┐  ┌──────────┐
-                        │ APPROVED │  │ REJECTED │  │ RETURNED │
-                        └──────────┘  └──────────┘  └──────────┘
+  All PRs go to approval first. Procurement acts only on approved needs.
+
+  DRAFT → LEVEL1_REVIEW → LEVEL2_REVIEW → LEVEL3_REVIEW
+    ├─ (no procurement items) → APPROVED
+    └─ (has procurement items) → PENDING_QUOTATION → QUOTED → APPROVED
+
+  Dept head requesters skip LEVEL1. Any level can REJECT or RETURN → DRAFT.
+  RETURN from QUOTED → PENDING_QUOTATION (procurement revises).
+  COO does price sign-off on QUOTED for all procurement PRs.
 ```
 
 ### 1.4 Technology Decisions Summary
@@ -1006,9 +1005,11 @@ async submitPR(@Param('id', ParseObjectIdPipe) id: string, @CurrentUser() user: 
 
 ### 5.1 PR Status State Machine
 
+**Approve First, Procure After** — all PRs go through the approval chain before procurement acts. This prevents procurement from wasting effort sourcing items for requests that might be rejected.
+
 ```
                     ┌──────────────────────────────────────────────────────┐
-                    │           Purchase Request Status Flow               │
+                    │    Purchase Request Status Flow (v2 — Apr 2026)      │
                     └──────────────────────────────────────────────────────┘
 
                                    User creates PR
@@ -1016,31 +1017,24 @@ async submitPR(@Param('id', ParseObjectIdPipe) id: string, @CurrentUser() user: 
                                         ▼
                                  ┌──────────────┐
                                  │    DRAFT     │ ◀─────────────────────┐
-                                 │              │                       │
                                  └──────┬───────┘                       │
                                         │                               │
                                   User submits                          │
-                                        │                         User edits
-                                        ▼                         and resubmits
-                                 ┌──────────────┐                       │
-                                 │  SUBMITTED   │                       │
-                                 │              │                       │
-                                 └──────┬───────┘                       │
-                                        │                               │
-                           Dept Head picks up                           │
+                                  (all PRs go to                  RETURNED
+                                   approval first)                (back to DRAFT)
                                         │                               │
                                         ▼                               │
                                  ┌──────────────┐                       │
-                                 │   LEVEL1     │  (Dept Head Review)   │
-                                 │   REVIEW     │                       │
-                                 └──────┬───────┘                       │
+                                 │  LEVEL1      │  (Dept Head Review)   │
+                                 │  REVIEW      │  (skipped if dept     │
+                                 └──────┬───────┘   head is requester)  │
                                         │                               │
                           ┌─────────────┼──────────────┐                │
                           ▼             ▼              ▼                │
-                   ┌──────────┐  ┌──────────┐  ┌──────────┐             │
-                   │ LEVEL2   │  │ REJECTED │  │ RETURNED │─────────────┘
+                   ┌──────────┐  ┌──────────┐  ┌──────────┐            │
+                   │ LEVEL2   │  │ REJECTED │  │ RETURNED │────────────┘
                    │ REVIEW   │  │          │  │          │
-                   │(COO)     │  └──────────┘  └──────────┘
+                   │ (COO)    │  └──────────┘  └──────────┘
                    └────┬─────┘
                         │
                  ┌──────┼──────────────┐
@@ -1048,19 +1042,39 @@ async submitPR(@Param('id', ParseObjectIdPipe) id: string, @CurrentUser() user: 
           ┌──────────┐ ┌──────────┐  ┌──────────┐
           │ LEVEL3   │ │ REJECTED │  │ RETURNED │──────────┐
           │ REVIEW   │ │          │  │          │          │
-          │ (CEO)    │ └──────────┘  └──────────┘          │
-          └────┬─────┘                                     │
-               │                                           │
-        ┌──────┼──────────────┐                            │
-        ▼      ▼              ▼                            │
- ┌──────────┐ ┌──────────┐  ┌──────────┐                   │
- │ APPROVED │ │ REJECTED │  │ RETURNED │───────────────────┘
- │          │ │          │  │          │
- └──────────┘ └──────────┘  └──────────┘
-                                  │
-                             Returns to DRAFT
-                             for requester to
-                             revise and resubmit
+          │ (CEO)    │ └──────────┘  └──────────┘     back to DRAFT
+          └────┬─────┘
+               │
+        ┌──────┴──────────────────────┐
+        ▼                             ▼
+ (no procurement items)      (has procurement items)
+ ┌──────────┐              ┌──────────────────┐
+ │ APPROVED │              │ PENDING_QUOTATION│ ◀──── RETURN from QUOTED
+ │ (final)  │              │ (Procurement     │       (procurement revises)
+ └──────────┘              │  sources items)  │
+                           └────────┬─────────┘
+                                    │
+                              Procurement submits
+                              canvass & quotation
+                                    │
+                                    ▼
+                           ┌──────────────────┐
+                           │     QUOTED        │
+                           │ (COO price review)│
+                           └────────┬──────────┘
+                                    │
+                             ┌──────┴──────┐
+                             ▼             ▼
+                      ┌──────────┐  ┌──────────────────┐
+                      │ APPROVED │  │ RETURN → back to  │
+                      │ (final)  │  │ PENDING_QUOTATION │
+                      └──────────┘  └──────────────────┘
+
+  Additional statuses:
+  - RETURNED_FOR_INFO: Procurement returns PR to requester for clarification
+    during canvassing. Requester updates and resubmits → PENDING_QUOTATION.
+  - CANCELLED: Requester can cancel Draft or in-review PRs (before approval
+    completes). Post-approval PRs (PENDING_QUOTATION, QUOTED) cannot be cancelled.
 ```
 
 **Status Enum Values**:
@@ -1068,114 +1082,98 @@ async submitPR(@Param('id', ParseObjectIdPipe) id: string, @CurrentUser() user: 
 ```typescript
 enum PRStatus {
   DRAFT = "draft",
-  SUBMITTED = "submitted",
+  SUBMITTED = "submitted",        // Legacy — normalized to LEVEL1_REVIEW
   LEVEL1_REVIEW = "level1_review", // Dept Head reviewing
   LEVEL2_REVIEW = "level2_review", // COO reviewing
   LEVEL3_REVIEW = "level3_review", // CEO reviewing
+  PENDING_QUOTATION = "pending_quotation", // "Pending Procurement" — post-approval, procurement sources suppliers
+  QUOTED = "quoted",               // "Price Review" — COO reviews supplier selection & pricing
   APPROVED = "approved",
   REJECTED = "rejected",
-  RETURNED = "returned", // Sent back for revision
-  CANCELLED = "cancelled", // Cancelled by requester (draft/returned only)
+  RETURNED = "returned",           // Sent back to requester for revision → DRAFT
+  RETURNED_FOR_INFO = "returned_for_info", // Procurement returns for requester clarification
+  CANCELLED = "cancelled",         // Cancelled by requester (draft/in-review only, not post-approval)
 }
 ```
 
 ### 5.2 Approval Chain Configuration
 
-The approval chain is configurable per threshold. The system determines how many approval levels are required based on the PR total amount:
+All PRs go through a fixed 3-level approval chain (Dept Head → COO → CEO). Dept head requesters skip Level 1.
 
 ```typescript
-// Default configuration (stored in DB or config)
-const approvalChainConfig = {
-  levels: [
-    {
-      level: 1,
-      role: "dept_head",
-      label: "Department Head",
-      requiredForAll: true, // Always required
-    },
-    {
-      level: 2,
-      role: "coo",
-      label: "Chief Operating Officer",
-      minAmount: 50_000, // Required if totalAmount >= 50,000
-    },
-    {
-      level: 3,
-      role: "ceo",
-      label: "Chief Executive Officer",
-      minAmount: 200_000, // Required if totalAmount >= 200,000
-    },
-  ],
+const STATUS_TO_LEVEL = {
+  LEVEL1_REVIEW: 1, // Dept Head
+  LEVEL2_REVIEW: 2, // COO
+  LEVEL3_REVIEW: 3, // CEO
+  QUOTED: 2,        // COO price sign-off (post-procurement)
 };
 ```
 
-**Approval Level Determination Logic**:
+**Post-approval procurement flow**: After CEO approval, if the PR has procurement-sourced items, it moves to `PENDING_QUOTATION`. Procurement sources suppliers, then submits the canvass. The PR moves to `QUOTED` for COO price sign-off. COO approval finalizes the PR.
 
-1. PR with totalAmount < 50,000: Dept Head only (1 level).
-2. PR with totalAmount >= 50,000 and < 200,000: Dept Head then COO (2 levels).
-3. PR with totalAmount >= 200,000: Dept Head then COO then CEO (3 levels).
+**COO dual role**: The COO reviews PRs at Level 2 (approving the need) and again at QUOTED (approving the supplier selection and pricing). This ensures budget ownership is maintained.
 
 ### 5.3 Event-Driven Status Transitions
 
 ```typescript
-// Approval workflow service (simplified)
+// Approval workflow (simplified pseudocode)
 class ApprovalWorkflowService {
   async submitPR(prId: string, userId: string): Promise<void> {
-    // Validate: status must be 'draft' or 'returned'
-    // Transition: status -> 'submitted'
-    // Determine required approval levels based on totalAmount
-    // Create notification for dept head
-    // Log audit event
+    // Validate: status must be 'draft', 'returned', or 'returned_for_info'
+    // ALL PRs go to approval first (no procurement routing at submit)
+    // Dept head requester → LEVEL2_REVIEW (skip L1)
+    // Staff requester → LEVEL1_REVIEW
+    // Notify first approver
   }
 
-  async processApproval(
-    prId: string,
-    approverId: string,
-    action: ApprovalAction,
-  ): Promise<void> {
+  async processApproval(prId, approverId, action): Promise<void> {
     // Validate: approver has correct role for current level
-    // Validate: PR is in correct review status for this level
-    // Create approval record
-
     switch (action) {
       case "approved":
-        // If more levels needed -> advance to next level review
-        // If final level -> status = 'approved'
-        // Notify requester + next approver (if applicable)
+        if (currentLevel === CEO) {
+          // If PR has procurement items → PENDING_QUOTATION
+          // If no procurement items → APPROVED (final)
+        } else if (status === QUOTED) {
+          // COO price sign-off → APPROVED (final)
+        } else {
+          // Advance to next level
+        }
         break;
-
       case "rejected":
-        // Status -> 'rejected' (terminal state)
-        // Notify requester
+        // REJECTED (terminal)
         break;
-
       case "returned":
-        // Status -> 'returned'
-        // Requester can edit and resubmit (goes back to 'draft')
-        // Notify requester
+        if (status === QUOTED) {
+          // → PENDING_QUOTATION (procurement revises, not back to DRAFT)
+        } else {
+          // → RETURNED → DRAFT (requester revises)
+        }
         break;
     }
+  }
 
-    // Log audit event
+  async submitQuotation(prId, procurementUserId): Promise<void> {
+    // Validate canvass entries, evidence files, winner selection
+    // Update item prices from winning supplier
+    // Status → QUOTED (COO price sign-off)
   }
 }
 ```
 
 **Events Emitted** (using NestJS EventEmitter2):
 
-| Event              | Payload                                    | Triggered By                |
-| ------------------ | ------------------------------------------ | --------------------------- |
-| `pr.submitted`     | `{ prId, requesterId, departmentId }`      | PR submission               |
-| `pr.levelAdvanced` | `{ prId, fromLevel, toLevel, approverId }` | Approval at non-final level |
-| `pr.approved`      | `{ prId, approverId, finalLevel }`         | Final-level approval        |
-| `pr.rejected`      | `{ prId, approverId, level, comments }`    | Rejection at any level      |
-| `pr.returned`      | `{ prId, approverId, level, comments }`    | Return for revision         |
+| Event                  | Payload                                    | Triggered By                              |
+| ---------------------- | ------------------------------------------ | ----------------------------------------- |
+| `pr.submitted`         | `{ purchaseRequest }`                      | PR submission                             |
+| `approval.action`      | `{ approval, purchaseRequest, action }`    | Any approval action (approve/reject/return)|
+| `pr.quoted`            | `{ purchaseRequest, quotedBy }`            | Procurement submits canvass               |
+| `pr.returned_for_info` | `{ purchaseRequest, returnedBy }`          | Procurement returns for requester info    |
+| `pr.recalled`          | `{ purchaseRequest, recalledBy }`          | Requester recalls PR                      |
 
 **Event Listeners**:
 
 - `NotificationsService` listens to all events to create notifications.
 - `AuditService` listens to all events to create audit log entries.
-- `WebSocketGateway` listens to all events to push real-time updates.
 
 ---
 

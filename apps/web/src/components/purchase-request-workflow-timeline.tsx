@@ -160,8 +160,17 @@ function CurrentState({ pr, compact = false }: { pr: PurchaseRequest; compact?: 
   if (currentStatus === PrStatus.PENDING_QUOTATION) {
     return (
       <div className={className}>
-        <ShoppingCart className={compact ? "h-3.5 w-3.5 text-amber-600" : "h-4 w-4 text-amber-600"} />
-        <span>Awaiting Procurement quotation and supporting canvass evidence.</span>
+        <ShoppingCart className={compact ? "h-3.5 w-3.5 text-emerald-600" : "h-4 w-4 text-emerald-600"} />
+        <span>Approved. Procurement is sourcing suppliers.</span>
+      </div>
+    );
+  }
+
+  if (currentStatus === PrStatus.QUOTED) {
+    return (
+      <div className={className}>
+        <Clock className={compact ? "h-3.5 w-3.5" : "h-4 w-4"} />
+        <span>Awaiting COO price review.</span>
       </div>
     );
   }
@@ -169,8 +178,7 @@ function CurrentState({ pr, compact = false }: { pr: PurchaseRequest; compact?: 
   if (
     currentStatus === PrStatus.LEVEL1_REVIEW ||
     currentStatus === PrStatus.LEVEL2_REVIEW ||
-    currentStatus === PrStatus.LEVEL3_REVIEW ||
-    currentStatus === PrStatus.QUOTED
+    currentStatus === PrStatus.LEVEL3_REVIEW
   ) {
     return (
       <div className={className}>

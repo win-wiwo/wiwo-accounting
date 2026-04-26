@@ -5,19 +5,13 @@ import {
   Pencil,
   Send,
   Trash2,
-  Calendar,
   User,
-  Building2,
-  Hash,
   CheckCircle2,
   XCircle,
   RotateCcw,
   Undo2,
   Ban,
   Paperclip,
-  Upload,
-  Download,
-  Eye,
   Loader2,
   FileText,
   AlertCircle,
@@ -27,8 +21,7 @@ import {
   Clock3,
 } from "lucide-react";
 import {
-  ATTACHMENT_CATEGORY_LABELS,
-  AttachmentCategory,
+
   normalizePrStatus,
   PR_STATUS_LABELS,
   PR_PRIORITY_LABELS,
@@ -46,15 +39,13 @@ import {
   useDeletePr,
   useRecallPr,
   useCancelPr,
-  useUploadAttachment,
-  useRemoveAttachment,
+
 } from "@/hooks/use-purchase-requests";
 import { purchaseRequestsApi } from "@/lib/api-services";
 import apiClient from "@/lib/api-client";
 import { useApprovalHistory, useProcessApproval } from "@/hooks/use-approvals";
 import { useAuthStore } from "@/stores/auth.store";
 import { useToast } from "@/components/ui/toast";
-import { PageHeader } from "@/components/layout/page-header";
 import { PurchaseRequestWorkflowTimeline } from "@/components/purchase-request-workflow-timeline";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -185,7 +176,7 @@ function ResubmissionChanges({
             {justificationChanged && (
               <div className="space-y-0.5">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Purpose / Justification
+                  Purpose
                 </p>
                 <p className="text-xs line-through text-red-600 bg-red-50 rounded px-2 py-1">
                   {snapshot.justification}
@@ -344,8 +335,6 @@ export function PrDetailPage() {
   const deleteMutation = useDeletePr();
   const recallMutation = useRecallPr();
   const cancelMutation = useCancelPr();
-  const uploadMutation = useUploadAttachment();
-  const removeMutation = useRemoveAttachment();
   const processApproval = useProcessApproval();
 
   const pr = data?.data;
@@ -419,61 +408,6 @@ export function PrDetailPage() {
     setCancelReason("");
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !pr) return;
-
-    try {
-      await uploadMutation.mutateAsync({ id: pr._id, file });
-      toast({ title: "File uploaded", variant: "success" });
-    } catch {
-      toast({ title: "Upload failed", variant: "error" });
-    }
-    e.target.value = "";
-  };
-
-  const handleRemoveAttachment = async (attachmentId: string) => {
-    if (!pr) return;
-    try {
-      await removeMutation.mutateAsync({ id: pr._id, attachmentId });
-      toast({ title: "Attachment removed", variant: "success" });
-    } catch {
-      toast({ title: "Failed to remove", variant: "error" });
-    }
-  };
-
-  const handlePreview = async (
-    attachmentId: string,
-    mimeType: string,
-    name: string,
-  ) => {
-    setPreviewDialog({ open: true, url: null, mimeType, name, loading: true });
-    try {
-      const response = await apiClient.get(
-        `/purchase-requests/${id}/attachments/${attachmentId}/download`,
-        { responseType: "blob" },
-      );
-      const blobUrl = URL.createObjectURL(
-        new Blob([response.data], { type: mimeType }),
-      );
-      setPreviewDialog({
-        open: true,
-        url: blobUrl,
-        mimeType,
-        name,
-        loading: false,
-      });
-    } catch {
-      setPreviewDialog({
-        open: false,
-        url: null,
-        mimeType: "",
-        name: "",
-        loading: false,
-      });
-      toast({ title: "Failed to load preview", variant: "error" });
-    }
-  };
 
   const closePreview = () => {
     if (previewDialog.url) URL.revokeObjectURL(previewDialog.url);
@@ -591,7 +525,6 @@ export function PrDetailPage() {
   const isDraft = runtimeStatus === PrStatus.DRAFT;
   const isReturned = runtimeStatus === PrStatus.RETURNED;
   const isReturnedForInfo = runtimeStatus === PrStatus.RETURNED_FOR_INFO;
-  const isPendingQuotation = runtimeStatus === PrStatus.PENDING_QUOTATION;
   const isCancelled = runtimeStatus === PrStatus.CANCELLED;
   const isOwner = requester?._id === user?._id;
   const canEdit = isOwner && (isDraft || isReturned || isReturnedForInfo);
@@ -599,14 +532,12 @@ export function PrDetailPage() {
     isOwner &&
     (runtimeStatus === PrStatus.LEVEL1_REVIEW ||
       runtimeStatus === PrStatus.LEVEL2_REVIEW ||
-      isPendingQuotation ||
       isReturnedForInfo);
   const canCancel =
     isOwner &&
     (isDraft ||
       runtimeStatus === PrStatus.LEVEL1_REVIEW ||
       runtimeStatus === PrStatus.LEVEL2_REVIEW ||
-      isPendingQuotation ||
       isReturnedForInfo);
 
   // Determine if the current user can act on this PR as an approver
@@ -620,98 +551,107 @@ export function PrDetailPage() {
   const canApprove =
     isPendingApproval &&
     !isOwner &&
-    (((runtimeStatus === PrStatus.LEVEL1_REVIEW ||
-      runtimeStatus === PrStatus.QUOTED) &&
+    ((runtimeStatus === PrStatus.LEVEL1_REVIEW &&
       user?.role === UserRole.DEPT_HEAD) ||
-      (runtimeStatus === PrStatus.LEVEL2_REVIEW &&
+      ((runtimeStatus === PrStatus.LEVEL2_REVIEW ||
+        runtimeStatus === PrStatus.QUOTED) &&
         user?.role === UserRole.COO) ||
       (runtimeStatus === PrStatus.LEVEL3_REVIEW &&
         user?.role === UserRole.CEO));
 
+  const isPriceReview = runtimeStatus === PrStatus.QUOTED;
+  const hasProcurementItems = pr.items.some((i) => i.sourcingType === SourcingType.PROCUREMENT);
+  const hasUnquotedItems = hasProcurementItems && pr.items.filter((i) => i.sourcingType === SourcingType.PROCUREMENT).some((i) => !i.quotedUnitPrice);
+
+  // Approval level → who currently owns this
+  const approvalOwnerLabel = (() => {
+    if (runtimeStatus === PrStatus.LEVEL1_REVIEW) return "Department Head";
+    if (runtimeStatus === PrStatus.LEVEL2_REVIEW) return "COO";
+    if (runtimeStatus === PrStatus.LEVEL3_REVIEW) return "CEO";
+    return null;
+  })();
+
   const stagePresentation = (() => {
     if (runtimeStatus === PrStatus.DRAFT) {
       return {
-        title: "Draft in Progress",
-        description:
-          "Complete the request details, attach requester documents, and submit when the package is ready.",
+        title: "Draft — Not Yet Submitted",
+        nextStep: canEdit ? "Fill in all required fields, then submit for approval." : "Awaiting submission by requester.",
         icon: <Pencil className="h-4 w-4" />,
-        tone: "border-slate-300 bg-slate-50 text-slate-800",
+        tone: "border-slate-200 bg-slate-50/80 text-slate-800",
       };
     }
     if (runtimeStatus === PrStatus.PENDING_QUOTATION) {
       return {
-        title: "Procurement Action Required",
-        description:
-          "Procurement will review the specs, item photos, and requester documents, then attach canvass evidence and quote the request.",
+        title: "Approved — Awaiting Procurement Pricing",
+        nextStep: "Procurement is sourcing suppliers. The COO will review final pricing before completion.",
         icon: <ShoppingCart className="h-4 w-4" />,
-        tone: "border-amber-300 bg-amber-50 text-amber-900",
+        tone: "border-emerald-200 bg-emerald-50/60 text-emerald-900",
       };
     }
-    if (
-      runtimeStatus === PrStatus.QUOTED ||
-      runtimeStatus === PrStatus.LEVEL1_REVIEW ||
-      runtimeStatus === PrStatus.LEVEL2_REVIEW ||
-      runtimeStatus === PrStatus.LEVEL3_REVIEW
-    ) {
+    if (runtimeStatus === PrStatus.QUOTED) {
       return {
-        title: canApprove
-          ? "Your Approval Decision Is Needed"
-          : "Approval in Progress",
-        description: canApprove
-          ? "Review the request context, procurement basis, and supporting files before taking action."
-          : "This request has moved into the approval chain and is waiting for the next approver.",
+        title: canApprove ? "Price Review — Action Required" : "Awaiting COO Price Review",
+        nextStep: canApprove
+          ? "Procurement has submitted supplier quotes. Review the canvass comparison and approve or return."
+          : "Procurement quotes submitted. COO is validating supplier selection and final pricing.",
         icon: <Clock3 className="h-4 w-4" />,
-        tone: "border-blue-300 bg-blue-50 text-blue-900",
+        tone: "border-blue-200 bg-blue-50/60 text-blue-900",
+      };
+    }
+    if (runtimeStatus === PrStatus.LEVEL1_REVIEW || runtimeStatus === PrStatus.LEVEL2_REVIEW || runtimeStatus === PrStatus.LEVEL3_REVIEW) {
+      const ownerLabel = approvalOwnerLabel;
+      return {
+        title: canApprove ? `Your Decision Is Needed` : `Awaiting ${ownerLabel ?? "Approver"}`,
+        nextStep: canApprove
+          ? "Review the business need, line items, and priority before taking action."
+          : `Waiting for ${ownerLabel ?? "the next approver"} to review this request.`,
+        icon: <Clock3 className="h-4 w-4" />,
+        tone: "border-blue-200 bg-blue-50/60 text-blue-900",
       };
     }
     if (runtimeStatus === PrStatus.RETURNED_FOR_INFO) {
       return {
-        title: "More Requester Information Needed",
-        description:
-          "Procurement sent this back for clarification. Update the request package and resubmit.",
+        title: "Procurement Needs Clarification",
+        nextStep: "Update item specs, photos, or quantities based on the note below, then resubmit.",
         icon: <RotateCcw className="h-4 w-4" />,
-        tone: "border-amber-300 bg-amber-50 text-amber-900",
+        tone: "border-amber-200 bg-amber-50/60 text-amber-900",
       };
     }
     if (runtimeStatus === PrStatus.RETURNED) {
       return {
-        title: "Revision Required",
-        description:
-          "An approver returned this request for changes. Update the package and submit it again.",
+        title: "Returned for Revision",
+        nextStep: "An approver returned this request. Review the timeline for comments, update, and resubmit.",
         icon: <RotateCcw className="h-4 w-4" />,
-        tone: "border-amber-300 bg-amber-50 text-amber-900",
+        tone: "border-amber-200 bg-amber-50/60 text-amber-900",
       };
     }
     if (runtimeStatus === PrStatus.APPROVED) {
       return {
-        title: "Request Approved",
-        description:
-          "The approval workflow is complete. The approved package and procurement basis are retained below.",
+        title: "Fully Approved",
+        nextStep: "This request is approved and ready for purchasing. The complete workflow history is below.",
         icon: <CheckCircle2 className="h-4 w-4" />,
-        tone: "border-emerald-300 bg-emerald-50 text-emerald-900",
+        tone: "border-emerald-200 bg-emerald-50/60 text-emerald-900",
       };
     }
     if (runtimeStatus === PrStatus.REJECTED) {
       return {
         title: "Request Rejected",
-        description:
-          "The workflow has ended. Review the timeline and comments for the reason.",
+        nextStep: "The workflow has ended. See the approval timeline for the reason.",
         icon: <XCircle className="h-4 w-4" />,
-        tone: "border-destructive/30 bg-destructive/5 text-destructive",
+        tone: "border-destructive/20 bg-destructive/5 text-destructive",
       };
     }
     if (runtimeStatus === PrStatus.CANCELLED) {
       return {
         title: "Request Cancelled",
-        description:
-          "This request was cancelled before completion. The cancellation reason is shown below.",
+        nextStep: "This request was cancelled. The reason is shown below.",
         icon: <Ban className="h-4 w-4" />,
-        tone: "border-slate-300 bg-slate-50 text-slate-800",
+        tone: "border-slate-200 bg-slate-50/80 text-slate-700",
       };
     }
     return {
       title: "Workflow Active",
-      description: "Review the current request package and timeline below.",
+      nextStep: "Review the request details and timeline below.",
       icon: <FileText className="h-4 w-4" />,
       tone: "border-border bg-muted/40 text-foreground",
     };
@@ -719,173 +659,126 @@ export function PrDetailPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title={pr.title}
-        description={
-          pr.prNumber ? `PR ${pr.prNumber}` : "Draft — not yet submitted"
-        }
-      >
-        <Button
-          variant="outline"
-          onClick={() => navigate("/purchase-requests")}
-        >
-          <ArrowLeft className="h-4 w-4" /> Back
-        </Button>
-        {!isDraft && (
-          <Button variant="outline" onClick={handleGenerateReport}>
-            <FileText className="h-4 w-4" /> Generate Report
-          </Button>
-        )}
-        {canEdit && (
-          <>
-            <Button
-              variant="outline"
-              onClick={() => navigate(`/purchase-requests/${id}/edit`)}
+      {/* Sticky header */}
+      <div className="sticky top-0 z-10 -mx-4 bg-background/95 backdrop-blur px-4 py-3 border-b shadow-sm">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div className="min-w-0">
+            {/* Breadcrumb */}
+            <button
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground mb-1"
+              onClick={() => navigate("/purchase-requests")}
             >
-              <Pencil className="h-4 w-4" /> Edit
-            </Button>
-            <Button
-              onClick={() => setConfirmDialog({ open: true, type: "submit" })}
-            >
-              <Send className="h-4 w-4" /> Submit
-            </Button>
-          </>
-        )}
-        {canRecall && (
-          <Button
-            variant="outline"
-            onClick={() => setConfirmDialog({ open: true, type: "recall" })}
-          >
-            <Undo2 className="h-4 w-4" /> Recall
-          </Button>
-        )}
-        {canCancel && (
-          <Button
-            variant="outline"
-            className="text-destructive hover:text-destructive"
-            onClick={() => {
-              setCancelReason("");
-              setCancelDialog(true);
-            }}
-          >
-            <Ban className="h-4 w-4" /> Cancel PR
-          </Button>
-        )}
-        {isOwner && isDraft && (
-          <Button
-            variant="destructive"
-            size="icon"
-            onClick={() => setConfirmDialog({ open: true, type: "delete" })}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        )}
-        {canApprove && (
-          <>
-            <Button
-              className="bg-emerald-600 hover:bg-emerald-700 text-white"
-              onClick={() => {
-                setApprovalComments("");
-                setApprovalDialog({ open: true, action: "approved" });
-              }}
-            >
-              <CheckCircle2 className="h-4 w-4" /> Approve
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setApprovalComments("");
-                setApprovalDialog({ open: true, action: "returned" });
-              }}
-            >
-              <RotateCcw className="h-4 w-4" /> Return
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => {
-                setApprovalComments("");
-                setApprovalDialog({ open: true, action: "rejected" });
-              }}
-            >
-              <XCircle className="h-4 w-4" /> Reject
-            </Button>
-          </>
-        )}
-      </PageHeader>
-
-      <Card className={stagePresentation.tone}>
-        <CardContent className="flex items-start gap-3 pt-6">
-          <div className="rounded-full bg-background/70 p-2">
-            {stagePresentation.icon}
-          </div>
-          <div className="space-y-1">
-            <p className="text-sm font-semibold">{stagePresentation.title}</p>
-            <p className="text-sm leading-6 text-current/80">
-              {stagePresentation.description}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Status Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardContent className="flex items-center gap-3 pt-6">
-            <div className="rounded-lg bg-muted p-2">
-              <Hash className="h-4 w-4" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Status</p>
-              <Badge variant={statusVariant(pr.status)} className="mt-0.5">
+              <ArrowLeft className="h-3 w-3" />
+              Purchase Requests
+              {pr.prNumber && (
+                <><span className="mx-1">/</span><span className="font-mono">{pr.prNumber}</span></>
+              )}
+            </button>
+            {/* Title + badges */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-base font-semibold leading-tight truncate max-w-[440px]">{pr.title}</h1>
+              <Badge variant={statusVariant(pr.status)} className="shrink-0">
                 {PR_STATUS_LABELS[pr.status as PrStatusType]}
               </Badge>
+              <Badge variant={priorityVariant(pr.priority)} className="shrink-0">
+                {PR_PRIORITY_LABELS[pr.priority as PrPriorityType]}
+              </Badge>
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-3 pt-6">
-            <div className="rounded-lg bg-muted p-2">
-              <User className="h-4 w-4" />
+            {/* Amount + needed by */}
+            <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+              {hasProcurementItems && hasUnquotedItems ? (
+                <span className="text-amber-600 font-medium">Pending Quote</span>
+              ) : (
+                <span className="font-medium text-foreground">
+                  {formatCurrency(pr.items.reduce((s, i) => s + (i.totalPrice ?? 0), 0))}
+                </span>
+              )}
+              {pr.neededByDate && (
+                <span>· Needed {formatDate(pr.neededByDate)}</span>
+              )}
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Requester</p>
-              <p className="text-sm font-medium">
-                {requester
-                  ? `${requester.firstName} ${requester.lastName}`
-                  : "—"}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-3 pt-6">
-            <div className="rounded-lg bg-muted p-2">
-              <Building2 className="h-4 w-4" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Department</p>
-              <p className="text-sm font-medium">{department?.name || "—"}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-3 pt-6">
-            <div className="rounded-lg bg-muted p-2">
-              <Calendar className="h-4 w-4" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Needed By</p>
-              <p className="text-sm font-medium">
-                {formatDate(pr.neededByDate)}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+          </div>
+          {/* Actions */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {!isDraft && (
+              <Button size="sm" variant="outline" onClick={handleGenerateReport}>
+                <FileText className="h-3.5 w-3.5" /> Report
+              </Button>
+            )}
+            {canEdit && (
+              <>
+                <Button size="sm" variant="outline" onClick={() => navigate(`/purchase-requests/${id}/edit`)}>
+                  <Pencil className="h-3.5 w-3.5" /> Edit
+                </Button>
+                <Button size="sm" onClick={() => setConfirmDialog({ open: true, type: "submit" })}>
+                  <Send className="h-3.5 w-3.5" /> Submit
+                </Button>
+              </>
+            )}
+            {canRecall && (
+              <Button size="sm" variant="outline" onClick={() => setConfirmDialog({ open: true, type: "recall" })}>
+                <Undo2 className="h-3.5 w-3.5" /> Recall
+              </Button>
+            )}
+            {canCancel && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-destructive hover:text-destructive"
+                onClick={() => { setCancelReason(""); setCancelDialog(true); }}
+              >
+                <Ban className="h-3.5 w-3.5" /> Cancel
+              </Button>
+            )}
+            {isOwner && isDraft && (
+              <Button size="sm" variant="destructive" onClick={() => setConfirmDialog({ open: true, type: "delete" })}>
+                <Trash2 className="h-3.5 w-3.5" /> Delete
+              </Button>
+            )}
+            {canApprove && (
+              <>
+                <Button
+                  size="sm"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                  onClick={() => { setApprovalComments(""); setApprovalDialog({ open: true, action: "approved" }); }}
+                >
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  {isPriceReview ? "Approve Pricing" : "Approve"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => { setApprovalComments(""); setApprovalDialog({ open: true, action: "returned" }); }}
+                >
+                  <RotateCcw className="h-3.5 w-3.5" /> Return
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => { setApprovalComments(""); setApprovalDialog({ open: true, action: "rejected" }); }}
+                >
+                  <XCircle className="h-3.5 w-3.5" /> Reject
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Status banner */}
+      <div className={`flex items-start gap-3 rounded-xl border px-4 py-3.5 ${stagePresentation.tone}`}>
+        <div className="rounded-full bg-background/60 p-1.5 mt-0.5 shrink-0">
+          {stagePresentation.icon}
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold leading-tight">{stagePresentation.title}</p>
+          <p className="mt-0.5 text-xs leading-relaxed opacity-75">{stagePresentation.nextStep}</p>
+        </div>
       </div>
 
       {/* Details */}
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_340px]">
-        <div className="lg:col-span-2 space-y-6">
+      <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
+        <div className="space-y-6">
           {/* Line Items */}
           <Card className="overflow-hidden">
             <CardHeader>
@@ -896,27 +789,6 @@ export function PrDetailPage() {
                     Item photos stay with their specific line item.
                     Procurement-sourced items remain unpriced until canvass is
                     complete.
-                  </p>
-                </div>
-                <div className="rounded-lg border bg-muted/40 px-3 py-2 text-right">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                    Request Mix
-                  </p>
-                  <p className="text-sm font-medium">
-                    {
-                      pr.items.filter(
-                        (item) =>
-                          item.sourcingType === SourcingType.PROCUREMENT,
-                      ).length
-                    }{" "}
-                    procurement
-                    {" · "}
-                    {
-                      pr.items.filter(
-                        (item) => item.sourcingType === SourcingType.ONLINE,
-                      ).length
-                    }{" "}
-                    online
                   </p>
                 </div>
               </div>
@@ -967,31 +839,19 @@ export function PrDetailPage() {
                           {item.description}
                         </p>
                       </div>
-                      <div className="grid grid-cols-2 gap-2 text-right sm:min-w-[260px]">
-                        <div className="rounded-lg bg-muted/40 px-3 py-2">
-                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                            Qty
-                          </p>
-                          <p className="text-sm font-semibold">
-                            {item.quantity} {item.unit}
-                          </p>
-                        </div>
-                        <div className="rounded-lg bg-muted/40 px-3 py-2">
-                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                            Unit Price
-                          </p>
-                          <p className="text-sm font-semibold">
-                            {unitPriceLabel}
-                          </p>
-                        </div>
-                        <div className="col-span-2 rounded-lg bg-muted/40 px-3 py-2">
-                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                            Line Total
-                          </p>
-                          <p className="text-base font-semibold">
-                            {totalLabel}
-                          </p>
-                        </div>
+                      <div className="shrink-0 text-right space-y-1 min-w-[120px]">
+                        <p className="text-xs text-muted-foreground">
+                          {item.quantity} {item.unit}
+                          {unitPriceLabel !== "Pending quotation" && (
+                            <span className="ml-1">× {unitPriceLabel}</span>
+                          )}
+                        </p>
+                        <p className={`text-base font-bold ${totalLabel === "TBQ" ? "text-amber-600" : ""}`}>
+                          {totalLabel === "TBQ" ? "Pending Quote" : totalLabel}
+                        </p>
+                        {unitPriceLabel === "Pending quotation" && (
+                          <p className="text-[11px] text-amber-500">Awaiting canvass</p>
+                        )}
                       </div>
                     </div>
 
@@ -1081,22 +941,50 @@ export function PrDetailPage() {
               })}
 
               <Separator />
+              {/* Financial trust total */}
               <div className="flex justify-end p-4">
-                <div className="text-right">
-                  <p className="text-xs text-muted-foreground">Total Amount</p>
-                  <p className="text-2xl font-bold">
-                    {formatCurrency(pr.totalAmount)}
-                  </p>
-                  {pr.items.some(
-                    (i) =>
-                      i.sourcingType === SourcingType.PROCUREMENT &&
-                      !i.quotedUnitPrice,
-                  ) && (
-                    <p className="text-xs text-amber-600 mt-0.5">
-                      * Procurement items pending quotation
-                    </p>
-                  )}
-                </div>
+                {(() => {
+                  const procurementItems = pr.items.filter((i) => i.sourcingType === SourcingType.PROCUREMENT);
+                  const unquoted = procurementItems.filter((i) => !i.quotedUnitPrice);
+                  const onlineTotal = pr.items
+                    .filter((i) => i.sourcingType !== SourcingType.PROCUREMENT)
+                    .reduce((s, i) => s + (i.totalPrice ?? 0), 0);
+                  const quotedTotal = procurementItems
+                    .filter((i) => i.quotedUnitPrice)
+                    .reduce((s, i) => s + (i.totalPrice ?? 0), 0);
+
+                  if (procurementItems.length > 0 && unquoted.length === procurementItems.length) {
+                    // All procurement items unquoted
+                    return (
+                      <div className="text-right">
+                        <p className="text-xs text-muted-foreground mb-1">Total Amount</p>
+                        <p className="text-2xl font-bold text-amber-600">Pending Quote</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">Final amount available after supplier canvass.</p>
+                      </div>
+                    );
+                  }
+                  if (unquoted.length > 0) {
+                    // Mixed: some quoted, some not
+                    const knownTotal = onlineTotal + quotedTotal;
+                    return (
+                      <div className="text-right">
+                        <p className="text-xs text-muted-foreground mb-1">Total Amount</p>
+                        <p className="text-2xl font-bold">{formatCurrency(knownTotal)}</p>
+                        <p className="text-xs text-amber-600 mt-0.5">+ {unquoted.length} item{unquoted.length > 1 ? 's' : ''} pending quote</p>
+                      </div>
+                    );
+                  }
+                  // All priced
+                  return (
+                    <div className="text-right">
+                      <p className="text-xs text-muted-foreground mb-1">Total Amount</p>
+                      <p className="text-2xl font-bold">{formatCurrency(pr.totalAmount)}</p>
+                      {procurementItems.length > 0 && (
+                        <p className="text-xs text-emerald-600 mt-0.5">Final amount after canvass</p>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             </CardContent>
           </Card>
@@ -1173,132 +1061,6 @@ export function PrDetailPage() {
             </Card>
           )}
 
-          {/* Attachments */}
-          <Card className="border-sky-200 bg-sky-50/30">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="text-base">
-                  Requester Supporting Documents
-                </CardTitle>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Whole-request files uploaded by the requester. Item photos
-                  stay under each line item, and Procurement quotation evidence
-                  appears in the canvass section above.
-                </p>
-              </div>
-              {canEdit && (
-                <label>
-                  <input
-                    type="file"
-                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
-                    className="hidden"
-                    onChange={handleFileUpload}
-                    disabled={uploadMutation.isPending}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="cursor-pointer"
-                    asChild
-                  >
-                    <span>
-                      {uploadMutation.isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Upload className="h-4 w-4" />
-                      )}
-                      Upload
-                    </span>
-                  </Button>
-                </label>
-              )}
-            </CardHeader>
-            <CardContent>
-              {pr.attachments && pr.attachments.length > 0 ? (
-                <div className="space-y-2">
-                  {pr.attachments.map(
-                    (att: {
-                      _id: string;
-                      originalName: string;
-                      mimeType: string;
-                      category?: string | null;
-                      size: number;
-                    }) => (
-                      <div
-                        key={att._id}
-                        className="flex items-center justify-between rounded-lg border px-3 py-2"
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <Paperclip className="h-4 w-4 shrink-0 text-muted-foreground" />
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-medium">
-                              {att.originalName}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {
-                                ATTACHMENT_CATEGORY_LABELS[
-                                  (att.category as AttachmentCategory) ??
-                                    AttachmentCategory.OTHER
-                                ]
-                              }{" "}
-                              · {(att.size / 1024).toFixed(0)} KB
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            title="Preview"
-                            onClick={() =>
-                              handlePreview(
-                                att._id,
-                                att.mimeType,
-                                att.originalName,
-                              )
-                            }
-                          >
-                            <Eye className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            title="Download"
-                            onClick={() =>
-                              purchaseRequestsApi.downloadAttachment(
-                                pr._id,
-                                att._id,
-                                att.originalName,
-                              )
-                            }
-                          >
-                            <Download className="h-3.5 w-3.5" />
-                          </Button>
-                          {canEdit && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-destructive hover:text-destructive"
-                              onClick={() => handleRemoveAttachment(att._id)}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    ),
-                  )}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  No requester supporting documents.
-                </p>
-              )}
-            </CardContent>
-          </Card>
 
           {/* Returned for Info Note */}
           {pr.quotationNote && (
@@ -1346,99 +1108,102 @@ export function PrDetailPage() {
           )}
         </div>
 
-        {/* Sidebar Info */}
-        <div className="space-y-6">
+        {/* Sidebar */}
+        <div className="space-y-4">
+          {/* Request Details */}
           <Card className="border-border/80 shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-base">Request Snapshot</CardTitle>
-              <p className="text-xs text-muted-foreground">
-                Core context and timing details for this request.
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {pr.projectId && (
-                <>
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground">
-                      Project
-                    </p>
-                    <p className="mt-1 text-sm font-medium">
-                      {
-                        (
-                          pr.projectId as unknown as {
-                            name: string;
-                            code: string | null;
-                          }
-                        ).name
-                      }
-                      {(pr.projectId as unknown as { code: string | null })
-                        .code && (
-                        <span className="ml-1.5 font-mono text-xs bg-muted px-1.5 py-0.5 rounded">
-                          {
-                            (pr.projectId as unknown as { code: string | null })
-                              .code
-                          }
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                  <Separator />
-                </>
-              )}
+            <CardContent className="pt-5 space-y-5 text-sm">
+
+              {/* Ownership */}
               <div>
-                <p className="text-xs font-medium text-muted-foreground">
-                  Priority
-                </p>
-                <Badge variant={priorityVariant(pr.priority)} className="mt-1">
-                  {PR_PRIORITY_LABELS[pr.priority as PrPriorityType]}
-                </Badge>
-              </div>
-              <Separator />
-              {pr.description && (
-                <>
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground">
-                      Description
-                    </p>
-                    <p className="mt-1 text-sm">{pr.description}</p>
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Ownership</p>
+                <div className="flex items-center gap-2.5">
+                  <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center shrink-0 text-muted-foreground font-semibold text-sm">
+                    {requester ? requester.firstName[0] : <User className="h-4 w-4" />}
                   </div>
-                  <Separator />
-                </>
-              )}
-              <div>
-                <p className="text-xs font-medium text-muted-foreground">
-                  Purpose
-                </p>
-                <p className="mt-1 text-sm">{pr.justification}</p>
-              </div>
-              <Separator />
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="rounded-lg bg-muted/30 px-3 py-2">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                    Created
-                  </p>
-                  <p className="mt-1 font-medium">{formatDate(pr.createdAt)}</p>
-                </div>
-                <div className="rounded-lg bg-muted/30 px-3 py-2">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                    Submitted
-                  </p>
-                  <p className="mt-1 font-medium">
-                    {formatDate(pr.submittedAt)}
-                  </p>
+                  <div className="min-w-0">
+                    <p className="font-semibold leading-tight truncate">
+                      {requester ? `${requester.firstName} ${requester.lastName}` : "—"}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">{department?.name || "—"}</p>
+                  </div>
                 </div>
               </div>
+
+              <Separator />
+
+              {/* Request Meta */}
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2.5">Request Meta</p>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs text-muted-foreground">Priority</span>
+                    <Badge variant={priorityVariant(pr.priority)} className="text-xs">
+                      {PR_PRIORITY_LABELS[pr.priority as PrPriorityType]}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs text-muted-foreground">Type</span>
+                    <span className="text-xs font-medium">{pr.requestType === 'job_request' ? 'Job Request' : 'Purchase Request'}</span>
+                  </div>
+                  {pr.neededByDate && (
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs text-muted-foreground">Needed By</span>
+                      <span className="text-xs font-medium">{formatDate(pr.neededByDate)}</span>
+                    </div>
+                  )}
+                  {pr.projectId && (
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-xs text-muted-foreground shrink-0">Project</span>
+                      <span className="text-xs font-medium text-right">
+                        {(pr.projectId as unknown as { name: string; code: string | null }).name}
+                        {(pr.projectId as unknown as { code: string | null }).code && (
+                          <span className="ml-1 font-mono bg-muted px-1 py-0.5 rounded text-[10px]">
+                            {(pr.projectId as unknown as { code: string | null }).code}
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Business Need */}
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Business Need</p>
+                <p className="text-sm leading-relaxed text-foreground/90">{pr.justification}</p>
+                {pr.description && (
+                  <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{pr.description}</p>
+                )}
+              </div>
+
+              <Separator />
+
+              {/* Audit Dates */}
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2.5">Audit Dates</p>
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Created</span>
+                    <span className="text-xs font-medium">{formatDate(pr.createdAt)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Submitted</span>
+                    <span className="text-xs font-medium">{formatDate(pr.submittedAt) || "—"}</span>
+                  </div>
+                </div>
+              </div>
+
             </CardContent>
           </Card>
 
+
           {/* Approval Timeline */}
           <Card className="border-border/80 shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-base">Approval Timeline</CardTitle>
-              <p className="text-xs text-muted-foreground">
-                Full workflow history, including procurement returns and
-                approval actions.
-              </p>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold">Approval Timeline</CardTitle>
             </CardHeader>
             <CardContent>
               <PurchaseRequestWorkflowTimeline
@@ -1464,11 +1229,7 @@ export function PrDetailPage() {
             </DialogTitle>
             <DialogDescription>
               {confirmDialog.type === "submit" &&
-                (pr.items.some(
-                  (i) => i.sourcingType === SourcingType.PROCUREMENT,
-                )
-                  ? "This will generate a PR number and send it to the Procurement team for quotation before approval."
-                  : "This will generate a PR number and route it to your department head for approval.")}
+                "This will generate a PR number and route it for approval."}
               {confirmDialog.type === "recall" &&
                 "This will move the PR back to Draft status. You can edit and resubmit it later."}
               {confirmDialog.type === "delete" &&

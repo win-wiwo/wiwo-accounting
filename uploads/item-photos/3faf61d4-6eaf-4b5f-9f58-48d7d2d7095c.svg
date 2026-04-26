@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400" viewBox="0 0 640 400">
+  <!-- background -->
+  <rect width="640" height="400" fill="#1a1000"/>
+
+  <!-- top accent bar -->
+  <rect width="640" height="6" fill="#eab308"/>
+
+  <!-- product icon area -->
+  <rect x="24" y="28" width="120" height="120" rx="12" fill="#eab30822"/>
+  <g transform="translate(60, 64) scale(2)" fill="#eab308">
+    <path d="M7 2v11h3v9l7-12h-4l4-8z"/>
+  </g>
+
+  <!-- badge -->
+  <rect x="156" y="28" width="65" height="26" rx="5" fill="#eab30833"/>
+  <text x="166" y="46" font-size="12" font-weight="700" fill="#eab308" font-family="monospace" letter-spacing="1">POWER</text>
+
+  <!-- product name -->
+  <text x="156" y="78" font-size="20" font-weight="700" fill="#f1f5f9" font-family="sans-serif">UPS Battery Replacement Kit (per</text>
+  <text x="156" y="106" font-size="17" font-weight="400" fill="#f1f5f9" font-family="sans-serif"> unit)</text>
+
+  <!-- divider -->
+  <line x1="24" y1="170" x2="616" y2="170" stroke="#eab30844" stroke-width="1"/>
+
+  <!-- specs header -->
+  <text x="32" y="205" font-size="11" font-weight="600" fill="#eab30899" font-family="monospace" letter-spacing="1">TECHNICAL SPECIFICATIONS</text>
+
+  <!-- specs rows -->
+  <text x="32" y="228" font-size="13" fill="#94a3b8">Online double conversion</text>
+    <text x="32" y="250" font-size="13" fill="#94a3b8">10min runtime at full load</text>
+    <text x="32" y="272" font-size="13" fill="#94a3b8">Pure sine wave output</text>
+    <text x="32" y="294" font-size="13" fill="#94a3b8">SNMP card slot</text>
+
+  <!-- bottom note -->
+  <rect x="0" y="370" width="640" height="30" fill="#eab30811"/>
+  <text x="32" y="389" font-size="11" fill="#475569" font-family="sans-serif">Reference image for procurement sourcing — actual product may vary</text>
+
+  <!-- border -->
+  <rect x="1" y="1" width="638" height="398" rx="4" fill="none" stroke="#eab30833" stroke-width="1.5"/>
+</svg>

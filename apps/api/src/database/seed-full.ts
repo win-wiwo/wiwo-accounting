@@ -4,7 +4,10 @@ import * as dotenv from 'dotenv';
 import * as fs from 'fs';
 import { join } from 'path';
 import PDFDocument = require('pdfkit');
-import { v4 as uuidv4 } from 'uuid';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const sharp = require('sharp');
+import { randomUUID } from 'crypto';
+const uuidv4 = randomUUID;
 
 dotenv.config();
 
@@ -12,6 +15,9 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/prams'
 const UPLOADS_DIR = join(process.cwd(), 'uploads', 'attachments');
 const ITEM_PHOTOS_DIR = join(process.cwd(), 'uploads', 'item-photos');
 const USER_PHOTOS_DIR = join(process.cwd(), 'uploads', 'user-photos');
+
+// Relative paths stored in DB — works in both host dev and Docker container
+const REL_ITEM_PHOTOS = 'uploads/item-photos';
 
 // ─── Schemas ──────────────────────────────────────────────
 
@@ -323,8 +329,8 @@ function pickProductTheme(description: string): { bg: string; accent: string; ba
 }
 
 async function generateReferencePhoto(filename: string, itemDescription?: string): Promise<{ storagePath: string; originalName: string }> {
-  const svgFilename = filename.replace(/\.[^.]+$/, '.svg');
-  const filepath = join(ITEM_PHOTOS_DIR, svgFilename);
+  const pngFilename = filename.replace(/\.[^.]+$/, '.png');
+  const filepath = join(ITEM_PHOTOS_DIR, pngFilename);
   const desc = itemDescription ?? filename;
   const theme = pickProductTheme(desc);
 
@@ -373,11 +379,11 @@ async function generateReferencePhoto(filename: string, itemDescription?: string
   <rect x="1" y="1" width="638" height="398" rx="4" fill="none" stroke="${theme.accent}33" stroke-width="1.5"/>
 </svg>`;
 
-  await fs.promises.writeFile(filepath, svg, 'utf-8');
+  await sharp(Buffer.from(svg)).png().toFile(filepath);
 
   return {
-    storagePath: join(ITEM_PHOTOS_DIR, svgFilename),
-    originalName: svgFilename,
+    storagePath: `${REL_ITEM_PHOTOS}/${pngFilename}`,
+    originalName: pngFilename,
   };
 }
 
@@ -715,13 +721,13 @@ async function attachReferencePhotos(prDoc: any): Promise<void> {
   const photoTargets = targets.length > 0 ? targets : prDoc.items.slice(0, 2);
 
   for (const item of photoTargets) {
-    const filename = `${uuidv4()}.svg`;
+    const filename = `${uuidv4()}.png`;
     const photo = await generateReferencePhoto(filename, item.description);
     item.referencePhotoPath = photo.storagePath;
     item.referencePhotoOriginalName = `reference-${item.description
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '')}.svg`;
+      .replace(/^-|-$/g, '')}.png`;
   }
 }
 
@@ -974,7 +980,7 @@ async function seed() {
       title: string; desc: string; justification: string; priority: string;
       requester: typeof users[0]; dept: typeof departments[0]; deptCode: string;
       deptHead: typeof users[0]; items: ReturnType<typeof makeItems>;
-      stage: 'draft' | 'pending_quotation' | 'level1_review' | 'level2_review' | 'level3_review' | 'rejected' | 'returned' | 'cancelled';
+      stage: 'draft' | 'pending_quotation' | 'quoted' | 'level1_review' | 'level2_review' | 'level3_review' | 'rejected' | 'returned' | 'cancelled';
       createdDaysAgo: number; neededInDays: number;
       rejectReason?: string; returnReason?: string; cancelReason?: string;
       requestType?: 'purchase_request' | 'job_request'; projectName?: string;
@@ -995,20 +1001,21 @@ async function seed() {
 
       if (opts.stage === 'level1_review') {
         currentLevel = 1;
-        const a1Id = new Types.ObjectId();
-        allApprovals.push(new Approval({ _id: a1Id, purchaseRequestId: prId, approverId: opts.deptHead._id, approvalLevel: 1, action: 'approved', comments: 'Approved at department level.', actionDate: hoursAfter(submitted!, 6) }));
-        approvalIds.push(a1Id);
+        allNotifications.push(
+          new Notification({ recipientId: opts.deptHead._id, title: 'New PR for Review', message: `${prNumber} requires your approval`, type: 'pr_needs_action', purchaseRequestId: prId, isRead: false }),
+        );
       }
 
       if (opts.stage === 'level2_review') {
         currentLevel = 2;
         const a1Id = new Types.ObjectId();
-        const a2Id = new Types.ObjectId();
         allApprovals.push(
           new Approval({ _id: a1Id, purchaseRequestId: prId, approverId: opts.deptHead._id, approvalLevel: 1, action: 'approved', comments: 'Dept requirements confirmed.', actionDate: hoursAfter(submitted!, 5) }),
-          new Approval({ _id: a2Id, purchaseRequestId: prId, approverId: coo._id, approvalLevel: 2, action: 'approved', comments: 'COO approved, forwarding for CEO sign-off.', actionDate: hoursAfter(submitted!, 18) }),
         );
-        approvalIds.push(a1Id, a2Id);
+        approvalIds.push(a1Id);
+        allNotifications.push(
+          new Notification({ recipientId: coo._id, title: 'PR Awaiting COO Approval', message: `${prNumber} requires your approval`, type: 'pr_needs_action', purchaseRequestId: prId, isRead: false }),
+        );
       }
 
       if (opts.stage === 'level3_review') {
@@ -1022,6 +1029,25 @@ async function seed() {
         approvalIds.push(a1Id, a2Id);
         allNotifications.push(
           new Notification({ recipientId: ceo._id, title: 'PR Awaiting CEO Approval', message: `${prNumber} requires your final approval`, type: 'pr_needs_action', purchaseRequestId: prId, isRead: false }),
+        );
+      }
+
+      if (opts.stage === 'quoted') {
+        currentLevel = 4;
+        const l1Date = hoursAfter(submitted!, 4);
+        const l2Date = hoursAfter(l1Date, 12);
+        const l3Date = hoursAfter(l2Date, 24);
+        const a1Id = new Types.ObjectId();
+        const a2Id = new Types.ObjectId();
+        const a3Id = new Types.ObjectId();
+        allApprovals.push(
+          new Approval({ _id: a1Id, purchaseRequestId: prId, approverId: opts.deptHead._id, approvalLevel: 1, action: 'approved', comments: 'Approved.', actionDate: l1Date }),
+          new Approval({ _id: a2Id, purchaseRequestId: prId, approverId: coo._id, approvalLevel: 2, action: 'approved', comments: 'Approved.', actionDate: l2Date }),
+          new Approval({ _id: a3Id, purchaseRequestId: prId, approverId: ceo._id, approvalLevel: 3, action: 'approved', comments: 'Approved. Proceed to procurement.', actionDate: l3Date }),
+        );
+        approvalIds.push(a1Id, a2Id, a3Id);
+        allNotifications.push(
+          new Notification({ recipientId: coo._id, title: 'Quotation Price Review', message: `${prNumber} quotation submitted — review pricing`, type: 'pr_needs_action', purchaseRequestId: prId, isRead: false }),
         );
       }
 
@@ -1275,6 +1301,69 @@ async function seed() {
       ]),
     });
 
+    // Software subscriptions (online-sourced)
+    createApprovedPr({
+      title: 'Microsoft 365 Business Standard – Annual Renewal',
+      desc: 'Annual renewal of Microsoft 365 Business Standard licenses for all company employees.',
+      justification: 'Mission-critical productivity suite — covers email, Teams, SharePoint, and Office apps for 30 employees. Renewal avoids service interruption.',
+      priority: 'high', requester: diana, dept: its, deptCode: 'ITS', deptHead: itsHead,
+      createdDaysAgo: 18, neededInDays: -3,
+      items: makeItems([
+        { desc: 'Microsoft 365 Business Standard License (annual, per user)', qty: 30, unit: 'licenses', price: 7200, sourcingType: 'online', notes: 'Purchased via Microsoft Admin Portal' },
+        { desc: 'Microsoft 365 Business Premium License – IT Admins (annual)', qty: 3, unit: 'licenses', price: 12600, sourcingType: 'online', notes: 'Includes Intune and Azure AD P1' },
+      ]),
+    });
+
+    createApprovedPr({
+      title: 'Adobe Creative Cloud Team – Annual Subscription',
+      desc: 'Adobe Creative Cloud team licenses for the marketing and documentation teams.',
+      justification: 'Required for producing project proposals, client presentations, site documentation photography editing, and marketing materials.',
+      priority: 'medium', requester: ramon, dept: adm, deptCode: 'ADM', deptHead: admHead,
+      createdDaysAgo: 20, neededInDays: -8,
+      items: makeItems([
+        { desc: 'Adobe Creative Cloud All Apps – Team License (annual)', qty: 5, unit: 'licenses', price: 32000, sourcingType: 'online', notes: 'Direct from Adobe, includes Photoshop, Illustrator, Premiere Pro' },
+      ]),
+    });
+
+    createApprovedPr({
+      title: 'Kaspersky Endpoint Security – 30 Seats Annual',
+      desc: 'Enterprise antivirus and endpoint protection for all company workstations and laptops.',
+      justification: 'Cybersecurity compliance requirement. Current license expires next month. Covers all 30 endpoints with centralized management console.',
+      priority: 'high', requester: miguel, dept: its, deptCode: 'ITS', deptHead: itsHead,
+      createdDaysAgo: 15, neededInDays: 2,
+      items: makeItems([
+        { desc: 'Kaspersky Endpoint Security for Business Select – 30 nodes (1 year)', qty: 1, unit: 'license', price: 48000, sourcingType: 'online' },
+        { desc: 'Kaspersky Security Center Cloud Console', qty: 1, unit: 'license', price: 12000, sourcingType: 'online' },
+      ]),
+    });
+
+    // Office and operational items
+    createApprovedPr({
+      title: 'Office Pantry Supplies – Monthly Q2',
+      desc: 'Monthly pantry and breakroom supplies for all office staff.',
+      justification: 'Standard monthly pantry allocation per employee welfare policy. Covers coffee, water, and basic snacks for 30 employees.',
+      priority: 'low', requester: isabella, dept: adm, deptCode: 'ADM', deptHead: admHead,
+      createdDaysAgo: 10, neededInDays: -2,
+      items: makeItems([
+        { desc: 'Coffee Beans – Arabica Blend (1kg bags)', qty: 8, unit: 'bags', price: 850, sourcingType: 'online' },
+        { desc: 'Bottled Water – 5-gallon refill', qty: 20, unit: 'gallons', price: 55, sourcingType: 'online' },
+        { desc: 'Assorted Snacks and Biscuits (weekly packs)', qty: 4, unit: 'packs', price: 2500, sourcingType: 'online' },
+        { desc: 'Disposable Cups, Stirrers, Sugar, Creamer', qty: 1, unit: 'lot', price: 1800, sourcingType: 'online' },
+      ]),
+    });
+
+    createApprovedPr({
+      title: 'Internet Leased Line – Annual Service Fee',
+      desc: 'Annual dedicated internet leased line service fee for the main office.',
+      justification: 'Dedicated 100Mbps symmetric leased line is the primary internet backbone for VMS remote access, cloud backups, and daily operations.',
+      priority: 'high', requester: diana, dept: its, deptCode: 'ITS', deptHead: itsHead,
+      createdDaysAgo: 25, neededInDays: -10,
+      items: makeItems([
+        { desc: 'PLDT Enterprise Leased Line 100Mbps Symmetric (annual)', qty: 1, unit: 'year', price: 360000, sourcingType: 'online', notes: 'Direct billing from PLDT Enterprise' },
+        { desc: 'Static IP Block (/29, 5 usable IPs)', qty: 1, unit: 'year', price: 24000, sourcingType: 'online' },
+      ]),
+    });
+
     // ─── IN-PROGRESS PRs ─────────────────────────────────────
 
     // Pending quotation – procurement needs to source pricing first
@@ -1326,6 +1415,33 @@ async function seed() {
       ]),
     });
 
+    // At department head review (Level 1) — freshly submitted
+    createPrAtStage({
+      title: 'Ergonomic Office Chairs – Engineering Team',
+      desc: 'Ergonomic mesh office chairs to replace aging chairs for the engineering department.',
+      justification: 'Current chairs are 5+ years old with broken armrests and no lumbar support. Engineers spend 8+ hours at their desks daily. Replacement needed for productivity and employee health.',
+      priority: 'medium', requester: sarah, dept: eng, deptCode: 'ENG', deptHead: engHead,
+      createdDaysAgo: 1, neededInDays: 21,
+      stage: 'level1_review',
+      items: makeItems([
+        { desc: 'Sihoo M57 Ergonomic Mesh Office Chair (with headrest)', qty: 8, unit: 'units', price: 12500 },
+        { desc: 'Chair Floor Mat (120cm x 90cm, for tiled floor)', qty: 8, unit: 'pcs', price: 1200 },
+      ]),
+    });
+
+    // At department head review (Level 1) — subscription PR
+    createPrAtStage({
+      title: 'Canva Teams – Annual Subscription',
+      desc: 'Canva Teams subscription for creating professional presentations and social media content.',
+      justification: 'Admin and Operations teams frequently create client-facing materials. Canva Teams provides brand kit, templates, and collaboration features.',
+      priority: 'low', requester: isabella, dept: adm, deptCode: 'ADM', deptHead: admHead,
+      createdDaysAgo: 0, neededInDays: 30,
+      stage: 'level1_review',
+      items: makeItems([
+        { desc: 'Canva Teams Plan – 10 seats (annual)', qty: 1, unit: 'subscription', price: 45000, sourcingType: 'online', notes: 'Billed annually via canva.com' },
+      ]),
+    });
+
     // At COO review (Level 2)
     createPrAtStage({
       title: 'AI Camera Outdoor Enclosures – Phase 1',
@@ -1357,6 +1473,56 @@ async function seed() {
         { desc: 'Datapath FX4 Video Wall Controller', qty: 1, unit: 'unit', price: 320000 },
         { desc: 'Video Wall Mounting Structure (2x3 bezel-free)', qty: 1, unit: 'set', price: 145000 },
         { desc: 'Control Room Console Desk (curved, 3 positions)', qty: 1, unit: 'unit', price: 185000 },
+      ]),
+    });
+
+    // Quoted — procurement finished canvassing, COO reviewing price
+    createPrAtStage({
+      title: 'PoE Switches and Patch Panels – Busway Phase 2',
+      desc: 'Network switches and patch panels for 6 additional Phase 2 busway stations.',
+      justification: 'Phase 2 expansion requires dedicated network infrastructure at 6 new stations. Equipment specs match Phase 1 standards for compatibility.',
+      priority: 'high', requester: mark, dept: eng, deptCode: 'ENG', deptHead: engHead,
+      createdDaysAgo: 14, neededInDays: 10,
+      stage: 'quoted',
+      projectName: 'CCTV Installation – Busway Line 1',
+      items: makeItems([
+        { desc: 'Hikvision DS-3E2528P 24-Port PoE+ Managed Switch (370W)', qty: 6, unit: 'units', price: 32000 },
+        { desc: 'Patch Panel 24-Port Cat6 (1U)', qty: 6, unit: 'units', price: 2200 },
+        { desc: 'Network Enclosure 12U Wall-mount', qty: 6, unit: 'units', price: 7500 },
+        { desc: 'Fiber SFP Module 1G Single-mode', qty: 12, unit: 'units', price: 2800 },
+      ]),
+    });
+
+    // Quoted — AI project, COO reviewing supplier selection
+    createPrAtStage({
+      title: 'AI Analytics Training and Certification – Team of 4',
+      desc: 'Professional certification training for AI video analytics configuration and optimization.',
+      justification: 'AI camera system Phase 1 deployment requires certified engineers for system tuning. Manufacturer requires certified operators for warranty compliance.',
+      priority: 'medium', requester: kevin, dept: eng, deptCode: 'ENG', deptHead: engHead,
+      createdDaysAgo: 10, neededInDays: 20,
+      stage: 'quoted',
+      projectName: 'AI Camera System – Phase 1',
+      items: makeItems([
+        { desc: 'Hikvision HCP Certification Training (4 participants)', qty: 4, unit: 'persons', price: 18000 },
+        { desc: 'Training Materials and Lab Access (per person)', qty: 4, unit: 'sets', price: 5000 },
+        { desc: 'Certification Exam Fee (per person)', qty: 4, unit: 'persons', price: 6500 },
+        { desc: 'Travel and Accommodation (Manila, 3 days per person)', qty: 4, unit: 'persons', price: 8500 },
+      ]),
+    });
+
+    // Mixed sourcing — some items online, some need procurement canvassing
+    createPrAtStage({
+      title: 'IT Equipment Refresh – Finance Department',
+      desc: 'Replacement monitors and peripherals for the Finance team workstations.',
+      justification: 'Finance team monitors are 7 years old with degraded color accuracy affecting report readability. Peripherals (keyboards/mice) are failing. Standard 5-year replacement cycle overdue.',
+      priority: 'medium', requester: christine, dept: fin, deptCode: 'FIN', deptHead: finHead,
+      createdDaysAgo: 2, neededInDays: 14,
+      stage: 'level1_review',
+      items: makeItems([
+        { desc: 'Dell P2723QE 27" 4K USB-C Monitor', qty: 5, unit: 'units', price: 24500 },
+        { desc: 'Logitech MX Keys S Keyboard', qty: 5, unit: 'units', price: 5800, sourcingType: 'online', notes: 'Available on Lazada Official Store' },
+        { desc: 'Logitech MX Master 3S Mouse', qty: 5, unit: 'units', price: 5200, sourcingType: 'online', notes: 'Available on Lazada Official Store' },
+        { desc: 'Monitor Arm (dual-compatible, clamp mount)', qty: 5, unit: 'units', price: 3800 },
       ]),
     });
 
@@ -1572,7 +1738,7 @@ async function seed() {
     console.log(`  Created ${suppliers.length} suppliers`);
 
     for (const prDoc of allPrs) {
-      if (['approved', 'level2_review', 'level3_review'].includes(prDoc.status)) {
+      if (['approved', 'quoted', 'pending_quotation', 'level2_review', 'level3_review'].includes(prDoc.status)) {
         applyQuotedPricingToPr(prDoc, suppliers);
       }
       await attachReferencePhotos(prDoc);
@@ -1800,6 +1966,7 @@ async function seed() {
     console.log('  └───────────────────────────────────────────────────────┘');
     console.log('\n  PR Status Distribution:');
     console.log(`    Approved:   ${allPrs.filter(p => p.status === 'approved').length}`);
+    console.log(`    Quoted:     ${allPrs.filter(p => p.status === 'quoted').length}`);
     console.log(`    Pending Quotation: ${allPrs.filter(p => p.status === 'pending_quotation').length}`);
     console.log(`    In Review:  ${allPrs.filter(p => ['level1_review', 'level2_review', 'level3_review'].includes(p.status)).length}`);
     console.log(`    Rejected:   ${allPrs.filter(p => p.status === 'rejected').length}`);

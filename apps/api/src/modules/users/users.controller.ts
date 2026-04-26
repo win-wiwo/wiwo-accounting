@@ -7,12 +7,21 @@ import {
   Body,
   Query,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
+  ParseFilePipe,
+  MaxFileSizeValidator,
+  BadRequestException,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags, ApiOperation } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiBearerAuth, ApiTags, ApiOperation, ApiConsumes } from '@nestjs/swagger';
+import { diskStorage } from 'multer';
+import { extname, join } from 'path';
+import { v4 as uuidv4 } from 'uuid';
 import { UserRole } from '@prams/shared';
 import { UsersService } from './users.service';
 import { CreateUserDto, UpdateUserDto, QueryUsersDto } from './dto';
-import { Roles } from '../../common/decorators';
+import { Roles, CurrentUser } from '../../common/decorators';
 import { RolesGuard } from '../../common/guards';
 import { ParseObjectIdPipe } from '../../common/pipes';
 
@@ -21,6 +30,36 @@ import { ParseObjectIdPipe } from '../../common/pipes';
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
+
+  @Post('me/photo')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Upload profile photo for current user' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: join(process.cwd(), 'uploads', 'user-photos'),
+        filename: (_req: Express.Request, file: Express.Multer.File, cb: (err: Error | null, filename: string) => void) => {
+          cb(null, `${uuidv4()}${extname(file.originalname)}`);
+        },
+      }),
+    }),
+  )
+  async uploadMyPhoto(
+    @CurrentUser('_id') userId: string,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 })],
+      }),
+    )
+    file: Express.Multer.File,
+  ) {
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowed.includes(file.mimetype)) {
+      throw new BadRequestException('Only JPG, PNG, WebP, or GIF images are allowed.');
+    }
+    return this.usersService.uploadPhoto(userId, file);
+  }
 
   @Post()
   @Roles(UserRole.ADMIN)

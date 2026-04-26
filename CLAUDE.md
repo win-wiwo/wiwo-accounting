@@ -68,22 +68,39 @@ Each business domain follows: **Controller → Service → Repository → Mongoo
 
 ### Approval Workflow State Machine
 
+**Approve First, Procure After** — all PRs go through approval before procurement acts.
+
 ```
-DRAFT → SUBMITTED → LEVEL1_REVIEW (Dept Head) → LEVEL2_REVIEW (COO) → LEVEL3_REVIEW (CEO) → APPROVED
-                                                  ↓                      ↓                      ↓
-                                              REJECTED              REJECTED                REJECTED
-                                              RETURNED → (back to DRAFT for revision)
+Staff PR (no procurement items):
+  DRAFT → LEVEL1_REVIEW (Dept Head) → LEVEL2_REVIEW (COO) → LEVEL3_REVIEW (CEO) → APPROVED
+
+Staff PR (with procurement items):
+  DRAFT → LEVEL1_REVIEW → LEVEL2_REVIEW → LEVEL3_REVIEW
+    → PENDING_QUOTATION (Procurement sources suppliers on an approved need)
+    → QUOTED (COO price sign-off on supplier selection)
+    → APPROVED
+
+Dept Head PR (with procurement items):
+  DRAFT → LEVEL2_REVIEW (skip L1) → LEVEL3_REVIEW
+    → PENDING_QUOTATION → QUOTED → APPROVED
+
+Any level can REJECT (terminal) or RETURN → DRAFT (requester revises).
+RETURN from QUOTED → PENDING_QUOTATION (procurement revises, not back to DRAFT).
+RETURNED_FOR_INFO: procurement returns PR to requester for clarification during canvassing.
 ```
 
-Approval levels are determined by PR total amount. Events are emitted via NestJS EventEmitter2; `NotificationsService` and `AuditService` listen and react.
+Key design: management approves the *need* first. Procurement only sources items that are already approved, so no wasted effort on rejected requests. COO does final price sign-off for all procurement PRs.
+
+Events are emitted via NestJS EventEmitter2; `NotificationsService` and `AuditService` listen and react.
 
 ### Roles and Permissions
 
-Roles: `staff`, `dept_head`, `coo`, `ceo`, `admin`. Enforced via `@Roles()` decorator + `RolesGuard` on backend. Frontend uses `RoleRoute` for route guards and `usePermission()` hook — but **backend is the source of truth for authorization**.
+Roles: `staff`, `dept_head`, `coo`, `ceo`, `procurement`, `admin`. Enforced via `@Roles()` decorator + `RolesGuard` on backend. Frontend uses `RoleRoute` for route guards and `usePermission()` hook — but **backend is the source of truth for authorization**.
 
 Key restrictions:
 - Only `admin` can manage users, departments, and PR numbering config
-- Only `dept_head` approves Level 1, `coo` Level 2, `ceo` Level 3
+- Only `dept_head` approves Level 1, `coo` Level 2 + QUOTED price sign-off, `ceo` Level 3
+- Only `procurement` can submit quotations and manage canvass entries
 - Approvers cannot approve their own PRs
 - `admin` role cannot create PRs
 

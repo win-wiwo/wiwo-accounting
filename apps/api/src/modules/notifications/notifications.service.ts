@@ -44,16 +44,25 @@ export class NotificationsService {
         [ApprovalAction.RETURNED]: 'approval_returned',
       };
 
+      const isMovingToProcurement = approval.action === ApprovalAction.APPROVED && purchaseRequest.status === PrStatus.PENDING_QUOTATION;
+      const isFullyApproved = purchaseRequest.status === PrStatus.APPROVED;
+
       const titleMap: Record<string, string> = {
-        [ApprovalAction.APPROVED]: `PR ${approval.approvalLevel === 3 ? 'Fully Approved' : 'Approved'} by ${levelLabel}`,
+        [ApprovalAction.APPROVED]: isFullyApproved
+          ? `PR Fully Approved`
+          : isMovingToProcurement
+            ? `PR Approved — Moving to Procurement`
+            : `PR Approved by ${levelLabel}`,
         [ApprovalAction.REJECTED]: `PR Rejected by ${levelLabel}`,
         [ApprovalAction.RETURNED]: `PR Returned by ${levelLabel}`,
       };
 
       const messageMap: Record<string, string> = {
-        [ApprovalAction.APPROVED]: approval.approvalLevel === 3
+        [ApprovalAction.APPROVED]: isFullyApproved
           ? `Your PR "${purchaseRequest.prNumber}" has been fully approved.`
-          : `Your PR "${purchaseRequest.prNumber}" was approved by ${levelLabel} and advanced to the next level.`,
+          : isMovingToProcurement
+            ? `Your PR "${purchaseRequest.prNumber}" has been approved and is now awaiting procurement sourcing.`
+            : `Your PR "${purchaseRequest.prNumber}" was approved by ${levelLabel} and advanced to the next level.`,
         [ApprovalAction.REJECTED]: `Your PR "${purchaseRequest.prNumber}" was rejected by ${levelLabel}.${approval.comments ? ` Reason: ${approval.comments}` : ''}`,
         [ApprovalAction.RETURNED]: `Your PR "${purchaseRequest.prNumber}" was returned for revision by ${levelLabel}.${approval.comments ? ` Reason: ${approval.comments}` : ''}`,
       };
@@ -67,8 +76,13 @@ export class NotificationsService {
       });
     }
 
-    // If approved and moving to next level, notify the next approver
+    // If approved and moving to next level (or to procurement), notify the next actor
     if (approval.action === ApprovalAction.APPROVED && purchaseRequest.status !== PrStatus.APPROVED) {
+      await this.notifyNextApprover(purchaseRequest);
+    }
+
+    // If returned from QUOTED, notify procurement that price review was returned
+    if (approval.action === ApprovalAction.RETURNED && purchaseRequest.status === PrStatus.PENDING_QUOTATION) {
       await this.notifyNextApprover(purchaseRequest);
     }
   }
@@ -101,25 +115,27 @@ export class NotificationsService {
    * Notify the requester when procurement submits the canvass (PR moves to Quoted or Level 2).
    */
   @OnEvent('pr.quoted')
-  async handleQuoted(payload: { purchaseRequest: { _id: string; prNumber: string; requesterId: string }; quotedBy: string }) {
+  async handleQuoted(payload: { purchaseRequest: { _id: string; prNumber: string; requesterId: string; status: string; title: string; departmentId: string }; quotedBy: string }) {
     const { purchaseRequest } = payload;
+
+    // Notify requester that quotation was submitted
     await this.notificationModel.create({
       recipientId: purchaseRequest.requesterId,
       title: 'Quotation Submitted',
-      message: `Procurement has submitted a canvass for PR "${purchaseRequest.prNumber}". It is now moving through the approval chain.`,
+      message: `Procurement has submitted a canvass for PR "${purchaseRequest.prNumber}". It is now pending COO price review.`,
       type: 'approval_approved',
       purchaseRequestId: purchaseRequest._id,
     });
+
+    // Notify COO for price sign-off
+    await this.notifyNextApprover(purchaseRequest);
   }
 
   private async notifyNextApprover(pr: { _id: string; title: string; prNumber: string; departmentId: string; status: string }) {
     const normalizedStatus = normalizePrStatus(pr.status);
 
     // Determine who to notify based on current status
-    if (
-      normalizedStatus === PrStatus.LEVEL1_REVIEW ||
-      normalizedStatus === PrStatus.QUOTED
-    ) {
+    if (normalizedStatus === PrStatus.LEVEL1_REVIEW) {
       // Notify dept head
       const dept = await this.departmentModel.findById(pr.departmentId).exec();
       if (dept?.headId) {
@@ -130,6 +146,26 @@ export class NotificationsService {
           type: 'pr_needs_action',
           purchaseRequestId: pr._id,
         });
+      }
+      return;
+    }
+
+    if (normalizedStatus === PrStatus.QUOTED) {
+      // Notify COO for price sign-off
+      const cooUsers = await this.userModel
+        .find({ role: UserRole.COO, isActive: true })
+        .select('_id')
+        .exec();
+      if (cooUsers.length > 0) {
+        await this.notificationModel.insertMany(
+          cooUsers.map((user) => ({
+            recipientId: user._id,
+            title: 'PR Price Review Required',
+            message: `PR "${pr.prNumber}" has been quoted by procurement and requires your price review.`,
+            type: 'pr_needs_action',
+            purchaseRequestId: pr._id,
+          })),
+        );
       }
       return;
     }

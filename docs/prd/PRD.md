@@ -233,14 +233,14 @@ The current purchase request process suffers from the following critical issues:
 
 | ID     | Requirement                                                                                                                                          | Priority |
 | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| FR-035 | The approval chain shall follow this sequence: Employee submits -> Department Head reviews -> COO reviews -> CEO/President gives final approval.     | Must     |
-| FR-036 | The system shall support the following PR statuses: Draft, Submitted, Under Review, Approved, Rejected, Returned for Revision, Cancelled.            | Must     |
+| FR-035 | The approval chain shall follow this sequence: Employee submits → Dept Head reviews (Level 1) → COO reviews (Level 2) → CEO gives need-approval (Level 3). Dept head requesters skip Level 1. If the PR has procurement items, CEO approval routes to Pending Procurement → Procurement sources suppliers → COO price sign-off → Approved. | Must     |
+| FR-036 | The system shall support the following PR statuses: Draft, Level 1 Review, Level 2 Review, Level 3 Review, Pending Procurement, Price Review, Approved, Rejected, Returned, Returned for Info, Cancelled. | Must     |
 | FR-037 | When a PR is submitted, it shall automatically be assigned to the requestor's Department Head for review.                                            | Must     |
 | FR-038 | Each approver shall be able to perform the following actions: Approve, Reject, or Return for Revision.                                               | Must     |
 | FR-039 | Each approver shall be able to add comments when approving, rejecting, or returning a PR.                                                            | Must     |
 | FR-040 | Comments shall be mandatory when rejecting or returning a PR for revision.                                                                           | Must     |
 | FR-041 | When a PR is approved by an approver, it shall automatically advance to the next approver in the chain.                                              | Must     |
-| FR-042 | When the CEO/President approves a PR, the status shall change to Approved (final).                                                                   | Must     |
+| FR-042 | When the CEO/President approves a PR: (a) if the PR has procurement items, status changes to Pending Procurement for supplier sourcing, then after quotation submission, COO reviews pricing before final Approved; (b) if no procurement items, status changes to Approved (final). | Must     |
 | FR-043 | When a PR is rejected at any stage, the status shall change to Rejected and the workflow shall stop.                                                 | Must     |
 | FR-044 | When a PR is returned for revision, the requestor shall be able to edit and resubmit the PR, restarting the approval chain from the Department Head. | Must     |
 | FR-045 | The system shall maintain a complete audit trail for each PR, recording: action taken, actor (user), timestamp, comments, and previous/new status.   | Must     |

@@ -30,6 +30,7 @@ import { PoListPage } from '@/features/purchase-orders/po-list-page';
 import { PoFormPage } from '@/features/purchase-orders/po-form-page';
 import { PoDetailPage } from '@/features/purchase-orders/po-detail-page';
 import { ProcurementQueuePage } from '@/features/procurement/procurement-queue-page';
+import { ProcurementWorkspacePage } from '@/features/procurement/workspace/procurement-workspace-page';
 import { ProjectsPage } from '@/features/projects/projects-page';
 import { ForbiddenPage, NotFoundPage } from '@/routes/error-pages';
 
@@ -241,6 +242,14 @@ export default function App() {
                 element={
                   <ProtectedRoute allowedRoles={[UserRole.PROCUREMENT, UserRole.ADMIN]}>
                     <ProcurementQueuePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/procurement/:id"
+                element={
+                  <ProtectedRoute allowedRoles={[UserRole.PROCUREMENT, UserRole.ADMIN]}>
+                    <ProcurementWorkspacePage />
                   </ProtectedRoute>
                 }
               />
