@@ -1,24 +1,35 @@
 import { useFieldArray } from 'react-hook-form';
 import type { UseFormReturn } from 'react-hook-form';
-import { Plus, Trash2, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, AlertCircle, Check, Users } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import {
   FormField,
   GhostButton,
   premiumTextareaClass,
 } from '@/components/premium';
+import { cn } from '@/lib/utils';
 import type { FormData } from './schemas';
 
 interface SellerRefsSectionProps {
   itemIndex: number;
   form: UseFormReturn<FormData>;
+  selectedSellerIndex: number | undefined;
+  onSelectSeller: (sellerIndex: number) => void;
+  onRemoveSeller: (sellerIndex: number) => void;
 }
 
-export function SellerReferencesSection({ itemIndex, form }: SellerRefsSectionProps) {
+export function SellerReferencesSection({
+  itemIndex,
+  form,
+  selectedSellerIndex,
+  onSelectSeller,
+  onRemoveSeller,
+}: SellerRefsSectionProps) {
   const {
     control,
     register,
     watch,
+    setValue,
     formState: { errors },
   } = form;
   const { fields, append, remove } = useFieldArray({
@@ -32,105 +43,209 @@ export function SellerReferencesSection({ itemIndex, form }: SellerRefsSectionPr
     | Record<string, { message?: string }>
     | undefined;
 
+  const handleAppendSeller = () => {
+    const newIndex = fields.length;
+    append({ sellerName: '', price: 0, notes: '' });
+    // Auto-select if this is the first seller
+    if (fields.length === 0) {
+      setTimeout(() => onSelectSeller(newIndex), 0);
+    }
+  };
+
+  const handleRemove = (si: number) => {
+    remove(si);
+    onRemoveSeller(si);
+  };
+
   return (
-    <div className="space-y-3">
+    <div className="px-5 py-3 space-y-3">
+      {/* ── Section header ──────────────────────────────── */}
       <div className="flex items-center justify-between">
-        <div>
-          <p className="text-[12px] font-semibold text-zinc-700">Seller References</p>
-          <p className="text-[11px] text-zinc-400 mt-0.5">
-            {refs.length}/3 sellers added
-            {refs.length < 3 && (
-              <span className="ml-1 text-amber-600">
-                — justification required below
-              </span>
-            )}
+        <div className="flex items-center gap-2">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400">
+            Supplier References
           </p>
+          <span
+            className={cn(
+              'inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums leading-none',
+              refs.length >= 3
+                ? 'bg-emerald-100 text-emerald-700'
+                : 'bg-amber-100 text-amber-700',
+            )}
+          >
+            {refs.length}/3
+          </span>
         </div>
         {fields.length < 3 && (
           <GhostButton
             type="button"
-            onClick={() => append({ sellerName: '', price: 0, notes: '' })}
-            className="px-2.5 py-1 text-[12px]"
+            onClick={handleAppendSeller}
+            className="h-7 px-2.5 text-[11px]"
           >
             <Plus className="h-3 w-3" /> Add Seller
           </GhostButton>
         )}
       </div>
 
-      {fields.map((field, si) => (
+      {/* ── Progress bar ────────────────────────────────── */}
+      <div className="h-1 w-full overflow-hidden rounded-full bg-zinc-100">
         <div
-          key={field.id}
-          className="rounded-lg border border-zinc-100 bg-zinc-50/60 p-3 space-y-2"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
-              Seller {si + 1}
-            </span>
-            <button
-              type="button"
-              onClick={() => remove(si)}
-              className="h-6 w-6 flex items-center justify-center rounded-md text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors"
-              aria-label="Remove seller"
-            >
-              <Trash2 className="h-3 w-3" />
-            </button>
-          </div>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <FormField label="Seller Name" required>
-              <Input
-                className="h-8 text-[12px]"
-                placeholder="e.g. Lazada PH - TechSupplies"
-                {...register(
-                  `items.${itemIndex}.sellerReferences.${si}.sellerName`,
-                )}
-              />
-            </FormField>
-            <FormField label="Price (PHP)" required>
-              <Input
-                className="h-8 text-[12px]"
-                type="number"
-                min={0}
-                step="0.01"
-                {...register(`items.${itemIndex}.sellerReferences.${si}.price`, {
-                  valueAsNumber: true,
-                })}
-              />
-            </FormField>
-          </div>
-          <FormField label="Notes">
-            <Input
-              className="h-8 text-[12px]"
-              placeholder="e.g. includes shipping, 1yr warranty"
-              {...register(`items.${itemIndex}.sellerReferences.${si}.notes`)}
-            />
-          </FormField>
-        </div>
-      ))}
+          className={cn(
+            'h-full rounded-full transition-all duration-300',
+            refs.length >= 3 ? 'bg-emerald-500' : 'bg-amber-400',
+          )}
+          style={{ width: `${Math.min(100, (refs.length / 3) * 100)}%` }}
+        />
+      </div>
 
+      {/* ── Empty state ─────────────────────────────────── */}
       {fields.length === 0 && (
-        <div className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50/40 p-3 text-center text-[12px] text-zinc-400">
-          No sellers added yet. Add at least 1, ideally 3.
+        <div className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50/40 px-5 py-5 text-center">
+          <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-full bg-white border border-zinc-200">
+            <Users className="h-4 w-4 text-zinc-400" />
+          </div>
+          <p className="mt-2.5 text-[12px] font-semibold text-zinc-700">
+            No seller references yet
+          </p>
+          <p className="mt-1 text-[11px] text-zinc-500 max-w-[240px] mx-auto leading-relaxed">
+            3 sellers is the standard. The selected seller's price becomes the unit price.
+          </p>
+          <GhostButton
+            type="button"
+            onClick={handleAppendSeller}
+            className="mt-3 px-3 py-1.5 text-[12px]"
+          >
+            <Plus className="h-3 w-3" /> Add First Seller
+          </GhostButton>
         </div>
       )}
 
+      {/* ── Seller rows ─────────────────────────────────── */}
+      {fields.length > 0 && (
+        <div className="space-y-2">
+          {fields.map((field, si) => {
+            const isSelected = selectedSellerIndex === si;
+            return (
+              <div
+                key={field.id}
+                className={cn(
+                  'rounded-lg border bg-white px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)] space-y-3 transition-colors duration-150',
+                  isSelected
+                    ? 'border-zinc-800/80 bg-zinc-50/40'
+                    : 'border-zinc-100 hover:border-zinc-200',
+                )}
+              >
+                {/* Row header */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-100 text-[10px] font-bold text-zinc-600 tabular-nums">
+                      {si + 1}
+                    </span>
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-500">
+                      Seller {si + 1}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => onSelectSeller(si)}
+                      className={cn(
+                        'flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-semibold transition-all duration-150',
+                        isSelected
+                          ? 'bg-zinc-900 text-white'
+                          : 'border border-zinc-200 bg-white text-zinc-500 hover:border-zinc-300 hover:text-zinc-700',
+                      )}
+                      aria-pressed={isSelected}
+                    >
+                      {isSelected && <Check className="h-3 w-3" />}
+                      {isSelected ? 'Selected' : 'Use this price'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleRemove(si)}
+                      className="h-6 w-6 flex items-center justify-center rounded-md text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+                      aria-label="Remove seller"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <FormField label="Seller Name" required>
+                    <Input
+                      className="h-9 text-[12px]"
+                      placeholder="e.g. Lazada PH — TechSupplies"
+                      {...register(
+                        `items.${itemIndex}.sellerReferences.${si}.sellerName`,
+                      )}
+                    />
+                  </FormField>
+                  <FormField label="Price (PHP)" required>
+                    <Input
+                      className="h-9 text-[12px] tabular-nums"
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      {...register(
+                        `items.${itemIndex}.sellerReferences.${si}.price`,
+                        {
+                          valueAsNumber: true,
+                          onChange: (e) => {
+                            // Live-sync estimatedPrice if this seller is selected
+                            if (isSelected) {
+                              setValue(
+                                `items.${itemIndex}.estimatedPrice`,
+                                parseFloat(e.target.value) || 0,
+                                { shouldValidate: true },
+                              );
+                            }
+                          },
+                        },
+                      )}
+                    />
+                  </FormField>
+                </div>
+                <FormField label="Notes">
+                  <Input
+                    className="h-9 text-[12px]"
+                    placeholder="e.g. includes shipping, 1yr warranty"
+                    {...register(
+                      `items.${itemIndex}.sellerReferences.${si}.notes`,
+                    )}
+                  />
+                </FormField>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── Justification (fewer than 3 sellers) ─────────── */}
       {needsJustification && (
-        <FormField
-          label={
-            <span className="flex items-center gap-1 text-amber-700">
-              <AlertCircle className="h-3 w-3" />
-              Justify why fewer than 3 sellers
-            </span> as unknown as string
-          }
-          required
-          error={itemErrors?.sellerReferencesJustification?.message}
-        >
-          <textarea
-            rows={2}
-            className={premiumTextareaClass}
-            placeholder="e.g. Only one supplier carries this specific model in the Philippines..."
-            {...register(`items.${itemIndex}.sellerReferencesJustification`)}
-          />
-        </FormField>
+        <div className="rounded-xl border border-amber-200 bg-amber-50/40 px-4 py-3">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+            <p className="text-[12px] font-semibold text-amber-800">
+              Justification required
+            </p>
+          </div>
+          <p className="mt-0.5 text-[11px] text-amber-700/80 leading-relaxed">
+            Approvers need to know why this item has fewer than 3 sellers.
+          </p>
+          <div className="mt-2.5">
+            <FormField error={itemErrors?.sellerReferencesJustification?.message}>
+              <textarea
+                rows={2}
+                className={`${premiumTextareaClass} border-amber-200 bg-white focus:border-amber-400 focus:shadow-[0_0_0_3px_rgba(245,158,11,0.10)]`}
+                placeholder="e.g. Only one supplier carries this specific model in the Philippines..."
+                {...register(
+                  `items.${itemIndex}.sellerReferencesJustification`,
+                )}
+              />
+            </FormField>
+          </div>
+        </div>
       )}
     </div>
   );

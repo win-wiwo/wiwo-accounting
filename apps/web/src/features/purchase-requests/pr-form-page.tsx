@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { ArrowLeft, Loader2, Save, Send, ImageIcon } from 'lucide-react';
 import { purchaseRequestsApi } from '@/lib/api-services';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Stepper } from '@/components/ui/stepper';
 import { StickyFooter } from '@/components/ui/sticky-footer';
 import {
   Dialog,
@@ -22,7 +21,8 @@ import { usePrForm } from './form/use-pr-form';
 import { StepBasics } from './form/step-basics';
 import { StepItems } from './form/step-items';
 import { StepReview } from './form/step-review';
-import { HowItWorks } from './form/how-it-works';
+import { GuidedStepper } from './form/guided-stepper';
+import { ContextualPanel } from './form/contextual-panels';
 
 export function PrFormPage() {
   const stagedFiles = useStagedFiles();
@@ -30,8 +30,9 @@ export function PrFormPage() {
   const { form, isEdit, id, prData, prLoading, navigate } = pr;
 
   const [step, setStep] = useState(0);
-
-  const [serverPhotoPreviews, setServerPhotoPreviews] = useState<Record<string, string>>({});
+  const [serverPhotoPreviews, setServerPhotoPreviews] = useState<
+    Record<string, string>
+  >({});
 
   useEffect(() => {
     if (!isEdit || !prData?.data?.items || !id) return;
@@ -71,7 +72,9 @@ export function PrFormPage() {
     for (let s = step; s < target; s++) {
       const fieldNames = STEP_FIELDS[s as keyof typeof STEP_FIELDS] as readonly string[];
       if (fieldNames.length > 0) {
-        const valid = await form.trigger(fieldNames as Parameters<typeof form.trigger>[0]);
+        const valid = await form.trigger(
+          fieldNames as Parameters<typeof form.trigger>[0],
+        );
         if (!valid) {
           setStep(s);
           return;
@@ -113,9 +116,10 @@ export function PrFormPage() {
   const isLastStep = step === STEP_LABELS.length - 1;
 
   return (
-    <div className="space-y-6 max-w-screen-2xl">
+    <div className="flex flex-col gap-6 max-w-screen-2xl min-h-[calc(100vh-8.5rem)] lg:min-h-[calc(100vh-9.5rem)]">
       <PageHeader
         title={isEdit ? `Edit ${typeLabel}` : `New ${typeLabel}`}
+        description="Create a request for items, services, or project needs."
         actions={
           <GhostButton onClick={() => navigate('/purchase-requests')}>
             <ArrowLeft className="h-3.5 w-3.5" /> Back
@@ -123,43 +127,76 @@ export function PrFormPage() {
         }
       />
 
-      <HowItWorks />
+      <GuidedStepper
+        steps={STEP_LABELS}
+        currentStep={step}
+        onStepClick={goToStep}
+      />
 
-      <Stepper steps={STEP_LABELS} currentStep={step} onStepClick={goToStep} />
+      <form onSubmit={(e) => e.preventDefault()} className="flex-1 space-y-6">
+        <div className="grid gap-6 xl:grid-cols-[1fr_340px]">
+          {/* Main column */}
+          <div className="min-w-0 space-y-6">
+            {step === 0 && (
+              <StepBasics
+                form={form}
+                isEdit={isEdit}
+                projectOptions={pr.projectOptions}
+              />
+            )}
 
-      <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
-        {step === 0 && (
-          <StepBasics form={form} isEdit={isEdit} projectOptions={pr.projectOptions} />
-        )}
+            {step === 1 && (
+              <StepItems
+                form={form}
+                fields={pr.fields}
+                append={pr.append}
+                remove={pr.remove}
+                totalAmount={pr.totalAmount}
+                hasProcurementItems={pr.hasProcurementItems}
+                stagedFiles={stagedFiles}
+                prData={prData}
+                serverPhotoPreviews={serverPhotoPreviews}
+              />
+            )}
 
-        {step === 1 && (
-          <StepItems
-            form={form}
-            fields={pr.fields}
-            append={pr.append}
-            remove={pr.remove}
-            totalAmount={pr.totalAmount}
-            hasProcurementItems={pr.hasProcurementItems}
-            stagedFiles={stagedFiles}
-            prData={prData}
-            serverPhotoPreviews={serverPhotoPreviews}
-          />
-        )}
+            {step === 2 && (
+              <StepReview
+                form={form}
+                projectOptions={pr.projectOptions}
+                totalAmount={pr.totalAmount}
+                hasProcurementItems={pr.hasProcurementItems}
+                stagedPhotosCount={Object.keys(stagedFiles.stagedPhotos).length}
+                onGoToStep={goToStep}
+              />
+            )}
+          </div>
 
-        {step === 2 && (
-          <StepReview
-            form={form}
-            projectOptions={pr.projectOptions}
-            totalAmount={pr.totalAmount}
-            hasProcurementItems={pr.hasProcurementItems}
-            stagedPhotosCount={Object.keys(stagedFiles.stagedPhotos).length}
-            onGoToStep={goToStep}
-          />
-        )}
+          {/* Right rail — step-aware contextual panel */}
+          <aside className="hidden xl:block">
+            <div className="sticky top-6">
+              <ContextualPanel
+                step={step}
+                form={form}
+                totalAmount={pr.totalAmount}
+                hasProcurementItems={pr.hasProcurementItems}
+              />
+            </div>
+          </aside>
+        </div>
+      </form>
 
-        <StickyFooter>
-          <div className="flex items-center justify-between">
-            <div className="flex gap-2">
+      <StickyFooter>
+          {/* Desktop layout: step label left, actions right */}
+          <div className="hidden sm:flex items-center justify-between gap-4">
+            <div className="min-w-0 shrink-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400 leading-none">
+                Step {step + 1} of {STEP_LABELS.length}
+              </p>
+              <p className="mt-1.5 text-[14px] font-semibold text-zinc-900 leading-none">
+                {STEP_LABELS[step]}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
               <GhostButton
                 type="button"
                 onClick={() => navigate('/purchase-requests')}
@@ -168,11 +205,9 @@ export function PrFormPage() {
               </GhostButton>
               {step > 0 && (
                 <GhostButton type="button" onClick={handleBack}>
-                  Back
+                  <ArrowLeft className="h-3.5 w-3.5" /> Back
                 </GhostButton>
               )}
-            </div>
-            <div className="flex gap-2">
               <GhostButton
                 type="button"
                 disabled={isSubmitting}
@@ -185,7 +220,6 @@ export function PrFormPage() {
                 )}
                 Save Draft
               </GhostButton>
-
               {isLastStep ? (
                 <PrimaryButton
                   type="button"
@@ -206,8 +240,65 @@ export function PrFormPage() {
               )}
             </div>
           </div>
+
+          {/* Mobile layout: primary action full-width, secondaries above */}
+          <div className="flex flex-col gap-2.5 sm:hidden">
+            <div className="flex items-center gap-2">
+              <GhostButton
+                type="button"
+                className="flex-1"
+                onClick={() => navigate('/purchase-requests')}
+              >
+                Cancel
+              </GhostButton>
+              {step > 0 && (
+                <GhostButton
+                  type="button"
+                  className="flex-1"
+                  onClick={handleBack}
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" /> Back
+                </GhostButton>
+              )}
+              <GhostButton
+                type="button"
+                className="flex-1"
+                disabled={isSubmitting}
+                onClick={handleDraftSave}
+              >
+                {isSubmitting && pr.submitActionRef.current === 'draft' ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                Save Draft
+              </GhostButton>
+            </div>
+            {isLastStep ? (
+              <PrimaryButton
+                type="button"
+                className="w-full"
+                disabled={isSubmitting}
+                onClick={handleSubmit}
+              >
+                {isSubmitting && pr.submitActionRef.current === 'submit' ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+                Submit for Approval
+              </PrimaryButton>
+            ) : (
+              <PrimaryButton
+                type="button"
+                className="w-full"
+                onClick={handleNext}
+              >
+                Continue
+              </PrimaryButton>
+            )}
+          </div>
         </StickyFooter>
-      </form>
 
       {/* Server photo viewer dialog */}
       <Dialog

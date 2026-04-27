@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -16,6 +17,7 @@ export function AppLayout() {
           'pt-16 transition-all duration-300',
           collapsed ? 'ml-16' : 'ml-64',
         )}
+        style={{ '--sidebar-w': collapsed ? '4rem' : '16rem' } as React.CSSProperties}
       >
         {/* White rounded content panel — the signature DEMURE-style inner card */}
         <div className="p-3">
