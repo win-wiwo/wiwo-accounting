@@ -26,7 +26,9 @@ async function seed() {
 
     const User = mongoose.model('User', userSchema);
 
-    const existingAdmin = await User.findOne({ email: 'admin@prams.com' });
+    const existingAdmin = await User.findOne({
+      $or: [{ email: 'admin@prams.com' }, { employeeId: 'EMP-0001' }],
+    });
     if (existingAdmin) {
       console.log('Admin user already exists, skipping seed');
       await mongoose.disconnect();

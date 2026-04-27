@@ -1,8 +1,16 @@
 import { type UseFormReturn } from 'react-hook-form';
-import { SourcingType, PR_PRIORITY_LABELS, type PrPriority } from '@prams/shared';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { AlertCircle, Pencil } from 'lucide-react';
+import {
+  SourcingType,
+  PR_PRIORITY_LABELS,
+  type PrPriority,
+} from '@prams/shared';
+import {
+  Surface,
+  FormField,
+  GhostButton,
+  premiumTextareaClass,
+} from '@/components/premium';
 import type { FormData, ProjectOption } from './schemas';
 import { formatCurrency } from './utils';
 
@@ -16,7 +24,10 @@ interface StepReviewProps {
 }
 
 export function StepReview({
-  form, projectOptions, totalAmount, hasProcurementItems,
+  form,
+  projectOptions,
+  totalAmount,
+  hasProcurementItems,
   stagedPhotosCount,
   onGoToStep,
 }: StepReviewProps) {
@@ -29,119 +40,176 @@ export function StepReview({
   return (
     <div className="space-y-4">
       {/* Basics summary */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-3">
-          <CardTitle className="text-sm">Request Basics</CardTitle>
-          <Button type="button" variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => onGoToStep(0)}>
+      <Surface delay={0.04}>
+        <div className="flex items-center justify-between px-6 pt-5 pb-3">
+          <h2 className="text-[14px] font-semibold text-zinc-900">Request Basics</h2>
+          <GhostButton
+            type="button"
+            onClick={() => onGoToStep(0)}
+            className="px-2.5 py-1 text-[12px]"
+          >
             <Pencil className="h-3 w-3" /> Edit
-          </Button>
-        </CardHeader>
-        <CardContent>
-          <dl className="grid gap-2 text-sm sm:grid-cols-2">
-            <div>
-              <dt className="text-xs text-muted-foreground">Title</dt>
-              <dd className="font-medium">{data.title || <span className="text-destructive">Missing</span>}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">Request Type</dt>
-              <dd>{data.requestType === 'job_request' ? 'Job Request' : 'Purchase Request'}</dd>
-            </div>
+          </GhostButton>
+        </div>
+        <div className="px-6 pb-6">
+          <dl className="grid gap-4 sm:grid-cols-2">
+            <SummaryItem
+              label="Title"
+              value={data.title}
+              missing={!data.title}
+            />
+            <SummaryItem
+              label="Request Type"
+              value={data.requestType === 'job_request' ? 'Job Request' : 'Purchase Request'}
+            />
             <div className="sm:col-span-2">
-              <dt className="text-xs text-muted-foreground">Purpose</dt>
-              <dd className="whitespace-pre-wrap">{data.justification || <span className="text-destructive">Missing</span>}</dd>
+              <SummaryItem
+                label="Purpose"
+                value={data.justification}
+                missing={!data.justification}
+                wrap
+              />
             </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">Assigned To</dt>
-              <dd>
-                {data.assignmentType === 'office'
+            <SummaryItem
+              label="Assigned To"
+              value={
+                data.assignmentType === 'office'
                   ? 'Office / General'
                   : project
                     ? `${project.name}${project.code ? ` (${project.code})` : ''}`
-                    : <span className="text-destructive">No project selected</span>
-                }
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">Priority</dt>
-              <dd>{PR_PRIORITY_LABELS[data.priority as PrPriority] || data.priority}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">Needed By</dt>
-              <dd>{data.neededByDate || 'Not specified'}</dd>
-            </div>
+                    : ''
+              }
+              missing={data.assignmentType === 'project' && !project}
+              missingText="No project selected"
+            />
+            <SummaryItem
+              label="Priority"
+              value={PR_PRIORITY_LABELS[data.priority as PrPriority] || data.priority}
+            />
+            <SummaryItem
+              label="Needed By"
+              value={data.neededByDate || 'Not specified'}
+            />
           </dl>
-        </CardContent>
-      </Card>
+        </div>
+      </Surface>
 
       {/* Items summary */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-3">
-          <CardTitle className="text-sm">Line Items ({data.items.length})</CardTitle>
-          <Button type="button" variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => onGoToStep(1)}>
+      <Surface delay={0.06}>
+        <div className="flex items-center justify-between px-6 pt-5 pb-3">
+          <h2 className="text-[14px] font-semibold text-zinc-900">
+            Line Items ({data.items.length})
+          </h2>
+          <GhostButton
+            type="button"
+            onClick={() => onGoToStep(1)}
+            className="px-2.5 py-1 text-[12px]"
+          >
             <Pencil className="h-3 w-3" /> Edit
-          </Button>
-        </CardHeader>
-        <CardContent>
+          </GhostButton>
+        </div>
+        <div className="px-6 pb-6">
           <div className="space-y-2">
             {data.items.map((item, i) => {
               const isOnline = item.sourcingType === SourcingType.ONLINE;
-              const lineTotal = isOnline ? (Number(item.quantity) || 0) * (Number(item.estimatedPrice) || 0) : 0;
+              const lineTotal = isOnline
+                ? (Number(item.quantity) || 0) * (Number(item.estimatedPrice) || 0)
+                : 0;
               return (
-                <div key={i} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
+                <div
+                  key={i}
+                  className="flex items-center justify-between gap-4 rounded-lg border border-zinc-100 px-4 py-3 text-[13px]"
+                >
                   <div className="min-w-0 flex-1">
-                    <span className="font-medium">{item.description || `Item ${i + 1}`}</span>
-                    <span className="text-muted-foreground ml-2">
-                      x{item.quantity} {item.unit}
+                    <span className="font-medium text-zinc-800">
+                      {item.description || `Item ${i + 1}`}
+                    </span>
+                    <span className="ml-2 text-zinc-400 tabular-nums">
+                      ×{item.quantity} {item.unit}
                     </span>
                     {isOnline && (
-                      <span className="text-blue-600 text-xs ml-2">Online</span>
+                      <span className="ml-2 text-[11px] font-medium text-blue-600">
+                        Online
+                      </span>
                     )}
                   </div>
-                  <span className="font-medium ml-4 shrink-0">
+                  <span
+                    className={`shrink-0 font-semibold tabular-nums ${isOnline ? 'text-zinc-800' : 'text-amber-600'}`}
+                  >
                     {isOnline ? formatCurrency(lineTotal) : 'TBD'}
                   </span>
                 </div>
               );
             })}
           </div>
-          <div className="mt-3 flex justify-end border-t pt-3">
+          <div className="mt-4 flex justify-end border-t border-zinc-100 pt-3">
             <div className="text-right">
-              <p className="text-xs text-muted-foreground">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-500">
                 {hasProcurementItems ? 'Online items subtotal' : 'Total'}
               </p>
-              <p className="text-lg font-bold">{formatCurrency(totalAmount)}</p>
+              <p className="mt-1 text-[18px] font-bold text-zinc-900 tabular-nums">
+                {formatCurrency(totalAmount)}
+              </p>
             </div>
           </div>
           {stagedPhotosCount > 0 && (
-            <p className="mt-2 text-xs text-muted-foreground">
+            <p className="mt-2 text-[12px] text-zinc-400">
               {stagedPhotosCount} item photo(s) pending upload
             </p>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </Surface>
 
       {/* Resubmission note — only for returned PRs */}
       {isReturned && (
-        <Card className="border-amber-300 bg-amber-50/40">
-          <CardHeader>
-            <CardTitle className="text-base text-amber-800 flex items-center gap-2">
+        <Surface className="border-amber-200 bg-amber-50/40">
+          <div className="px-6 pt-5 pb-3">
+            <h2 className="flex items-center gap-2 text-[15px] font-semibold text-amber-900">
               <AlertCircle className="h-4 w-4" />
-              What changed? <span className="text-destructive">*</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <textarea
-              rows={3}
-              className="flex w-full rounded-md border border-amber-300 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-400"
-              placeholder="e.g. Replaced item 2 with a cheaper model, added 3 seller references for item 1, updated quantity of item 3 from 5 to 3..."
-              {...form.register('resubmissionNote')}
-            />
-            {errors.resubmissionNote && (
-              <p className="mt-1 text-xs text-destructive">{errors.resubmissionNote.message}</p>
-            )}
-          </CardContent>
-        </Card>
+              What changed? <span className="text-red-600">*</span>
+            </h2>
+          </div>
+          <div className="px-6 pb-6">
+            <FormField error={errors.resubmissionNote?.message}>
+              <textarea
+                rows={3}
+                className={`${premiumTextareaClass} border-amber-200 bg-white focus:border-amber-400 focus:shadow-[0_0_0_3px_rgba(245,158,11,0.10)]`}
+                placeholder="e.g. Replaced item 2 with a cheaper model, added 3 seller references for item 1, updated quantity of item 3 from 5 to 3..."
+                {...form.register('resubmissionNote')}
+              />
+            </FormField>
+          </div>
+        </Surface>
       )}
+    </div>
+  );
+}
+
+function SummaryItem({
+  label,
+  value,
+  missing,
+  missingText = 'Missing',
+  wrap,
+}: {
+  label: string;
+  value: string;
+  missing?: boolean;
+  missingText?: string;
+  wrap?: boolean;
+}) {
+  return (
+    <div>
+      <dt className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400">
+        {label}
+      </dt>
+      <dd
+        className={`mt-1.5 text-[13px] ${wrap ? 'whitespace-pre-wrap' : ''} ${
+          missing ? 'text-red-600 italic' : 'text-zinc-800 font-medium'
+        }`}
+      >
+        {missing ? missingText : value}
+      </dd>
     </div>
   );
 }

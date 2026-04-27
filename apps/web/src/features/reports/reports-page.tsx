@@ -14,13 +14,24 @@ import {
   type PrStatus as PrStatusType,
 } from '@prams/shared';
 import { useToast } from '@/components/ui/toast';
-import { PageHeader } from '@/components/layout/page-header';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select';
+import {
+  PageHeader,
+  Surface,
+  GhostButton,
+  premiumSelectTriggerClass,
+} from '@/components/premium';
+import { cn } from '@/lib/utils';
 import apiClient from '@/lib/api-client';
+
+const PREMIUM_INPUT_CLASS =
+  'w-full h-10 rounded-lg border border-zinc-200 bg-zinc-50/60 px-3 text-[13px] text-zinc-800 placeholder:text-zinc-400 outline-none transition-all duration-200 focus:border-zinc-400 focus:bg-white focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]';
 
 async function downloadReport(url: string, filename: string) {
   const response = await apiClient.get(url, { responseType: 'blob' });
@@ -87,40 +98,44 @@ export function ReportsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-screen-2xl">
       <PageHeader
         title="Reports"
         description="Generate and download procurement reports."
       />
 
       {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Report Filters</CardTitle>
-          <CardDescription>Configure filters that apply to all reports below.</CardDescription>
-        </CardHeader>
-        <CardContent>
+      <Surface delay={0.04}>
+        <div className="px-6 pt-6 pb-4">
+          <h2 className="text-[15px] font-semibold text-zinc-900">Report Filters</h2>
+          <p className="mt-1 text-[12px] text-zinc-400">
+            Configure filters that apply to all reports below.
+          </p>
+        </div>
+        <div className="px-6 pb-6">
           <div className="grid gap-4 sm:grid-cols-3">
-            <div className="space-y-2">
-              <Label>Start Date</Label>
-              <Input
+            <div>
+              <FieldLabel>Start Date</FieldLabel>
+              <input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
+                className={PREMIUM_INPUT_CLASS}
               />
             </div>
-            <div className="space-y-2">
-              <Label>End Date</Label>
-              <Input
+            <div>
+              <FieldLabel>End Date</FieldLabel>
+              <input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
+                className={PREMIUM_INPUT_CLASS}
               />
             </div>
-            <div className="space-y-2">
-              <Label>Status</Label>
+            <div>
+              <FieldLabel>Status</FieldLabel>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger>
+                <SelectTrigger className={premiumSelectTriggerClass}>
                   <SelectValue placeholder="All Statuses" />
                 </SelectTrigger>
                 <SelectContent>
@@ -134,136 +149,149 @@ export function ReportsPage() {
               </Select>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </Surface>
 
-      {/* Report Cards */}
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* PR Summary Report */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-blue-50 p-2">
-                <BarChart3 className="h-5 w-5 text-blue-600" />
-              </div>
-              <div>
-                <CardTitle className="text-base">PR Summary Report</CardTitle>
-                <CardDescription>
-                  Overview of all PRs with status breakdown and amounts.
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                className="flex-1"
-                disabled={loading !== null}
-                onClick={() => handleDownload('pr-summary', 'excel')}
-              >
-                {loading === 'pr-summary-excel' ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <FileSpreadsheet className="h-4 w-4" />
-                )}
-                Excel
-              </Button>
-              <Button
-                variant="outline"
-                className="flex-1"
-                disabled={loading !== null}
-                onClick={() => handleDownload('pr-summary', 'pdf')}
-              >
-                {loading === 'pr-summary-pdf' ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <FileText className="h-4 w-4" />
-                )}
-                PDF
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Department Spending Report */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-emerald-50 p-2">
-                <Building2 className="h-5 w-5 text-emerald-600" />
-              </div>
-              <div>
-                <CardTitle className="text-base">Department Spending</CardTitle>
-                <CardDescription>
-                  Approved spending breakdown by department.
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <Button
-              variant="outline"
-              className="w-full"
+      {/* Report cards */}
+      <div
+        className="pr-list-section grid gap-6 md:grid-cols-2"
+        style={{ animationDelay: '0.08s' }}
+      >
+        <ReportCard
+          icon={<BarChart3 />}
+          iconBg="bg-blue-50 text-blue-600"
+          title="PR Summary Report"
+          description="Overview of all PRs with status breakdown and amounts."
+        >
+          <div className="flex gap-2">
+            <GhostButton
+              className="flex-1 justify-center"
               disabled={loading !== null}
-              onClick={() => handleDownload('department-spending', 'excel')}
+              onClick={() => handleDownload('pr-summary', 'excel')}
             >
-              {loading === 'department-spending-excel' ? (
+              {loading === 'pr-summary-excel' ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <><Download className="h-4 w-4" /> Download Excel</>
+                <FileSpreadsheet className="h-4 w-4" />
               )}
-            </Button>
-          </CardContent>
-        </Card>
+              Excel
+            </GhostButton>
+            <GhostButton
+              className="flex-1 justify-center"
+              disabled={loading !== null}
+              onClick={() => handleDownload('pr-summary', 'pdf')}
+            >
+              {loading === 'pr-summary-pdf' ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <FileText className="h-4 w-4" />
+              )}
+              PDF
+            </GhostButton>
+          </div>
+        </ReportCard>
 
-        {/* Approval Turnaround Report */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-amber-50 p-2">
-                <Clock className="h-5 w-5 text-amber-600" />
-              </div>
-              <div>
-                <CardTitle className="text-base">Approval Turnaround</CardTitle>
-                <CardDescription>
-                  Average approval turnaround time per level and department.
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                className="flex-1"
-                disabled={loading !== null}
-                onClick={() => handleDownload('turnaround', 'excel')}
-              >
-                {loading === 'turnaround-excel' ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <FileSpreadsheet className="h-4 w-4" />
-                )}
-                Excel
-              </Button>
-              <Button
-                variant="outline"
-                className="flex-1"
-                disabled={loading !== null}
-                onClick={() => handleDownload('turnaround', 'pdf')}
-              >
-                {loading === 'turnaround-pdf' ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <FileText className="h-4 w-4" />
-                )}
-                PDF
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <ReportCard
+          icon={<Building2 />}
+          iconBg="bg-emerald-50 text-emerald-600"
+          title="Department Spending"
+          description="Approved spending breakdown by department."
+        >
+          <GhostButton
+            className="w-full justify-center"
+            disabled={loading !== null}
+            onClick={() => handleDownload('department-spending', 'excel')}
+          >
+            {loading === 'department-spending-excel' ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <>
+                <Download className="h-4 w-4" /> Download Excel
+              </>
+            )}
+          </GhostButton>
+        </ReportCard>
+
+        <ReportCard
+          icon={<Clock />}
+          iconBg="bg-amber-50 text-amber-600"
+          title="Approval Turnaround"
+          description="Average approval turnaround time per level and department."
+        >
+          <div className="flex gap-2">
+            <GhostButton
+              className="flex-1 justify-center"
+              disabled={loading !== null}
+              onClick={() => handleDownload('turnaround', 'excel')}
+            >
+              {loading === 'turnaround-excel' ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <FileSpreadsheet className="h-4 w-4" />
+              )}
+              Excel
+            </GhostButton>
+            <GhostButton
+              className="flex-1 justify-center"
+              disabled={loading !== null}
+              onClick={() => handleDownload('turnaround', 'pdf')}
+            >
+              {loading === 'turnaround-pdf' ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <FileText className="h-4 w-4" />
+              )}
+              PDF
+            </GhostButton>
+          </div>
+        </ReportCard>
       </div>
     </div>
+  );
+}
+
+function ReportCard({
+  icon,
+  iconBg,
+  title,
+  description,
+  children,
+}: {
+  icon: React.ReactNode;
+  iconBg: string;
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Surface>
+      <div className="px-6 pt-6 pb-4">
+        <div className="flex items-start gap-3">
+          <div
+            className={cn(
+              'rounded-lg p-2 [&>svg]:h-5 [&>svg]:w-5 shrink-0',
+              iconBg,
+            )}
+          >
+            {icon}
+          </div>
+          <div className="min-w-0">
+            <h3 className="text-[15px] font-semibold text-zinc-900">{title}</h3>
+            <p className="mt-1 text-[12px] text-zinc-500 leading-relaxed">
+              {description}
+            </p>
+          </div>
+        </div>
+      </div>
+      <div className="px-6 pb-6">{children}</div>
+    </Surface>
+  );
+}
+
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-500">
+      {children}
+    </p>
   );
 }

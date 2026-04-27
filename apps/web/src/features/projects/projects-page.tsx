@@ -1,42 +1,72 @@
 import { useState } from 'react';
-import { Plus, Pencil, FolderOpen, Archive, CheckCircle2, Loader2 } from 'lucide-react';
+import {
+  Plus,
+  Pencil,
+  FolderOpen,
+  Archive,
+  CheckCircle2,
+  Loader2,
+} from 'lucide-react';
 import type { Project, ProjectStatus } from '@prams/shared';
-import { useProjects, useCreateProject, useUpdateProject } from '@/hooks/use-projects';
+import {
+  useProjects,
+  useCreateProject,
+  useUpdateProject,
+} from '@/hooks/use-projects';
 import { useToast } from '@/components/ui/toast';
-import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { EmptyState } from '@/components/ui/empty-state';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  PageHeader,
+  PrimaryButton,
+  Surface,
+  FilterBar,
+  SearchInput,
+  FilterControls,
+  premiumSelectTriggerClass,
+  StatusBadge,
+  EmptyState,
+  GhostButton,
+  type BadgeTone,
+} from '@/components/premium';
 
 const STATUS_LABELS: Record<ProjectStatus, string> = {
-  active: 'Active',
+  active:    'Active',
   completed: 'Completed',
-  archived: 'Archived',
+  archived:  'Archived',
 };
 
-const STATUS_VARIANTS: Record<ProjectStatus, 'success' | 'info' | 'secondary'> = {
-  active: 'success',
+const STATUS_TONE: Record<ProjectStatus, BadgeTone> = {
+  active:    'success',
   completed: 'info',
-  archived: 'secondary',
+  archived:  'gray',
 };
 
 const statusIcon = (status: ProjectStatus) => {
   switch (status) {
-    case 'active': return <FolderOpen className="h-4 w-4 text-emerald-500" />;
+    case 'active':    return <FolderOpen className="h-4 w-4 text-emerald-500" />;
     case 'completed': return <CheckCircle2 className="h-4 w-4 text-blue-500" />;
-    case 'archived': return <Archive className="h-4 w-4 text-muted-foreground" />;
+    case 'archived':  return <Archive className="h-4 w-4 text-zinc-400" />;
   }
 };
 
-// ─── Project Form Dialog ─────────────────────────────────────────────────────
+// ─── Project Form Dialog ─────────────────────────────────────
 
 interface ProjectFormDialogProps {
   project?: Project;
@@ -75,7 +105,12 @@ function ProjectFormDialog({ project, open, onClose }: ProjectFormDialogProps) {
       if (isEdit) {
         await updateMutation.mutateAsync({
           id: project._id,
-          data: { name: name.trim(), code: code.trim() || undefined, description: description.trim() || undefined, status },
+          data: {
+            name: name.trim(),
+            code: code.trim() || undefined,
+            description: description.trim() || undefined,
+            status,
+          },
         });
         toast({ title: 'Project updated', variant: 'success' });
       } else {
@@ -88,13 +123,21 @@ function ProjectFormDialog({ project, open, onClose }: ProjectFormDialogProps) {
       }
       onClose();
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Something went wrong';
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        'Something went wrong';
       toast({ title: msg, variant: 'error' });
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { handleOpen(v); if (!v) onClose(); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        handleOpen(v);
+        if (!v) onClose();
+      }}
+    >
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{isEdit ? 'Edit Project' : 'New Project'}</DialogTitle>
@@ -102,7 +145,9 @@ function ProjectFormDialog({ project, open, onClose }: ProjectFormDialogProps) {
 
         <div className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="proj-name">Project Name <span className="text-destructive">*</span></Label>
+            <Label htmlFor="proj-name">
+              Project Name <span className="text-destructive">*</span>
+            </Label>
             <Input
               id="proj-name"
               placeholder="e.g. Office Renovation Phase 2"
@@ -127,7 +172,10 @@ function ProjectFormDialog({ project, open, onClose }: ProjectFormDialogProps) {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="proj-desc">Description <span className="text-xs text-muted-foreground">(optional)</span></Label>
+            <Label htmlFor="proj-desc">
+              Description{' '}
+              <span className="text-xs text-muted-foreground">(optional)</span>
+            </Label>
             <textarea
               id="proj-desc"
               rows={3}
@@ -141,8 +189,13 @@ function ProjectFormDialog({ project, open, onClose }: ProjectFormDialogProps) {
           {isEdit && (
             <div className="space-y-1.5">
               <Label>Status</Label>
-              <Select value={status} onValueChange={(v) => setStatus(v as ProjectStatus)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Select
+                value={status}
+                onValueChange={(v) => setStatus(v as ProjectStatus)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
@@ -154,7 +207,9 @@ function ProjectFormDialog({ project, open, onClose }: ProjectFormDialogProps) {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isPending}>Cancel</Button>
+          <Button variant="outline" onClick={onClose} disabled={isPending}>
+            Cancel
+          </Button>
           <Button onClick={handleSubmit} disabled={isPending || !name.trim()}>
             {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
             {isEdit ? 'Save Changes' : 'Create Project'}
@@ -165,7 +220,7 @@ function ProjectFormDialog({ project, open, onClose }: ProjectFormDialogProps) {
   );
 }
 
-// ─── Page ────────────────────────────────────────────────────────────────────
+// ─── Page ────────────────────────────────────────────────────
 
 export function ProjectsPage() {
   const [search, setSearch] = useState('');
@@ -173,83 +228,127 @@ export function ProjectsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editProject, setEditProject] = useState<Project | undefined>(undefined);
 
-  const { data, isLoading } = useProjects({ search: search || undefined, status: statusFilter || undefined });
+  const { data, isLoading } = useProjects({
+    search: search || undefined,
+    status: statusFilter || undefined,
+  });
   const projects = (data?.data ?? []) as Project[];
 
-  const openCreate = () => { setEditProject(undefined); setDialogOpen(true); };
-  const openEdit = (p: Project) => { setEditProject(p); setDialogOpen(true); };
+  const openCreate = () => {
+    setEditProject(undefined);
+    setDialogOpen(true);
+  };
+  const openEdit = (p: Project) => {
+    setEditProject(p);
+    setDialogOpen(true);
+  };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-screen-2xl">
       <PageHeader
         title="Projects"
         description="Company projects that can be referenced in purchase requests."
-      >
-        <Button onClick={openCreate}>
-          <Plus className="h-4 w-4" /> New Project
-        </Button>
-      </PageHeader>
+        actions={
+          <PrimaryButton onClick={openCreate}>
+            <Plus className="h-4 w-4" /> New Project
+          </PrimaryButton>
+        }
+      />
 
-      {/* Filters */}
-      <div className="flex gap-3 flex-wrap">
-        <Input
+      <FilterBar delay={0.04}>
+        <SearchInput
           placeholder="Search projects..."
-          className="max-w-xs"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        <Select value={statusFilter || 'all'} onValueChange={(v) => setStatusFilter(v === 'all' ? '' : v)}>
-          <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="completed">Completed</SelectItem>
-            <SelectItem value="archived">Archived</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+        <FilterControls>
+          <Select
+            value={statusFilter || 'all'}
+            onValueChange={(v) => setStatusFilter(v === 'all' ? '' : v)}
+          >
+            <SelectTrigger className={`${premiumSelectTriggerClass} w-full sm:w-[150px]`}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+              <SelectItem value="archived">Archived</SelectItem>
+            </SelectContent>
+          </Select>
+        </FilterControls>
+      </FilterBar>
 
       {/* List */}
       {isLoading ? (
-        <div className="space-y-3">
-          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
+        <div className="space-y-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-[68px] w-full rounded-xl" />
+          ))}
         </div>
       ) : projects.length === 0 ? (
-        <EmptyState
-          icon={<FolderOpen className="h-12 w-12" />}
-          title="No projects found"
-          description={search ? 'Try a different search term.' : 'Create the first project to get started.'}
-        />
+        <Surface delay={0.08}>
+          <EmptyState
+            icon={<FolderOpen />}
+            title="No projects found"
+            description={
+              search
+                ? 'Try a different search term.'
+                : 'Create the first project to get started.'
+            }
+            action={
+              !search ? (
+                <PrimaryButton onClick={openCreate}>
+                  <Plus className="h-4 w-4" /> New Project
+                </PrimaryButton>
+              ) : undefined
+            }
+          />
+        </Surface>
       ) : (
-        <div className="space-y-2">
-          {projects.map((project) => {
-            const createdBy = typeof project.createdBy === 'object' && project.createdBy
-              ? `${project.createdBy.firstName} ${project.createdBy.lastName}`
-              : '—';
+        <div
+          className="pr-list-section space-y-2"
+          style={{ animationDelay: '0.08s' }}
+        >
+          {projects.map((project, idx) => {
+            const createdBy =
+              typeof project.createdBy === 'object' && project.createdBy
+                ? `${project.createdBy.firstName} ${project.createdBy.lastName}`
+                : '—';
             return (
-              <Card key={project._id}>
-                <CardContent className="flex items-center gap-4 py-4">
+              <div
+                key={project._id}
+                className="pr-row-enter rounded-xl border border-zinc-200/80 bg-white px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all duration-150 hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:border-zinc-300/80"
+                style={{ animationDelay: `${0.04 + idx * 0.025}s` }}
+              >
+                <div className="flex items-center gap-4">
                   <div className="shrink-0">{statusIcon(project.status)}</div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-medium">{project.name}</p>
+                      <p className="text-[13px] font-semibold text-zinc-900">
+                        {project.name}
+                      </p>
                       {project.code && (
-                        <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">{project.code}</span>
+                        <span className="inline-flex items-center rounded-md border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 font-mono text-[11px] text-zinc-600">
+                          {project.code}
+                        </span>
                       )}
-                      <Badge variant={STATUS_VARIANTS[project.status]} className="text-[11px]">
+                      <StatusBadge tone={STATUS_TONE[project.status]}>
                         {STATUS_LABELS[project.status]}
-                      </Badge>
+                      </StatusBadge>
                     </div>
                     {project.description && (
-                      <p className="text-sm text-muted-foreground mt-0.5 truncate">{project.description}</p>
+                      <p className="text-[12px] text-zinc-500 mt-0.5 truncate">
+                        {project.description}
+                      </p>
                     )}
-                    <p className="text-xs text-muted-foreground mt-0.5">Created by {createdBy}</p>
+                    <p className="text-[11px] text-zinc-400 mt-1">Created by {createdBy}</p>
                   </div>
-                  <Button variant="outline" size="sm" onClick={() => openEdit(project)}>
+                  <GhostButton onClick={() => openEdit(project)} className="shrink-0">
                     <Pencil className="h-3.5 w-3.5" /> Edit
-                  </Button>
-                </CardContent>
-              </Card>
+                  </GhostButton>
+                </div>
+              </div>
             );
           })}
         </div>

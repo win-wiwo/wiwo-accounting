@@ -1,6 +1,15 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Pencil, Send, CheckCircle, Package, XCircle, ShoppingCart, FileText } from 'lucide-react';
+import {
+  ArrowLeft,
+  Pencil,
+  Send,
+  CheckCircle,
+  Package,
+  XCircle,
+  ShoppingCart,
+  FileText,
+} from 'lucide-react';
 import { UserRole } from '@prams/shared';
 import {
   usePurchaseOrder,
@@ -11,15 +20,9 @@ import {
 } from '@/hooks/use-purchase-orders';
 import { useAuthStore } from '@/stores/auth.store';
 import { useToast } from '@/components/ui/toast';
-import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
-import { EmptyState } from '@/components/ui/empty-state';
 import {
   Dialog,
   DialogContent,
@@ -28,29 +31,35 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  PageHeader,
+  Surface,
+  StatusBadge,
+  EmptyState,
+  PrimaryButton,
+  GhostButton,
+  type BadgeTone,
+} from '@/components/premium';
 
 const PO_STATUS_LABELS: Record<string, string> = {
-  draft: 'Draft',
+  draft:     'Draft',
   submitted: 'Submitted',
-  approved: 'Approved',
-  issued: 'Issued',
+  approved:  'Approved',
+  issued:    'Issued',
   cancelled: 'Cancelled',
+};
+
+const PO_STATUS_TONE: Record<string, BadgeTone> = {
+  draft:     'gray',
+  submitted: 'info',
+  approved:  'success',
+  issued:    'indigo',
+  cancelled: 'danger',
 };
 
 const SOURCE_TYPE_LABELS: Record<string, string> = {
   purchase_request: 'Purchase Request',
-  job_request: 'Job Request',
-};
-
-const statusVariant = (status: string) => {
-  switch (status) {
-    case 'draft': return 'secondary' as const;
-    case 'submitted': return 'info' as const;
-    case 'approved': return 'success' as const;
-    case 'issued': return 'default' as const;
-    case 'cancelled': return 'destructive' as const;
-    default: return 'secondary' as const;
-  }
+  job_request:      'Job Request',
 };
 
 function formatCurrency(n: number) {
@@ -58,15 +67,22 @@ function formatCurrency(n: number) {
 }
 
 function formatDate(d: string | null) {
-  if (!d) return '\u2014';
-  return new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
 }
 
 function formatDateTime(d: string | null) {
-  if (!d) return '\u2014';
+  if (!d) return '—';
   return new Date(d).toLocaleString('en-US', {
-    year: 'numeric', month: 'short', day: 'numeric',
-    hour: 'numeric', minute: '2-digit',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
   });
 }
 
@@ -128,22 +144,66 @@ export function PoDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <Skeleton className="h-8 w-64" />
-        <div className="grid gap-4 sm:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-20" />)}
+      <div className="space-y-6 max-w-screen-2xl">
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-64" />
+          <Skeleton className="h-4 w-48" />
         </div>
-        <Skeleton className="h-64 w-full" />
+        <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+          <div className="space-y-6">
+            <Surface><div className="p-6 space-y-3">
+              <Skeleton className="h-5 w-40" />
+              <Skeleton className="h-4 w-full" />
+            </div></Surface>
+            <Surface><div className="p-6 space-y-3">
+              <Skeleton className="h-5 w-40" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+            </div></Surface>
+          </div>
+          <Surface><div className="p-6 space-y-3">
+            <Skeleton className="h-5 w-32" />
+            <Skeleton className="h-4 w-full" />
+          </div></Surface>
+        </div>
       </div>
     );
   }
 
   if (!po) {
-    return <EmptyState title="Purchase order not found" />;
+    return (
+      <div className="space-y-6 max-w-screen-2xl">
+        <PageHeader
+          title="Purchase Order"
+          description="The requested PO could not be loaded."
+          actions={
+            <GhostButton onClick={() => navigate('/purchase-orders')}>
+              <ArrowLeft className="h-3.5 w-3.5" /> Back
+            </GhostButton>
+          }
+        />
+        <Surface>
+          <EmptyState
+            icon={<FileText />}
+            title="Purchase order not found"
+            description="It may have been removed or the link is incorrect."
+            action={
+              <GhostButton onClick={() => navigate('/purchase-orders')}>
+                Back to Purchase Orders
+              </GhostButton>
+            }
+          />
+        </Surface>
+      </div>
+    );
   }
 
-  const isProcurementOrAdmin = user?.role === UserRole.PROCUREMENT || user?.role === UserRole.ADMIN;
-  const isApprover = user?.role === UserRole.COO || user?.role === UserRole.CEO || user?.role === UserRole.ADMIN;
+  const isProcurementOrAdmin =
+    user?.role === UserRole.PROCUREMENT || user?.role === UserRole.ADMIN;
+  const isApprover =
+    user?.role === UserRole.COO ||
+    user?.role === UserRole.CEO ||
+    user?.role === UserRole.ADMIN;
 
   const isDraft = po.status === 'draft';
   const isSubmitted = po.status === 'submitted';
@@ -157,315 +217,349 @@ export function PoDetailPage() {
   const canCancel = (isDraft || isSubmitted || isApproved) && isProcurementOrAdmin;
 
   // Extract populated references
-  const creator = po.createdBy && typeof po.createdBy === 'object'
-    ? (po.createdBy as { _id: string; firstName: string; lastName: string; email: string })
-    : null;
-  const approver = po.approvedBy && typeof po.approvedBy === 'object'
-    ? (po.approvedBy as { _id: string; firstName: string; lastName: string })
-    : null;
-  const supplier = po.supplierId && typeof po.supplierId === 'object'
-    ? (po.supplierId as { _id: string; name?: string; companyName?: string })
-    : null;
-  const sourceRequest = po.purchaseRequestId && typeof po.purchaseRequestId === 'object'
-    ? (po.purchaseRequestId as { _id: string; prNumber?: string; title?: string })
-    : null;
+  const creator =
+    po.createdBy && typeof po.createdBy === 'object'
+      ? (po.createdBy as { _id: string; firstName: string; lastName: string; email: string })
+      : null;
+  const approver =
+    po.approvedBy && typeof po.approvedBy === 'object'
+      ? (po.approvedBy as { _id: string; firstName: string; lastName: string })
+      : null;
+  const supplier =
+    po.supplierId && typeof po.supplierId === 'object'
+      ? (po.supplierId as { _id: string; name?: string; companyName?: string })
+      : null;
+  const sourceRequest =
+    po.purchaseRequestId && typeof po.purchaseRequestId === 'object'
+      ? (po.purchaseRequestId as { _id: string; prNumber?: string; title?: string })
+      : null;
 
-  const supplierName = supplier?.name || supplier?.companyName || '\u2014';
-  const sourceNumber = po.sourceRequestNumber || sourceRequest?.prNumber || '\u2014';
+  const supplierName = supplier?.name || supplier?.companyName || '—';
+  const sourceNumber = po.sourceRequestNumber || sourceRequest?.prNumber || '—';
   const sourceTypeLabel = SOURCE_TYPE_LABELS[po.sourceRequestType] || po.sourceRequestType;
 
   const confirmLabels = {
-    submit: { title: 'Submit Purchase Order', description: 'Submit this PO for approval? It will be routed to the appropriate approver.', button: 'Submit' },
-    approve: { title: 'Approve Purchase Order', description: 'Approve this purchase order? Once approved, it can be issued to the supplier.', button: 'Approve' },
-    issue: { title: 'Issue Purchase Order', description: 'Issue this purchase order to the supplier? This marks the PO as officially issued.', button: 'Issue' },
+    submit: {
+      title: 'Submit Purchase Order',
+      description:
+        'Submit this PO for approval? It will be routed to the appropriate approver.',
+      button: 'Submit',
+    },
+    approve: {
+      title: 'Approve Purchase Order',
+      description:
+        'Approve this purchase order? Once approved, it can be issued to the supplier.',
+      button: 'Approve',
+    },
+    issue: {
+      title: 'Issue Purchase Order',
+      description:
+        'Issue this purchase order to the supplier? This marks the PO as officially issued.',
+      button: 'Issue',
+    },
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-screen-2xl">
       <PageHeader
         title={po.poNumber || 'Draft Purchase Order'}
-        description={po.projectName ? `Project: ${po.projectName}` : undefined}
-      >
-        <Button variant="outline" onClick={() => navigate('/purchase-orders')}>
-          <ArrowLeft className="h-4 w-4" /> Back
-        </Button>
-        {canEdit && (
-          <Button variant="outline" onClick={() => navigate(`/purchase-orders/${id}/edit`)}>
-            <Pencil className="h-4 w-4" /> Edit
-          </Button>
-        )}
-        {canSubmit && (
-          <Button onClick={() => setConfirmDialog({ open: true, type: 'submit' })}>
-            <Send className="h-4 w-4" /> Submit
-          </Button>
-        )}
-        {canApprove && (
-          <Button
-            className="bg-emerald-600 hover:bg-emerald-700 text-white"
-            onClick={() => setConfirmDialog({ open: true, type: 'approve' })}
-          >
-            <CheckCircle className="h-4 w-4" /> Approve
-          </Button>
-        )}
-        {canIssue && (
-          <Button onClick={() => setConfirmDialog({ open: true, type: 'issue' })}>
-            <Package className="h-4 w-4" /> Issue
-          </Button>
-        )}
-        {canCancel && (
-          <Button
-            variant="outline"
-            className="text-destructive hover:text-destructive"
-            onClick={() => { setCancelReason(''); setCancelDialog(true); }}
-          >
-            <XCircle className="h-4 w-4" /> Cancel PO
-          </Button>
-        )}
-      </PageHeader>
+        description={po.projectName ? `Project: ${po.projectName}` : `${sourceTypeLabel} ${sourceNumber}`}
+        meta={
+          <StatusBadge tone={PO_STATUS_TONE[po.status] ?? 'gray'}>
+            {PO_STATUS_LABELS[po.status] || po.status}
+          </StatusBadge>
+        }
+        actions={
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            <GhostButton onClick={() => navigate('/purchase-orders')}>
+              <ArrowLeft className="h-3.5 w-3.5" /> Back
+            </GhostButton>
+            {canEdit && (
+              <GhostButton onClick={() => navigate(`/purchase-orders/${id}/edit`)}>
+                <Pencil className="h-3.5 w-3.5" /> Edit
+              </GhostButton>
+            )}
+            {canCancel && (
+              <GhostButton
+                onClick={() => {
+                  setCancelReason('');
+                  setCancelDialog(true);
+                }}
+                className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
+              >
+                <XCircle className="h-3.5 w-3.5" /> Cancel
+              </GhostButton>
+            )}
+            {canSubmit && (
+              <PrimaryButton onClick={() => setConfirmDialog({ open: true, type: 'submit' })}>
+                <Send className="h-3.5 w-3.5" /> Submit
+              </PrimaryButton>
+            )}
+            {canApprove && (
+              <PrimaryButton onClick={() => setConfirmDialog({ open: true, type: 'approve' })}>
+                <CheckCircle className="h-3.5 w-3.5" /> Approve
+              </PrimaryButton>
+            )}
+            {canIssue && (
+              <PrimaryButton onClick={() => setConfirmDialog({ open: true, type: 'issue' })}>
+                <Package className="h-3.5 w-3.5" /> Issue
+              </PrimaryButton>
+            )}
+          </div>
+        }
+      />
 
-      {/* Main Content */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Left Column */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Source Request Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <FileText className="h-4 w-4" /> Source Request
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground">Request Number</p>
-                  <p className="mt-1 text-sm font-medium">{sourceNumber}</p>
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground">Source Type</p>
-                  <p className="mt-1 text-sm font-medium">{sourceTypeLabel}</p>
-                </div>
+      <div
+        className="pr-list-section grid gap-6 lg:grid-cols-[1fr_320px]"
+        style={{ animationDelay: '0.06s' }}
+      >
+        {/* ── Left column ─────────────────────────────────────── */}
+        <div className="space-y-6">
+          {/* Source Request */}
+          <Surface>
+            <PanelHeader
+              icon={<FileText className="h-4 w-4 text-zinc-400" />}
+              title="Source Request"
+            />
+            <div className="px-6 pb-6">
+              <div className="grid gap-5 sm:grid-cols-2">
+                <Field label="Request Number" value={sourceNumber} mono />
+                <Field label="Source Type" value={sourceTypeLabel} />
                 {sourceRequest?.title && (
                   <div className="sm:col-span-2">
-                    <p className="text-xs font-medium text-muted-foreground">Title</p>
-                    <p className="mt-1 text-sm">{sourceRequest.title}</p>
+                    <Field label="Title" value={sourceRequest.title} />
                   </div>
                 )}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </Surface>
 
           {/* Line Items */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Line Items</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-8">#</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="text-right">Qty</TableHead>
-                    <TableHead>Unit</TableHead>
-                    <TableHead className="text-right">Unit Price</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {po.items.map((item: { _id: string; description: string; quantity: number; unit: string; unitPrice: number; totalPrice: number; notes?: string }, i: number) => (
-                    <TableRow key={item._id || i}>
-                      <TableCell className="text-muted-foreground">{i + 1}</TableCell>
-                      <TableCell>
-                        <p className="font-medium">{item.description}</p>
-                        {item.notes && <p className="text-xs text-muted-foreground">{item.notes}</p>}
-                      </TableCell>
-                      <TableCell className="text-right">{item.quantity}</TableCell>
-                      <TableCell>{item.unit}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(item.unitPrice)}</TableCell>
-                      <TableCell className="text-right font-medium">{formatCurrency(item.totalPrice)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              <Separator />
-              <div className="flex justify-end p-4">
-                <div className="text-right">
-                  <p className="text-xs text-muted-foreground">Total Amount</p>
-                  <p className="text-2xl font-bold">{formatCurrency(po.totalAmount)}</p>
-                </div>
+          <Surface>
+            <PanelHeader title="Line Items" />
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-white/95 border-b border-zinc-100">
+                  <tr>
+                    <th className="h-11 px-5 w-10 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">#</th>
+                    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">Description</th>
+                    <th className="h-11 px-5 text-right text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">Qty</th>
+                    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">Unit</th>
+                    <th className="h-11 px-5 text-right text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">Unit Price</th>
+                    <th className="h-11 px-5 text-right text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {po.items.map(
+                    (item: { _id: string; description: string; quantity: number; unit: string; unitPrice: number; totalPrice: number; notes?: string }, i: number) => (
+                      <tr key={item._id || i} className="border-b border-zinc-100/60 last:border-0 hover:bg-zinc-50/60 transition-colors duration-150">
+                        <td className="px-5 py-4 text-[12px] text-zinc-400 tabular-nums">{i + 1}</td>
+                        <td className="px-5 py-4">
+                          <p className="text-[13px] font-medium text-zinc-800">{item.description}</p>
+                          {item.notes && (
+                            <p className="text-[12px] text-zinc-400 mt-0.5">{item.notes}</p>
+                          )}
+                        </td>
+                        <td className="px-5 py-4 text-right text-[13px] text-zinc-700 tabular-nums">{item.quantity}</td>
+                        <td className="px-5 py-4 text-[13px] text-zinc-500">{item.unit}</td>
+                        <td className="px-5 py-4 text-right text-[13px] text-zinc-700 tabular-nums">{formatCurrency(item.unitPrice)}</td>
+                        <td className="px-5 py-4 text-right text-[13px] font-semibold text-zinc-900 tabular-nums">{formatCurrency(item.totalPrice)}</td>
+                      </tr>
+                    ),
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <div className="flex justify-end border-t border-zinc-100 px-6 py-4">
+              <div className="text-right">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400">Total Amount</p>
+                <p className="mt-1.5 text-[24px] font-bold text-zinc-900 tabular-nums">
+                  {formatCurrency(po.totalAmount)}
+                </p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </Surface>
 
           {/* Canvass Entries */}
           {po.canvassEntries && po.canvassEntries.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Canvass Entries</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {po.canvassEntries.map((entry: { _id: string; supplierName: string; totalQuotedAmount: number; isSelected: boolean; remarks: string }) => (
+            <Surface>
+              <PanelHeader title="Canvass Entries" />
+              <div className="px-6 pb-6 space-y-3">
+                {po.canvassEntries.map(
+                  (entry: { _id: string; supplierName: string; totalQuotedAmount: number; isSelected: boolean; remarks: string }) => (
                     <div
                       key={entry._id}
-                      className={`rounded-lg border p-4 ${entry.isSelected ? 'border-emerald-300 bg-emerald-50/50' : ''}`}
+                      className={`rounded-xl border p-4 transition-colors duration-150 ${
+                        entry.isSelected
+                          ? 'border-emerald-200 bg-emerald-50/40'
+                          : 'border-zinc-100 hover:border-zinc-200'
+                      }`}
                     >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium">{entry.supplierName}</p>
-                          <p className="text-sm text-muted-foreground">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="min-w-0">
+                          <p className="text-[13px] font-medium text-zinc-900 truncate">
+                            {entry.supplierName}
+                          </p>
+                          <p className="text-[12px] text-zinc-500 mt-0.5 tabular-nums">
                             Total Quoted: {formatCurrency(entry.totalQuotedAmount)}
                           </p>
                           {entry.remarks && (
-                            <p className="mt-1 text-xs text-muted-foreground italic">{entry.remarks}</p>
+                            <p className="mt-1 text-[12px] italic text-zinc-400">{entry.remarks}</p>
                           )}
                         </div>
                         {entry.isSelected && (
-                          <Badge variant="success">Selected</Badge>
+                          <StatusBadge tone="success">Selected</StatusBadge>
                         )}
                       </div>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                  ),
+                )}
+              </div>
+            </Surface>
           )}
 
           {/* Cancellation Reason */}
           {isCancelled && po.cancellationReason && (
-            <Card className="border-destructive/30">
-              <CardHeader>
-                <CardTitle className="text-base text-destructive">Cancellation Reason</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm">{po.cancellationReason}</p>
-              </CardContent>
-            </Card>
+            <Surface className="border-red-200 bg-red-50/30">
+              <PanelHeader title="Cancellation Reason" />
+              <div className="px-6 pb-6">
+                <p className="text-[13px] text-zinc-700 leading-relaxed whitespace-pre-wrap">
+                  {po.cancellationReason}
+                </p>
+              </div>
+            </Surface>
           )}
 
           {/* Remarks */}
           {po.remarks && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Remarks</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm">{po.remarks}</p>
-              </CardContent>
-            </Card>
+            <Surface>
+              <PanelHeader title="Remarks" />
+              <div className="px-6 pb-6">
+                <p className="text-[13px] text-zinc-700 leading-relaxed whitespace-pre-wrap">
+                  {po.remarks}
+                </p>
+              </div>
+            </Surface>
           )}
         </div>
 
-        {/* Right Column (Sidebar) */}
+        {/* ── Right column ────────────────────────────────────── */}
         <div className="space-y-6">
-          {/* Status & Amounts */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Status & Amount</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          {/* Status & Amount */}
+          <Surface elevation="subtle">
+            <div className="p-6 space-y-4">
               <div>
-                <p className="text-xs font-medium text-muted-foreground">Status</p>
-                <Badge variant={statusVariant(po.status)} className="mt-1">
-                  {PO_STATUS_LABELS[po.status] || po.status}
-                </Badge>
-              </div>
-              <Separator />
-              <div>
-                <p className="text-xs font-medium text-muted-foreground">Total Amount</p>
-                <p className="mt-1 text-lg font-bold">{formatCurrency(po.totalAmount)}</p>
-              </div>
-              <div>
-                <p className="text-xs font-medium text-muted-foreground">Currency</p>
-                <p className="mt-1 text-sm font-medium">{po.currency || 'PHP'}</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Supplier */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <ShoppingCart className="h-4 w-4" /> Supplier
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm font-medium">{supplierName}</p>
-            </CardContent>
-          </Card>
-
-          {/* Metadata */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <p className="text-xs font-medium text-muted-foreground">Created By</p>
-                <p className="mt-1 text-sm font-medium">
-                  {creator ? `${creator.firstName} ${creator.lastName}` : '\u2014'}
+                <SidebarLabel>Total Amount</SidebarLabel>
+                <p className="mt-2 text-[24px] font-bold text-zinc-900 tabular-nums leading-none">
+                  {formatCurrency(po.totalAmount)}
+                </p>
+                <p className="mt-1 text-[12px] text-zinc-400">
+                  {po.currency || 'PHP'}
                 </p>
               </div>
-              <Separator />
-              <div className="grid grid-cols-2 gap-4 text-sm">
+            </div>
+          </Surface>
+
+          {/* Supplier */}
+          <Surface elevation="subtle">
+            <div className="p-6">
+              <SidebarLabel>
+                <span className="inline-flex items-center gap-1.5">
+                  <ShoppingCart className="h-3 w-3" /> Supplier
+                </span>
+              </SidebarLabel>
+              <p className="mt-2 text-[13px] font-semibold text-zinc-900">{supplierName}</p>
+            </div>
+          </Surface>
+
+          {/* Metadata */}
+          <Surface elevation="subtle">
+            <div className="p-6 space-y-5">
+              <div>
+                <SidebarLabel>Created By</SidebarLabel>
+                <p className="mt-2 text-[13px] font-medium text-zinc-900">
+                  {creator ? `${creator.firstName} ${creator.lastName}` : '—'}
+                </p>
+              </div>
+              <Divider />
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-xs text-muted-foreground">Created</p>
-                  <p className="font-medium">{formatDate(po.createdAt)}</p>
+                  <SidebarLabel>Created</SidebarLabel>
+                  <p className="mt-1.5 text-[13px] font-medium text-zinc-800 tabular-nums">
+                    {formatDate(po.createdAt)}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Updated</p>
-                  <p className="font-medium">{formatDate(po.updatedAt)}</p>
+                  <SidebarLabel>Updated</SidebarLabel>
+                  <p className="mt-1.5 text-[13px] font-medium text-zinc-800 tabular-nums">
+                    {formatDate(po.updatedAt)}
+                  </p>
                 </div>
               </div>
               {approver && (
                 <>
-                  <Separator />
+                  <Divider />
                   <div>
-                    <p className="text-xs font-medium text-muted-foreground">Approved By</p>
-                    <p className="mt-1 text-sm font-medium">
+                    <SidebarLabel>Approved By</SidebarLabel>
+                    <p className="mt-2 text-[13px] font-medium text-zinc-900">
                       {approver.firstName} {approver.lastName}
                     </p>
-                    <p className="text-xs text-muted-foreground">{formatDateTime(po.approvedAt)}</p>
+                    <p className="text-[12px] text-zinc-400 mt-0.5 tabular-nums">
+                      {formatDateTime(po.approvedAt)}
+                    </p>
                   </div>
                 </>
               )}
               {po.issuedAt && (
                 <>
-                  <Separator />
+                  <Divider />
                   <div>
-                    <p className="text-xs font-medium text-muted-foreground">Issued At</p>
-                    <p className="mt-1 text-sm font-medium">{formatDateTime(po.issuedAt)}</p>
+                    <SidebarLabel>Issued</SidebarLabel>
+                    <p className="mt-2 text-[13px] font-medium text-zinc-900 tabular-nums">
+                      {formatDateTime(po.issuedAt)}
+                    </p>
                   </div>
                 </>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </Surface>
         </div>
       </div>
 
-      {/* Confirm Dialog (Submit/Approve/Issue) */}
-      <Dialog open={confirmDialog.open} onOpenChange={(open) => setConfirmDialog({ ...confirmDialog, open })}>
+      {/* Confirm Dialog */}
+      <Dialog
+        open={confirmDialog.open}
+        onOpenChange={(open) => setConfirmDialog({ ...confirmDialog, open })}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{confirmLabels[confirmDialog.type].title}</DialogTitle>
-            <DialogDescription>{confirmLabels[confirmDialog.type].description}</DialogDescription>
+            <DialogDescription>
+              {confirmLabels[confirmDialog.type].description}
+            </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmDialog({ ...confirmDialog, open: false })}>
+            <Button
+              variant="outline"
+              onClick={() => setConfirmDialog({ ...confirmDialog, open: false })}
+            >
               Cancel
             </Button>
-            <Button
-              className={confirmDialog.type === 'approve' ? 'bg-emerald-600 hover:bg-emerald-700' : undefined}
-              onClick={handleConfirm}
-            >
+            <PrimaryButton onClick={handleConfirm}>
               {confirmLabels[confirmDialog.type].button}
-            </Button>
+            </PrimaryButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Cancel PO Dialog */}
-      <Dialog open={cancelDialog} onOpenChange={(open) => { setCancelDialog(open); if (!open) setCancelReason(''); }}>
+      <Dialog
+        open={cancelDialog}
+        onOpenChange={(open) => {
+          setCancelDialog(open);
+          if (!open) setCancelReason('');
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Cancel Purchase Order</DialogTitle>
@@ -480,14 +574,20 @@ export function PoDetailPage() {
             <textarea
               id="cancel-reason"
               rows={3}
-              className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[13px] text-zinc-800 outline-none transition-all duration-200 focus:border-zinc-400 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]"
               placeholder="Why is this PO being cancelled?"
               value={cancelReason}
               onChange={(e) => setCancelReason(e.target.value)}
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setCancelDialog(false); setCancelReason(''); }}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setCancelDialog(false);
+                setCancelReason('');
+              }}
+            >
               Back
             </Button>
             <Button
@@ -502,4 +602,50 @@ export function PoDetailPage() {
       </Dialog>
     </div>
   );
+}
+
+function PanelHeader({ icon, title }: { icon?: React.ReactNode; title: string }) {
+  return (
+    <div className="px-6 pt-6 pb-4">
+      <h2 className="flex items-center gap-2 text-[15px] font-semibold text-zinc-900">
+        {icon}
+        {title}
+      </h2>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  value,
+  mono,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+}) {
+  return (
+    <div>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+        {label}
+      </p>
+      <p
+        className={`mt-1.5 text-[13px] text-zinc-800 ${mono ? 'font-mono' : 'font-medium'}`}
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function SidebarLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400">
+      {children}
+    </p>
+  );
+}
+
+function Divider() {
+  return <div className="h-px bg-zinc-100" />;
 }

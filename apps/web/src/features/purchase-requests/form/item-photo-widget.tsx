@@ -1,5 +1,4 @@
 import { useRef } from 'react';
-import { Button } from '@/components/ui/button';
 import { Camera, X } from 'lucide-react';
 
 export interface ItemPhotoWidgetProps {
@@ -13,8 +12,13 @@ export interface ItemPhotoWidgetProps {
 }
 
 export function ItemPhotoWidget({
-  index, staged, serverPhotoName, serverPhotoPreviewUrl,
-  onViewServer, onStage, onClearStaged,
+  index,
+  staged,
+  serverPhotoName,
+  serverPhotoPreviewUrl,
+  onViewServer,
+  onStage,
+  onClearStaged,
 }: ItemPhotoWidgetProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -26,41 +30,66 @@ export function ItemPhotoWidget({
 
   if (staged) {
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 rounded-lg border border-blue-100 bg-blue-50/40 px-3 py-2">
         <Camera className="h-3.5 w-3.5 text-blue-500 shrink-0" />
-        <img src={staged.url} alt="preview" className="h-8 w-8 rounded object-cover border" />
-        <span className="text-xs text-muted-foreground truncate max-w-[140px]">{staged.file.name}</span>
-        <span className="text-[10px] text-blue-600 font-medium">pending save</span>
-        <Button
-          type="button" variant="ghost" size="icon"
-          className="h-6 w-6 text-destructive hover:text-destructive"
+        <img
+          src={staged.url}
+          alt="preview"
+          className="h-8 w-8 rounded-md object-cover border border-zinc-200"
+        />
+        <span className="text-[12px] text-zinc-700 truncate max-w-[140px]">
+          {staged.file.name}
+        </span>
+        <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-blue-600">
+          Pending save
+        </span>
+        <button
+          type="button"
           onClick={() => onClearStaged(index)}
+          className="h-6 w-6 flex items-center justify-center rounded-md text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors ml-auto"
+          aria-label="Remove photo"
         >
           <X className="h-3 w-3" />
-        </Button>
+        </button>
       </div>
     );
   }
 
   if (serverPhotoName) {
     return (
-      <div className="flex items-center gap-2">
-        <Camera className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+      <div className="flex items-center gap-2 rounded-lg border border-zinc-100 bg-zinc-50/60 px-3 py-2">
+        <Camera className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
         {serverPhotoPreviewUrl && (
-          <img src={serverPhotoPreviewUrl} alt="ref" className="h-8 w-8 rounded object-cover border" />
+          <img
+            src={serverPhotoPreviewUrl}
+            alt="ref"
+            className="h-8 w-8 rounded-md object-cover border border-zinc-200"
+          />
         )}
-        <span className="text-xs text-muted-foreground truncate max-w-[140px]">{serverPhotoName}</span>
-        <Button type="button" variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={onViewServer}>
+        <span className="text-[12px] text-zinc-700 truncate max-w-[140px]">
+          {serverPhotoName}
+        </span>
+        <button
+          type="button"
+          onClick={onViewServer}
+          className="ml-auto inline-flex items-center rounded-md px-2 py-1 text-[11px] font-medium text-zinc-600 hover:bg-zinc-100 hover:text-zinc-800 transition-colors"
+        >
           View
-        </Button>
-        <Button
-          type="button" variant="ghost" size="sm"
-          className="h-6 text-xs px-2 text-muted-foreground"
+        </button>
+        <button
+          type="button"
           onClick={() => fileInputRef.current?.click()}
+          className="inline-flex items-center rounded-md px-2 py-1 text-[11px] font-medium text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 transition-colors"
         >
           Replace
-        </Button>
-        <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFileChange} />
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="hidden"
+          onChange={handleFileChange}
+        />
       </div>
     );
   }
@@ -68,17 +97,23 @@ export function ItemPhotoWidget({
   return (
     <div className="space-y-1.5">
       <div className="flex items-center gap-2">
-        <Camera className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-        <Button
-          type="button" variant="ghost" size="sm"
-          className="h-6 text-xs px-2 text-muted-foreground"
+        <Camera className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
+        <button
+          type="button"
           onClick={() => fileInputRef.current?.click()}
+          className="inline-flex items-center rounded-md px-2 py-1 text-[12px] font-medium text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 transition-colors"
         >
           Add reference photo
-        </Button>
-        <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFileChange} />
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="hidden"
+          onChange={handleFileChange}
+        />
       </div>
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-[11px] text-zinc-400 leading-relaxed">
         Use this for an image of this specific item, model, or site condition.
       </p>
     </div>

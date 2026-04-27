@@ -2,11 +2,9 @@ import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Settings, Eye, Save, Hash } from 'lucide-react';
 import apiClient from '@/lib/api-client';
-import { PageHeader } from '@/components/layout/page-header';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Select,
   SelectTrigger,
@@ -14,17 +12,13 @@ import {
   SelectContent,
   SelectItem,
 } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
-import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
+import {
+  PageHeader,
+  Surface,
+  PrimaryButton,
+  premiumSelectTriggerClass,
+} from '@/components/premium';
 
 interface PrNumberConfig {
   _id: string;
@@ -135,10 +129,18 @@ export function SettingsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pr-numbering'] });
-      toast({ title: 'Configuration saved', description: 'PR number format has been updated.', variant: 'success' });
+      toast({
+        title: 'Configuration saved',
+        description: 'PR number format has been updated.',
+        variant: 'success',
+      });
     },
     onError: () => {
-      toast({ title: 'Error', description: 'Failed to save configuration.', variant: 'error' });
+      toast({
+        title: 'Error',
+        description: 'Failed to save configuration.',
+        variant: 'error',
+      });
     },
   });
 
@@ -152,24 +154,24 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-screen-2xl">
       <PageHeader
         title="Settings"
         description="Configure PR numbering format and view series information."
       />
 
       {/* Section 1: PR Number Format Configuration */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
+      <Surface delay={0.04}>
+        <div className="px-6 pt-6 pb-4">
+          <h2 className="flex items-center gap-2 text-[15px] font-semibold text-zinc-900">
+            <Settings className="h-4 w-4 text-zinc-400" />
             PR Number Format Configuration
-          </CardTitle>
-          <CardDescription>
+          </h2>
+          <p className="mt-1 text-[12px] text-zinc-500">
             Customize how purchase request numbers are generated across the system.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+          </p>
+        </div>
+        <div className="px-6 pb-6">
           {configLoading ? (
             <div className="space-y-4">
               {Array.from({ length: 4 }).map((_, i) => (
@@ -179,22 +181,23 @@ export function SettingsPage() {
           ) : (
             <div className="space-y-6">
               {/* Preview */}
-              <div className="rounded-lg border bg-muted/50 p-4">
-                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-2">
-                  <Eye className="h-4 w-4" />
+              <div className="rounded-xl border border-zinc-200/80 bg-zinc-50/60 px-5 py-4">
+                <div className="flex items-center gap-1.5 mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-500">
+                  <Eye className="h-3 w-3" />
                   Preview
                 </div>
-                <p className="text-2xl font-mono font-bold tracking-wider">
+                <p className="text-[24px] font-mono font-bold text-zinc-900 tracking-wider">
                   {localPreview || 'PR-ENG-2026-00001'}
                 </p>
               </div>
 
-              <Separator />
+              <Divider />
 
-              <div className="grid gap-6 sm:grid-cols-2">
-                {/* Prefix */}
-                <div className="space-y-2">
-                  <Label htmlFor="prefix">Prefix</Label>
+              <div className="grid gap-5 sm:grid-cols-2">
+                <ConfigField
+                  label="Prefix"
+                  description="The text that appears at the beginning of every PR number."
+                >
                   <Input
                     id="prefix"
                     value={formState.prefix || ''}
@@ -202,19 +205,17 @@ export function SettingsPage() {
                     placeholder="PR"
                     maxLength={10}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    The text that appears at the beginning of every PR number.
-                  </p>
-                </div>
+                </ConfigField>
 
-                {/* Separator */}
-                <div className="space-y-2">
-                  <Label htmlFor="separator">Separator</Label>
+                <ConfigField
+                  label="Separator"
+                  description="Character used to separate parts of the PR number."
+                >
                   <Select
                     value={formState.separator || '-'}
                     onValueChange={(val) => updateField('separator', val)}
                   >
-                    <SelectTrigger id="separator">
+                    <SelectTrigger className={premiumSelectTriggerClass}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -223,19 +224,17 @@ export function SettingsPage() {
                       <SelectItem value="_">Underscore (_)</SelectItem>
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Character used to separate parts of the PR number.
-                  </p>
-                </div>
+                </ConfigField>
 
-                {/* Include Year */}
-                <div className="space-y-2">
-                  <Label htmlFor="includeYear">Include Year</Label>
+                <ConfigField
+                  label="Include Year"
+                  description="Whether to include the year in the PR number."
+                >
                   <Select
                     value={formState.includeYear ? 'yes' : 'no'}
                     onValueChange={(val) => updateField('includeYear', val === 'yes')}
                   >
-                    <SelectTrigger id="includeYear">
+                    <SelectTrigger className={premiumSelectTriggerClass}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -243,20 +242,18 @@ export function SettingsPage() {
                       <SelectItem value="no">No</SelectItem>
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Whether to include the year in the PR number.
-                  </p>
-                </div>
+                </ConfigField>
 
-                {/* Year Format */}
-                <div className="space-y-2">
-                  <Label htmlFor="yearFormat">Year Format</Label>
+                <ConfigField
+                  label="Year Format"
+                  description="Format for the year component. Disabled when year is not included."
+                >
                   <Select
                     value={formState.yearFormat || 'full'}
                     onValueChange={(val) => updateField('yearFormat', val)}
                     disabled={!formState.includeYear}
                   >
-                    <SelectTrigger id="yearFormat">
+                    <SelectTrigger className={premiumSelectTriggerClass}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -264,19 +261,19 @@ export function SettingsPage() {
                       <SelectItem value="short">Short (26)</SelectItem>
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Format for the year component. Disabled when year is not included.
-                  </p>
-                </div>
+                </ConfigField>
 
-                {/* Include Department Code */}
-                <div className="space-y-2">
-                  <Label htmlFor="includeDeptCode">Include Department Code</Label>
+                <ConfigField
+                  label="Include Department Code"
+                  description="Whether to include the department code in the PR number."
+                >
                   <Select
                     value={formState.includeDepartmentCode ? 'yes' : 'no'}
-                    onValueChange={(val) => updateField('includeDepartmentCode', val === 'yes')}
+                    onValueChange={(val) =>
+                      updateField('includeDepartmentCode', val === 'yes')
+                    }
                   >
-                    <SelectTrigger id="includeDeptCode">
+                    <SelectTrigger className={premiumSelectTriggerClass}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -284,19 +281,17 @@ export function SettingsPage() {
                       <SelectItem value="no">No</SelectItem>
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Whether to include the department code in the PR number.
-                  </p>
-                </div>
+                </ConfigField>
 
-                {/* Sequence Digits */}
-                <div className="space-y-2">
-                  <Label htmlFor="sequenceDigits">Sequence Digits</Label>
+                <ConfigField
+                  label="Sequence Digits"
+                  description="Number of digits for the sequence number (zero-padded)."
+                >
                   <Select
                     value={String(formState.sequenceDigits || 5)}
                     onValueChange={(val) => updateField('sequenceDigits', Number(val))}
                   >
-                    <SelectTrigger id="sequenceDigits">
+                    <SelectTrigger className={premiumSelectTriggerClass}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -307,39 +302,36 @@ export function SettingsPage() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Number of digits for the sequence number (zero-padded).
-                  </p>
-                </div>
+                </ConfigField>
               </div>
 
-              <Separator />
+              <Divider />
 
               <div className="flex justify-end">
-                <Button onClick={handleSave} disabled={updateMutation.isPending}>
+                <PrimaryButton onClick={handleSave} disabled={updateMutation.isPending}>
                   <Save className="h-4 w-4" />
                   {updateMutation.isPending ? 'Saving...' : 'Save Configuration'}
-                </Button>
+                </PrimaryButton>
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </Surface>
 
       {/* Section 2: PR Number Series */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Hash className="h-5 w-5" />
+      <Surface delay={0.08}>
+        <div className="px-6 pt-6 pb-4">
+          <h2 className="flex items-center gap-2 text-[15px] font-semibold text-zinc-900">
+            <Hash className="h-4 w-4 text-zinc-400" />
             PR Number Series
-          </CardTitle>
-          <CardDescription>
+          </h2>
+          <p className="mt-1 text-[12px] text-zinc-500">
             View the current PR numbering sequences by department for this year.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+          </p>
+        </div>
+        <div className="px-6 pb-6">
           {seriesLoading ? (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {Array.from({ length: 3 }).map((_, i) => (
                 <Skeleton key={i} className="h-10 w-full" />
               ))}
@@ -347,56 +339,116 @@ export function SettingsPage() {
           ) : series ? (
             <div className="space-y-6">
               {/* Summary cards */}
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="rounded-lg border p-4">
-                  <p className="text-sm text-muted-foreground">Current Format</p>
-                  <p className="mt-1 font-mono text-sm font-semibold">{series.formatPattern}</p>
-                </div>
-                <div className="rounded-lg border p-4">
-                  <p className="text-sm text-muted-foreground">Next Number Preview</p>
-                  <p className="mt-1 font-mono text-sm font-semibold">{preview?.preview ?? '-'}</p>
-                </div>
-                <div className="rounded-lg border p-4">
-                  <p className="text-sm text-muted-foreground">Total PRs This Year</p>
-                  <p className="mt-1 text-2xl font-bold">{series.totalPrsThisYear}</p>
-                </div>
-                <div className="rounded-lg border p-4">
-                  <p className="text-sm text-muted-foreground">Year</p>
-                  <p className="mt-1 text-2xl font-bold">{series.year}</p>
-                </div>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <SummaryCard label="Current Format" value={series.formatPattern} mono />
+                <SummaryCard label="Next Preview" value={preview?.preview ?? '—'} mono />
+                <SummaryCard
+                  label="Total PRs This Year"
+                  value={String(series.totalPrsThisYear)}
+                  large
+                />
+                <SummaryCard label="Year" value={String(series.year)} large />
               </div>
 
-              <Separator />
+              <Divider />
 
               {/* Sequences table */}
               {series.sequences.length === 0 ? (
-                <div className="flex h-32 items-center justify-center rounded-lg border border-dashed text-muted-foreground">
+                <div className="flex h-32 items-center justify-center rounded-xl border border-dashed border-zinc-200 text-[13px] text-zinc-400">
                   No PR sequences have been created yet this year.
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Department Code</TableHead>
-                      <TableHead>Year</TableHead>
-                      <TableHead>Last Assigned Number</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {series.sequences.map((seq) => (
-                      <TableRow key={seq._id}>
-                        <TableCell className="font-mono font-medium">{seq.departmentCode}</TableCell>
-                        <TableCell>{seq.year}</TableCell>
-                        <TableCell>{seq.lastNumber}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                <div className="overflow-x-auto rounded-xl border border-zinc-100">
+                  <table className="w-full">
+                    <thead className="bg-zinc-50/60 border-b border-zinc-100">
+                      <tr>
+                        <Th>Department Code</Th>
+                        <Th>Year</Th>
+                        <Th>Last Assigned Number</Th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {series.sequences.map((seq) => (
+                        <tr
+                          key={seq._id}
+                          className="border-b border-zinc-100/60 last:border-0 hover:bg-zinc-50/60 transition-colors"
+                        >
+                          <td className="px-5 py-3.5 font-mono text-[13px] font-medium text-zinc-800">
+                            {seq.departmentCode}
+                          </td>
+                          <td className="px-5 py-3.5 text-[13px] text-zinc-700 tabular-nums">
+                            {seq.year}
+                          </td>
+                          <td className="px-5 py-3.5 text-[13px] text-zinc-700 tabular-nums">
+                            {seq.lastNumber}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
           ) : null}
-        </CardContent>
-      </Card>
+        </div>
+      </Surface>
     </div>
   );
+}
+
+function ConfigField({
+  label,
+  description,
+  children,
+}: {
+  label: string;
+  description: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-[12px] font-semibold text-zinc-700">{label}</Label>
+      {children}
+      <p className="text-[11px] text-zinc-400 leading-relaxed">{description}</p>
+    </div>
+  );
+}
+
+function SummaryCard({
+  label,
+  value,
+  mono,
+  large,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+  large?: boolean;
+}) {
+  return (
+    <div className="rounded-xl border border-zinc-200/80 bg-white px-5 py-4">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400">
+        {label}
+      </p>
+      <p
+        className={`mt-2 text-zinc-900 ${
+          large ? 'text-[24px] font-bold tabular-nums' : 'text-[13px] font-semibold'
+        } ${mono ? 'font-mono' : ''}`}
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function Th({ children }: { children: React.ReactNode }) {
+  return (
+    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+      {children}
+    </th>
+  );
+}
+
+function Divider() {
+  return <div className="h-px bg-zinc-100" />;
 }

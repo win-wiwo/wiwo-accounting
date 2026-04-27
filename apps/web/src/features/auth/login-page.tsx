@@ -166,7 +166,7 @@ export function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex h-screen overflow-hidden">
 
       {/* ── Hero Panel (lg+) ─────────────────────────────── */}
       <div className="relative hidden overflow-hidden lg:flex lg:w-[58%] xl:w-[60%] flex-col bg-[#131313]">

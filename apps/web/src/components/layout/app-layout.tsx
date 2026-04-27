@@ -19,7 +19,7 @@ export function AppLayout() {
       >
         {/* White rounded content panel — the signature DEMURE-style inner card */}
         <div className="p-3">
-          <div className="min-h-[calc(100vh-4rem-1.5rem)] rounded-2xl bg-[#f9f9f9]">
+          <div className="min-h-[calc(100vh-4rem-1.5rem)] rounded-2xl bg-[#F6F7F9]">
             <div className="p-6 lg:p-8">
               <Outlet />
             </div>

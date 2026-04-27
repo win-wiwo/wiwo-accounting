@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, Loader2, Save, Send, ImageIcon } from 'lucide-react';
 import { purchaseRequestsApi } from '@/lib/api-services';
-import { PageHeader } from '@/components/layout/page-header';
-import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Stepper } from '@/components/ui/stepper';
 import { StickyFooter } from '@/components/ui/sticky-footer';
@@ -12,6 +10,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  PageHeader,
+  PrimaryButton,
+  GhostButton,
+  Surface,
+} from '@/components/premium';
 import { STEP_LABELS, STEP_FIELDS } from './form/schemas';
 import { useStagedFiles } from './form/use-staged-files';
 import { usePrForm } from './form/use-pr-form';
@@ -27,15 +31,14 @@ export function PrFormPage() {
 
   const [step, setStep] = useState(0);
 
-  // Server photo previews (edit mode)
   const [serverPhotoPreviews, setServerPhotoPreviews] = useState<Record<string, string>>({});
 
-  // Load server photo thumbnails for existing items
   useEffect(() => {
     if (!isEdit || !prData?.data?.items || !id) return;
     prData.data.items.forEach((item) => {
       if (item.referencePhotoPath && !serverPhotoPreviews[item._id]) {
-        purchaseRequestsApi.fetchItemPhoto(id, item._id)
+        purchaseRequestsApi
+          .fetchItemPhoto(id, item._id)
           .then((blob) => {
             const url = URL.createObjectURL(blob);
             setServerPhotoPreviews((prev) => ({ ...prev, [item._id]: url }));
@@ -45,7 +48,6 @@ export function PrFormPage() {
     });
   }, [isEdit, prData?.data?.items, id]);
 
-  // Cleanup server photo URLs
   useEffect(() => {
     const urls = serverPhotoPreviews;
     return () => {
@@ -57,19 +59,15 @@ export function PrFormPage() {
   const isJR = requestType === 'job_request';
   const typeLabel = isJR ? 'Job Request' : 'Purchase Request';
 
-  // ─── Step navigation ──────────────────────────────────────────────────────
-
   const goToStep = (target: number) => {
     if (target < step) {
       setStep(target);
       return;
     }
-    // Validate before advancing
     advanceToStep(target);
   };
 
   const advanceToStep = async (target: number) => {
-    // Validate all steps between current and target
     for (let s = step; s < target; s++) {
       const fieldNames = STEP_FIELDS[s as keyof typeof STEP_FIELDS] as readonly string[];
       if (fieldNames.length > 0) {
@@ -86,27 +84,27 @@ export function PrFormPage() {
   const handleNext = () => advanceToStep(step + 1);
   const handleBack = () => setStep(Math.max(0, step - 1));
 
-  // ─── Draft save (any step, skips validation) ──────────────────────────────
-
   const handleDraftSave = () => {
     pr.submitActionRef.current = 'draft';
     form.handleSubmit(pr.onSubmit, pr.onInvalid)();
   };
-
-  // ─── Submit (step 4 only) ────────────────────────────────────────────────
 
   const handleSubmit = () => {
     pr.submitActionRef.current = 'submit';
     form.handleSubmit(pr.onSubmit, pr.onInvalid)();
   };
 
-  // ─── Loading state ────────────────────────────────────────────────────────
-
   if (isEdit && prLoading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 max-w-screen-2xl">
         <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-96 w-full" />
+        <Surface>
+          <div className="p-6 space-y-3">
+            <Skeleton className="h-5 w-40" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-24 w-full" />
+          </div>
+        </Surface>
       </div>
     );
   }
@@ -115,20 +113,19 @@ export function PrFormPage() {
   const isLastStep = step === STEP_LABELS.length - 1;
 
   return (
-    <div className="space-y-6">
-      <PageHeader title={isEdit ? `Edit ${typeLabel}` : `New ${typeLabel}`}>
-        <Button variant="outline" onClick={() => navigate('/purchase-requests')}>
-          <ArrowLeft className="h-4 w-4" /> Back
-        </Button>
-      </PageHeader>
+    <div className="space-y-6 max-w-screen-2xl">
+      <PageHeader
+        title={isEdit ? `Edit ${typeLabel}` : `New ${typeLabel}`}
+        actions={
+          <GhostButton onClick={() => navigate('/purchase-requests')}>
+            <ArrowLeft className="h-3.5 w-3.5" /> Back
+          </GhostButton>
+        }
+      />
 
       <HowItWorks />
 
-      <Stepper
-        steps={STEP_LABELS}
-        currentStep={step}
-        onStepClick={goToStep}
-      />
+      <Stepper steps={STEP_LABELS} currentStep={step} onStepClick={goToStep} />
 
       <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
         {step === 0 && (
@@ -160,48 +157,52 @@ export function PrFormPage() {
           />
         )}
 
-        {/* Sticky footer with navigation */}
         <StickyFooter>
           <div className="flex items-center justify-between">
             <div className="flex gap-2">
-              <Button type="button" variant="outline" onClick={() => navigate('/purchase-requests')}>
+              <GhostButton
+                type="button"
+                onClick={() => navigate('/purchase-requests')}
+              >
                 Cancel
-              </Button>
+              </GhostButton>
               {step > 0 && (
-                <Button type="button" variant="outline" onClick={handleBack}>
+                <GhostButton type="button" onClick={handleBack}>
                   Back
-                </Button>
+                </GhostButton>
               )}
             </div>
             <div className="flex gap-2">
-              {/* Draft save available from any step */}
-              <Button
+              <GhostButton
                 type="button"
-                variant="outline"
                 disabled={isSubmitting}
                 onClick={handleDraftSave}
               >
-                {isSubmitting && pr.submitActionRef.current === 'draft'
-                  ? <Loader2 className="h-4 w-4 animate-spin" />
-                  : <Save className="h-4 w-4" />}
+                {isSubmitting && pr.submitActionRef.current === 'draft' ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
                 Save Draft
-              </Button>
+              </GhostButton>
 
               {isLastStep ? (
-                <Button
+                <PrimaryButton
                   type="button"
                   disabled={isSubmitting}
                   onClick={handleSubmit}
                 >
-                  {isSubmitting && pr.submitActionRef.current === 'submit'
-                    ? <Loader2 className="h-4 w-4 animate-spin" />
-                    : <Send className="h-4 w-4" />}
+                  {isSubmitting && pr.submitActionRef.current === 'submit' ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
                   Submit for Approval
-                </Button>
+                </PrimaryButton>
               ) : (
-                <Button type="button" onClick={handleNext}>
+                <PrimaryButton type="button" onClick={handleNext}>
                   Continue
-                </Button>
+                </PrimaryButton>
               )}
             </div>
           </div>
@@ -211,7 +212,9 @@ export function PrFormPage() {
       {/* Server photo viewer dialog */}
       <Dialog
         open={stagedFiles.photoViewDialog.open}
-        onOpenChange={(o) => { if (!o) stagedFiles.setPhotoViewDialog({ open: false, url: null }); }}
+        onOpenChange={(o) => {
+          if (!o) stagedFiles.setPhotoViewDialog({ open: false, url: null });
+        }}
       >
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -221,12 +224,15 @@ export function PrFormPage() {
           </DialogHeader>
           <div className="flex items-center justify-center min-h-48">
             {stagedFiles.photoViewDialog.url && (
-              <img src={stagedFiles.photoViewDialog.url} alt="Reference photo" className="max-w-full max-h-[60vh] rounded-md object-contain" />
+              <img
+                src={stagedFiles.photoViewDialog.url}
+                alt="Reference photo"
+                className="max-w-full max-h-[60vh] rounded-md object-contain"
+              />
             )}
           </div>
         </DialogContent>
       </Dialog>
-
     </div>
   );
 }

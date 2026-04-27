@@ -21,20 +21,6 @@ import {
 import { usePurchaseRequests } from '@/hooks/use-purchase-requests';
 import { useDepartments } from '@/hooks/use-departments';
 import { useToast } from '@/components/ui/toast';
-import { PageHeader } from '@/components/layout/page-header';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from '@/components/ui/table';
 import {
   Select,
   SelectTrigger,
@@ -42,51 +28,24 @@ import {
   SelectContent,
   SelectItem,
 } from '@/components/ui/select';
-import { Pagination } from '@/components/ui/pagination';
-import { EmptyState } from '@/components/ui/empty-state';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Separator } from '@/components/ui/separator';
+import {
+  PageHeader,
+  Surface,
+  StatusBadge,
+  EmptyState,
+  ListSkeleton,
+  Pagination,
+  GhostButton,
+  PrimaryButton,
+  prStatusTone,
+  prPriorityTone,
+  premiumSelectTriggerClass,
+} from '@/components/premium';
+import { cn } from '@/lib/utils';
 import apiClient from '@/lib/api-client';
 import type { PurchaseRequestsQuery } from '@/lib/api-services';
 
 // ─── Helpers ──────────────────────────────────────────────────
-
-const statusVariant = (status: string) => {
-  switch (status) {
-    case 'draft':
-      return 'secondary' as const;
-    case 'submitted':
-    case 'quoted':
-    case 'level1_review':
-    case 'level2_review':
-    case 'level3_review':
-      return 'info' as const;
-    case 'pending_quotation':
-      return 'warning' as const;
-    case 'approved':
-      return 'success' as const;
-    case 'rejected':
-      return 'destructive' as const;
-    case 'returned':
-    case 'returned_for_info':
-      return 'warning' as const;
-    default:
-      return 'secondary' as const;
-  }
-};
-
-const priorityVariant = (priority: string) => {
-  switch (priority) {
-    case 'urgent':
-      return 'destructive' as const;
-    case 'high':
-      return 'warning' as const;
-    case 'medium':
-      return 'info' as const;
-    default:
-      return 'secondary' as const;
-  }
-};
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat('en-PH', {
@@ -96,9 +55,9 @@ function formatCurrency(amount: number) {
 }
 
 const SORT_OPTIONS = [
-  { value: 'createdAt', label: 'Created Date' },
+  { value: 'createdAt',   label: 'Created Date' },
   { value: 'totalAmount', label: 'Amount' },
-  { value: 'prNumber', label: 'PR Number' },
+  { value: 'prNumber',    label: 'PR Number' },
   { value: 'submittedAt', label: 'Submitted Date' },
 ] as const;
 
@@ -118,17 +77,17 @@ function readFiltersFromParams(params: URLSearchParams): {
   page: number;
 } {
   return {
-    search: params.get('search') || '',
-    statuses: params.get('status')?.split(',').filter(Boolean) || [],
-    priority: params.get('priority') || 'all',
+    search:       params.get('search') || '',
+    statuses:     params.get('status')?.split(',').filter(Boolean) || [],
+    priority:     params.get('priority') || 'all',
     departmentId: params.get('departmentId') || 'all',
-    dateFrom: params.get('dateFrom') || '',
-    dateTo: params.get('dateTo') || '',
-    amountMin: params.get('amountMin') || '',
-    amountMax: params.get('amountMax') || '',
-    sort: params.get('sort') || 'createdAt',
-    order: (params.get('order') as 'asc' | 'desc') || 'desc',
-    page: Number(params.get('page')) || 1,
+    dateFrom:     params.get('dateFrom') || '',
+    dateTo:       params.get('dateTo') || '',
+    amountMin:    params.get('amountMin') || '',
+    amountMax:    params.get('amountMax') || '',
+    sort:         params.get('sort') || 'createdAt',
+    order:        (params.get('order') as 'asc' | 'desc') || 'desc',
+    page:         Number(params.get('page')) || 1,
   };
 }
 
@@ -149,6 +108,11 @@ function writeFiltersToParams(filters: ReturnType<typeof readFiltersFromParams>)
   return p;
 }
 
+// ─── Reusable styled inputs ───────────────────────────────────
+
+const PREMIUM_INPUT_CLASS =
+  'w-full h-10 rounded-lg border border-zinc-200 bg-zinc-50/60 px-3 text-[13px] text-zinc-800 placeholder:text-zinc-400 outline-none transition-all duration-200 focus:border-zinc-400 focus:bg-white focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]';
+
 // ─── Component ────────────────────────────────────────────────
 
 export function SearchPage() {
@@ -156,10 +120,8 @@ export function SearchPage() {
   const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Read initial filter state from URL
   const filters = readFiltersFromParams(searchParams);
 
-  // Local state mirrors URL params — we commit to URL on "Search"
   const [search, setSearch] = useState(filters.search);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>(filters.statuses);
   const [priority, setPriority] = useState(filters.priority);
@@ -171,7 +133,6 @@ export function SearchPage() {
   const [sort, setSort] = useState(filters.sort);
   const [order, setOrder] = useState<'asc' | 'desc'>(filters.order);
   const [filtersExpanded, setFiltersExpanded] = useState(() => {
-    // Auto-expand if any advanced filter is active
     return !!(
       filters.statuses.length > 0 ||
       (filters.priority && filters.priority !== 'all') ||
@@ -185,11 +146,9 @@ export function SearchPage() {
 
   const [exporting, setExporting] = useState(false);
 
-  // Departments for dropdown
   const { data: deptData } = useDepartments({ limit: 100 });
   const departments = deptData?.data ?? [];
 
-  // Build query params for the API call (from URL state, not local state)
   const queryParams = useMemo((): PurchaseRequestsQuery => {
     const params: PurchaseRequestsQuery = {
       page: filters.page,
@@ -213,7 +172,6 @@ export function SearchPage() {
   const prs = data?.data ?? [];
   const meta = data?.meta;
 
-  // Commit local filters to URL (triggers re-fetch via queryParams memo)
   const commitFilters = useCallback(
     (overridePage?: number) => {
       const nextPage = overridePage ?? 1;
@@ -247,9 +205,7 @@ export function SearchPage() {
     ],
   );
 
-  const handleSearch = () => {
-    commitFilters(1);
-  };
+  const handleSearch = () => commitFilters(1);
 
   const handlePageChange = useCallback(
     (newPage: number) => {
@@ -307,7 +263,6 @@ export function SearchPage() {
     setOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
   };
 
-  // ─── Export ───────────────────────────────────────────────
   const handleExport = async () => {
     setExporting(true);
     try {
@@ -354,7 +309,6 @@ export function SearchPage() {
     }
   };
 
-  // Compute totals from current page (server-side total is in meta)
   const pageTotalAmount = prs.reduce((sum, pr) => sum + (pr.totalAmount ?? 0), 0);
 
   const hasActiveFilters =
@@ -368,67 +322,65 @@ export function SearchPage() {
     amountMax;
 
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <PageHeader title="Search & Monitor" description="Search, filter, and export purchase requests.">
-        <Button variant="outline" onClick={handleExport} disabled={exporting}>
-          {exporting ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Download className="h-4 w-4" />
-          )}
-          {exporting ? 'Exporting...' : 'Export'}
-        </Button>
-      </PageHeader>
-
-      {/* Search & Filters Panel */}
-      <Card>
-        <CardHeader
-          className="cursor-pointer select-none px-6 py-4"
-          onClick={() => setFiltersExpanded((v) => !v)}
-        >
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base font-medium flex items-center gap-2">
-              <Search className="h-4 w-4" />
-              Advanced Search
-              {hasActiveFilters && (
-                <Badge variant="info" className="ml-2 text-xs">
-                  Filters Active
-                </Badge>
-              )}
-            </CardTitle>
-            {filtersExpanded ? (
-              <ChevronUp className="h-4 w-4 text-muted-foreground" />
+    <div className="space-y-6 max-w-screen-2xl">
+      <PageHeader
+        title="Search & Monitor"
+        description="Search, filter, and export purchase requests."
+        actions={
+          <GhostButton onClick={handleExport} disabled={exporting}>
+            {exporting ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
             ) : (
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              <Download className="h-3.5 w-3.5" />
             )}
-          </div>
-        </CardHeader>
+            {exporting ? 'Exporting...' : 'Export'}
+          </GhostButton>
+        }
+      />
+
+      {/* ── Advanced Search panel ───────────────────────────── */}
+      <Surface delay={0.04} elevation="subtle">
+        <button
+          type="button"
+          onClick={() => setFiltersExpanded((v) => !v)}
+          className="w-full flex items-center justify-between px-6 py-4 cursor-pointer select-none hover:bg-zinc-50/50 transition-colors duration-150"
+        >
+          <span className="flex items-center gap-2 text-[15px] font-semibold text-zinc-900">
+            <Search className="h-4 w-4 text-zinc-400" />
+            Advanced Search
+            {hasActiveFilters && (
+              <StatusBadge tone="info" className="ml-1.5">Filters Active</StatusBadge>
+            )}
+          </span>
+          {filtersExpanded ? (
+            <ChevronUp className="h-4 w-4 text-zinc-400" />
+          ) : (
+            <ChevronDown className="h-4 w-4 text-zinc-400" />
+          )}
+        </button>
 
         {filtersExpanded && (
-          <CardContent className="px-6 pb-6 pt-0 space-y-5">
-            {/* Text Search */}
+          <div className="px-6 pb-6 space-y-5 border-t border-zinc-100 pt-5">
+            {/* Text search */}
             <div>
-              <Label htmlFor="search-input" className="text-sm font-medium">
-                Search
-              </Label>
-              <div className="relative mt-1.5">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="search-input"
+              <FieldLabel>Search</FieldLabel>
+              <div className="relative">
+                <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+                <input
+                  type="text"
                   placeholder="Search by PR number, title, or description..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  className="pl-9"
+                  className={cn(PREMIUM_INPUT_CLASS, 'pl-10')}
                 />
               </div>
             </div>
 
-            {/* Status Pills */}
+            {/* Status pills */}
             <div>
-              <Label className="text-sm font-medium">Status</Label>
-              <div className="mt-1.5 flex flex-wrap gap-2">
+              <FieldLabel>Status</FieldLabel>
+              <div className="flex flex-wrap gap-2">
                 {PR_STATUSES.map((s) => {
                   const isActive = selectedStatuses.includes(s);
                   return (
@@ -436,11 +388,12 @@ export function SearchPage() {
                       key={s}
                       type="button"
                       onClick={() => toggleStatus(s)}
-                      className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                      className={cn(
+                        'inline-flex items-center rounded-full border px-3 py-1 text-[12px] font-medium transition-colors duration-150',
                         isActive
-                          ? 'border-primary bg-primary text-primary-foreground'
-                          : 'border-border bg-background text-foreground hover:bg-accent'
-                      }`}
+                          ? 'border-zinc-900 bg-zinc-900 text-white'
+                          : 'border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900',
+                      )}
                     >
                       {PR_STATUS_LABELS[s as PrStatusType]}
                       {isActive && <X className="ml-1.5 h-3 w-3" />}
@@ -450,16 +403,14 @@ export function SearchPage() {
               </div>
             </div>
 
-            <Separator />
+            <Divider />
 
-            {/* Row: Priority, Department */}
+            {/* Priority + Department */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <Label htmlFor="priority-filter" className="text-sm font-medium">
-                  Priority
-                </Label>
+                <FieldLabel>Priority</FieldLabel>
                 <Select value={priority} onValueChange={setPriority}>
-                  <SelectTrigger id="priority-filter" className="mt-1.5">
+                  <SelectTrigger className={premiumSelectTriggerClass}>
                     <SelectValue placeholder="All Priorities" />
                   </SelectTrigger>
                   <SelectContent>
@@ -474,11 +425,9 @@ export function SearchPage() {
               </div>
 
               <div>
-                <Label htmlFor="department-filter" className="text-sm font-medium">
-                  Department
-                </Label>
+                <FieldLabel>Department</FieldLabel>
                 <Select value={departmentId} onValueChange={setDepartmentId}>
-                  <SelectTrigger id="department-filter" className="mt-1.5">
+                  <SelectTrigger className={premiumSelectTriggerClass}>
                     <SelectValue placeholder="All Departments" />
                   </SelectTrigger>
                   <SelectContent>
@@ -493,76 +442,62 @@ export function SearchPage() {
               </div>
             </div>
 
-            {/* Row: Date Range */}
+            {/* Date range */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <Label htmlFor="date-from" className="text-sm font-medium">
-                  Date From
-                </Label>
-                <Input
-                  id="date-from"
+                <FieldLabel>Date From</FieldLabel>
+                <input
                   type="date"
                   value={dateFrom}
                   onChange={(e) => setDateFrom(e.target.value)}
-                  className="mt-1.5"
+                  className={PREMIUM_INPUT_CLASS}
                 />
               </div>
               <div>
-                <Label htmlFor="date-to" className="text-sm font-medium">
-                  Date To
-                </Label>
-                <Input
-                  id="date-to"
+                <FieldLabel>Date To</FieldLabel>
+                <input
                   type="date"
                   value={dateTo}
                   onChange={(e) => setDateTo(e.target.value)}
-                  className="mt-1.5"
+                  className={PREMIUM_INPUT_CLASS}
                 />
               </div>
             </div>
 
-            {/* Row: Amount Range */}
+            {/* Amount range */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <Label htmlFor="amount-min" className="text-sm font-medium">
-                  Min Amount
-                </Label>
-                <Input
-                  id="amount-min"
+                <FieldLabel>Min Amount</FieldLabel>
+                <input
                   type="number"
                   min={0}
                   placeholder="0"
                   value={amountMin}
                   onChange={(e) => setAmountMin(e.target.value)}
-                  className="mt-1.5"
+                  className={cn(PREMIUM_INPUT_CLASS, 'tabular-nums')}
                 />
               </div>
               <div>
-                <Label htmlFor="amount-max" className="text-sm font-medium">
-                  Max Amount
-                </Label>
-                <Input
-                  id="amount-max"
+                <FieldLabel>Max Amount</FieldLabel>
+                <input
                   type="number"
                   min={0}
                   placeholder="No limit"
                   value={amountMax}
                   onChange={(e) => setAmountMax(e.target.value)}
-                  className="mt-1.5"
+                  className={cn(PREMIUM_INPUT_CLASS, 'tabular-nums')}
                 />
               </div>
             </div>
 
-            <Separator />
+            <Divider />
 
-            {/* Row: Sort */}
+            {/* Sort */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <Label htmlFor="sort-field" className="text-sm font-medium">
-                  Sort By
-                </Label>
+                <FieldLabel>Sort By</FieldLabel>
                 <Select value={sort} onValueChange={setSort}>
-                  <SelectTrigger id="sort-field" className="mt-1.5">
+                  <SelectTrigger className={premiumSelectTriggerClass}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -575,221 +510,249 @@ export function SearchPage() {
                 </Select>
               </div>
               <div>
-                <Label className="text-sm font-medium">Sort Order</Label>
-                <Button
+                <FieldLabel>Sort Order</FieldLabel>
+                <button
                   type="button"
-                  variant="outline"
-                  className="mt-1.5 w-full justify-start gap-2"
                   onClick={toggleSortOrder}
+                  className={cn(PREMIUM_INPUT_CLASS, 'flex items-center gap-2 cursor-pointer hover:bg-white')}
                 >
-                  <ArrowUpDown className="h-4 w-4" />
-                  {order === 'asc' ? 'Ascending' : 'Descending'}
-                </Button>
+                  <ArrowUpDown className="h-3.5 w-3.5 text-zinc-400" />
+                  <span>{order === 'asc' ? 'Ascending' : 'Descending'}</span>
+                </button>
               </div>
             </div>
 
             {/* Actions */}
-            <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-              <Button
-                type="button"
-                variant="outline"
+            <div className="flex flex-col gap-2 sm:flex-row sm:justify-end pt-2">
+              <GhostButton
                 onClick={handleClearFilters}
                 disabled={!hasActiveFilters}
               >
-                <X className="h-4 w-4" />
-                Clear Filters
-              </Button>
-              <Button type="button" onClick={handleSearch}>
-                <Search className="h-4 w-4" />
-                Search
-              </Button>
+                <X className="h-3.5 w-3.5" /> Clear Filters
+              </GhostButton>
+              <PrimaryButton onClick={handleSearch}>
+                <Search className="h-3.5 w-3.5" /> Search
+              </PrimaryButton>
             </div>
-          </CardContent>
+          </div>
         )}
-      </Card>
+      </Surface>
 
-      {/* Results Summary */}
+      {/* ── Results summary ────────────────────────────────── */}
       {meta && (
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between text-sm text-muted-foreground">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between text-[13px] text-zinc-500">
           <span>
-            <span className="font-medium text-foreground">{meta.total}</span> result
+            <span className="font-semibold text-zinc-800 tabular-nums">{meta.total}</span> result
             {meta.total !== 1 ? 's' : ''} found
           </span>
           {prs.length > 0 && (
             <span>
-              Page total: <span className="font-medium text-foreground">{formatCurrency(pageTotalAmount)}</span>
+              Page total:{' '}
+              <span className="font-semibold text-zinc-800 tabular-nums">
+                {formatCurrency(pageTotalAmount)}
+              </span>
             </span>
           )}
         </div>
       )}
 
-      {/* Results Table */}
-      <Card>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="space-y-3 p-6">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-14 w-full" />
-              ))}
-            </div>
-          ) : prs.length === 0 ? (
-            <EmptyState
-              icon={<FileText className="h-12 w-12" />}
-              title="No purchase requests found"
-              description={
-                hasActiveFilters
-                  ? 'Try adjusting your search filters.'
-                  : 'No purchase requests match the current criteria.'
-              }
-              action={
-                hasActiveFilters ? (
-                  <Button variant="outline" onClick={handleClearFilters}>
-                    <X className="h-4 w-4" /> Clear Filters
-                  </Button>
-                ) : undefined
-              }
-            />
-          ) : (
-            <>
-              {/* Desktop table */}
-              <div className="hidden md:block">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>PR Number</TableHead>
-                      <TableHead>Title</TableHead>
-                      <TableHead>Requester</TableHead>
-                      <TableHead>Department</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
-                      <TableHead>Priority</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Created</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {prs.map((pr) => {
-                      const requester =
-                        pr.requesterId && typeof pr.requesterId === 'object'
-                          ? (pr.requesterId as unknown as { firstName: string; lastName: string })
-                          : null;
-                      const dept =
-                        pr.departmentId && typeof pr.departmentId === 'object'
-                          ? (pr.departmentId as unknown as { name: string })
-                          : null;
+      {/* ── Results ──────────────────────────────────────────── */}
+      <Surface delay={0.08}>
+        {isLoading ? (
+          <ListSkeleton rows={6} rowHeight="h-14" />
+        ) : prs.length === 0 ? (
+          <EmptyState
+            icon={<FileText />}
+            title="No purchase requests found"
+            description={
+              hasActiveFilters
+                ? 'Try adjusting your search filters.'
+                : 'No purchase requests match the current criteria.'
+            }
+            action={
+              hasActiveFilters ? (
+                <GhostButton onClick={handleClearFilters}>
+                  <X className="h-3.5 w-3.5" /> Clear Filters
+                </GhostButton>
+              ) : undefined
+            }
+          />
+        ) : (
+          <>
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
+                <thead className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm">
+                  <tr className="border-b border-zinc-100">
+                    <Th>PR Number</Th>
+                    <Th>Title</Th>
+                    <Th>Requester</Th>
+                    <Th>Department</Th>
+                    <Th align="right">Amount</Th>
+                    <Th>Priority</Th>
+                    <Th>Status</Th>
+                    <Th>Created</Th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {prs.map((pr, idx) => {
+                    const requester =
+                      pr.requesterId && typeof pr.requesterId === 'object'
+                        ? (pr.requesterId as unknown as { firstName: string; lastName: string })
+                        : null;
+                    const dept =
+                      pr.departmentId && typeof pr.departmentId === 'object'
+                        ? (pr.departmentId as unknown as { name: string })
+                        : null;
 
-                      return (
-                        <TableRow
-                          key={pr._id}
-                          className="cursor-pointer"
-                          onClick={() => navigate(`/purchase-requests/${pr._id}`)}
-                        >
-                          <TableCell className="font-mono text-sm">
-                            {pr.prNumber || (
-                              <span className="text-muted-foreground italic">Draft</span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <div className="max-w-[220px]">
-                              <p className="font-medium truncate">{pr.title}</p>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            {requester
-                              ? `${requester.firstName} ${requester.lastName}`
-                              : '-'}
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            {dept ? dept.name : '-'}
-                          </TableCell>
-                          <TableCell className="text-right font-medium text-sm">
+                    return (
+                      <tr
+                        key={pr._id}
+                        className="pr-row-enter border-b border-zinc-100/60 last:border-0 cursor-pointer transition-all duration-150 hover:bg-zinc-50/80 group"
+                        style={{ animationDelay: `${0.04 + idx * 0.025}s` }}
+                        onClick={() => navigate(`/purchase-requests/${pr._id}`)}
+                      >
+                        <td className="px-5 py-4">
+                          {pr.prNumber ? (
+                            <span className="font-mono text-[13px] font-medium text-zinc-800 tracking-tight">
+                              {pr.prNumber}
+                            </span>
+                          ) : (
+                            <span className="text-[13px] italic text-zinc-400">Draft</span>
+                          )}
+                        </td>
+                        <td className="px-5 py-4">
+                          <p className="text-[13px] font-medium text-zinc-800 leading-snug truncate max-w-[260px] group-hover:text-zinc-950 transition-colors duration-150">
+                            {pr.title}
+                          </p>
+                        </td>
+                        <td className="px-5 py-4 text-[13px] text-zinc-500">
+                          {requester ? `${requester.firstName} ${requester.lastName}` : '—'}
+                        </td>
+                        <td className="px-5 py-4 text-[13px] text-zinc-500">
+                          {dept ? dept.name : '—'}
+                        </td>
+                        <td className="px-5 py-4 text-right">
+                          <span className="text-[13px] font-semibold tabular-nums text-zinc-800">
                             {formatCurrency(pr.totalAmount)}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={priorityVariant(pr.priority)}>
-                              {PR_PRIORITY_LABELS[pr.priority as PrPriorityType]}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={statusVariant(pr.status)}>
-                              {PR_STATUS_LABELS[pr.status as PrStatusType]}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                            {new Date(pr.createdAt).toLocaleDateString()}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
+                          </span>
+                        </td>
+                        <td className="px-5 py-4">
+                          <StatusBadge tone={prPriorityTone(pr.priority)}>
+                            {PR_PRIORITY_LABELS[pr.priority as PrPriorityType]}
+                          </StatusBadge>
+                        </td>
+                        <td className="px-5 py-4">
+                          <StatusBadge tone={prStatusTone(pr.status)}>
+                            {PR_STATUS_LABELS[pr.status as PrStatusType]}
+                          </StatusBadge>
+                        </td>
+                        <td className="px-5 py-4 text-[13px] tabular-nums text-zinc-400 whitespace-nowrap">
+                          {new Date(pr.createdAt).toLocaleDateString('en-PH', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                          })}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
 
-              {/* Mobile card list */}
-              <div className="md:hidden divide-y">
-                {prs.map((pr) => {
-                  const requester =
-                    pr.requesterId && typeof pr.requesterId === 'object'
-                      ? (pr.requesterId as unknown as { firstName: string; lastName: string })
-                      : null;
-                  const dept =
-                    pr.departmentId && typeof pr.departmentId === 'object'
-                      ? (pr.departmentId as unknown as { name: string })
-                      : null;
+            {/* Mobile cards */}
+            <div className="md:hidden divide-y divide-zinc-100">
+              {prs.map((pr) => {
+                const requester =
+                  pr.requesterId && typeof pr.requesterId === 'object'
+                    ? (pr.requesterId as unknown as { firstName: string; lastName: string })
+                    : null;
+                const dept =
+                  pr.departmentId && typeof pr.departmentId === 'object'
+                    ? (pr.departmentId as unknown as { name: string })
+                    : null;
 
-                  return (
-                    <div
-                      key={pr._id}
-                      className="flex flex-col gap-2 p-4 cursor-pointer hover:bg-accent/50 transition-colors"
-                      onClick={() => navigate(`/purchase-requests/${pr._id}`)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono text-xs text-muted-foreground">
-                          {pr.prNumber || 'Draft'}
-                        </span>
-                        <Badge variant={statusVariant(pr.status)} className="text-xs">
-                          {PR_STATUS_LABELS[pr.status as PrStatusType]}
-                        </Badge>
-                      </div>
-                      <p className="font-medium text-sm truncate">{pr.title}</p>
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span>
-                          {requester
-                            ? `${requester.firstName} ${requester.lastName}`
-                            : '-'}
-                          {dept ? ` - ${dept.name}` : ''}
-                        </span>
-                        <span className="font-medium text-foreground">
-                          {formatCurrency(pr.totalAmount)}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={priorityVariant(pr.priority)} className="text-xs">
-                          {PR_PRIORITY_LABELS[pr.priority as PrPriorityType]}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(pr.createdAt).toLocaleDateString()}
-                        </span>
-                      </div>
+                return (
+                  <div
+                    key={pr._id}
+                    className="flex flex-col gap-2 p-4 cursor-pointer hover:bg-zinc-50/80 transition-colors duration-150"
+                    onClick={() => navigate(`/purchase-requests/${pr._id}`)}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono text-[12px] text-zinc-400">
+                        {pr.prNumber || 'Draft'}
+                      </span>
+                      <StatusBadge tone={prStatusTone(pr.status)}>
+                        {PR_STATUS_LABELS[pr.status as PrStatusType]}
+                      </StatusBadge>
                     </div>
-                  );
-                })}
-              </div>
+                    <p className="text-[13px] font-medium text-zinc-800 truncate">{pr.title}</p>
+                    <div className="flex items-center justify-between text-[12px] text-zinc-500">
+                      <span className="truncate pr-2">
+                        {requester ? `${requester.firstName} ${requester.lastName}` : '—'}
+                        {dept ? ` · ${dept.name}` : ''}
+                      </span>
+                      <span className="font-semibold text-zinc-800 tabular-nums shrink-0">
+                        {formatCurrency(pr.totalAmount)}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <StatusBadge tone={prPriorityTone(pr.priority)}>
+                        {PR_PRIORITY_LABELS[pr.priority as PrPriorityType]}
+                      </StatusBadge>
+                      <span className="text-[12px] text-zinc-400 tabular-nums">
+                        {new Date(pr.createdAt).toLocaleDateString('en-PH', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
 
-              {/* Pagination */}
-              {meta && (
-                <div className="border-t px-4">
-                  <Pagination
-                    page={meta.page}
-                    totalPages={meta.totalPages}
-                    total={meta.total}
-                    onPageChange={handlePageChange}
-                  />
-                </div>
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
+            {/* Pagination */}
+            {meta && meta.totalPages > 1 && (
+              <Pagination
+                page={meta.page}
+                totalPages={meta.totalPages}
+                total={meta.total}
+                onPageChange={handlePageChange}
+              />
+            )}
+          </>
+        )}
+      </Surface>
     </div>
   );
+}
+
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-500">
+      {children}
+    </p>
+  );
+}
+
+function Th({ children, align = 'left' }: { children: React.ReactNode; align?: 'left' | 'right' | 'center' }) {
+  return (
+    <th
+      className={cn(
+        'h-11 px-5 text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400',
+        align === 'left' && 'text-left',
+        align === 'right' && 'text-right',
+        align === 'center' && 'text-center',
+      )}
+    >
+      {children}
+    </th>
+  );
+}
+
+function Divider() {
+  return <div className="h-px bg-zinc-100" />;
 }

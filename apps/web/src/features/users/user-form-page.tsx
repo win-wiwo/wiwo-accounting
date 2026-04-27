@@ -2,18 +2,35 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { USER_ROLES, ROLE_LABELS, type UserRole, type UserWithDepartment, type CreateUserDto, type UpdateUserDto } from '@prams/shared';
+import { ArrowLeft, Loader2, Save } from 'lucide-react';
+import {
+  USER_ROLES,
+  ROLE_LABELS,
+  type UserRole,
+  type UserWithDepartment,
+  type CreateUserDto,
+  type UpdateUserDto,
+} from '@prams/shared';
 import { useUser, useCreateUser, useUpdateUser } from '@/hooks/use-users';
 import { useDepartments } from '@/hooks/use-departments';
 import { useToast } from '@/components/ui/toast';
-import { PageHeader } from '@/components/layout/page-header';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Loader2, Save } from 'lucide-react';
+import {
+  PageHeader,
+  Surface,
+  PrimaryButton,
+  GhostButton,
+  FormField,
+  premiumSelectTriggerClass,
+} from '@/components/premium';
 
 const createSchema = z.object({
   employeeId: z.string().min(1, 'Required').max(20),
@@ -42,8 +59,6 @@ interface Department {
   code: string;
 }
 
-// ─── Wrapper: fetches data, shows skeleton, then renders form ───────────────
-
 export function UserFormPage() {
   const { id } = useParams();
   const isEdit = !!id;
@@ -55,9 +70,24 @@ export function UserFormPage() {
 
   if ((isEdit && userLoading) || deptsLoading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 max-w-screen-2xl">
         <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-96 w-full" />
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Surface>
+            <div className="p-6 space-y-3">
+              <Skeleton className="h-5 w-40" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          </Surface>
+          <Surface>
+            <div className="p-6 space-y-3">
+              <Skeleton className="h-5 w-40" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          </Surface>
+        </div>
       </div>
     );
   }
@@ -75,8 +105,6 @@ export function UserFormPage() {
   );
 }
 
-// ─── Form: receives data as props, initialises form with defaultValues ───────
-
 interface UserFormContentProps {
   isEdit: boolean;
   userId?: string;
@@ -84,7 +112,12 @@ interface UserFormContentProps {
   departments: Department[];
 }
 
-function UserFormContent({ isEdit, userId, existingUser, departments }: UserFormContentProps) {
+function UserFormContent({
+  isEdit,
+  userId,
+  existingUser,
+  departments,
+}: UserFormContentProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const createMutation = useCreateUser();
@@ -97,17 +130,20 @@ function UserFormContent({ isEdit, userId, existingUser, departments }: UserForm
     watch,
     formState: { errors, isSubmitting },
   } = useForm<CreateForm>({
-    resolver: zodResolver(isEdit ? (updateSchema as unknown as typeof createSchema) : createSchema),
-    defaultValues: isEdit && existingUser
-      ? {
-          firstName: existingUser.firstName,
-          lastName: existingUser.lastName,
-          email: existingUser.email,
-          role: existingUser.role,
-          departmentId: existingUser.departmentId ?? undefined,
-          employeeId: existingUser.employeeId,
-        }
-      : undefined,
+    resolver: zodResolver(
+      isEdit ? (updateSchema as unknown as typeof createSchema) : createSchema,
+    ),
+    defaultValues:
+      isEdit && existingUser
+        ? {
+            firstName: existingUser.firstName,
+            lastName: existingUser.lastName,
+            email: existingUser.email,
+            role: existingUser.role,
+            departmentId: existingUser.departmentId ?? undefined,
+            employeeId: existingUser.employeeId,
+          }
+        : undefined,
   });
 
   const selectedRole = watch('role');
@@ -119,11 +155,18 @@ function UserFormContent({ isEdit, userId, existingUser, departments }: UserForm
         const { employeeId: _eid, password: _pwd, ...rest } = data as CreateForm;
         void _eid;
         void _pwd;
-        await updateMutation.mutateAsync({ id: userId!, data: rest as unknown as UpdateUserDto });
+        await updateMutation.mutateAsync({
+          id: userId!,
+          data: rest as unknown as UpdateUserDto,
+        });
         toast({ title: 'User updated', variant: 'success' });
       } else {
         await createMutation.mutateAsync(data as unknown as CreateUserDto);
-        toast({ title: 'User created', description: 'The new user can now log in.', variant: 'success' });
+        toast({
+          title: 'User created',
+          description: 'The new user can now log in.',
+          variant: 'success',
+        });
       }
       navigate('/users');
     } catch (err: unknown) {
@@ -131,69 +174,95 @@ function UserFormContent({ isEdit, userId, existingUser, departments }: UserForm
         err && typeof err === 'object' && 'response' in err
           ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
           : 'Something went wrong';
-      toast({ title: 'Error', description: message || 'Failed to save user.', variant: 'error' });
+      toast({
+        title: 'Error',
+        description: message || 'Failed to save user.',
+        variant: 'error',
+      });
     }
   };
 
   return (
-    <div className="space-y-6">
-      <PageHeader title={isEdit ? 'Edit User' : 'Create User'}>
-        <Button variant="outline" onClick={() => navigate('/users')}>
-          <ArrowLeft className="h-4 w-4" />
-          Back
-        </Button>
-      </PageHeader>
+    <div className="space-y-6 max-w-screen-2xl">
+      <PageHeader
+        title={isEdit ? 'Edit User' : 'Create User'}
+        actions={
+          <GhostButton onClick={() => navigate('/users')}>
+            <ArrowLeft className="h-3.5 w-3.5" /> Back
+          </GhostButton>
+        }
+      />
 
       <form onSubmit={handleSubmit(onSubmit)}>
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* Personal Info */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Personal Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="firstName">First Name</Label>
+        <div
+          className="pr-list-section grid gap-6 lg:grid-cols-2"
+          style={{ animationDelay: '0.04s' }}
+        >
+          {/* Personal */}
+          <Surface>
+            <div className="px-6 pt-6 pb-4">
+              <h2 className="text-[15px] font-semibold text-zinc-900">Personal Information</h2>
+            </div>
+            <div className="px-6 pb-6 space-y-5">
+              <div className="grid gap-5 sm:grid-cols-2">
+                <FormField
+                  label="First Name"
+                  htmlFor="firstName"
+                  required
+                  error={errors.firstName?.message}
+                >
                   <Input id="firstName" {...register('firstName')} />
-                  {errors.firstName && <p className="text-xs text-destructive">{errors.firstName.message}</p>}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="lastName">Last Name</Label>
+                </FormField>
+                <FormField
+                  label="Last Name"
+                  htmlFor="lastName"
+                  required
+                  error={errors.lastName?.message}
+                >
                   <Input id="lastName" {...register('lastName')} />
-                  {errors.lastName && <p className="text-xs text-destructive">{errors.lastName.message}</p>}
-                </div>
+                </FormField>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+              <FormField
+                label="Email"
+                htmlFor="email"
+                required
+                error={errors.email?.message}
+              >
                 <Input id="email" type="email" {...register('email')} />
-                {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
-              </div>
+              </FormField>
 
               {!isEdit && (
-                <div className="space-y-2">
-                  <Label htmlFor="employeeId">Employee ID</Label>
-                  <Input id="employeeId" placeholder="e.g. EMP-0042" {...register('employeeId')} />
-                  {errors.employeeId && <p className="text-xs text-destructive">{errors.employeeId.message}</p>}
-                </div>
+                <FormField
+                  label="Employee ID"
+                  htmlFor="employeeId"
+                  required
+                  error={errors.employeeId?.message}
+                >
+                  <Input
+                    id="employeeId"
+                    placeholder="e.g. EMP-0042"
+                    {...register('employeeId')}
+                  />
+                </FormField>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </Surface>
 
           {/* Role & Access */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Role & Access</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Role</Label>
+          <Surface>
+            <div className="px-6 pt-6 pb-4">
+              <h2 className="text-[15px] font-semibold text-zinc-900">Role & Access</h2>
+            </div>
+            <div className="px-6 pb-6 space-y-5">
+              <FormField label="Role" required error={errors.role?.message}>
                 <Select
                   value={selectedRole || ''}
-                  onValueChange={(v) => setValue('role', v as UserRole, { shouldValidate: true })}
+                  onValueChange={(v) =>
+                    setValue('role', v as UserRole, { shouldValidate: true })
+                  }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className={premiumSelectTriggerClass}>
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
                   <SelectContent>
@@ -204,18 +273,18 @@ function UserFormContent({ isEdit, userId, existingUser, departments }: UserForm
                     ))}
                   </SelectContent>
                 </Select>
-                {errors.role && <p className="text-xs text-destructive">{errors.role.message}</p>}
-              </div>
+              </FormField>
 
-              <div className="space-y-2">
-                <Label>Department</Label>
+              <FormField label="Department">
                 <Select
                   value={selectedDeptId || 'none'}
                   onValueChange={(v) =>
-                    setValue('departmentId', v === 'none' ? undefined : v, { shouldValidate: true })
+                    setValue('departmentId', v === 'none' ? undefined : v, {
+                      shouldValidate: true,
+                    })
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className={premiumSelectTriggerClass}>
                     <SelectValue placeholder="Select department" />
                   </SelectTrigger>
                   <SelectContent>
@@ -227,31 +296,35 @@ function UserFormContent({ isEdit, userId, existingUser, departments }: UserForm
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
+              </FormField>
 
               {!isEdit && (
-                <div className="space-y-2">
-                  <Label htmlFor="password">Temporary Password</Label>
+                <FormField
+                  label="Temporary Password"
+                  htmlFor="password"
+                  required
+                  error={errors.password?.message}
+                  help="Must be 8+ chars with upper, lower, digit, and special character."
+                >
                   <Input id="password" type="password" {...register('password')} />
-                  {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
-                  <p className="text-xs text-muted-foreground">
-                    Must be 8+ chars with upper, lower, digit, and special character.
-                  </p>
-                </div>
+                </FormField>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </Surface>
         </div>
 
-        {/* Submit */}
-        <div className="mt-6 flex justify-end gap-3">
-          <Button type="button" variant="outline" onClick={() => navigate('/users')}>
+        <div className="mt-6 flex justify-end gap-2">
+          <GhostButton type="button" onClick={() => navigate('/users')}>
             Cancel
-          </Button>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          </GhostButton>
+          <PrimaryButton type="submit" disabled={isSubmitting}>
+            {isSubmitting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
             {isEdit ? 'Save Changes' : 'Create User'}
-          </Button>
+          </PrimaryButton>
         </div>
       </form>
     </div>
