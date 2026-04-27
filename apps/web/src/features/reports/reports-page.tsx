@@ -8,6 +8,7 @@ import {
   BarChart3,
   Clock,
 } from 'lucide-react';
+import { DatePicker } from '@/components/ui/date-picker';
 import {
   PR_STATUSES,
   PR_STATUS_LABELS,
@@ -29,9 +30,6 @@ import {
 } from '@/components/premium';
 import { cn } from '@/lib/utils';
 import apiClient from '@/lib/api-client';
-
-const PREMIUM_INPUT_CLASS =
-  'w-full h-10 rounded-lg border border-zinc-200 bg-zinc-50/60 px-3 text-[13px] text-zinc-800 placeholder:text-zinc-400 outline-none transition-all duration-200 focus:border-zinc-400 focus:bg-white focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]';
 
 async function downloadReport(url: string, filename: string) {
   const response = await apiClient.get(url, { responseType: 'blob' });
@@ -116,20 +114,18 @@ export function ReportsPage() {
           <div className="grid gap-4 sm:grid-cols-3">
             <div>
               <FieldLabel>Start Date</FieldLabel>
-              <input
-                type="date"
+              <DatePicker
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className={PREMIUM_INPUT_CLASS}
+                onChange={setStartDate}
+                placeholder="Start date..."
               />
             </div>
             <div>
               <FieldLabel>End Date</FieldLabel>
-              <input
-                type="date"
+              <DatePicker
                 value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className={PREMIUM_INPUT_CLASS}
+                onChange={setEndDate}
+                placeholder="End date..."
               />
             </div>
             <div>

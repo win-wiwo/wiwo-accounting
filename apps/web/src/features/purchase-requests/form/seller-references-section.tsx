@@ -1,6 +1,6 @@
 import { useFieldArray } from 'react-hook-form';
 import type { UseFormReturn } from 'react-hook-form';
-import { Plus, Trash2, AlertCircle, Check, Users } from 'lucide-react';
+import { Plus, Trash2, AlertCircle, Check, Users, Link } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import {
   FormField,
@@ -45,7 +45,7 @@ export function SellerReferencesSection({
 
   const handleAppendSeller = () => {
     const newIndex = fields.length;
-    append({ sellerName: '', price: 0, notes: '' });
+    append({ sellerName: '', price: 0, url: '', notes: '' });
     // Auto-select if this is the first seller
     if (fields.length === 0) {
       setTimeout(() => onSelectSeller(newIndex), 0);
@@ -187,12 +187,21 @@ export function SellerReferencesSection({
                       type="number"
                       min={0}
                       step="0.01"
+                      onFocus={(e) => {
+                        if (e.target.value === '0') e.target.value = '';
+                      }}
+                      onBlur={(e) => {
+                        if (e.target.value === '') e.target.value = '0';
+                      }}
                       {...register(
                         `items.${itemIndex}.sellerReferences.${si}.price`,
                         {
                           valueAsNumber: true,
                           onChange: (e) => {
-                            // Live-sync estimatedPrice if this seller is selected
+                            const raw = e.target.value;
+                            if (raw.length > 1 && raw.startsWith('0') && raw[1] !== '.') {
+                              e.target.value = raw.replace(/^0+/, '');
+                            }
                             if (isSelected) {
                               setValue(
                                 `items.${itemIndex}.estimatedPrice`,
@@ -206,6 +215,19 @@ export function SellerReferencesSection({
                     />
                   </FormField>
                 </div>
+                <FormField label="Product Link">
+                  <div className="relative">
+                    <Link className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400" />
+                    <Input
+                      className="h-9 pl-9 text-[12px]"
+                      type="url"
+                      placeholder="https://www.lazada.com.ph/products/..."
+                      {...register(
+                        `items.${itemIndex}.sellerReferences.${si}.url`,
+                      )}
+                    />
+                  </div>
+                </FormField>
                 <FormField label="Notes">
                   <Input
                     className="h-9 text-[12px]"

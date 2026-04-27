@@ -930,7 +930,7 @@ export function ProcurementWorkspacePage() {
 
       {/* ── Item Photo ───────────────────────────────────── */}
       <Dialog open={itemPhotoDialog.open} onOpenChange={(o) => { if (!o) closeItemPhotoDialog(); }}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl" onOpenAutoFocus={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-[14px]">
               <ImageIcon className="h-4 w-4" /> Reference Photo

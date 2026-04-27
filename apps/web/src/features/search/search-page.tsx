@@ -10,6 +10,7 @@ import {
   ArrowUpDown,
   Loader2,
 } from 'lucide-react';
+import { DatePicker } from '@/components/ui/date-picker';
 import {
   PR_STATUS_LABELS,
   PR_STATUSES,
@@ -111,7 +112,7 @@ function writeFiltersToParams(filters: ReturnType<typeof readFiltersFromParams>)
 // ─── Reusable styled inputs ───────────────────────────────────
 
 const PREMIUM_INPUT_CLASS =
-  'w-full h-10 rounded-lg border border-zinc-200 bg-zinc-50/60 px-3 text-[13px] text-zinc-800 placeholder:text-zinc-400 outline-none transition-all duration-200 focus:border-zinc-400 focus:bg-white focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]';
+  'w-full h-10 rounded-xl border border-zinc-200/80 bg-zinc-50/40 px-3.5 text-[13px] text-zinc-700 shadow-[0_1px_2px_rgba(0,0,0,0.04)] outline-none transition-all duration-200 hover:border-zinc-300 hover:bg-zinc-50/80 focus:border-zinc-400 focus:bg-white focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)] [&::-webkit-calendar-picker-indicator]:opacity-60 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:hover:opacity-100 [&::-webkit-calendar-picker-indicator]:transition-opacity';
 
 // ─── Component ────────────────────────────────────────────────
 
@@ -446,20 +447,18 @@ export function SearchPage() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <FieldLabel>Date From</FieldLabel>
-                <input
-                  type="date"
+                <DatePicker
                   value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
-                  className={PREMIUM_INPUT_CLASS}
+                  onChange={setDateFrom}
+                  placeholder="From date..."
                 />
               </div>
               <div>
                 <FieldLabel>Date To</FieldLabel>
-                <input
-                  type="date"
+                <DatePicker
                   value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
-                  className={PREMIUM_INPUT_CLASS}
+                  onChange={setDateTo}
+                  placeholder="To date..."
                 />
               </div>
             </div>

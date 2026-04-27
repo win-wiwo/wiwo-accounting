@@ -19,6 +19,7 @@ interface StepReviewProps {
   projectOptions: ProjectOption[];
   totalAmount: number;
   hasProcurementItems: boolean;
+  hasOnlineItems: boolean;
   stagedPhotosCount: number;
   onGoToStep: (step: number) => void;
 }
@@ -28,6 +29,7 @@ export function StepReview({
   projectOptions,
   totalAmount,
   hasProcurementItems,
+  hasOnlineItems,
   stagedPhotosCount,
   onGoToStep,
 }: StepReviewProps) {
@@ -145,11 +147,19 @@ export function StepReview({
           <div className="mt-4 flex justify-end border-t border-zinc-100 pt-3">
             <div className="text-right">
               <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-500">
-                {hasProcurementItems ? 'Online items subtotal' : 'Total'}
+                {hasProcurementItems && !hasOnlineItems
+                  ? 'Pricing'
+                  : hasProcurementItems
+                    ? 'Online items subtotal'
+                    : 'Total'}
               </p>
-              <p className="mt-1 text-[18px] font-bold text-zinc-900 tabular-nums">
-                {formatCurrency(totalAmount)}
-              </p>
+              {hasProcurementItems && !hasOnlineItems ? (
+                <p className="mt-1 text-[16px] font-semibold text-amber-600">TBQ</p>
+              ) : (
+                <p className="mt-1 text-[18px] font-bold text-zinc-900 tabular-nums">
+                  {formatCurrency(totalAmount)}
+                </p>
+              )}
             </div>
           </div>
           {stagedPhotosCount > 0 && (

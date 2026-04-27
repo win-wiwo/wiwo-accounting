@@ -2,7 +2,6 @@ import { Controller, type UseFormReturn } from 'react-hook-form';
 import {
   Briefcase,
   Building2,
-  Calendar,
   FileText,
   Flag,
   ShoppingCart,
@@ -16,6 +15,7 @@ import {
   PrPriority,
 } from '@prams/shared';
 import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import {
   Select,
   SelectTrigger,
@@ -208,15 +208,19 @@ export function StepBasics({ form, isEdit, projectOptions }: StepBasicsProps) {
             </FormField>
 
             <FormField label="Required Date" htmlFor="neededByDate">
-              <div className="relative">
-                <Calendar className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400" />
-                <Input
-                  id="neededByDate"
-                  type="date"
-                  className="pl-9"
-                  {...register('neededByDate')}
-                />
-              </div>
+              <Controller
+                control={control}
+                name="neededByDate"
+                render={({ field }) => (
+                  <DatePicker
+                    id="neededByDate"
+                    value={field.value || ''}
+                    onChange={field.onChange}
+                    min={new Date().toISOString().split('T')[0]}
+                    placeholder="Select date..."
+                  />
+                )}
+              />
             </FormField>
           </div>
         </div>

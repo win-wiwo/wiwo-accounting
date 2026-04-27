@@ -439,15 +439,24 @@ export function PrDetailPage() {
         comments: approvalComments.trim(),
       });
 
-      const labels = {
-        approved: "approved",
-        rejected: "rejected",
-        returned: "returned for revision",
+      const toastConfig = {
+        approved: {
+          title: 'Purchase Request Approved',
+          description: 'Moved to the next approval stage',
+          variant: 'success' as const,
+        },
+        rejected: {
+          title: 'Purchase Request Rejected',
+          description: 'The requester has been notified',
+          variant: 'error' as const,
+        },
+        returned: {
+          title: 'Returned for Revision',
+          description: 'The requester will update and resubmit',
+          variant: 'warning' as const,
+        },
       };
-      toast({
-        title: `PR ${labels[approvalDialog.action]}`,
-        variant: approvalDialog.action === "approved" ? "success" : "default",
-      });
+      toast(toastConfig[approvalDialog.action]);
     } catch {
       toast({ title: "Action failed", variant: "error" });
     }
@@ -895,7 +904,18 @@ export function PrDetailPage() {
                                 className="flex items-center justify-between gap-3 text-xs text-muted-foreground"
                               >
                                 <span className="truncate">
-                                  {ref.sellerName}
+                                  {ref.url ? (
+                                    <a
+                                      href={ref.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-blue-500 hover:text-blue-700 hover:underline"
+                                    >
+                                      {ref.sellerName}
+                                    </a>
+                                  ) : (
+                                    ref.sellerName
+                                  )}
                                 </span>
                                 <span className="shrink-0 font-medium">
                                   {formatCurrency(ref.price)}
@@ -1435,7 +1455,10 @@ export function PrDetailPage() {
           if (!o) closeItemPhotoDialog();
         }}
       >
-        <DialogContent className="max-w-2xl">
+        <DialogContent
+          className="max-w-2xl"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ImageIcon className="h-4 w-4" /> Reference Photo

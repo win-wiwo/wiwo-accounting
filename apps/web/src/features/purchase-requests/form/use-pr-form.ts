@@ -54,6 +54,7 @@ export function usePrForm(stagedFiles: ReturnType<typeof useStagedFiles>) {
   }, 0) ?? 0;
 
   const hasProcurementItems = watchItems?.some((i) => i.sourcingType === SourcingType.PROCUREMENT) ?? false;
+  const hasOnlineItems = watchItems?.some((i) => i.sourcingType === SourcingType.ONLINE) ?? false;
   const currentProject = ((projectData?.data ?? null) as ProjectOption | null) ??
     toProjectOption(prData?.data?.projectId as ProjectOption | string | null | undefined);
   const projectOptions = buildProjectOptions(activeProjects, currentProject);
@@ -185,6 +186,7 @@ export function usePrForm(stagedFiles: ReturnType<typeof useStagedFiles>) {
     refetchPr,
     totalAmount,
     hasProcurementItems,
+    hasOnlineItems,
     projectOptions,
     submitActionRef,
     onSubmit,

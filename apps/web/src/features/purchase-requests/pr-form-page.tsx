@@ -153,6 +153,7 @@ export function PrFormPage() {
                 remove={pr.remove}
                 totalAmount={pr.totalAmount}
                 hasProcurementItems={pr.hasProcurementItems}
+                hasOnlineItems={pr.hasOnlineItems}
                 stagedFiles={stagedFiles}
                 prData={prData}
                 serverPhotoPreviews={serverPhotoPreviews}
@@ -165,6 +166,7 @@ export function PrFormPage() {
                 projectOptions={pr.projectOptions}
                 totalAmount={pr.totalAmount}
                 hasProcurementItems={pr.hasProcurementItems}
+                hasOnlineItems={pr.hasOnlineItems}
                 stagedPhotosCount={Object.keys(stagedFiles.stagedPhotos).length}
                 onGoToStep={goToStep}
               />
@@ -179,6 +181,7 @@ export function PrFormPage() {
                 form={form}
                 totalAmount={pr.totalAmount}
                 hasProcurementItems={pr.hasProcurementItems}
+                hasOnlineItems={pr.hasOnlineItems}
               />
             </div>
           </aside>
@@ -307,7 +310,10 @@ export function PrFormPage() {
           if (!o) stagedFiles.setPhotoViewDialog({ open: false, url: null });
         }}
       >
-        <DialogContent className="max-w-2xl">
+        <DialogContent
+          className="max-w-2xl"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ImageIcon className="h-4 w-4" /> Reference Photo

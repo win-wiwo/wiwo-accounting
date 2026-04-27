@@ -182,14 +182,26 @@ function RunningTotals({
     <Surface elevation="subtle">
       <div className="p-5">
         <PanelLabel>
-          {hasProcurementItems ? 'Online subtotal' : 'Total amount'}
+          {hasProcurementItems && onlineCount === 0
+            ? 'Pricing'
+            : hasProcurementItems
+              ? 'Online subtotal'
+              : 'Total amount'}
         </PanelLabel>
-        <p className="mt-1.5 text-[32px] font-bold text-zinc-900 tabular-nums leading-none">
-          {formatCurrency(totalAmount)}
-        </p>
+        {hasProcurementItems && onlineCount === 0 ? (
+          <p className="mt-1.5 text-[24px] font-bold text-amber-600 leading-none">
+            TBQ
+          </p>
+        ) : (
+          <p className="mt-1.5 text-[32px] font-bold text-zinc-900 tabular-nums leading-none">
+            {formatCurrency(totalAmount)}
+          </p>
+        )}
         {hasProcurementItems && (
           <p className="mt-1.5 text-[11px] text-amber-600 leading-relaxed">
-            Procurement items priced after canvass.
+            {onlineCount === 0
+              ? 'All items are procurement-sourced. Final pricing after canvass.'
+              : 'Procurement items priced after canvass.'}
           </p>
         )}
 

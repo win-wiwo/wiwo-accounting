@@ -37,7 +37,8 @@ export const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
         type="text"
         {...props}
         className={cn(
-          'peer w-full h-10 rounded-lg border border-zinc-200 bg-zinc-50/60 pl-10 pr-4 text-[13px] text-zinc-800 placeholder:text-zinc-400 outline-none transition-all duration-200',
+          'peer w-full h-10 rounded-xl border border-zinc-200/80 bg-zinc-50/40 pl-10 pr-4 text-[13px] text-zinc-700 shadow-[0_1px_2px_rgba(0,0,0,0.04)] placeholder:text-zinc-400 outline-none transition-all duration-200',
+          'hover:border-zinc-300 hover:bg-zinc-50/80',
           'focus:border-zinc-400 focus:bg-white focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]',
           className,
         )}
@@ -50,9 +51,12 @@ SearchInput.displayName = 'SearchInput';
 /**
  * Apply this className to a `<SelectTrigger>` to match the premium FilterBar
  * select styling. Use `cn(premiumSelectTriggerClass, 'w-[154px]')` to size.
+ *
+ * Note: The base SelectTrigger already ships premium styling.
+ * This class only adds context-specific overrides for filter bars.
  */
 export const premiumSelectTriggerClass =
-  'h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]';
+  'text-zinc-600';
 
 interface FilterControlsProps {
   children: React.ReactNode;

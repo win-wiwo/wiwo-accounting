@@ -14,6 +14,9 @@ import {
   FileText,
   Clock,
   AlertTriangle,
+  Check,
+  ExternalLink,
+  ChevronDown,
   X,
 } from 'lucide-react';
 import {
@@ -96,6 +99,7 @@ export function PrApprovalModal({
   const [itemPhotoDialog, setItemPhotoDialog] = useState<{
     open: boolean; url: string | null; loading: boolean;
   }>({ open: false, url: null, loading: false });
+  const [expandedSellers, setExpandedSellers] = useState<Record<number, boolean>>({});
 
   const requester = pr?.requesterId as unknown as {
     firstName: string; lastName: string; email: string; employeeId: string;
@@ -134,11 +138,24 @@ export function PrApprovalModal({
         comments: comments.trim(),
       });
 
-      const labels = { approved: 'approved', rejected: 'rejected', returned: 'returned for revision' };
-      toast({
-        title: `PR ${labels[confirmStep]}`,
-        variant: confirmStep === 'approved' ? 'success' : 'default',
-      });
+      const toastConfig = {
+        approved: {
+          title: 'Purchase Request Approved',
+          description: 'Moved to the next approval stage',
+          variant: 'success' as const,
+        },
+        rejected: {
+          title: 'Purchase Request Rejected',
+          description: 'The requester has been notified',
+          variant: 'error' as const,
+        },
+        returned: {
+          title: 'Returned for Revision',
+          description: 'The requester will update and resubmit',
+          variant: 'warning' as const,
+        },
+      };
+      toast(toastConfig[confirmStep]);
 
       setConfirmStep(null);
       setComments('');
@@ -337,75 +354,154 @@ export function PrApprovalModal({
 
                     {/* ── Line Items ────────────────────────────── */}
                     <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400 mb-4">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400 mb-3">
                         Line Items ({pr.items.length})
                       </p>
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         {pr.items.map((item, i) => {
                           const isProcurement = item.sourcingType === SourcingType.PROCUREMENT;
                           const displayPrice = isProcurement
                             ? (item.quotedUnitPrice ?? item.estimatedPrice ?? 0)
                             : (item.estimatedPrice ?? 0);
                           const isPending = isProcurement && !item.quotedUnitPrice;
+                          const sellers = (!isProcurement && item.sellerReferences) || [];
 
                           return (
                             <div
                               key={item._id}
-                              className="rounded-xl border border-zinc-200/60 px-4 py-3.5 transition-all duration-150 hover:border-zinc-200 hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
+                              className="rounded-xl border border-zinc-200/60 bg-white overflow-hidden"
                             >
-                              <div className="flex items-start justify-between gap-4">
+                              {/* ── Item header row ── */}
+                              <div className="flex items-start justify-between gap-3 px-4 py-3">
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2">
-                                    <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-300">{i + 1}</span>
-                                    <p className="text-[13px] font-medium text-zinc-800 leading-snug">{item.description}</p>
-                                    {isProcurement && (
+                                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-100 text-[10px] font-bold text-zinc-500 tabular-nums shrink-0">
+                                      {i + 1}
+                                    </span>
+                                    <p className="text-[13px] font-semibold text-zinc-800 leading-snug truncate">{item.description}</p>
+                                    {isProcurement ? (
                                       <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold text-blue-600 bg-blue-50 border border-blue-100 rounded-full px-1.5 py-0.5 shrink-0">
                                         <ShoppingCart className="h-2 w-2" /> Procurement
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold text-zinc-500 bg-zinc-50 border border-zinc-100 rounded-full px-1.5 py-0.5 shrink-0">
+                                        Online
                                       </span>
                                     )}
                                   </div>
                                   {item.specifications && (
-                                    <p className="text-[11px] text-zinc-400 mt-1 ml-5 line-clamp-1">{item.specifications}</p>
+                                    <p className="text-[11px] text-zinc-400 mt-1 ml-7 line-clamp-2">{item.specifications}</p>
                                   )}
                                   {typeof item.selectedSupplierId === 'object' && item.selectedSupplierId?.companyName && (
-                                    <p className="text-[11px] text-emerald-600 mt-1 ml-5">Supplier: {item.selectedSupplierId.companyName}</p>
-                                  )}
-                                  {!isProcurement && item.sellerReferences && item.sellerReferences.length > 0 && (
-                                    <div className="mt-1.5 ml-5 space-y-0.5">
-                                      {item.sellerReferences.map((ref, ri) => (
-                                        <p key={ri} className="text-[11px] text-zinc-400">
-                                          {ref.sellerName} &mdash; {formatCurrency(ref.price)}
-                                        </p>
-                                      ))}
-                                    </div>
+                                    <p className="text-[11px] text-emerald-600 mt-1 ml-7 flex items-center gap-1">
+                                      <Check className="h-3 w-3" />
+                                      Supplier: {item.selectedSupplierId.companyName}
+                                    </p>
                                   )}
                                 </div>
-                                <div className="flex items-center gap-4 shrink-0 text-right">
-                                  <div>
-                                    <p className="text-[11px] text-zinc-400 whitespace-nowrap">{item.quantity} {item.unit}</p>
-                                    <p className="text-[11px] text-zinc-400 mt-0.5">
-                                      {isPending ? (
-                                        <span className="text-amber-600 italic">TBQ</span>
-                                      ) : (
-                                        <span>@ {formatCurrency(displayPrice)}</span>
-                                      )}
-                                    </p>
-                                  </div>
-                                  <p className="text-[13px] font-semibold tabular-nums text-zinc-800 min-w-[80px]">
-                                    {item.totalPrice > 0 ? formatCurrency(item.totalPrice) : '\u2014'}
-                                  </p>
+                                <div className="flex items-center gap-3 shrink-0">
                                   {item.referencePhotoPath && (
                                     <button
                                       type="button"
                                       onClick={(e) => { e.stopPropagation(); handleViewItemPhoto(item._id); }}
                                       title="View reference photo"
-                                      className="h-7 w-7 rounded-lg flex items-center justify-center text-zinc-400 hover:text-blue-600 hover:bg-blue-50 transition-all duration-150"
+                                      className="h-7 w-7 rounded-lg flex items-center justify-center text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-all duration-150"
                                     >
                                       <Camera className="h-3.5 w-3.5" />
                                     </button>
                                   )}
+                                  <div className="text-right">
+                                    <p className="text-[11px] text-zinc-400 whitespace-nowrap tabular-nums">{item.quantity} {item.unit}</p>
+                                    <p className="text-[11px] text-zinc-400 mt-0.5 tabular-nums">
+                                      {isPending ? (
+                                        <span className="text-amber-600 font-medium">TBQ</span>
+                                      ) : (
+                                        <span>@ {formatCurrency(displayPrice)}</span>
+                                      )}
+                                    </p>
+                                  </div>
+                                  <div className="pl-2 border-l border-zinc-100">
+                                    <p className="text-[14px] font-bold tabular-nums text-zinc-800 min-w-[72px] text-right">
+                                      {item.totalPrice > 0 ? formatCurrency(item.totalPrice) : '\u2014'}
+                                    </p>
+                                  </div>
                                 </div>
                               </div>
+
+                              {/* ── Seller comparison (online items, collapsible) ── */}
+                              {sellers.length > 0 && (() => {
+                                const isExpanded = expandedSellers[i] ?? false;
+                                const selectedSeller = sellers.find((s) => s.price === item.estimatedPrice);
+                                return (
+                                  <div className="border-t border-zinc-100 bg-zinc-50/40">
+                                    <button
+                                      type="button"
+                                      onClick={() => setExpandedSellers((p) => ({ ...p, [i]: !p[i] }))}
+                                      className="flex w-full items-center justify-between px-4 py-2 text-left hover:bg-zinc-100/40 transition-colors"
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <p className="text-[9px] font-semibold uppercase tracking-[0.08em] text-zinc-400">
+                                          Seller Comparison ({sellers.length})
+                                        </p>
+                                        {!isExpanded && selectedSeller && (
+                                          <span className="flex items-center gap-1 text-[10px] text-emerald-600 font-medium">
+                                            <Check className="h-3 w-3" />
+                                            {selectedSeller.sellerName} &mdash; {formatCurrency(selectedSeller.price)}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <ChevronDown className={`h-3.5 w-3.5 text-zinc-400 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                                    </button>
+                                    {isExpanded && (
+                                      <div className="px-4 pb-2.5 space-y-1.5">
+                                        {sellers.map((ref, ri) => {
+                                          const isSelected = ref.price === item.estimatedPrice;
+                                          return (
+                                            <div
+                                              key={ri}
+                                              className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[11px] transition-colors ${
+                                                isSelected
+                                                  ? 'bg-emerald-50/80 border border-emerald-200/60'
+                                                  : 'bg-white border border-zinc-100 hover:border-zinc-200'
+                                              }`}
+                                            >
+                                              <span className={`flex h-4 w-4 items-center justify-center rounded-full shrink-0 ${
+                                                isSelected ? 'bg-emerald-500' : 'border border-zinc-200'
+                                              }`}>
+                                                {isSelected && <Check className="h-2.5 w-2.5 text-white" />}
+                                              </span>
+                                              <div className="flex-1 min-w-0">
+                                                <p className={`truncate leading-tight ${isSelected ? 'font-semibold text-zinc-800' : 'text-zinc-600'}`}>
+                                                  {ref.sellerName}
+                                                </p>
+                                                {ref.notes && (
+                                                  <p className="text-[10px] text-zinc-400 truncate mt-0.5">{ref.notes}</p>
+                                                )}
+                                              </div>
+                                              <span className={`shrink-0 tabular-nums font-semibold ${
+                                                isSelected ? 'text-emerald-700' : 'text-zinc-500'
+                                              }`}>
+                                                {formatCurrency(ref.price)}
+                                              </span>
+                                              {ref.url && (
+                                                <a
+                                                  href={ref.url}
+                                                  target="_blank"
+                                                  rel="noopener noreferrer"
+                                                  onClick={(e) => e.stopPropagation()}
+                                                  className="flex h-6 items-center gap-1 rounded-md border border-zinc-200 bg-white px-2 text-[10px] font-medium text-zinc-500 hover:border-zinc-300 hover:text-zinc-700 transition-colors shrink-0"
+                                                >
+                                                  View <ExternalLink className="h-2.5 w-2.5" />
+                                                </a>
+                                              )}
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })()}
                             </div>
                           );
                         })}
@@ -753,7 +849,7 @@ export function PrApprovalModal({
 
       {/* Item photo dialog */}
       <Dialog open={itemPhotoDialog.open} onOpenChange={(v) => { if (!v) closeItemPhotoDialog(); }}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl" onOpenAutoFocus={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ImageIcon className="h-4 w-4" />

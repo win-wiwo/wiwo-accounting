@@ -38,6 +38,7 @@ interface StepItemsProps {
   remove: UseFieldArrayReturn<FormData, 'items'>['remove'];
   totalAmount: number;
   hasProcurementItems: boolean;
+  hasOnlineItems: boolean;
   stagedFiles: ReturnType<typeof useStagedFiles>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   prData: { data?: any } | undefined;
@@ -51,6 +52,7 @@ export function StepItems({
   remove,
   totalAmount,
   hasProcurementItems,
+  hasOnlineItems,
   stagedFiles,
   prData,
   serverPhotoPreviews,
@@ -161,8 +163,20 @@ export function StepItems({
                       <Input
                         type="number"
                         min={1}
+                        onFocus={(e) => {
+                          if (e.target.value === '0') e.target.value = '';
+                        }}
+                        onBlur={(e) => {
+                          if (e.target.value === '') e.target.value = '1';
+                        }}
                         {...register(`items.${index}.quantity`, {
                           valueAsNumber: true,
+                          onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                            const raw = e.target.value;
+                            if (raw.length > 1 && raw.startsWith('0')) {
+                              e.target.value = raw.replace(/^0+/, '') || '1';
+                            }
+                          },
                         })}
                       />
                     </FormField>
@@ -283,7 +297,18 @@ export function StepItems({
           {/* ── Cumulative summary footer ──────────── */}
           <div className="flex items-center justify-between rounded-xl border border-zinc-200/80 bg-zinc-50/60 px-6 py-4">
             <div className="text-[12px] text-zinc-500 leading-relaxed pr-4">
-              {hasProcurementItems ? (
+              {hasProcurementItems && !hasOnlineItems ? (
+                <>
+                  <p className="flex items-center gap-1.5 font-medium text-zinc-700">
+                    <ShoppingCart className="h-3.5 w-3.5" />
+                    Procurement-sourced items only
+                  </p>
+                  <p className="mt-0.5">
+                    Final pricing will be determined after Procurement canvasses
+                    suppliers. Add clear specs and photos to avoid rework.
+                  </p>
+                </>
+              ) : hasProcurementItems ? (
                 <>
                   <p className="flex items-center gap-1.5 font-medium text-zinc-700">
                     <ShoppingCart className="h-3.5 w-3.5" />
@@ -299,12 +324,25 @@ export function StepItems({
               )}
             </div>
             <div className="text-right shrink-0">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-500">
-                {hasProcurementItems ? 'Online subtotal' : 'Total Amount'}
-              </p>
-              <p className="mt-1 text-[22px] font-bold text-zinc-900 tabular-nums">
-                {formatCurrency(totalAmount)}
-              </p>
+              {hasProcurementItems && !hasOnlineItems ? (
+                <>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-500">
+                    Pricing
+                  </p>
+                  <p className="mt-1 text-[16px] font-semibold text-amber-600">
+                    TBQ
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-500">
+                    {hasProcurementItems ? 'Online subtotal' : 'Total Amount'}
+                  </p>
+                  <p className="mt-1 text-[22px] font-bold text-zinc-900 tabular-nums">
+                    {formatCurrency(totalAmount)}
+                  </p>
+                </>
+              )}
             </div>
           </div>
         </div>

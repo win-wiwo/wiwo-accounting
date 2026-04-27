@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, FilterQuery } from 'mongoose';
+import { Model, FilterQuery, Types } from 'mongoose';
 import { OnEvent } from '@nestjs/event-emitter';
 import {
   ApprovalAction,
@@ -218,7 +218,7 @@ export class NotificationsService {
   async findForUser(userId: string, query: QueryNotificationsDto) {
     const { page = 1, limit = 20, unreadOnly } = query;
 
-    const filter: FilterQuery<Notification> = { recipientId: userId };
+    const filter: FilterQuery<Notification> = { recipientId: new Types.ObjectId(userId) };
     if (unreadOnly) {
       filter.isRead = false;
     }
@@ -250,7 +250,7 @@ export class NotificationsService {
    * Get unread count for a user.
    */
   async getUnreadCount(userId: string): Promise<number> {
-    return this.notificationModel.countDocuments({ recipientId: userId, isRead: false });
+    return this.notificationModel.countDocuments({ recipientId: new Types.ObjectId(userId), isRead: false });
   }
 
   /**
@@ -258,7 +258,7 @@ export class NotificationsService {
    */
   async markAsRead(notificationId: string, userId: string): Promise<void> {
     await this.notificationModel.updateOne(
-      { _id: notificationId, recipientId: userId },
+      { _id: notificationId, recipientId: new Types.ObjectId(userId) },
       { $set: { isRead: true, readAt: new Date() } },
     );
   }
@@ -268,7 +268,7 @@ export class NotificationsService {
    */
   async markAllAsRead(userId: string): Promise<void> {
     await this.notificationModel.updateMany(
-      { recipientId: userId, isRead: false },
+      { recipientId: new Types.ObjectId(userId), isRead: false },
       { $set: { isRead: true, readAt: new Date() } },
     );
   }

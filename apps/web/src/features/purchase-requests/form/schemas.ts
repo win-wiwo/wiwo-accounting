@@ -6,6 +6,7 @@ import { PR_PRIORITIES, PrPriority, SourcingType } from '@prams/shared';
 export const sellerReferenceSchema = z.object({
   sellerName: z.string().min(1, 'Seller name required').max(100),
   price: z.number({ coerce: true }).min(0, 'Price required'),
+  url: z.string().url('Enter a valid URL').max(500).or(z.literal('')).optional(),
   notes: z.string().max(500).optional(),
 });
 
