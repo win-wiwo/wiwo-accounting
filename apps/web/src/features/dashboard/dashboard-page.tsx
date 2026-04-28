@@ -13,7 +13,6 @@ import {
 import { useAuthStore } from '@/stores/auth.store';
 import { usePrStats, usePurchaseRequests, useProjectSpending, useManagementStats } from '@/hooks/use-purchase-requests';
 import { usePendingApprovals, usePendingCount } from '@/hooks/use-approvals';
-import { usePoMonthlyStats } from '@/hooks/use-purchase-orders';
 import type { ProjectSpendingItem } from '@/lib/api-services';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -79,7 +78,6 @@ export function DashboardPage() {
   const { data: statsData, isLoading: statsLoading } = usePrStats();
   const { data: projectSpending, isLoading: projectSpendingLoading } = useProjectSpending();
   const { data: mgmtStats, isLoading: mgmtLoading } = useManagementStats();
-  const { data: posIssuedThisMonth } = usePoMonthlyStats();
   const { data: pendingCountData } = usePendingCount();
   const { data: pendingPrsData, isLoading: queueLoading } = usePendingApprovals({ page: 1, limit: 10 });
   const { data: myPrsData, isLoading: myPrsLoading } = usePurchaseRequests(
@@ -224,6 +222,14 @@ export function DashboardPage() {
                 {urgentCount > 0 && (
                   <KpiCard label="Urgent" value={urgentCount} onClick={() => navigate('/approvals')} variant="danger" />
                 )}
+                {mgmtStats && (
+                  <KpiCard
+                    label="Overdue"
+                    value={String(mgmtStats.overdueCount)}
+                    variant={mgmtStats.overdueCount > 0 ? 'danger' : 'default'}
+                    onClick={() => navigate('/approvals')}
+                  />
+                )}
                 {pendingTotalValue > 0 && (
                   <KpiCard label="Value Pending" value={compact(pendingTotalValue)} />
                 )}
@@ -237,14 +243,14 @@ export function DashboardPage() {
               <>
                 <KpiCard label="My Requests" value={totalPrs} onClick={() => navigate('/purchase-requests')} />
                 {inReviewCount > 0 && (
-                  <KpiCard label="In Review" value={inReviewCount} onClick={() => navigate('/purchase-requests')} variant="warning" />
+                  <KpiCard label="In Review" value={inReviewCount} onClick={() => navigate('/purchase-requests?status=level1_review')} variant="warning" />
                 )}
                 {inProcCount > 0 && (
-                  <KpiCard label="In Procurement" value={inProcCount} onClick={() => navigate('/purchase-requests')} />
+                  <KpiCard label="In Procurement" value={inProcCount} onClick={() => navigate('/purchase-requests?status=pending_quotation')} />
                 )}
-                <KpiCard label="Approved" value={approvedCount} onClick={() => navigate('/purchase-requests')} variant="success" />
+                <KpiCard label="Approved" value={approvedCount} onClick={() => navigate('/purchase-requests?status=approved')} variant="success" />
                 {returnedCount > 0 && (
-                  <KpiCard label="Returned" value={returnedCount} onClick={() => navigate('/purchase-requests')} variant="warning" />
+                  <KpiCard label="Returned" value={returnedCount} onClick={() => navigate('/purchase-requests?status=returned')} variant="warning" />
                 )}
               </>
             ) : (
@@ -259,55 +265,7 @@ export function DashboardPage() {
         )}
       </div>
 
-      {/* ── Management Stats Row ─────────────────────────────── */}
-      {(isManagement || isApprover) && (
-        <div className="dash-section" style={{ animation: 'dashFadeUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.14s both' }}>
-          {mgmtLoading ? (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 w-full rounded-xl" />)}
-            </div>
-          ) : mgmtStats ? (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <StatCard
-                label="Avg Approval Time"
-                value={mgmtStats.avgApprovalDays !== null ? `${mgmtStats.avgApprovalDays}d` : '—'}
-                sub="per request"
-                variant={mgmtStats.avgApprovalDays !== null && mgmtStats.avgApprovalDays > 5 ? 'warning' : 'default'}
-              />
-              {isManagement && (
-                <StatCard
-                  label="Approved This Month"
-                  value={compact(mgmtStats.thisMonthApprovedSpend)}
-                  sub={`${mgmtStats.thisMonthRequestCount} request${mgmtStats.thisMonthRequestCount !== 1 ? 's' : ''} submitted`}
-                />
-              )}
-              <StatCard
-                label="Overdue"
-                value={String(mgmtStats.overdueCount)}
-                sub="pending > 5 days"
-                variant={mgmtStats.overdueCount > 0 ? 'danger' : 'default'}
-                onClick={isApprover ? () => navigate('/approvals') : undefined}
-              />
-              {isManagement && (
-                <StatCard
-                  label="POs Issued"
-                  value={String(posIssuedThisMonth ?? 0)}
-                  sub="this month"
-                  onClick={() => navigate('/purchase-orders')}
-                />
-              )}
-              {!isManagement && isApprover && (
-                <StatCard
-                  label="Rejection Rate"
-                  value={`${mgmtStats.rejectionRate}%`}
-                  sub="of all decisions"
-                  variant={mgmtStats.rejectionRate > 15 ? 'warning' : 'default'}
-                />
-              )}
-            </div>
-          ) : null}
-        </div>
-      )}
+
 
       {/* ── Main Grid ─────────────────────────────────────────── */}
       <div
@@ -511,40 +469,6 @@ export function DashboardPage() {
         {/* Right — operational context */}
         <div className="lg:col-span-4 space-y-4">
 
-          {/* Status Health */}
-          <Card>
-            <CardHeader className="pb-4 px-6 pt-5">
-              <CardTitle className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
-                System Status
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0 px-6 pb-5">
-              {statsLoading ? (
-                <div className="space-y-3">
-                  {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-5 w-full" />)}
-                </div>
-              ) : totalPrs === 0 ? (
-                <p className="text-[13px] text-zinc-400 py-1">No requests in the system yet.</p>
-              ) : (
-                <div className="space-y-3">
-                  {STATUS_HEALTH.map(({ key, label, dot }) => {
-                    const count = byStatus[key]?.count ?? 0;
-                    if (count === 0) return null;
-                    return (
-                      <div key={key} className="flex items-center justify-between">
-                        <div className="flex items-center gap-2.5">
-                          <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${dot}`} />
-                          <span className="text-[13px] text-zinc-500">{label}</span>
-                        </div>
-                        <span className="text-[13px] font-semibold tabular-nums text-zinc-900">{count}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
           {/* Quick Actions */}
           {!isAdmin && (
             <Card>
@@ -587,6 +511,40 @@ export function DashboardPage() {
               </CardContent>
             </Card>
           )}
+
+          {/* Status Health */}
+          <Card>
+            <CardHeader className="pb-4 px-6 pt-5">
+              <CardTitle className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
+                System Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0 px-6 pb-5">
+              {statsLoading ? (
+                <div className="space-y-3">
+                  {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-5 w-full" />)}
+                </div>
+              ) : totalPrs === 0 ? (
+                <p className="text-[13px] text-zinc-400 py-1">No requests in the system yet.</p>
+              ) : (
+                <div className="space-y-3">
+                  {STATUS_HEALTH.map(({ key, label, dot }) => {
+                    const count = byStatus[key]?.count ?? 0;
+                    if (count === 0) return null;
+                    return (
+                      <div key={key} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${dot}`} />
+                          <span className="text-[13px] text-zinc-500">{label}</span>
+                        </div>
+                        <span className="text-[13px] font-semibold tabular-nums text-zinc-900">{count}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Project Spending */}
           {(projectSpendingLoading || (projectSpending && projectSpending.length > 0)) && (

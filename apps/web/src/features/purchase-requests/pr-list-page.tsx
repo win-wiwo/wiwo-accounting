@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Plus,
   Search,
@@ -63,9 +63,11 @@ export function PrListPage() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
 
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>(searchParams.get('status') ?? 'all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
 
@@ -165,7 +167,7 @@ export function PrListPage() {
           </div>
           {/* Filters — secondary, grouped tighter */}
           <div className="flex gap-2 flex-wrap sm:flex-nowrap shrink-0">
-            <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
+            <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); setSearchParams({}, { replace: true }); }}>
               <SelectTrigger className="w-full sm:w-[154px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]">
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
