@@ -68,6 +68,7 @@ const PR_STATUS_TONE: Record<string, BadgeTone> = {
   pending_quotation:  'violet',
   quoted:             'violet',
   approved:           'success',
+  completed:          'success',
   rejected:           'danger',
   returned:           'warn',
   returned_for_info:  'warn',

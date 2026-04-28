@@ -27,7 +27,6 @@ import { SuppliersListPage } from '@/features/suppliers/suppliers-list-page';
 import { SupplierFormPage } from '@/features/suppliers/supplier-form-page';
 import { SupplierDetailPage } from '@/features/suppliers/supplier-detail-page';
 import { PoListPage } from '@/features/purchase-orders/po-list-page';
-import { PoFormPage } from '@/features/purchase-orders/po-form-page';
 import { PoDetailPage } from '@/features/purchase-orders/po-detail-page';
 import { ProcurementQueuePage } from '@/features/procurement/procurement-queue-page';
 import { ProcurementWorkspacePage } from '@/features/procurement/workspace/procurement-workspace-page';
@@ -176,23 +175,7 @@ export default function App() {
 
               {/* Purchase Orders */}
               <Route path="/purchase-orders" element={<PoListPage />} />
-              <Route
-                path="/purchase-orders/new"
-                element={
-                  <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.PROCUREMENT]}>
-                    <PoFormPage />
-                  </ProtectedRoute>
-                }
-              />
               <Route path="/purchase-orders/:id" element={<PoDetailPage />} />
-              <Route
-                path="/purchase-orders/:id/edit"
-                element={
-                  <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.PROCUREMENT]}>
-                    <PoFormPage />
-                  </ProtectedRoute>
-                }
-              />
 
               {/* Search & Monitoring */}
               <Route

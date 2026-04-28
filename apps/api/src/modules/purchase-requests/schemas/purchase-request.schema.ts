@@ -259,6 +259,9 @@ export class PurchaseRequest extends Document {
   @Prop({ type: Date, default: null })
   completedAt: Date | null;
 
+  @Prop({ type: Types.ObjectId, ref: 'PurchaseOrder', default: null })
+  purchaseOrderId: Types.ObjectId | null;
+
   @Prop({ type: String, default: null })
   cancellationReason: string | null;
 

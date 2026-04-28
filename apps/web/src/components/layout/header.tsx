@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Bell, CheckCheck, Search, FileText, Loader2 } from 'lucide-react';
+import { Bell, CheckCheck, Search, FileText, Loader2, CheckCircle2, XCircle, RotateCcw, Send, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useUnreadCount, useNotifications, useMarkAsRead, useMarkAllAsRead } from '@/hooks/use-notifications';
@@ -35,6 +35,23 @@ function timeAgo(dateStr: string): string {
   const days = Math.floor(hours / 24);
   if (days < 7) return `${days}d ago`;
   return new Date(dateStr).toLocaleDateString();
+}
+
+function getNotificationConfig(type: string) {
+  switch (type) {
+    case 'approval_approved':
+      return { icon: CheckCircle2, bgClass: 'bg-emerald-50', iconClass: 'text-emerald-600' };
+    case 'approval_rejected':
+      return { icon: XCircle, bgClass: 'bg-red-50', iconClass: 'text-red-500' };
+    case 'approval_returned':
+      return { icon: RotateCcw, bgClass: 'bg-amber-50', iconClass: 'text-amber-600' };
+    case 'pr_submitted':
+      return { icon: Send, bgClass: 'bg-blue-50', iconClass: 'text-blue-500' };
+    case 'pr_needs_action':
+      return { icon: AlertCircle, bgClass: 'bg-blue-50', iconClass: 'text-blue-600' };
+    default:
+      return { icon: Bell, bgClass: 'bg-zinc-100', iconClass: 'text-zinc-500' };
+  }
 }
 
 function QuickSearch() {
@@ -229,54 +246,85 @@ export function Header({ sidebarCollapsed }: HeaderProps) {
 
           <Popover.Portal>
             <Popover.Content
-              className="z-50 w-80 overflow-hidden rounded-lg border bg-popover shadow-lg animate-in fade-in-0 zoom-in-95"
+              className="z-50 w-[360px] overflow-hidden rounded-xl border border-zinc-200/80 bg-white shadow-[0_8px_30px_rgba(0,0,0,0.12)] animate-in fade-in-0 zoom-in-95 slide-in-from-top-2"
               align="end"
               sideOffset={8}
             >
-              <div className="flex items-center justify-between border-b px-4 py-3">
-                <h3 className="text-sm font-semibold">Notifications</h3>
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-3.5 border-b border-zinc-100">
+                <div className="flex items-center gap-2.5">
+                  <h3 className="text-[13px] font-semibold text-zinc-900 tracking-tight">Notifications</h3>
+                  {unreadCount > 0 && (
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-zinc-900 px-1.5 text-[10px] font-bold text-white tabular-nums">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
+                </div>
                 {unreadCount > 0 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 px-2 text-xs"
+                  <button
+                    className="flex items-center gap-1 text-[11px] font-medium text-zinc-400 hover:text-zinc-700 transition-colors duration-150"
                     onClick={() => markAllAsRead.mutate()}
                   >
-                    <CheckCheck className="h-3.5 w-3.5 mr-1" /> Mark all read
-                  </Button>
+                    <CheckCheck className="h-3 w-3" />
+                    Mark all read
+                  </button>
                 )}
               </div>
 
-              <div className="max-h-80 overflow-y-auto">
+              {/* Notification list */}
+              <div className="max-h-[400px] overflow-y-auto overscroll-contain py-1">
                 {notifications.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-8 text-center">
-                    <Bell className="h-8 w-8 text-muted-foreground/30 mb-2" />
-                    <p className="text-sm text-muted-foreground">No notifications</p>
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-50 mb-3">
+                      <Bell className="h-4 w-4 text-zinc-300" />
+                    </div>
+                    <p className="text-[13px] font-medium text-zinc-400">No notifications yet</p>
+                    <p className="text-[11px] text-zinc-300 mt-0.5">You're all caught up</p>
                   </div>
                 ) : (
-                  notifications.map((notif) => (
-                    <div
-                      key={notif._id}
-                      className={cn(
-                        'flex gap-3 border-b px-4 py-3 cursor-pointer transition-colors hover:bg-muted/50 last:border-0',
-                        !notif.isRead && 'bg-primary/[0.03]',
-                      )}
-                      onClick={() => handleNotificationClick(notif)}
-                    >
-                      <div className={cn('mt-0.5 h-2 w-2 shrink-0 rounded-full', !notif.isRead ? 'bg-primary' : 'bg-transparent')} />
-                      <div className="min-w-0 flex-1">
-                        <p className={cn('text-sm truncate', !notif.isRead && 'font-medium')}>
-                          {notif.title}
-                        </p>
-                        <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
-                          {notif.message}
-                        </p>
-                        <p className="text-[11px] text-muted-foreground/70 mt-1">
-                          {timeAgo(notif.createdAt)}
-                        </p>
+                  notifications.map((notif) => {
+                    const config = getNotificationConfig(notif.type);
+                    return (
+                      <div
+                        key={notif._id}
+                        className={cn(
+                          'group relative flex items-start gap-3 mx-1.5 my-0.5 px-3.5 py-3 cursor-pointer rounded-lg transition-all duration-150',
+                          !notif.isRead
+                            ? 'bg-zinc-50 hover:bg-zinc-100/80 active:bg-zinc-100'
+                            : 'hover:bg-zinc-50 active:bg-zinc-100/60',
+                        )}
+                        onClick={() => handleNotificationClick(notif)}
+                      >
+                        {/* Icon badge */}
+                        <div className={cn(
+                          'mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
+                          config.bgClass,
+                        )}>
+                          <config.icon className={cn('h-3.5 w-3.5', config.iconClass)} />
+                        </div>
+
+                        {/* Content */}
+                        <div className="min-w-0 flex-1">
+                          <p className={cn(
+                            'text-[13px] leading-snug text-zinc-800 truncate',
+                            !notif.isRead ? 'font-semibold' : 'font-medium',
+                          )}>
+                            {notif.title}
+                          </p>
+                          <p className="text-[12px] text-zinc-400 truncate mt-0.5">
+                            {notif.message} <span className="text-zinc-300">&middot;</span> <span className="text-zinc-300">{timeAgo(notif.createdAt)}</span>
+                          </p>
+                        </div>
+
+                        {/* Unread dot */}
+                        {!notif.isRead && (
+                          <div className="mt-3 flex shrink-0">
+                            <span className="h-1.5 w-1.5 rounded-full bg-zinc-900" />
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </Popover.Content>

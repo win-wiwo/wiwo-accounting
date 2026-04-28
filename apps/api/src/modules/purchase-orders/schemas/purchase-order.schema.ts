@@ -56,6 +56,31 @@ export class POLineItem {
 
 export const POLineItemSchema = SchemaFactory.createForClass(POLineItem);
 
+@Schema({ _id: true })
+export class ProofPhoto {
+  _id: Types.ObjectId;
+
+  @Prop({ required: true })
+  originalName: string;
+
+  @Prop({ required: true })
+  storagePath: string;
+
+  @Prop({ required: true })
+  mimeType: string;
+
+  @Prop({ required: true, min: 0 })
+  size: number;
+
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  uploadedBy: Types.ObjectId;
+
+  @Prop({ required: true, default: () => new Date() })
+  uploadedAt: Date;
+}
+
+export const ProofPhotoSchema = SchemaFactory.createForClass(ProofPhoto);
+
 @Schema({ timestamps: true })
 export class PurchaseOrder extends Document {
   @Prop({ unique: true, sparse: true })
@@ -74,6 +99,9 @@ export class PurchaseOrder extends Document {
   supplierId: Types.ObjectId | null;
 
   @Prop({ type: String, default: null, trim: true })
+  supplierName: string | null;
+
+  @Prop({ type: String, default: null, trim: true })
   projectName: string | null;
 
   @Prop({ type: [POLineItemSchema], default: [] })
@@ -88,20 +116,33 @@ export class PurchaseOrder extends Document {
   @Prop({ type: [CanvassEntrySchema], default: [] })
   canvassEntries: CanvassEntry[];
 
-  @Prop({ required: true, enum: ['draft', 'submitted', 'approved', 'issued', 'cancelled'], default: 'draft' })
+  @Prop({ required: true, enum: ['pending', 'ordered', 'received', 'cancelled'], default: 'pending' })
   status: string;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   createdBy: Types.ObjectId;
 
+  // Fulfillment tracking
+  @Prop({ type: Date, default: null })
+  estimatedArrivalDate: Date | null;
+
+  @Prop({ type: Date, default: null })
+  orderedAt: Date | null;
+
   @Prop({ type: Types.ObjectId, ref: 'User', default: null })
-  approvedBy: Types.ObjectId | null;
+  orderedBy: Types.ObjectId | null;
 
   @Prop({ type: Date, default: null })
-  approvedAt: Date | null;
+  receivedAt: Date | null;
 
-  @Prop({ type: Date, default: null })
-  issuedAt: Date | null;
+  @Prop({ type: Types.ObjectId, ref: 'User', default: null })
+  receivedBy: Types.ObjectId | null;
+
+  @Prop({ type: String, default: null })
+  receivingNotes: string | null;
+
+  @Prop({ type: [ProofPhotoSchema], default: [] })
+  proofPhotos: ProofPhoto[];
 
   @Prop({ type: String, default: null })
   cancellationReason: string | null;

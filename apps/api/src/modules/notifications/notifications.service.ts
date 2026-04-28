@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, FilterQuery, Types } from 'mongoose';
 import { OnEvent } from '@nestjs/event-emitter';
@@ -18,6 +18,7 @@ import { User } from '../users/schemas/user.schema';
 
 @Injectable()
 export class NotificationsService {
+  private readonly logger = new Logger(NotificationsService.name);
   // One Subject per connected user — SSE streams subscribe to these
   private clients = new Map<string, Subject<{ data: unknown }>>();
 
@@ -79,7 +80,7 @@ export class NotificationsService {
       };
 
       const isMovingToProcurement = approval.action === ApprovalAction.APPROVED && purchaseRequest.status === PrStatus.PENDING_QUOTATION;
-      const isFullyApproved = purchaseRequest.status === PrStatus.APPROVED;
+      const isFullyApproved = purchaseRequest.status === PrStatus.APPROVED || purchaseRequest.status === PrStatus.COMPLETED;
 
       const titleMap: Record<string, string> = {
         [ApprovalAction.APPROVED]: isFullyApproved
@@ -112,7 +113,7 @@ export class NotificationsService {
     }
 
     // If approved and moving to next level (or to procurement), notify the next actor
-    if (approval.action === ApprovalAction.APPROVED && purchaseRequest.status !== PrStatus.APPROVED) {
+    if (approval.action === ApprovalAction.APPROVED && purchaseRequest.status !== PrStatus.APPROVED && purchaseRequest.status !== PrStatus.COMPLETED) {
       await this.notifyNextApprover(purchaseRequest);
     }
 
@@ -192,6 +193,29 @@ export class NotificationsService {
 
     // Notify COO for price sign-off
     await this.notifyNextApprover(purchaseRequest);
+  }
+
+  /**
+   * Notify the PR creator when their purchase order has been received.
+   */
+  @OnEvent('purchase-order.received')
+  async handlePoReceived(payload: {
+    purchaseOrder: { _id: string; poNumber: string };
+    purchaseRequestId: string;
+    prNumber: string | null;
+    requesterId: string | null;
+  }) {
+    const { purchaseOrder, purchaseRequestId, prNumber, requesterId } = payload;
+    if (!requesterId) return;
+
+    await this.notificationModel.create({
+      recipientId: new Types.ObjectId(requesterId),
+      title: 'Order Received',
+      message: `Your purchase order ${purchaseOrder.poNumber}${prNumber ? ` (PR ${prNumber})` : ''} has been received by procurement.`,
+      type: 'po_received',
+      purchaseRequestId: new Types.ObjectId(purchaseRequestId),
+    });
+    this.push(requesterId, { type: 'notification' });
   }
 
   private async notifyNextApprover(pr: { _id: string; title: string; prNumber: string; departmentId: string; status: string }) {

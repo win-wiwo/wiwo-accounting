@@ -3,14 +3,15 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  Logger,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, FilterQuery } from 'mongoose';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { UserRole } from '@prams/shared';
+import { Model, FilterQuery, Types } from 'mongoose';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
+import { UserRole, PrStatus } from '@prams/shared';
 import { PurchaseOrder } from './schemas/purchase-order.schema';
 import { PurchaseRequest } from '../purchase-requests/schemas/purchase-request.schema';
-import { CreatePurchaseOrderDto, UpdatePurchaseOrderDto, QueryPurchaseOrdersDto } from './dto';
+import { QueryPurchaseOrdersDto, UpdatePurchaseOrderDto } from './dto';
 
 interface RequestUser {
   _id: string;
@@ -20,78 +21,134 @@ interface RequestUser {
 
 @Injectable()
 export class PurchaseOrdersService {
+  private readonly logger = new Logger(PurchaseOrdersService.name);
+
   constructor(
     @InjectModel(PurchaseOrder.name) private poModel: Model<PurchaseOrder>,
     @InjectModel(PurchaseRequest.name) private prModel: Model<PurchaseRequest>,
     private eventEmitter: EventEmitter2,
   ) {}
 
-  async create(dto: CreatePurchaseOrderDto, user: RequestUser): Promise<PurchaseOrder> {
-    // Only procurement officers and admins can create POs
-    if (!(([UserRole.PROCUREMENT, UserRole.ADMIN] as string[]).includes(user.role))) {
-      throw new ForbiddenException('Only procurement officers and admins can create purchase orders');
+  /**
+   * Auto-create a PO when COO approves a QUOTED PR.
+   * Listens to the approval.action event.
+   */
+  @OnEvent('approval.action')
+  async handleApprovalForAutoCreate(payload: {
+    approval: { action: string; approvalLevel: number };
+    purchaseRequest: { _id: string; status: string };
+    actorId: string;
+  }) {
+    const { approval, purchaseRequest, actorId } = payload;
+
+    // Only trigger on COO approval of a PR that is now COMPLETED
+    if (approval.action !== 'approved' || purchaseRequest.status !== PrStatus.COMPLETED) {
+      return;
     }
 
-    // Verify source purchase request exists and is approved
-    const sourcePr = await this.prModel.findById(dto.purchaseRequestId);
-    if (!sourcePr) {
+    try {
+      await this.createFromApprovedPR(purchaseRequest._id.toString(), actorId);
+    } catch (error: any) {
+      this.logger.error(`Failed to auto-create PO for PR ${purchaseRequest._id}: ${error?.message}`);
+    }
+  }
+
+  /**
+   * Create a PO from an approved/completed PR.
+   * Uses the selected supplier from canvass entries and quoted prices.
+   */
+  async createFromApprovedPR(prId: string, actorId: string): Promise<PurchaseOrder> {
+    const pr = await this.prModel.findById(prId).exec();
+    if (!pr) {
       throw new NotFoundException('Source purchase request not found');
     }
 
-    if (sourcePr.status !== 'approved') {
-      throw new BadRequestException('Source purchase request must be approved before creating a PO');
+    if (pr.status !== PrStatus.COMPLETED) {
+      throw new BadRequestException('Source purchase request must be completed before creating a PO');
     }
 
-    // Build line items: use provided items or copy from source PR
-    let items;
-    if (dto.items && dto.items.length > 0) {
-      items = dto.items.map((item) => ({
-        description: item.description,
-        quantity: item.quantity,
-        unit: item.unit,
-        unitPrice: item.unitPrice,
-        totalPrice: item.quantity * item.unitPrice,
-        notes: item.notes || null,
-      }));
-    } else {
-      // Copy from source PR, mapping estimatedPrice to unitPrice
-      items = sourcePr.items.map((item) => ({
-        description: item.description,
-        quantity: item.quantity,
-        unit: item.unit,
-        unitPrice: item.estimatedPrice,
-        totalPrice: item.totalPrice,
-        notes: item.notes || null,
-      }));
+    // Check if PO already exists for this PR
+    const existingPo = await this.poModel.findOne({ purchaseRequestId: pr._id }).exec();
+    if (existingPo) {
+      this.logger.warn(`PO already exists for PR ${prId}, skipping auto-creation`);
+      return existingPo;
     }
+
+    // Find the selected supplier from canvass entries
+    const selectedCanvass = pr.canvassEntries.find((e) => e.isSelected);
+
+    // Build line items from PR items using quoted prices
+    const items = pr.items
+      .filter((item) => item.sourcingType === 'procurement')
+      .map((item) => {
+        // Try to find quoted price from selected canvass
+        const quotedItem = selectedCanvass?.quotedItems?.find(
+          (qi) => qi.itemId?.toString() === item._id.toString(),
+        );
+
+        const unitPrice = quotedItem?.unitPrice ?? item.quotedUnitPrice ?? item.estimatedPrice;
+        return {
+          description: item.description,
+          quantity: item.quantity,
+          unit: item.unit,
+          unitPrice,
+          totalPrice: item.quantity * unitPrice,
+          notes: item.notes || null,
+        };
+      });
 
     const totalAmount = items.reduce((sum, item) => sum + item.totalPrice, 0);
 
+    // Copy canvass entries from PR to PO
+    const canvassEntries = pr.canvassEntries.map((entry) => ({
+      supplierId: entry.supplierId,
+      supplierName: entry.supplierName,
+      quotedItems: entry.quotedItems.map((qi) => ({
+        description: qi.description,
+        unitPrice: qi.unitPrice,
+        totalPrice: qi.totalPrice,
+        remarks: qi.remarks || null,
+      })),
+      totalQuotedAmount: entry.totalQuotedAmount,
+      remarks: entry.remarks || null,
+      isSelected: entry.isSelected,
+    }));
+
+    const poNumber = await this.generatePoNumber();
+
     const po = new this.poModel({
-      purchaseRequestId: dto.purchaseRequestId,
-      sourceRequestNumber: sourcePr.prNumber || null,
-      sourceRequestType: dto.sourceRequestType,
-      supplierId: dto.supplierId || null,
-      projectName: dto.projectName || null,
+      poNumber,
+      purchaseRequestId: pr._id,
+      sourceRequestNumber: pr.prNumber || null,
+      sourceRequestType: pr.requestType || 'purchase_request',
+      supplierId: selectedCanvass?.supplierId || null,
+      supplierName: selectedCanvass?.supplierName || null,
       items,
       totalAmount,
-      status: 'draft',
-      createdBy: user._id,
-      remarks: dto.remarks || null,
+      canvassEntries,
+      status: 'pending',
+      createdBy: pr.requesterId,
     });
 
     const saved = await po.save();
 
+    // Link PO back to PR
+    pr.purchaseOrderId = saved._id as Types.ObjectId;
+    await pr.save();
+
+    this.logger.log(`Auto-created PO ${poNumber} for PR ${pr.prNumber}`);
+
     this.eventEmitter.emit('purchase-order.created', {
-      purchaseOrderId: saved._id,
-      purchaseRequestId: dto.purchaseRequestId,
-      createdBy: user._id,
+      purchaseOrder: saved.toJSON(),
+      purchaseRequestId: pr._id.toString(),
+      prNumber: pr.prNumber,
+      requesterId: pr.requesterId.toString(),
     });
 
     return saved;
   }
 
-  async findAll(query: QueryPurchaseOrdersDto) {
+  async findAll(query: QueryPurchaseOrdersDto, user?: RequestUser) {
     const {
       page = 1,
       limit = 10,
@@ -108,6 +165,11 @@ export class PurchaseOrdersService {
     const filter: FilterQuery<PurchaseOrder> = {};
     const andConditions: FilterQuery<PurchaseOrder>[] = [];
 
+    // Staff and dept heads can only see their own POs
+    if (user && ([UserRole.STAFF, UserRole.DEPT_HEAD] as string[]).includes(user.role)) {
+      filter.createdBy = new Types.ObjectId(user._id);
+    }
+
     if (search) {
       andConditions.push({
         $or: [
@@ -115,6 +177,7 @@ export class PurchaseOrdersService {
           { sourceRequestNumber: { $regex: search, $options: 'i' } },
           { remarks: { $regex: search, $options: 'i' } },
           { projectName: { $regex: search, $options: 'i' } },
+          { supplierName: { $regex: search, $options: 'i' } },
         ],
       });
     }
@@ -152,6 +215,8 @@ export class PurchaseOrdersService {
         .skip((page - 1) * limit)
         .limit(limit)
         .populate('createdBy', 'firstName lastName email')
+        .populate('orderedBy', 'firstName lastName email')
+        .populate('receivedBy', 'firstName lastName email')
         .populate('purchaseRequestId', 'prNumber title requestType')
         .lean(),
       this.poModel.countDocuments(filter),
@@ -168,18 +233,35 @@ export class PurchaseOrdersService {
     };
   }
 
-  async findById(id: string): Promise<PurchaseOrder> {
+  async findById(id: string, user?: RequestUser): Promise<PurchaseOrder> {
     const po = await this.poModel
       .findById(id)
       .populate('createdBy', 'firstName lastName email role')
-      .populate('approvedBy', 'firstName lastName email role')
-      .populate('purchaseRequestId', 'prNumber title requestType departmentId status totalAmount');
+      .populate('orderedBy', 'firstName lastName email role')
+      .populate('receivedBy', 'firstName lastName email role')
+      .populate('purchaseRequestId', 'prNumber title requestType departmentId status totalAmount requesterId');
 
     if (!po) {
       throw new NotFoundException('Purchase order not found');
     }
 
+    // Staff and dept heads can only view their own POs
+    if (user && ([UserRole.STAFF, UserRole.DEPT_HEAD] as string[]).includes(user.role)) {
+      if (po.createdBy?.toString() !== user._id && (po.createdBy as any)?._id?.toString() !== user._id) {
+        throw new ForbiddenException('You can only view your own purchase orders');
+      }
+    }
+
     return po;
+  }
+
+  async findByPurchaseRequest(prId: string): Promise<PurchaseOrder | null> {
+    return this.poModel
+      .findOne({ purchaseRequestId: prId })
+      .populate('createdBy', 'firstName lastName email')
+      .populate('orderedBy', 'firstName lastName email')
+      .populate('receivedBy', 'firstName lastName email')
+      .exec();
   }
 
   async update(id: string, dto: UpdatePurchaseOrderDto, user: RequestUser): Promise<PurchaseOrder> {
@@ -188,144 +270,132 @@ export class PurchaseOrdersService {
       throw new NotFoundException('Purchase order not found');
     }
 
-    if (po.status !== 'draft') {
-      throw new BadRequestException('Only draft purchase orders can be updated');
+    if (po.status !== 'pending') {
+      throw new BadRequestException('Only pending purchase orders can be updated');
     }
 
-    // Only the creator, procurement, or admin can update
-    if (
-      po.createdBy.toString() !== user._id &&
-      !(([UserRole.PROCUREMENT, UserRole.ADMIN] as string[]).includes(user.role))
-    ) {
-      throw new ForbiddenException('You do not have permission to update this purchase order');
-    }
-
-    if (dto.supplierId !== undefined) {
-      po.supplierId = dto.supplierId as never;
-    }
-
-    if (dto.projectName !== undefined) {
-      po.projectName = dto.projectName;
-    }
-
-    if (dto.items && dto.items.length > 0) {
-      po.items = dto.items.map((item) => ({
-        description: item.description,
-        quantity: item.quantity,
-        unit: item.unit,
-        unitPrice: item.unitPrice,
-        totalPrice: item.quantity * item.unitPrice,
-        notes: item.notes || null,
-      })) as never;
-      po.totalAmount = po.items.reduce((sum, item) => sum + item.totalPrice, 0);
-    }
-
-    if (dto.canvassEntries) {
-      po.canvassEntries = dto.canvassEntries.map((entry) => ({
-        supplierId: entry.supplierId,
-        supplierName: entry.supplierName,
-        quotedItems: entry.quotedItems || [],
-        totalQuotedAmount: entry.totalQuotedAmount,
-        remarks: entry.remarks || null,
-        isSelected: entry.isSelected || false,
-      })) as never;
+    if (!(([UserRole.PROCUREMENT, UserRole.ADMIN] as string[]).includes(user.role))) {
+      throw new ForbiddenException('Only procurement officers and admins can update purchase orders');
     }
 
     if (dto.remarks !== undefined) {
       po.remarks = dto.remarks;
     }
 
+    if (dto.estimatedArrivalDate !== undefined) {
+      po.estimatedArrivalDate = dto.estimatedArrivalDate ? new Date(dto.estimatedArrivalDate) : null;
+    }
+
     return po.save();
   }
 
-  async submit(id: string, user: RequestUser): Promise<PurchaseOrder> {
+  /**
+   * Mark PO as ordered — procurement has placed the order with the supplier.
+   */
+  async markOrdered(id: string, estimatedArrivalDate: string | null, user: RequestUser): Promise<PurchaseOrder> {
     const po = await this.poModel.findById(id);
     if (!po) {
       throw new NotFoundException('Purchase order not found');
     }
 
-    if (po.status !== 'draft') {
-      throw new BadRequestException('Only draft purchase orders can be submitted');
+    if (po.status !== 'pending') {
+      throw new BadRequestException('Only pending purchase orders can be marked as ordered');
     }
 
-    if (po.items.length === 0) {
-      throw new BadRequestException('Purchase order must have at least one line item');
-    }
-
-    // Generate PO number
-    po.poNumber = await this.generatePoNumber();
-    po.status = 'submitted';
-
-    const saved = await po.save();
-
-    this.eventEmitter.emit('purchase-order.submitted', {
-      purchaseOrderId: saved._id,
-      poNumber: saved.poNumber,
-      submittedBy: user._id,
-    });
-
-    return saved;
-  }
-
-  async approve(id: string, user: RequestUser): Promise<PurchaseOrder> {
-    const po = await this.poModel.findById(id);
-    if (!po) {
-      throw new NotFoundException('Purchase order not found');
-    }
-
-    if (po.status !== 'submitted') {
-      throw new BadRequestException('Only submitted purchase orders can be approved');
-    }
-
-    // Only COO, CEO, or Admin can approve
-    if (!(([UserRole.COO, UserRole.CEO, UserRole.ADMIN] as string[]).includes(user.role))) {
-      throw new ForbiddenException('You do not have permission to approve purchase orders');
-    }
-
-    // Cannot approve own PO
-    if (po.createdBy.toString() === user._id) {
-      throw new ForbiddenException('You cannot approve your own purchase order');
-    }
-
-    po.status = 'approved';
-    po.approvedBy = user._id as never;
-    po.approvedAt = new Date();
-
-    const saved = await po.save();
-
-    this.eventEmitter.emit('purchase-order.approved', {
-      purchaseOrderId: saved._id,
-      poNumber: saved.poNumber,
-      approvedBy: user._id,
-    });
-
-    return saved;
-  }
-
-  async issue(id: string, user: RequestUser): Promise<PurchaseOrder> {
-    const po = await this.poModel.findById(id);
-    if (!po) {
-      throw new NotFoundException('Purchase order not found');
-    }
-
-    if (po.status !== 'approved') {
-      throw new BadRequestException('Only approved purchase orders can be issued');
-    }
-
-    // Only procurement or admin can issue
     if (!(([UserRole.PROCUREMENT, UserRole.ADMIN] as string[]).includes(user.role))) {
-      throw new ForbiddenException('Only procurement officers and admins can issue purchase orders');
+      throw new ForbiddenException('Only procurement officers and admins can mark orders');
     }
 
-    po.status = 'issued';
-    po.issuedAt = new Date();
+    po.status = 'ordered';
+    po.orderedAt = new Date();
+    po.orderedBy = new Types.ObjectId(user._id);
+    if (estimatedArrivalDate) {
+      po.estimatedArrivalDate = new Date(estimatedArrivalDate);
+    }
 
     const saved = await po.save();
 
-    this.eventEmitter.emit('purchase-order.issued', {
-      purchaseOrderId: saved._id,
-      poNumber: saved.poNumber,
-      issuedBy: user._id,
+    this.eventEmitter.emit('purchase-order.ordered', {
+      purchaseOrder: saved.toJSON(),
+    });
+
+    return saved;
+  }
+
+  /**
+   * Update the estimated arrival date for an ordered PO.
+   */
+  async updateArrivalDate(id: string, estimatedArrivalDate: string, user: RequestUser): Promise<PurchaseOrder> {
+    const po = await this.poModel.findById(id);
+    if (!po) {
+      throw new NotFoundException('Purchase order not found');
+    }
+
+    if (po.status !== 'ordered') {
+      throw new BadRequestException('Can only update arrival date for ordered purchase orders');
+    }
+
+    if (!(([UserRole.PROCUREMENT, UserRole.ADMIN] as string[]).includes(user.role))) {
+      throw new ForbiddenException('Only procurement officers and admins can update arrival dates');
+    }
+
+    po.estimatedArrivalDate = new Date(estimatedArrivalDate);
+    return po.save();
+  }
+
+  /**
+   * Mark PO as received — with photo proof.
+   * This is the mobile-friendly receiving endpoint.
+   */
+  async markReceived(
+    id: string,
+    user: RequestUser,
+    notes: string | null,
+    photos: Array<{ originalName: string; storagePath: string; mimeType: string; size: number }>,
+  ): Promise<PurchaseOrder> {
+    const po = await this.poModel.findById(id);
+    if (!po) {
+      throw new NotFoundException('Purchase order not found');
+    }
+
+    if (po.status !== 'ordered') {
+      throw new BadRequestException('Only ordered purchase orders can be marked as received');
+    }
+
+    if (!(([UserRole.PROCUREMENT, UserRole.ADMIN] as string[]).includes(user.role))) {
+      throw new ForbiddenException('Only procurement officers and admins can receive orders');
+    }
+
+    if (!photos || photos.length === 0) {
+      throw new BadRequestException('At least one proof photo is required when receiving an order');
+    }
+
+    po.status = 'received';
+    po.receivedAt = new Date();
+    po.receivedBy = new Types.ObjectId(user._id);
+    po.receivingNotes = notes || null;
+    po.proofPhotos = photos.map((photo) => ({
+      originalName: photo.originalName,
+      storagePath: photo.storagePath,
+      mimeType: photo.mimeType,
+      size: photo.size,
+      uploadedBy: new Types.ObjectId(user._id),
+      uploadedAt: new Date(),
+    })) as any;
+
+    const saved = await po.save();
+
+    // Get the PR to find the requester
+    const pr = await this.prModel
+      .findById(po.purchaseRequestId)
+      .select('requesterId prNumber')
+      .exec();
+
+    this.eventEmitter.emit('purchase-order.received', {
+      purchaseOrder: saved.toJSON(),
+      purchaseRequestId: po.purchaseRequestId.toString(),
+      prNumber: pr?.prNumber || null,
+      requesterId: pr?.requesterId?.toString() || null,
     });
 
     return saved;
@@ -337,20 +407,16 @@ export class PurchaseOrdersService {
       throw new NotFoundException('Purchase order not found');
     }
 
-    if (['issued', 'cancelled'].includes(po.status)) {
-      throw new BadRequestException('Issued or already cancelled purchase orders cannot be cancelled');
+    if (['received', 'cancelled'].includes(po.status)) {
+      throw new BadRequestException('Received or already cancelled purchase orders cannot be cancelled');
     }
 
     if (!reason || reason.trim().length === 0) {
       throw new BadRequestException('Cancellation reason is required');
     }
 
-    // Only the creator, procurement, or admin can cancel
-    if (
-      po.createdBy.toString() !== user._id &&
-      !(([UserRole.PROCUREMENT, UserRole.ADMIN] as string[]).includes(user.role))
-    ) {
-      throw new ForbiddenException('You do not have permission to cancel this purchase order');
+    if (!(([UserRole.PROCUREMENT, UserRole.ADMIN] as string[]).includes(user.role))) {
+      throw new ForbiddenException('Only procurement officers and admins can cancel purchase orders');
     }
 
     po.status = 'cancelled';
@@ -368,17 +434,13 @@ export class PurchaseOrdersService {
     return saved;
   }
 
-  /**
-   * Generates a PO number in the format PO-YYYY-NNNNN.
-   * Uses findOneAndUpdate with $inc for atomic increment.
-   */
   async getStats() {
     const [statusCounts, activeValueResult] = await Promise.all([
       this.poModel.aggregate([
         { $group: { _id: '$status', count: { $sum: 1 } } },
       ]),
       this.poModel.aggregate([
-        { $match: { status: { $in: ['draft', 'submitted', 'approved', 'issued'] } } },
+        { $match: { status: { $in: ['pending', 'ordered'] } } },
         { $group: { _id: null, sum: { $sum: '$totalAmount' } } },
       ]),
     ]);
@@ -389,24 +451,24 @@ export class PurchaseOrdersService {
     }
 
     const total = Object.values(byStatus).reduce((a, b) => a + b, 0);
-    const open = (byStatus['draft'] ?? 0) + (byStatus['submitted'] ?? 0) + (byStatus['approved'] ?? 0);
-    const issued = byStatus['issued'] ?? 0;
+    const pending = byStatus['pending'] ?? 0;
+    const ordered = byStatus['ordered'] ?? 0;
+    const received = byStatus['received'] ?? 0;
     const cancelled = byStatus['cancelled'] ?? 0;
     const activeValue = activeValueResult[0]?.sum ?? 0;
 
-    return { data: { total, open, issued, cancelled, activeValue } };
+    return { data: { total, pending, ordered, received, cancelled, activeValue } };
   }
 
-  async getMonthlyIssuedCount(): Promise<number> {
+  async getMonthlyReceivedCount(): Promise<number> {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    return this.poModel.countDocuments({ status: 'issued', issuedAt: { $gte: startOfMonth } });
+    return this.poModel.countDocuments({ status: 'received', receivedAt: { $gte: startOfMonth } });
   }
 
   private async generatePoNumber(): Promise<string> {
     const year = new Date().getFullYear();
 
-    // Find the last PO number for this year by sorting descending
     const lastPo = await this.poModel
       .findOne({ poNumber: { $regex: `^PO-${year}-` } })
       .sort({ poNumber: -1 })

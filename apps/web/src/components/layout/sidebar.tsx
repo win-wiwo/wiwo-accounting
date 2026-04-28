@@ -70,7 +70,7 @@ const navigation: NavItem[] = [
     label: "Purchase Orders",
     href: "/purchase-orders",
     icon: ShoppingCart,
-    roles: [UserRole.ADMIN, UserRole.PROCUREMENT, UserRole.COO, UserRole.CEO],
+    roles: [UserRole.ADMIN, UserRole.PROCUREMENT, UserRole.COO, UserRole.CEO, UserRole.STAFF, UserRole.DEPT_HEAD],
   },
   {
     label: "Search & Monitor",

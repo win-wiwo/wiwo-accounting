@@ -46,6 +46,7 @@ import {
 import { purchaseRequestsApi } from "@/lib/api-services";
 import apiClient from "@/lib/api-client";
 import { useApprovalHistory, useProcessApproval } from "@/hooks/use-approvals";
+import { usePurchaseOrderByPr } from "@/hooks/use-purchase-orders";
 import { useAuthStore } from "@/stores/auth.store";
 import { useToast } from "@/components/ui/toast";
 import { PurchaseRequestWorkflowTimeline } from "@/components/purchase-request-workflow-timeline";
@@ -296,6 +297,7 @@ const statusStyle: Record<string, string> = {
   pending_quotation:  'bg-violet-50 text-violet-700',
   quoted:             'bg-violet-50 text-violet-700',
   approved:           'bg-emerald-50 text-emerald-700',
+  completed:          'bg-emerald-50 text-emerald-700',
   rejected:           'bg-red-50 text-red-600',
   returned:           'bg-amber-50 text-amber-700',
   returned_for_info:  'bg-amber-50 text-amber-700',
@@ -325,6 +327,7 @@ export function PrDetailPage() {
   const pr = data?.data;
   const { data: approvalHistoryData } = useApprovalHistory(id!);
   const approvalHistory = approvalHistoryData?.data ?? [];
+  const { data: linkedPo } = usePurchaseOrderByPr(id!);
 
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
@@ -637,11 +640,37 @@ export function PrDetailPage() {
       };
     }
     if (runtimeStatus === PrStatus.APPROVED) {
+      if (hasProcurementItems) {
+        return {
+          title: "Approved — Awaiting Purchase Order",
+          nextStep: "All approvals are complete. Procurement will create a purchase order and coordinate delivery.",
+          icon: <ShoppingCart className="h-4 w-4" />,
+          tone: "border-blue-200 bg-blue-50/60 text-blue-900",
+        };
+      }
       return {
         title: "Fully Approved",
         nextStep: "This request is approved and ready for purchasing. The complete workflow history is below.",
         icon: <CheckCircle2 className="h-4 w-4" />,
         tone: "border-emerald-200 bg-emerald-50/60 text-emerald-900",
+      };
+    }
+    if (runtimeStatus === 'completed') {
+      const po = linkedPo?.data;
+      const poStatusLabels: Record<string, string> = {
+        pending: 'Purchase order created — awaiting procurement to place the order.',
+        ordered: `Order placed with supplier.${po?.estimatedArrivalDate ? ` Estimated arrival: ${new Date(po.estimatedArrivalDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}.` : ''}`,
+        received: 'Order has been received by procurement.',
+        cancelled: 'The purchase order was cancelled.',
+      };
+      const poStatus = po?.status as string;
+      return {
+        title: po ? `Order ${poStatus === 'received' ? 'Received' : poStatus === 'ordered' ? 'In Transit' : poStatus === 'cancelled' ? 'Cancelled' : 'Processing'}` : "Completed",
+        nextStep: po ? poStatusLabels[poStatus] ?? 'Purchase order is being processed.' : 'This request has been completed and a purchase order has been created.',
+        icon: poStatus === 'received' ? <CheckCircle2 className="h-4 w-4" /> : <ShoppingCart className="h-4 w-4" />,
+        tone: poStatus === 'received' ? "border-emerald-200 bg-emerald-50/60 text-emerald-900"
+          : poStatus === 'cancelled' ? "border-destructive/20 bg-destructive/5 text-destructive"
+          : "border-blue-200 bg-blue-50/60 text-blue-900",
       };
     }
     if (runtimeStatus === PrStatus.REJECTED) {
@@ -711,6 +740,11 @@ export function PrDetailPage() {
           </div>
           {/* Actions */}
           <div className="flex items-center gap-2 flex-wrap">
+            {pr.purchaseOrderId && (
+              <Button size="sm" variant="outline" className="rounded-lg text-[13px] h-8 border-blue-200 text-blue-700 hover:bg-blue-50" onClick={() => navigate(`/purchase-orders/${pr.purchaseOrderId}`)}>
+                <ShoppingCart className="h-3.5 w-3.5" /> View Purchase Order
+              </Button>
+            )}
             {!isDraft && (
               <Button size="sm" variant="outline" className="rounded-lg text-[13px] h-8" onClick={handleGenerateReport}>
                 <FileText className="h-3.5 w-3.5" /> Report

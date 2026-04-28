@@ -22,7 +22,7 @@ export class QueryPurchaseOrdersDto {
   @IsOptional()
   search?: string;
 
-  @ApiPropertyOptional({ description: 'Single status or comma-separated statuses', enum: ['draft', 'submitted', 'approved', 'issued', 'cancelled'] })
+  @ApiPropertyOptional({ description: 'Single status or comma-separated statuses', enum: ['pending', 'ordered', 'received', 'cancelled'] })
   @IsString()
   @IsOptional()
   status?: string;

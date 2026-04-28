@@ -133,8 +133,8 @@ export class ApprovalsService {
           pr.currentApprovalLevel = currentLevel + 1;
         }
       } else if (pr.status === PrStatus.QUOTED) {
-        // COO price sign-off: procurement is done, finalize
-        pr.status = PrStatus.APPROVED;
+        // COO price sign-off: procurement is done, PO will be auto-created
+        pr.status = PrStatus.COMPLETED;
         pr.completedAt = new Date();
         pr.currentApprovalLevel = currentLevel + 1;
       } else {

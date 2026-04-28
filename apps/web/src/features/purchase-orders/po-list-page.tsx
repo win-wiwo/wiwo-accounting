@@ -1,15 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Plus,
   Search,
   ShoppingCart,
   MoreHorizontal,
   Eye,
-  Pencil,
-  Send,
+  Package,
   XCircle,
-  CheckCircle2,
+  Truck,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
@@ -17,7 +15,6 @@ import { UserRole } from '@prams/shared';
 import {
   usePurchaseOrders,
   usePoStats,
-  useSubmitPurchaseOrder,
   useCancelPurchaseOrder,
 } from '@/hooks/use-purchase-orders';
 import { useAuthStore } from '@/stores/auth.store';
@@ -32,12 +29,13 @@ type PoRow = {
   poNumber?: string;
   sourceRequestNumber?: string | null;
   sourceRequestType: string;
-  supplierId?: { _id: string; companyName: string; category?: string | null } | null;
+  supplierName?: string | null;
   totalAmount: number;
   status: string;
   createdAt: string;
-  issuedAt?: string | null;
-  approvedAt?: string | null;
+  estimatedArrivalDate?: string | null;
+  receivedAt?: string | null;
+  orderedAt?: string | null;
   purchaseRequestId?: { prNumber?: string; title?: string } | null;
   remarks?: string | null;
 };
@@ -45,26 +43,23 @@ type PoRow = {
 // ─── Constants ───────────────────────────────────────────
 
 const PO_STATUS_LABELS: Record<string, string> = {
-  draft:     'Draft',
-  submitted: 'Submitted',
-  approved:  'Approved',
-  issued:    'Issued',
+  pending:   'Pending',
+  ordered:   'Ordered',
+  received:  'Received',
   cancelled: 'Cancelled',
 };
 
 const STATUS_STYLE: Record<string, string> = {
-  draft:     'bg-zinc-100 text-zinc-500',
-  submitted: 'bg-blue-50 text-blue-700',
-  approved:  'bg-violet-50 text-violet-700',
-  issued:    'bg-emerald-50 text-emerald-700',
+  pending:   'bg-amber-50 text-amber-700',
+  ordered:   'bg-blue-50 text-blue-700',
+  received:  'bg-emerald-50 text-emerald-700',
   cancelled: 'bg-red-50 text-red-500',
 };
 
 const STATUS_DOT: Record<string, string> = {
-  draft:     'bg-zinc-300',
-  submitted: 'bg-blue-400',
-  approved:  'bg-violet-500',
-  issued:    'bg-emerald-400',
+  pending:   'bg-amber-400',
+  ordered:   'bg-blue-400',
+  received:  'bg-emerald-400',
   cancelled: 'bg-red-400',
 };
 
@@ -108,8 +103,7 @@ export function PoListPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const user = useAuthStore((s) => s.user);
-  const canCreate = ([UserRole.PROCUREMENT, UserRole.ADMIN] as string[]).includes(user?.role ?? '');
-  const canApprove = ([UserRole.COO, UserRole.CEO, UserRole.ADMIN] as string[]).includes(user?.role ?? '');
+  const canManage = ([UserRole.PROCUREMENT, UserRole.ADMIN] as string[]).includes(user?.role ?? '');
 
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -135,24 +129,12 @@ export function PoListPage() {
   });
 
   const { data: stats } = usePoStats();
-  const submitMutation = useSubmitPurchaseOrder();
   const cancelMutation = useCancelPurchaseOrder();
 
   const pos = (data?.data ?? []) as PoRow[];
   const meta = data?.meta;
 
   const hasFilters = !!search || !!statusFilter || !!sourceFilter;
-
-  const [btnHover, setBtnHover] = useState(false);
-
-  const handleSubmit = async (id: string, poNumber: string) => {
-    try {
-      await submitMutation.mutateAsync(id);
-      toast({ title: `${poNumber} submitted`, description: 'Routed for approval.', variant: 'success' });
-    } catch {
-      toast({ title: 'Action failed', variant: 'error' });
-    }
-  };
 
   const handleCancelConfirm = async () => {
     if (!cancelReason.trim()) return;
@@ -179,7 +161,7 @@ export function PoListPage() {
             Purchase Orders
           </h1>
           <p className="mt-1.5 text-[14px] text-zinc-500">
-            Create, manage, and track purchase orders.
+            Track and manage purchase orders.
           </p>
         </div>
         <div className="flex items-center gap-2.5 flex-wrap">
@@ -188,14 +170,19 @@ export function PoListPage() {
               <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1 text-[12px] font-medium text-zinc-600 tabular-nums">
                 {stats.total} Total
               </span>
-              {stats.open > 0 && (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-[12px] font-medium text-blue-700 tabular-nums">
-                  {stats.open} Open
+              {stats.pending > 0 && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-[12px] font-medium text-amber-700 tabular-nums">
+                  {stats.pending} Pending
                 </span>
               )}
-              {stats.issued > 0 && (
+              {stats.ordered > 0 && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-[12px] font-medium text-blue-700 tabular-nums">
+                  {stats.ordered} Ordered
+                </span>
+              )}
+              {stats.received > 0 && (
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-[12px] font-medium text-emerald-700 tabular-nums">
-                  {stats.issued} Issued
+                  {stats.received} Received
                 </span>
               )}
               {stats.activeValue > 0 && (
@@ -204,27 +191,6 @@ export function PoListPage() {
                 </span>
               )}
             </>
-          )}
-          {canCreate && (
-            <button
-              onClick={() => navigate('/purchase-orders/new')}
-              onMouseEnter={() => setBtnHover(true)}
-              onMouseLeave={() => setBtnHover(false)}
-              style={{
-                background: btnHover
-                  ? 'linear-gradient(135deg, #3f3f46 0%, #18181b 100%)'
-                  : 'linear-gradient(135deg, #18181b 0%, #09090b 100%)',
-                boxShadow: btnHover
-                  ? '0 4px 12px rgba(0,0,0,0.25), 0 1px 3px rgba(0,0,0,0.15)'
-                  : '0 1px 3px rgba(0,0,0,0.15)',
-                transform: btnHover ? 'translateY(-1px)' : 'none',
-                transition: 'all 0.2s cubic-bezier(0.16,1,0.3,1)',
-              }}
-              className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-[13px] font-semibold text-white"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              New PO
-            </button>
           )}
         </div>
       </div>
@@ -307,16 +273,8 @@ export function PoListPage() {
             <p className="text-[13px] text-zinc-500 max-w-sm">
               {hasFilters
                 ? 'Try adjusting your search or filters.'
-                : 'Approved requests converted to purchase orders will appear here.'}
+                : 'Purchase orders are auto-created when procurement requests are fully approved.'}
             </p>
-            {canCreate && !hasFilters && (
-              <button
-                className="mt-5 inline-flex items-center gap-1.5 rounded-lg bg-zinc-900 px-4 py-2 text-[13px] font-semibold text-white hover:bg-zinc-800 transition-colors"
-                onClick={() => navigate('/purchase-orders/new')}
-              >
-                <Plus className="h-3.5 w-3.5" /> Create New PO
-              </button>
-            )}
           </div>
         ) : (
           <>
@@ -325,10 +283,7 @@ export function PoListPage() {
                 <thead className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm">
                   <tr className="border-b border-zinc-100">
                     <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
-                      PO Number
-                    </th>
-                    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
-                      Source
+                      Order
                     </th>
                     <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400 hidden md:table-cell">
                       Supplier
@@ -347,21 +302,17 @@ export function PoListPage() {
                 </thead>
                 <tbody>
                   {pos.map((po, idx) => {
-                    const isDraft = po.status === 'draft';
+                    const isPending = po.status === 'pending';
                     const isCancelled = po.status === 'cancelled';
-                    const isIssued = po.status === 'issued';
-
-                    const supplierName = po.supplierId?.companyName ?? null;
-                    const supplierCategory = po.supplierId?.category ?? null;
+                    const isReceived = po.status === 'received';
 
                     const sourceNumber = po.sourceRequestNumber
                       ?? (po.purchaseRequestId as { prNumber?: string } | null)?.prNumber
                       ?? null;
-                    const sourceTypeLabel = SOURCE_LABELS[po.sourceRequestType] ?? po.sourceRequestType;
 
-                    const dateToShow = isIssued && po.issuedAt
-                      ? po.issuedAt
-                      : po.createdAt;
+                    const dateToShow = isReceived && po.receivedAt
+                      ? po.receivedAt
+                      : po.orderedAt ?? po.createdAt;
 
                     return (
                       <tr
@@ -370,35 +321,25 @@ export function PoListPage() {
                         style={{ animationDelay: `${0.04 + idx * 0.025}s` }}
                         onClick={() => navigate(`/purchase-orders/${po._id}`)}
                       >
-                        {/* PO Number */}
+                        {/* Order (PO + PR number) */}
                         <td className="px-5 py-4">
-                          {po.poNumber ? (
+                          <div>
                             <span className="font-mono text-[13px] font-medium text-zinc-800 tracking-tight group-hover:text-zinc-950 transition-colors">
-                              {po.poNumber}
+                              {po.poNumber ?? '—'}
                             </span>
-                          ) : (
-                            <span className="font-mono text-[13px] italic text-zinc-400">Draft</span>
-                          )}
-                        </td>
-
-                        {/* Source */}
-                        <td className="px-5 py-4">
-                          <div className="max-w-[200px]">
-                            <p className="text-[13px] font-medium text-zinc-800 truncate">
-                              {sourceNumber ?? '—'}
-                            </p>
-                            <p className="text-[11px] text-zinc-400 mt-0.5">{sourceTypeLabel}</p>
+                            {sourceNumber && (
+                              <p className="font-mono text-[11px] text-zinc-400 mt-0.5 tracking-tight">
+                                {sourceNumber}
+                              </p>
+                            )}
                           </div>
                         </td>
 
                         {/* Supplier */}
                         <td className="px-5 py-4 hidden md:table-cell">
-                          {supplierName ? (
+                          {po.supplierName ? (
                             <div className="max-w-[200px]">
-                              <p className="text-[13px] text-zinc-700 truncate">{supplierName}</p>
-                              {supplierCategory && (
-                                <p className="text-[11px] text-zinc-400 mt-0.5 truncate">{supplierCategory}</p>
-                              )}
+                              <p className="text-[13px] text-zinc-700 truncate">{po.supplierName}</p>
                             </div>
                           ) : (
                             <span className="text-[12px] text-zinc-300 italic">No supplier</span>
@@ -428,8 +369,13 @@ export function PoListPage() {
                             <span className="text-[12px] text-zinc-400 tabular-nums whitespace-nowrap">
                               {dateLabel(dateToShow)}
                             </span>
-                            {isIssued && po.issuedAt && (
-                              <p className="text-[10px] text-zinc-300 mt-0.5">Issued</p>
+                            {isReceived && po.receivedAt && (
+                              <p className="text-[10px] text-zinc-300 mt-0.5">Received</p>
+                            )}
+                            {po.status === 'ordered' && po.estimatedArrivalDate && (
+                              <p className="text-[10px] text-blue-400 mt-0.5">
+                                ETA: {new Date(po.estimatedArrivalDate).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}
+                              </p>
                             )}
                           </div>
                         </td>
@@ -455,33 +401,25 @@ export function PoListPage() {
                                   <Eye className="h-3.5 w-3.5 text-zinc-400" /> View PO
                                 </DropdownMenu.Item>
 
-                                {canCreate && isDraft && (
-                                  <>
-                                    <DropdownMenu.Item
-                                      className="flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] text-zinc-700 outline-none hover:bg-zinc-50 transition-colors"
-                                      onSelect={() => navigate(`/purchase-orders/${po._id}/edit`)}
-                                    >
-                                      <Pencil className="h-3.5 w-3.5 text-zinc-400" /> Edit
-                                    </DropdownMenu.Item>
-                                    <DropdownMenu.Item
-                                      className="flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] text-blue-700 outline-none hover:bg-blue-50 transition-colors"
-                                      onSelect={() => handleSubmit(po._id, po.poNumber ?? 'Draft PO')}
-                                    >
-                                      <Send className="h-3.5 w-3.5 text-blue-500" /> Submit for Approval
-                                    </DropdownMenu.Item>
-                                  </>
+                                {canManage && isPending && (
+                                  <DropdownMenu.Item
+                                    className="flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] text-blue-700 outline-none hover:bg-blue-50 transition-colors"
+                                    onSelect={() => navigate(`/purchase-orders/${po._id}`)}
+                                  >
+                                    <Truck className="h-3.5 w-3.5 text-blue-500" /> Mark as Ordered
+                                  </DropdownMenu.Item>
                                 )}
 
-                                {canApprove && po.status === 'submitted' && (
+                                {canManage && po.status === 'ordered' && (
                                   <DropdownMenu.Item
                                     className="flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] text-emerald-700 outline-none hover:bg-emerald-50 transition-colors"
                                     onSelect={() => navigate(`/purchase-orders/${po._id}`)}
                                   >
-                                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> Review & Approve
+                                    <Package className="h-3.5 w-3.5 text-emerald-500" /> Receive Order
                                   </DropdownMenu.Item>
                                 )}
 
-                                {canCreate && !isCancelled && !isIssued && (
+                                {canManage && !isCancelled && !isReceived && (
                                   <>
                                     <DropdownMenu.Separator className="my-1 h-px bg-zinc-100" />
                                     <DropdownMenu.Item

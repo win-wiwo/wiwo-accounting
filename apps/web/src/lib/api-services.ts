@@ -354,23 +354,6 @@ export interface PurchaseOrdersQuery {
   order?: 'asc' | 'desc';
 }
 
-export interface POLineItemPayload {
-  description: string;
-  quantity: number;
-  unit: string;
-  unitPrice: number;
-  notes?: string;
-}
-
-export interface CreatePurchaseOrderPayload {
-  purchaseRequestId: string;
-  sourceRequestType: string;
-  supplierId?: string;
-  projectName?: string;
-  items?: POLineItemPayload[];
-  remarks?: string;
-}
-
 export const purchaseOrdersApi = {
   list: (params: PurchaseOrdersQuery = {}) =>
     apiClient
@@ -380,29 +363,31 @@ export const purchaseOrdersApi = {
   getById: (id: string) =>
     apiClient.get<ApiResponse<any>>(`/purchase-orders/${id}`).then((r) => r.data),
 
-  create: (data: CreatePurchaseOrderPayload) =>
-    apiClient.post<ApiResponse<any>>('/purchase-orders', data).then((r) => r.data),
+  getByPurchaseRequest: (prId: string) =>
+    apiClient.get<ApiResponse<any>>(`/purchase-orders/by-pr/${prId}`).then((r) => r.data),
 
-  update: (id: string, data: Partial<CreatePurchaseOrderPayload>) =>
+  update: (id: string, data: { estimatedArrivalDate?: string; remarks?: string }) =>
     apiClient.patch<ApiResponse<any>>(`/purchase-orders/${id}`, data).then((r) => r.data),
 
-  submit: (id: string) =>
-    apiClient.post<ApiResponse<any>>(`/purchase-orders/${id}/submit`).then((r) => r.data),
+  markOrdered: (id: string, estimatedArrivalDate: string | null) =>
+    apiClient.post<ApiResponse<any>>(`/purchase-orders/${id}/order`, { estimatedArrivalDate }).then((r) => r.data),
 
-  approve: (id: string) =>
-    apiClient.post<ApiResponse<any>>(`/purchase-orders/${id}/approve`).then((r) => r.data),
+  updateArrivalDate: (id: string, estimatedArrivalDate: string) =>
+    apiClient.patch<ApiResponse<any>>(`/purchase-orders/${id}/arrival-date`, { estimatedArrivalDate }).then((r) => r.data),
 
-  issue: (id: string) =>
-    apiClient.post<ApiResponse<any>>(`/purchase-orders/${id}/issue`).then((r) => r.data),
+  receive: (id: string, formData: FormData) =>
+    apiClient.post<ApiResponse<any>>(`/purchase-orders/${id}/receive`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }).then((r) => r.data),
 
   cancel: (id: string, reason: string) =>
     apiClient.post<ApiResponse<any>>(`/purchase-orders/${id}/cancel`, { reason }).then((r) => r.data),
 
   getStats: () =>
-    apiClient.get<{ data: { total: number; open: number; issued: number; cancelled: number; activeValue: number } }>('/purchase-orders/stats').then((r) => r.data),
+    apiClient.get<{ data: { total: number; pending: number; ordered: number; received: number; cancelled: number; activeValue: number } }>('/purchase-orders/stats').then((r) => r.data),
 
   getMonthlyStats: () =>
-    apiClient.get<{ data: { issuedThisMonth: number } }>('/purchase-orders/stats/monthly').then((r) => r.data),
+    apiClient.get<{ data: { receivedThisMonth: number } }>('/purchase-orders/stats/monthly').then((r) => r.data),
 };
 
 export interface ManagementStats {

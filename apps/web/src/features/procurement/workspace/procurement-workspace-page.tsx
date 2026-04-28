@@ -1,11 +1,11 @@
 import { useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft, ShoppingCart, Eye, CheckCircle2, RotateCcw,
+  ArrowLeft, ShoppingCart, Eye, CheckCircle2,
   Loader2, User,
   Paperclip, Download, Camera, ImageIcon, FileText, Upload, Trash2,
   Trophy, AlertTriangle, CheckCircle, XCircle,
-  ChevronDown, ChevronUp, TrendingDown, Clock, Info,
+  TrendingDown, Info,
   FileSpreadsheet, FileImage, Send, MessageSquare,
 } from 'lucide-react';
 import { StickyFooter } from '@/components/ui/sticky-footer';
@@ -63,8 +63,6 @@ export function ProcurementWorkspacePage() {
   const [isDragging, setIsDragging] = useState(false);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
-  const [lineItemsExpanded, setLineItemsExpanded] = useState(false);
-
   const [previewDialog, setPreviewDialog] = useState<{ open: boolean; url: string | null; mimeType: string; name: string; loading: boolean }>({
     open: false, url: null, mimeType: '', name: '', loading: false,
   });
@@ -253,14 +251,11 @@ export function ProcurementWorkspacePage() {
             <h1 className="text-[24px] font-bold tracking-[-0.02em] leading-tight text-zinc-900 truncate max-w-[640px]">
               {pr.title}
             </h1>
-            <div className="flex items-center gap-2.5 mt-2 flex-wrap">
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
               {pr.prNumber && (
                 <span className="font-mono text-[12px] font-semibold text-zinc-400 tracking-tight">{pr.prNumber}</span>
               )}
               <span className="h-3.5 w-px bg-zinc-200" />
-              <span className="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-100 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700">
-                Approved
-              </span>
               <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${
                 pr.status === 'pending_quotation' || pr.status === 'returned_for_info'
                   ? 'bg-amber-50 text-amber-700 border-amber-100'
@@ -279,13 +274,9 @@ export function ProcurementWorkspacePage() {
                 <>
                   <span className="h-3.5 w-px bg-zinc-200" />
                   <span className={`text-[12px] font-medium ${neededByDays !== null && neededByDays <= 3 ? 'text-red-500' : 'text-zinc-500'}`}>
-                    Needed by {formatDate(pr.neededByDate)}
-                    {neededByDays !== null && neededByDays > 0 && (
-                      <span className="text-zinc-400 ml-1 font-normal">({neededByDays}d left)</span>
-                    )}
-                    {neededByDays !== null && neededByDays <= 0 && (
-                      <span className="text-red-500 ml-1 font-normal">(overdue)</span>
-                    )}
+                    {neededByDays !== null && neededByDays <= 0
+                      ? <span className="text-red-500">Overdue</span>
+                      : <>Needed {formatDate(pr.neededByDate)} {neededByDays !== null && neededByDays > 0 && <span className="text-zinc-400 font-normal">({neededByDays}d left)</span>}</>}
                   </span>
                 </>
               )}
@@ -398,14 +389,6 @@ export function ProcurementWorkspacePage() {
                 <span className="text-[11px] text-zinc-400">Submitted</span>
                 <span className="text-[12px] font-medium text-zinc-700">{formatDate(pr.submittedAt) || '—'}</span>
               </div>
-              {pr.neededByDate && (
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[11px] text-zinc-400">Needed by</span>
-                  <span className={`text-[12px] font-medium ${neededByDays !== null && neededByDays <= 3 ? 'text-red-500' : 'text-zinc-700'}`}>
-                    {formatDate(pr.neededByDate)}
-                  </span>
-                </div>
-              )}
               {pr.projectId && (
                 <div className="flex items-start justify-between gap-2">
                   <span className="text-[11px] text-zinc-400 shrink-0">Project</span>
@@ -436,23 +419,30 @@ export function ProcurementWorkspacePage() {
             {procItems.length === 0 ? (
               <p className="text-[12px] text-zinc-400">All items are online-sourced.</p>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-0.5">
                 {procItems.map((item, i) => (
-                  <div key={item._id}>
-                    {i > 0 && <div className="h-px bg-zinc-100 mb-3" />}
+                  <div key={item._id} className="rounded-lg px-3 py-3 hover:bg-zinc-50/80 transition-colors duration-150">
                     <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="text-[12.5px] font-medium leading-snug text-zinc-800">{item.description}</p>
-                        <p className="text-[11px] text-zinc-400 mt-0.5">{item.quantity} {item.unit}</p>
-                        {item.specifications && (
-                          <p className="text-[11px] text-zinc-400/80 italic leading-relaxed mt-0.5">{item.specifications}</p>
-                        )}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-zinc-100 text-[10px] font-bold text-zinc-500 tabular-nums">{i + 1}</span>
+                          <p className="text-[12.5px] font-semibold leading-snug text-zinc-800">{item.description}</p>
+                        </div>
+                        <div className="ml-7 mt-1.5 space-y-1">
+                          <p className="text-[11px] font-medium text-zinc-500">{item.quantity} {item.unit}</p>
+                          {item.specifications && (
+                            <p className="text-[11px] text-zinc-400 leading-relaxed">{item.specifications}</p>
+                          )}
+                          {item.notes && (
+                            <p className="text-[11px] text-zinc-400 italic">{item.notes}</p>
+                          )}
+                        </div>
                       </div>
                       {item.referencePhotoPath && (
                         <button
                           type="button"
                           onClick={() => handleViewItemPhoto(item._id)}
-                          className="shrink-0 inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10px] text-zinc-500 hover:bg-zinc-100 transition-colors duration-150"
+                          className="shrink-0 mt-0.5 inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10px] text-zinc-500 hover:bg-zinc-100 transition-colors duration-150"
                         >
                           <Camera className="h-2.5 w-2.5" /> Photo
                         </button>
@@ -497,7 +487,7 @@ export function ProcurementWorkspacePage() {
                 )}
               </div>
 
-              {existingEntries.length > 0 && (
+              {existingEntries.length > 0 && (existingEntries.length === 1 || roPriceDiffPercent || (roSelectedEntry && existingEntries.length > 1 && roSelectedTotal === roLowestTotal)) && (
                 <div className="px-6 py-3 flex flex-wrap gap-2 border-b border-zinc-100">
                   {existingEntries.length === 1 && (
                     <span className="inline-flex items-center gap-1.5 rounded-lg bg-blue-50 border border-blue-100 px-3 py-1.5 text-[11px] text-blue-700 font-medium">
@@ -512,13 +502,6 @@ export function ProcurementWorkspacePage() {
                   {roSelectedEntry && existingEntries.length > 1 && roSelectedTotal === roLowestTotal && (
                     <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-1.5 text-[11px] text-emerald-700 font-medium">
                       <CheckCircle className="h-3 w-3" /> Lowest qualified bid selected
-                    </span>
-                  )}
-                  {neededByDays !== null && neededByDays > 0 && neededByDays <= 14 && (
-                    <span className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-medium border ${
-                      neededByDays <= 3 ? 'bg-red-50 border-red-100 text-red-600' : 'bg-zinc-50 border-zinc-200 text-zinc-600'
-                    }`}>
-                      <Clock className="h-3 w-3" /> Needed in {neededByDays} day{neededByDays !== 1 ? 's' : ''}
                     </span>
                   )}
                 </div>
@@ -653,7 +636,9 @@ export function ProcurementWorkspacePage() {
             <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-zinc-100">
               <div>
                 <h2 className="text-[15px] font-semibold text-zinc-900">Quotation Evidence</h2>
-                <p className="text-[12px] text-zinc-400 mt-0.5">At least one file required before submitting</p>
+                {quotationAttachments.length === 0 && (
+                  <p className="text-[12px] text-zinc-400 mt-0.5">At least one file required before submitting</p>
+                )}
               </div>
               <label>
                 <input
@@ -739,92 +724,6 @@ export function ProcurementWorkspacePage() {
             </div>
           </div>
 
-          {/* All Line Items */}
-          <div className="rounded-xl border border-zinc-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-            <button
-              type="button"
-              className="flex w-full items-center justify-between px-6 py-4 hover:bg-zinc-50/40 transition-colors duration-150 group"
-              onClick={() => setLineItemsExpanded(!lineItemsExpanded)}
-            >
-              <div className="flex items-center gap-3">
-                <h2 className="text-[14px] font-semibold text-zinc-900">All Line Items</h2>
-                <span className="inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-500 tabular-nums">
-                  {pr.items.length}
-                </span>
-                <span className="text-[12px] font-medium text-zinc-400">
-                  {procItems.some((i) => !i.quotedUnitPrice) ? 'Awaiting Quotations' : formatCurrency(pr.totalAmount)}
-                </span>
-              </div>
-              {lineItemsExpanded
-                ? <ChevronUp className="h-4 w-4 text-zinc-400 group-hover:text-zinc-600 transition-colors" />
-                : <ChevronDown className="h-4 w-4 text-zinc-400 group-hover:text-zinc-600 transition-colors" />}
-            </button>
-
-            {lineItemsExpanded && (
-              <div className="overflow-x-auto border-t border-zinc-100">
-                <table className="w-full text-[13px]">
-                  <thead>
-                    <tr className="bg-zinc-50/60">
-                      <th className="text-left px-6 py-3 text-[10px] font-semibold uppercase tracking-[0.07em] text-zinc-400 w-8">#</th>
-                      <th className="text-left px-6 py-3 text-[10px] font-semibold uppercase tracking-[0.07em] text-zinc-400">Item</th>
-                      <th className="text-left px-6 py-3 text-[10px] font-semibold uppercase tracking-[0.07em] text-zinc-400">Sourcing</th>
-                      <th className="text-right px-6 py-3 text-[10px] font-semibold uppercase tracking-[0.07em] text-zinc-400">Qty</th>
-                      <th className="text-right px-6 py-3 text-[10px] font-semibold uppercase tracking-[0.07em] text-zinc-400">Unit Price</th>
-                      <th className="text-right px-6 py-3 text-[10px] font-semibold uppercase tracking-[0.07em] text-zinc-400">Total</th>
-                      <th className="w-8 px-2" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pr.items.map((item, i) => {
-                      const isProcurement = item.sourcingType === SourcingType.PROCUREMENT;
-                      const displayPrice = isProcurement ? (item.quotedUnitPrice ?? 0) : (item.estimatedPrice ?? 0);
-                      const isPending = isProcurement && !item.quotedUnitPrice;
-                      return (
-                        <tr key={item._id} className="border-t border-zinc-100 hover:bg-zinc-50/40 transition-colors duration-150">
-                          <td className="px-6 py-3.5 text-zinc-400 text-[12px]">{i + 1}</td>
-                          <td className="px-6 py-3.5">
-                            <p className="font-medium text-zinc-800 leading-snug">{item.description}</p>
-                            {item.specifications && <p className="text-[11px] text-zinc-400 mt-0.5 italic line-clamp-1">{item.specifications}</p>}
-                          </td>
-                          <td className="px-6 py-3.5">
-                            {isProcurement
-                              ? <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700"><ShoppingCart className="h-2.5 w-2.5" /> Procurement</span>
-                              : <span className="inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-500">Online</span>}
-                          </td>
-                          <td className="px-6 py-3.5 text-right text-zinc-500 whitespace-nowrap tabular-nums">{item.quantity} {item.unit}</td>
-                          <td className="px-6 py-3.5 text-right whitespace-nowrap tabular-nums">
-                            {isPending
-                              ? <span className="text-amber-500 text-[12px]">Pending</span>
-                              : <span className="text-zinc-600">{formatCurrency(displayPrice)}</span>}
-                          </td>
-                          <td className="px-6 py-3.5 text-right font-semibold whitespace-nowrap tabular-nums text-zinc-800">
-                            {item.totalPrice > 0 ? formatCurrency(item.totalPrice) : '—'}
-                          </td>
-                          <td className="px-3 py-3.5 text-center">
-                            {item.referencePhotoPath && (
-                              <button type="button" onClick={() => handleViewItemPhoto(item._id)} title="View photo"
-                                className="inline-flex items-center justify-center h-6 w-6 rounded-md text-zinc-400 hover:text-blue-500 hover:bg-blue-50 transition-colors duration-150">
-                                <Camera className="h-3.5 w-3.5" />
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                    <tr className="border-t-2 border-zinc-200 bg-zinc-50/80">
-                      <td colSpan={5} className="px-6 py-3.5 text-right text-[11px] font-semibold uppercase tracking-[0.07em] text-zinc-400">Total</td>
-                      <td className="px-6 py-3.5 text-right">
-                        {procItems.some((i) => !i.quotedUnitPrice)
-                          ? <span className="text-amber-500 font-semibold text-[13px]">Awaiting Quotations</span>
-                          : <span className="text-[16px] font-bold tabular-nums text-zinc-900">{formatCurrency(pr.totalAmount)}</span>}
-                      </td>
-                      <td />
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
         </div>
       </div>
 

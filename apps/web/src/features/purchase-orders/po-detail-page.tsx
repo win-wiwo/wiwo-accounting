@@ -1,28 +1,31 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
-  Pencil,
-  Send,
-  CheckCircle,
-  Package,
   XCircle,
   ShoppingCart,
   FileText,
+  Truck,
+  Camera,
+  Package,
+  ImageIcon,
+  Calendar,
 } from 'lucide-react';
 import { UserRole } from '@prams/shared';
 import {
   usePurchaseOrder,
-  useSubmitPurchaseOrder,
-  useApprovePurchaseOrder,
-  useIssuePurchaseOrder,
+  useMarkOrdered,
+  useReceivePurchaseOrder,
+  useUpdateArrivalDate,
   useCancelPurchaseOrder,
 } from '@/hooks/use-purchase-orders';
+import { resolvePhotoUrl } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth.store';
 import { useToast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Label } from '@/components/ui/label';
+import { DatePicker } from '@/components/ui/date-picker';
 import {
   Dialog,
   DialogContent,
@@ -42,18 +45,16 @@ import {
 } from '@/components/premium';
 
 const PO_STATUS_LABELS: Record<string, string> = {
-  draft:     'Draft',
-  submitted: 'Submitted',
-  approved:  'Approved',
-  issued:    'Issued',
+  pending:   'Pending',
+  ordered:   'Ordered',
+  received:  'Received',
   cancelled: 'Cancelled',
 };
 
 const PO_STATUS_TONE: Record<string, BadgeTone> = {
-  draft:     'gray',
-  submitted: 'info',
-  approved:  'success',
-  issued:    'indigo',
+  pending:   'warn',
+  ordered:   'info',
+  received:  'success',
   cancelled: 'danger',
 };
 
@@ -93,45 +94,80 @@ export function PoDetailPage() {
   const user = useAuthStore((s) => s.user);
 
   const { data, isLoading } = usePurchaseOrder(id!);
-  const submitMutation = useSubmitPurchaseOrder();
-  const approveMutation = useApprovePurchaseOrder();
-  const issueMutation = useIssuePurchaseOrder();
+  const markOrderedMutation = useMarkOrdered();
+  const receiveMutation = useReceivePurchaseOrder();
+  const updateArrivalMutation = useUpdateArrivalDate();
   const cancelMutation = useCancelPurchaseOrder();
 
   const po = data?.data;
 
-  const [confirmDialog, setConfirmDialog] = useState<{
-    open: boolean;
-    type: 'submit' | 'approve' | 'issue';
-  }>({ open: false, type: 'submit' });
+  // Order dialog state
+  const [orderDialog, setOrderDialog] = useState(false);
+  const [orderEta, setOrderEta] = useState('');
 
+  // Receive dialog state
+  const [receiveDialog, setReceiveDialog] = useState(false);
+  const [receiveNotes, setReceiveNotes] = useState('');
+  const [receivePhotos, setReceivePhotos] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // ETA update dialog
+  const [etaDialog, setEtaDialog] = useState(false);
+  const [newEta, setNewEta] = useState('');
+
+  // Cancel dialog
   const [cancelDialog, setCancelDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
 
-  const handleConfirm = async () => {
+  const handleMarkOrdered = async () => {
     if (!po) return;
     try {
-      if (confirmDialog.type === 'submit') {
-        await submitMutation.mutateAsync(po._id);
-        toast({ title: 'PO submitted for approval', variant: 'success' });
-      } else if (confirmDialog.type === 'approve') {
-        await approveMutation.mutateAsync(po._id);
-        toast({ title: 'PO approved', variant: 'success' });
-      } else if (confirmDialog.type === 'issue') {
-        await issueMutation.mutateAsync(po._id);
-        toast({ title: 'PO issued', variant: 'success' });
-      }
+      await markOrderedMutation.mutateAsync({
+        id: po._id,
+        estimatedArrivalDate: orderEta || null,
+      });
+      toast({ title: 'Order placed', description: 'PO marked as ordered.', variant: 'success' });
+      setOrderDialog(false);
+      setOrderEta('');
     } catch {
       toast({ title: 'Action failed', variant: 'error' });
     }
-    setConfirmDialog({ ...confirmDialog, open: false });
+  };
+
+  const handleReceive = async () => {
+    if (!po || receivePhotos.length === 0) {
+      toast({ title: 'Please add at least one proof photo', variant: 'error' });
+      return;
+    }
+    const formData = new FormData();
+    receivePhotos.forEach((file) => formData.append('photos', file));
+    if (receiveNotes.trim()) formData.append('notes', receiveNotes.trim());
+
+    try {
+      await receiveMutation.mutateAsync({ id: po._id, formData });
+      toast({ title: 'Order received', description: 'PR creator has been notified.', variant: 'success' });
+      setReceiveDialog(false);
+      setReceiveNotes('');
+      setReceivePhotos([]);
+    } catch {
+      toast({ title: 'Failed to receive order', variant: 'error' });
+    }
+  };
+
+  const handleUpdateEta = async () => {
+    if (!po || !newEta) return;
+    try {
+      await updateArrivalMutation.mutateAsync({ id: po._id, estimatedArrivalDate: newEta });
+      toast({ title: 'ETA updated', variant: 'success' });
+      setEtaDialog(false);
+      setNewEta('');
+    } catch {
+      toast({ title: 'Failed to update ETA', variant: 'error' });
+    }
   };
 
   const handleCancel = async () => {
-    if (!po || !cancelReason.trim()) {
-      toast({ title: 'Please provide a reason', variant: 'error' });
-      return;
-    }
+    if (!po || !cancelReason.trim()) return;
     try {
       await cancelMutation.mutateAsync({ id: po._id, reason: cancelReason.trim() });
       toast({ title: 'PO cancelled', variant: 'success' });
@@ -140,6 +176,14 @@ export function PoDetailPage() {
     }
     setCancelDialog(false);
     setCancelReason('');
+  };
+
+  const addPhotos = (files: FileList | null) => {
+    if (!files) return;
+    const newFiles = Array.from(files).filter(
+      (f) => ['image/jpeg', 'image/png', 'image/webp'].includes(f.type),
+    );
+    setReceivePhotos((prev) => [...prev, ...newFiles]);
   };
 
   if (isLoading) {
@@ -151,20 +195,10 @@ export function PoDetailPage() {
         </div>
         <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
           <div className="space-y-6">
-            <Surface><div className="p-6 space-y-3">
-              <Skeleton className="h-5 w-40" />
-              <Skeleton className="h-4 w-full" />
-            </div></Surface>
-            <Surface><div className="p-6 space-y-3">
-              <Skeleton className="h-5 w-40" />
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-3/4" />
-            </div></Surface>
+            <Surface><div className="p-6 space-y-3"><Skeleton className="h-5 w-40" /><Skeleton className="h-4 w-full" /></div></Surface>
+            <Surface><div className="p-6 space-y-3"><Skeleton className="h-5 w-40" /><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-3/4" /></div></Surface>
           </div>
-          <Surface><div className="p-6 space-y-3">
-            <Skeleton className="h-5 w-32" />
-            <Skeleton className="h-4 w-full" />
-          </div></Surface>
+          <Surface><div className="p-6 space-y-3"><Skeleton className="h-5 w-32" /><Skeleton className="h-4 w-full" /></div></Surface>
         </div>
       </div>
     );
@@ -200,70 +234,45 @@ export function PoDetailPage() {
 
   const isProcurementOrAdmin =
     user?.role === UserRole.PROCUREMENT || user?.role === UserRole.ADMIN;
-  const isApprover =
-    user?.role === UserRole.COO ||
-    user?.role === UserRole.CEO ||
-    user?.role === UserRole.ADMIN;
 
-  const isDraft = po.status === 'draft';
-  const isSubmitted = po.status === 'submitted';
-  const isApproved = po.status === 'approved';
+  const isPending = po.status === 'pending';
+  const isOrdered = po.status === 'ordered';
   const isCancelled = po.status === 'cancelled';
+  const isReceived = po.status === 'received';
 
-  const canEdit = isDraft && isProcurementOrAdmin;
-  const canSubmit = isDraft && isProcurementOrAdmin;
-  const canApprove = isSubmitted && isApprover;
-  const canIssue = isApproved && isProcurementOrAdmin;
-  const canCancel = (isDraft || isSubmitted || isApproved) && isProcurementOrAdmin;
+  const canOrder = isPending && isProcurementOrAdmin;
+  const canReceive = isOrdered && isProcurementOrAdmin;
+  const canUpdateEta = isOrdered && isProcurementOrAdmin;
+  const canCancel = (isPending || isOrdered) && isProcurementOrAdmin;
 
-  // Extract populated references
   const creator =
     po.createdBy && typeof po.createdBy === 'object'
-      ? (po.createdBy as { _id: string; firstName: string; lastName: string; email: string })
+      ? (po.createdBy as { firstName: string; lastName: string })
       : null;
-  const approver =
-    po.approvedBy && typeof po.approvedBy === 'object'
-      ? (po.approvedBy as { _id: string; firstName: string; lastName: string })
+  const orderer =
+    po.orderedBy && typeof po.orderedBy === 'object'
+      ? (po.orderedBy as { firstName: string; lastName: string })
       : null;
-  const supplier =
-    po.supplierId && typeof po.supplierId === 'object'
-      ? (po.supplierId as { _id: string; name?: string; companyName?: string })
+  const receiver =
+    po.receivedBy && typeof po.receivedBy === 'object'
+      ? (po.receivedBy as { firstName: string; lastName: string })
       : null;
   const sourceRequest =
     po.purchaseRequestId && typeof po.purchaseRequestId === 'object'
       ? (po.purchaseRequestId as { _id: string; prNumber?: string; title?: string })
       : null;
 
-  const supplierName = supplier?.name || supplier?.companyName || '—';
   const sourceNumber = po.sourceRequestNumber || sourceRequest?.prNumber || '—';
   const sourceTypeLabel = SOURCE_TYPE_LABELS[po.sourceRequestType] || po.sourceRequestType;
-
-  const confirmLabels = {
-    submit: {
-      title: 'Submit Purchase Order',
-      description:
-        'Submit this PO for approval? It will be routed to the appropriate approver.',
-      button: 'Submit',
-    },
-    approve: {
-      title: 'Approve Purchase Order',
-      description:
-        'Approve this purchase order? Once approved, it can be issued to the supplier.',
-      button: 'Approve',
-    },
-    issue: {
-      title: 'Issue Purchase Order',
-      description:
-        'Issue this purchase order to the supplier? This marks the PO as officially issued.',
-      button: 'Issue',
-    },
-  };
 
   return (
     <div className="space-y-6 max-w-screen-2xl">
       <PageHeader
-        title={po.poNumber || 'Draft Purchase Order'}
-        description={po.projectName ? `Project: ${po.projectName}` : `${sourceTypeLabel} ${sourceNumber}`}
+        title={po.poNumber || 'Purchase Order'}
+        description={[
+          sourceNumber !== '—' ? sourceNumber : null,
+          po.supplierName,
+        ].filter(Boolean).join(' · ') || sourceTypeLabel}
         meta={
           <StatusBadge tone={PO_STATUS_TONE[po.status] ?? 'gray'}>
             {PO_STATUS_LABELS[po.status] || po.status}
@@ -274,35 +283,27 @@ export function PoDetailPage() {
             <GhostButton onClick={() => navigate('/purchase-orders')}>
               <ArrowLeft className="h-3.5 w-3.5" /> Back
             </GhostButton>
-            {canEdit && (
-              <GhostButton onClick={() => navigate(`/purchase-orders/${id}/edit`)}>
-                <Pencil className="h-3.5 w-3.5" /> Edit
-              </GhostButton>
-            )}
             {canCancel && (
               <GhostButton
-                onClick={() => {
-                  setCancelReason('');
-                  setCancelDialog(true);
-                }}
+                onClick={() => { setCancelReason(''); setCancelDialog(true); }}
                 className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
               >
                 <XCircle className="h-3.5 w-3.5" /> Cancel
               </GhostButton>
             )}
-            {canSubmit && (
-              <PrimaryButton onClick={() => setConfirmDialog({ open: true, type: 'submit' })}>
-                <Send className="h-3.5 w-3.5" /> Submit
+            {canUpdateEta && (
+              <GhostButton onClick={() => { setNewEta(po.estimatedArrivalDate ? new Date(po.estimatedArrivalDate).toISOString().split('T')[0] : ''); setEtaDialog(true); }}>
+                <Calendar className="h-3.5 w-3.5" /> Update ETA
+              </GhostButton>
+            )}
+            {canOrder && (
+              <PrimaryButton onClick={() => setOrderDialog(true)}>
+                <Truck className="h-3.5 w-3.5" /> Mark as Ordered
               </PrimaryButton>
             )}
-            {canApprove && (
-              <PrimaryButton onClick={() => setConfirmDialog({ open: true, type: 'approve' })}>
-                <CheckCircle className="h-3.5 w-3.5" /> Approve
-              </PrimaryButton>
-            )}
-            {canIssue && (
-              <PrimaryButton onClick={() => setConfirmDialog({ open: true, type: 'issue' })}>
-                <Package className="h-3.5 w-3.5" /> Issue
+            {canReceive && (
+              <PrimaryButton onClick={() => setReceiveDialog(true)}>
+                <Package className="h-3.5 w-3.5" /> Receive Order
               </PrimaryButton>
             )}
           </div>
@@ -313,14 +314,11 @@ export function PoDetailPage() {
         className="pr-list-section grid gap-6 lg:grid-cols-[1fr_320px]"
         style={{ animationDelay: '0.06s' }}
       >
-        {/* ── Left column ─────────────────────────────────────── */}
+        {/* Left column */}
         <div className="space-y-6">
           {/* Source Request */}
           <Surface>
-            <PanelHeader
-              icon={<FileText className="h-4 w-4 text-zinc-400" />}
-              title="Source Request"
-            />
+            <PanelHeader icon={<FileText className="h-4 w-4 text-zinc-400" />} title="Source Request" />
             <div className="px-6 pb-6">
               <div className="grid gap-5 sm:grid-cols-2">
                 <Field label="Request Number" value={sourceNumber} mono />
@@ -356,9 +354,7 @@ export function PoDetailPage() {
                         <td className="px-5 py-4 text-[12px] text-zinc-400 tabular-nums">{i + 1}</td>
                         <td className="px-5 py-4">
                           <p className="text-[13px] font-medium text-zinc-800">{item.description}</p>
-                          {item.notes && (
-                            <p className="text-[12px] text-zinc-400 mt-0.5">{item.notes}</p>
-                          )}
+                          {item.notes && <p className="text-[12px] text-zinc-400 mt-0.5">{item.notes}</p>}
                         </td>
                         <td className="px-5 py-4 text-right text-[13px] text-zinc-700 tabular-nums">{item.quantity}</td>
                         <td className="px-5 py-4 text-[13px] text-zinc-500">{item.unit}</td>
@@ -373,9 +369,7 @@ export function PoDetailPage() {
             <div className="flex justify-end border-t border-zinc-100 px-6 py-4">
               <div className="text-right">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400">Total Amount</p>
-                <p className="mt-1.5 text-[24px] font-bold text-zinc-900 tabular-nums">
-                  {formatCurrency(po.totalAmount)}
-                </p>
+                <p className="mt-1.5 text-[24px] font-bold text-zinc-900 tabular-nums">{formatCurrency(po.totalAmount)}</p>
               </div>
             </div>
           </Surface>
@@ -390,29 +384,53 @@ export function PoDetailPage() {
                     <div
                       key={entry._id}
                       className={`rounded-xl border p-4 transition-colors duration-150 ${
-                        entry.isSelected
-                          ? 'border-emerald-200 bg-emerald-50/40'
-                          : 'border-zinc-100 hover:border-zinc-200'
+                        entry.isSelected ? 'border-emerald-200 bg-emerald-50/40' : 'border-zinc-100 hover:border-zinc-200'
                       }`}
                     >
                       <div className="flex items-center justify-between gap-4">
                         <div className="min-w-0">
-                          <p className="text-[13px] font-medium text-zinc-900 truncate">
-                            {entry.supplierName}
-                          </p>
+                          <p className="text-[13px] font-medium text-zinc-900 truncate">{entry.supplierName}</p>
                           <p className="text-[12px] text-zinc-500 mt-0.5 tabular-nums">
                             Total Quoted: {formatCurrency(entry.totalQuotedAmount)}
                           </p>
-                          {entry.remarks && (
-                            <p className="mt-1 text-[12px] italic text-zinc-400">{entry.remarks}</p>
-                          )}
+                          {entry.remarks && <p className="mt-1 text-[12px] italic text-zinc-400">{entry.remarks}</p>}
                         </div>
-                        {entry.isSelected && (
-                          <StatusBadge tone="success">Selected</StatusBadge>
-                        )}
+                        {entry.isSelected && <StatusBadge tone="success">Selected</StatusBadge>}
                       </div>
                     </div>
                   ),
+                )}
+              </div>
+            </Surface>
+          )}
+
+          {/* Proof Photos */}
+          {isReceived && po.proofPhotos && po.proofPhotos.length > 0 && (
+            <Surface>
+              <PanelHeader icon={<ImageIcon className="h-4 w-4 text-zinc-400" />} title="Receiving Proof Photos" />
+              <div className="px-6 pb-6">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {po.proofPhotos.map((photo: { _id: string; storagePath: string; originalName: string }) => (
+                    <a
+                      key={photo._id}
+                      href={resolvePhotoUrl(`/${photo.storagePath}`)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group relative aspect-square rounded-xl border border-zinc-200 overflow-hidden hover:border-zinc-300 transition-colors"
+                    >
+                      <img
+                        src={resolvePhotoUrl(`/${photo.storagePath}`)}
+                        alt={photo.originalName}
+                        className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-200"
+                      />
+                    </a>
+                  ))}
+                </div>
+                {po.receivingNotes && (
+                  <div className="mt-4 rounded-lg bg-zinc-50 p-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400 mb-1">Receiving Notes</p>
+                    <p className="text-[13px] text-zinc-700 whitespace-pre-wrap">{po.receivingNotes}</p>
+                  </div>
                 )}
               </div>
             </Surface>
@@ -423,39 +441,30 @@ export function PoDetailPage() {
             <Surface className="border-red-200 bg-red-50/30">
               <PanelHeader title="Cancellation Reason" />
               <div className="px-6 pb-6">
-                <p className="text-[13px] text-zinc-700 leading-relaxed whitespace-pre-wrap">
-                  {po.cancellationReason}
-                </p>
+                <p className="text-[13px] text-zinc-700 leading-relaxed whitespace-pre-wrap">{po.cancellationReason}</p>
               </div>
             </Surface>
           )}
 
-          {/* Remarks */}
           {po.remarks && (
             <Surface>
               <PanelHeader title="Remarks" />
               <div className="px-6 pb-6">
-                <p className="text-[13px] text-zinc-700 leading-relaxed whitespace-pre-wrap">
-                  {po.remarks}
-                </p>
+                <p className="text-[13px] text-zinc-700 leading-relaxed whitespace-pre-wrap">{po.remarks}</p>
               </div>
             </Surface>
           )}
         </div>
 
-        {/* ── Right column ────────────────────────────────────── */}
+        {/* Right column */}
         <div className="space-y-6">
-          {/* Status & Amount */}
+          {/* Total Amount */}
           <Surface elevation="subtle">
             <div className="p-6 space-y-4">
               <div>
                 <SidebarLabel>Total Amount</SidebarLabel>
-                <p className="mt-2 text-[24px] font-bold text-zinc-900 tabular-nums leading-none">
-                  {formatCurrency(po.totalAmount)}
-                </p>
-                <p className="mt-1 text-[12px] text-zinc-400">
-                  {po.currency || 'PHP'}
-                </p>
+                <p className="mt-2 text-[24px] font-bold text-zinc-900 tabular-nums leading-none">{formatCurrency(po.totalAmount)}</p>
+                <p className="mt-1 text-[12px] text-zinc-400">{po.currency || 'PHP'}</p>
               </div>
             </div>
           </Surface>
@@ -464,15 +473,13 @@ export function PoDetailPage() {
           <Surface elevation="subtle">
             <div className="p-6">
               <SidebarLabel>
-                <span className="inline-flex items-center gap-1.5">
-                  <ShoppingCart className="h-3 w-3" /> Supplier
-                </span>
+                <span className="inline-flex items-center gap-1.5"><ShoppingCart className="h-3 w-3" /> Supplier</span>
               </SidebarLabel>
-              <p className="mt-2 text-[13px] font-semibold text-zinc-900">{supplierName}</p>
+              <p className="mt-2 text-[13px] font-semibold text-zinc-900">{po.supplierName || '—'}</p>
             </div>
           </Surface>
 
-          {/* Metadata */}
+          {/* Fulfillment Timeline */}
           <Surface elevation="subtle">
             <div className="p-6 space-y-5">
               <div>
@@ -480,44 +487,37 @@ export function PoDetailPage() {
                 <p className="mt-2 text-[13px] font-medium text-zinc-900">
                   {creator ? `${creator.firstName} ${creator.lastName}` : '—'}
                 </p>
+                <p className="text-[12px] text-zinc-400 mt-0.5 tabular-nums">{formatDate(po.createdAt)}</p>
               </div>
-              <Divider />
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <SidebarLabel>Created</SidebarLabel>
-                  <p className="mt-1.5 text-[13px] font-medium text-zinc-800 tabular-nums">
-                    {formatDate(po.createdAt)}
-                  </p>
-                </div>
-                <div>
-                  <SidebarLabel>Updated</SidebarLabel>
-                  <p className="mt-1.5 text-[13px] font-medium text-zinc-800 tabular-nums">
-                    {formatDate(po.updatedAt)}
-                  </p>
-                </div>
-              </div>
-              {approver && (
+
+              {po.estimatedArrivalDate && (
                 <>
                   <Divider />
                   <div>
-                    <SidebarLabel>Approved By</SidebarLabel>
-                    <p className="mt-2 text-[13px] font-medium text-zinc-900">
-                      {approver.firstName} {approver.lastName}
-                    </p>
-                    <p className="text-[12px] text-zinc-400 mt-0.5 tabular-nums">
-                      {formatDateTime(po.approvedAt)}
-                    </p>
+                    <SidebarLabel>Estimated Arrival</SidebarLabel>
+                    <p className="mt-2 text-[13px] font-medium text-blue-700 tabular-nums">{formatDate(po.estimatedArrivalDate)}</p>
                   </div>
                 </>
               )}
-              {po.issuedAt && (
+
+              {orderer && (
                 <>
                   <Divider />
                   <div>
-                    <SidebarLabel>Issued</SidebarLabel>
-                    <p className="mt-2 text-[13px] font-medium text-zinc-900 tabular-nums">
-                      {formatDateTime(po.issuedAt)}
-                    </p>
+                    <SidebarLabel>Ordered By</SidebarLabel>
+                    <p className="mt-2 text-[13px] font-medium text-zinc-900">{orderer.firstName} {orderer.lastName}</p>
+                    <p className="text-[12px] text-zinc-400 mt-0.5 tabular-nums">{formatDateTime(po.orderedAt)}</p>
+                  </div>
+                </>
+              )}
+
+              {receiver && (
+                <>
+                  <Divider />
+                  <div>
+                    <SidebarLabel>Received By</SidebarLabel>
+                    <p className="mt-2 text-[13px] font-medium text-emerald-700">{receiver.firstName} {receiver.lastName}</p>
+                    <p className="text-[12px] text-zinc-400 mt-0.5 tabular-nums">{formatDateTime(po.receivedAt)}</p>
                   </div>
                 </>
               )}
@@ -526,51 +526,144 @@ export function PoDetailPage() {
         </div>
       </div>
 
-      {/* Confirm Dialog */}
-      <Dialog
-        open={confirmDialog.open}
-        onOpenChange={(open) => setConfirmDialog({ ...confirmDialog, open })}
-      >
+      {/* Mark as Ordered Dialog */}
+      <Dialog open={orderDialog} onOpenChange={setOrderDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{confirmLabels[confirmDialog.type].title}</DialogTitle>
+            <DialogTitle>Mark as Ordered</DialogTitle>
             <DialogDescription>
-              {confirmLabels[confirmDialog.type].description}
+              Confirm that this order has been placed with the supplier. Optionally set an estimated arrival date.
             </DialogDescription>
           </DialogHeader>
+          <div className="space-y-2">
+            <Label>Estimated Arrival Date</Label>
+            <DatePicker
+              value={orderEta}
+              onChange={(v) => setOrderEta(v)}
+              min={new Date().toISOString().split('T')[0]}
+              placeholder="Select estimated arrival..."
+            />
+          </div>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setConfirmDialog({ ...confirmDialog, open: false })}
+            <Button variant="outline" onClick={() => setOrderDialog(false)}>Cancel</Button>
+            <PrimaryButton onClick={handleMarkOrdered} disabled={markOrderedMutation.isPending}>
+              <Truck className="h-3.5 w-3.5" /> {markOrderedMutation.isPending ? 'Saving…' : 'Mark as Ordered'}
+            </PrimaryButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Receive Order Dialog — mobile-friendly with camera support */}
+      <Dialog open={receiveDialog} onOpenChange={(open) => { setReceiveDialog(open); if (!open) { setReceivePhotos([]); setReceiveNotes(''); } }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Receive Order</DialogTitle>
+            <DialogDescription>
+              Take photos of the received items as proof of delivery.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* Photo capture area — optimized for mobile */}
+            <div>
+              <Label>Proof Photos <span className="text-destructive">*</span></Label>
+              <div className="mt-2 space-y-3">
+                {receivePhotos.length > 0 && (
+                  <div className="grid grid-cols-3 gap-2">
+                    {receivePhotos.map((file, i) => (
+                      <div key={i} className="relative group aspect-square rounded-lg overflow-hidden border border-zinc-200">
+                        <img
+                          src={URL.createObjectURL(file)}
+                          alt={`Photo ${i + 1}`}
+                          className="h-full w-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setReceivePhotos((prev) => prev.filter((_, idx) => idx !== i))}
+                          className="absolute top-1 right-1 h-6 w-6 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <XCircle className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  capture="environment"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => addPhotos(e.target.files)}
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-zinc-300 bg-zinc-50 px-4 py-6 text-[13px] font-medium text-zinc-600 hover:border-zinc-400 hover:bg-zinc-100 transition-colors active:bg-zinc-200"
+                >
+                  <Camera className="h-5 w-5 text-zinc-400" />
+                  {receivePhotos.length === 0 ? 'Take Photo or Choose File' : 'Add More Photos'}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="receive-notes">Receiving Notes</Label>
+              <textarea
+                id="receive-notes"
+                rows={3}
+                className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[13px] text-zinc-800 outline-none transition-all duration-200 focus:border-zinc-400 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]"
+                placeholder="Optional notes about the received items..."
+                value={receiveNotes}
+                onChange={(e) => setReceiveNotes(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReceiveDialog(false)}>Cancel</Button>
+            <PrimaryButton
+              onClick={handleReceive}
+              disabled={receiveMutation.isPending || receivePhotos.length === 0}
             >
-              Cancel
-            </Button>
-            <PrimaryButton onClick={handleConfirm}>
-              {confirmLabels[confirmDialog.type].button}
+              <Package className="h-3.5 w-3.5" /> {receiveMutation.isPending ? 'Receiving…' : 'Confirm Received'}
+            </PrimaryButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Update ETA Dialog */}
+      <Dialog open={etaDialog} onOpenChange={setEtaDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Update Estimated Arrival</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label>New Estimated Arrival Date</Label>
+            <DatePicker
+              value={newEta}
+              onChange={(v) => setNewEta(v)}
+              min={new Date().toISOString().split('T')[0]}
+              placeholder="Select new arrival date..."
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEtaDialog(false)}>Cancel</Button>
+            <PrimaryButton onClick={handleUpdateEta} disabled={updateArrivalMutation.isPending || !newEta}>
+              {updateArrivalMutation.isPending ? 'Saving…' : 'Update ETA'}
             </PrimaryButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Cancel PO Dialog */}
-      <Dialog
-        open={cancelDialog}
-        onOpenChange={(open) => {
-          setCancelDialog(open);
-          if (!open) setCancelReason('');
-        }}
-      >
+      <Dialog open={cancelDialog} onOpenChange={(open) => { setCancelDialog(open); if (!open) setCancelReason(''); }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Cancel Purchase Order</DialogTitle>
-            <DialogDescription>
-              This purchase order will be permanently cancelled. Please provide a reason.
-            </DialogDescription>
+            <DialogDescription>This purchase order will be permanently cancelled.</DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
-            <Label htmlFor="cancel-reason">
-              Reason <span className="text-destructive">*</span>
-            </Label>
+            <Label htmlFor="cancel-reason">Reason <span className="text-destructive">*</span></Label>
             <textarea
               id="cancel-reason"
               rows={3}
@@ -581,20 +674,8 @@ export function PoDetailPage() {
             />
           </div>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setCancelDialog(false);
-                setCancelReason('');
-              }}
-            >
-              Back
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleCancel}
-              disabled={cancelMutation.isPending || !cancelReason.trim()}
-            >
+            <Button variant="outline" onClick={() => { setCancelDialog(false); setCancelReason(''); }}>Back</Button>
+            <Button variant="destructive" onClick={handleCancel} disabled={cancelMutation.isPending || !cancelReason.trim()}>
               <XCircle className="h-4 w-4" /> Cancel PO
             </Button>
           </DialogFooter>
@@ -607,43 +688,22 @@ export function PoDetailPage() {
 function PanelHeader({ icon, title }: { icon?: React.ReactNode; title: string }) {
   return (
     <div className="px-6 pt-6 pb-4">
-      <h2 className="flex items-center gap-2 text-[15px] font-semibold text-zinc-900">
-        {icon}
-        {title}
-      </h2>
+      <h2 className="flex items-center gap-2 text-[15px] font-semibold text-zinc-900">{icon}{title}</h2>
     </div>
   );
 }
 
-function Field({
-  label,
-  value,
-  mono,
-}: {
-  label: string;
-  value: string;
-  mono?: boolean;
-}) {
+function Field({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div>
-      <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
-        {label}
-      </p>
-      <p
-        className={`mt-1.5 text-[13px] text-zinc-800 ${mono ? 'font-mono' : 'font-medium'}`}
-      >
-        {value}
-      </p>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">{label}</p>
+      <p className={`mt-1.5 text-[13px] text-zinc-800 ${mono ? 'font-mono' : 'font-medium'}`}>{value}</p>
     </div>
   );
 }
 
 function SidebarLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400">
-      {children}
-    </p>
-  );
+  return <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400">{children}</p>;
 }
 
 function Divider() {

@@ -89,6 +89,7 @@ const prSchema = new mongoose.Schema({
   approvalHistory: [{ type: mongoose.Schema.Types.ObjectId }],
   submittedAt: { type: Date, default: null },
   completedAt: { type: Date, default: null },
+  purchaseOrderId: { type: mongoose.Schema.Types.ObjectId, ref: 'PurchaseOrder', default: null },
   cancellationReason: { type: String, default: null },
   quotationNote: { type: String, default: null },
   canvassEntries: { type: [mongoose.Schema.Types.Mixed], default: [] },
@@ -141,16 +142,21 @@ const purchaseOrderSchema = new mongoose.Schema({
   sourceRequestNumber: { type: String, default: null },
   sourceRequestType: { type: String, enum: ['purchase_request', 'job_request'], required: true },
   supplierId: { type: mongoose.Schema.Types.ObjectId, ref: 'Supplier', default: null },
+  supplierName: { type: String, default: null },
   projectName: { type: String, default: null },
   items: [poLineItemSchema],
   totalAmount: { type: Number, default: 0 },
   currency: { type: String, default: 'PHP' },
   canvassEntries: [canvassEntrySchema],
-  status: { type: String, enum: ['draft', 'submitted', 'approved', 'issued', 'cancelled'], default: 'draft' },
+  status: { type: String, enum: ['pending', 'ordered', 'received', 'cancelled'], default: 'pending' },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
-  approvedAt: { type: Date, default: null },
-  issuedAt: { type: Date, default: null },
+  estimatedArrivalDate: { type: Date, default: null },
+  orderedAt: { type: Date, default: null },
+  orderedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  receivedAt: { type: Date, default: null },
+  receivedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  receivingNotes: { type: String, default: null },
+  proofPhotos: [{ originalName: String, storagePath: String, mimeType: String, size: Number, uploadedBy: mongoose.Schema.Types.ObjectId, uploadedAt: Date }],
   cancellationReason: { type: String, default: null },
   remarks: { type: String, default: null },
 }, { timestamps: true });
@@ -190,6 +196,13 @@ function daysAgo(days: number): Date {
   return d;
 }
 
+function daysFromNow(days: number): Date {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  d.setHours(8 + Math.floor(Math.random() * 9), Math.floor(Math.random() * 60), 0, 0);
+  return d;
+}
+
 function hoursAfter(date: Date, hours: number): Date {
   return new Date(date.getTime() + hours * 60 * 60 * 1000);
 }
@@ -210,8 +223,9 @@ function makeItems(items: Array<{
     unit: i.unit,
     specifications: i.specs || null,
     sourcingType: i.sourcingType || 'procurement',
-    estimatedPrice: i.price,
-    totalPrice: i.qty * i.price,
+    estimatedPrice: (i.sourcingType || 'procurement') === 'online' ? i.price : 0,
+    totalPrice: (i.sourcingType || 'procurement') === 'online' ? i.qty * i.price : 0,
+    _seedPrice: i.price,
     notes: i.notes || null,
     sellerReferences: [],
     sellerReferencesJustification: null,
@@ -565,7 +579,7 @@ function pickSuppliers(prTitle: string): SupplierQuoteConfig[] {
   const t = prTitle.toLowerCase();
   if (t.includes('ai') || t.includes('analytic') || t.includes('smart') || t.includes('intelligent')) return AI_SUPPLIERS;
   if (t.includes('server') || t.includes('nvr') || t.includes('storage') || t.includes('gpu') || t.includes('computing')) return SERVER_SUPPLIERS;
-  if (t.includes('cable') || t.includes('fiber') || t.includes('conduit') || t.includes('wiring') || t.includes('cabling')) return CABLE_SUPPLIERS;
+  if (t.includes('cable') || t.includes('fiber') || t.includes('conduit') || t.includes('wiring') || t.includes('cabling') || t.includes('switch') || t.includes('poe') || t.includes('patch panel') || t.includes('network')) return CABLE_SUPPLIERS;
   if (t.includes('ppe') || t.includes('safety') || t.includes('protection') || t.includes('gear')) return PPE_SUPPLIERS;
   if (t.includes('survey') || t.includes('install') || t.includes('commissioning') || t.includes('maintenance')) return SERVICE_SUPPLIERS;
   if (t.includes('camera') || t.includes('cctv') || t.includes('dome') || t.includes('ptz') || t.includes('hikvision') || t.includes('dahua')) return CAMERA_SUPPLIERS;
@@ -606,7 +620,8 @@ async function attachQuotations(
 
   for (const sup of suppliers) {
     const filename = `${uuidv4()}.pdf`;
-    const quotedTotal = Math.round(prDoc.totalAmount * sup.multiplier);
+    const seedTotal = prDoc.items.reduce((s: number, item: any) => s + (item._seedPrice ?? item.estimatedPrice) * item.quantity, 0);
+    const quotedTotal = Math.round(seedTotal * sup.multiplier);
     const result = await generateQuotationPdf({
       filename,
       supplierName: sup.supplierName,
@@ -615,11 +630,14 @@ async function attachQuotations(
       supplierTin: sup.tin,
       prTitle: prDoc.title,
       projectName,
-      items: prDoc.items.map((item: any) => ({
-        ...item,
-        estimatedPrice: Math.round(item.estimatedPrice * sup.multiplier),
-        totalPrice: Math.round(item.totalPrice * sup.multiplier),
-      })),
+      items: prDoc.items.map((item: any) => {
+        const basePrice = item._seedPrice ?? item.estimatedPrice;
+        return {
+          ...item,
+          estimatedPrice: Math.round(basePrice * sup.multiplier),
+          totalPrice: Math.round(basePrice * item.quantity * sup.multiplier),
+        };
+      }),
       totalAmount: quotedTotal,
       date: prDoc.createdAt instanceof Date ? prDoc.createdAt : new Date(prDoc.createdAt),
     });
@@ -644,7 +662,8 @@ function buildCanvassEntries(
       (doc: any) => doc.companyName === config.supplierName,
     );
     const quotedItems = prDoc.items.map((item: any) => {
-      const unitPrice = Math.round(item.estimatedPrice * config.multiplier);
+      const basePrice = item._seedPrice ?? item.estimatedPrice;
+      const unitPrice = Math.round(basePrice * config.multiplier);
       return {
         itemId: item._id,
         description: item.description,
@@ -1073,6 +1092,19 @@ async function seed() {
       }
 
       if (opts.stage === 'pending_quotation') {
+        currentLevel = 4;
+        const l1Date = hoursAfter(submitted!, 4);
+        const l2Date = hoursAfter(l1Date, 12);
+        const l3Date = hoursAfter(l2Date, 24);
+        const a1Id = new Types.ObjectId();
+        const a2Id = new Types.ObjectId();
+        const a3Id = new Types.ObjectId();
+        allApprovals.push(
+          new Approval({ _id: a1Id, purchaseRequestId: prId, approverId: opts.deptHead._id, approvalLevel: 1, action: 'approved', comments: 'Approved.', actionDate: l1Date }),
+          new Approval({ _id: a2Id, purchaseRequestId: prId, approverId: coo._id, approvalLevel: 2, action: 'approved', comments: 'Approved.', actionDate: l2Date }),
+          new Approval({ _id: a3Id, purchaseRequestId: prId, approverId: ceo._id, approvalLevel: 3, action: 'approved', comments: 'Approved. Proceed to procurement.', actionDate: l3Date }),
+        );
+        approvalIds.push(a1Id, a2Id, a3Id);
         allNotifications.push(
           new Notification({ recipientId: procurementUser._id, title: 'PR Awaiting Quotation', message: `${prNumber} requires procurement quotation`, type: 'pr_needs_action', purchaseRequestId: prId, isRead: false }),
         );
@@ -1740,11 +1772,123 @@ async function seed() {
         paymentTerms: 'Net 30',
         status: 'inactive', notes: 'Slow delivery on last 2 orders. On watch status', createdBy: accountingUser._id,
       },
+      {
+        companyName: 'NetInfra Philippines',
+        address: '45 Ortigas Ave, Pasig City',
+        taxType: 'vat', tin: '567-890-123-000',
+        contactPerson: 'Rico Mendoza', contactNumber: '+63 921 567 8901', email: 'sales@netinfra.ph',
+        paymentTerms: 'Net 30', bankAccountName: 'NetInfra Philippines', bankAccountNumber: '6789012345', bankName: 'BPI',
+        status: 'active', notes: 'Free delivery for orders above PHP 50,000. Reliable lead times', createdBy: procurementUser._id,
+      },
+      {
+        companyName: 'WireMax Supply Inc.',
+        address: '100 Quezon Ave, Quezon City',
+        taxType: 'non_vat', tin: '678-901-234-000',
+        contactPerson: 'Tony Villanueva', contactNumber: '+63 922 678 9012', email: 'wiring@wiremax.ph',
+        paymentTerms: 'COD', bankAccountName: 'WireMax Supply Inc.', bankAccountNumber: '7890123456', bankName: 'PNB',
+        status: 'active', notes: 'Smaller company, limited stock for large orders. Good for urgent small batches', createdBy: procurementUser._id,
+      },
+      {
+        companyName: 'CamWorld Philippines',
+        address: '2F SM Cyberzone, SM Mall of Asia, Pasay City',
+        taxType: 'vat', tin: '345-678-901-000',
+        contactPerson: 'Jenny Ong', contactNumber: '+63 919 345 6789', email: 'info@camworld.ph',
+        paymentTerms: 'Net 15', bankAccountName: 'CamWorld Philippines', bankAccountNumber: '8901234567', bankName: 'Security Bank',
+        status: 'active', notes: 'Mixed brands available, longer lead time. Good for non-urgent orders', createdBy: procurementUser._id,
+      },
+      {
+        companyName: 'DataCenter Philippines Corp.',
+        address: '22F Ayala Ave, Makati City',
+        taxType: 'vat', tin: '890-123-456-000',
+        contactPerson: 'Carlo Aquino', contactNumber: '+63 924 890 1234', email: 'dc@datacenter.ph',
+        paymentTerms: 'Net 45', bankAccountName: 'DataCenter Philippines Corp.', bankAccountNumber: '9012345678', bankName: 'BDO Unibank',
+        status: 'active', notes: 'Lenovo partner. Includes rack installation service', createdBy: procurementUser._id,
+      },
+      {
+        companyName: 'TechCore Systems PH',
+        address: '5F Bonifacio High Street, BGC, Taguig',
+        taxType: 'vat', tin: '901-234-567-000',
+        contactPerson: 'Mark Dela Cruz', contactNumber: '+63 925 901 2345', email: 'quotes@techcore.ph',
+        paymentTerms: 'Net 30', bankAccountName: 'TechCore Systems PH', bankAccountNumber: '0123456789', bankName: 'Metrobank',
+        status: 'active', notes: 'Higher quote but offers 24/7 on-site support', createdBy: procurementUser._id,
+      },
+      {
+        companyName: 'SmartAnalytics PH Inc.',
+        address: '15F GT Tower, Ayala Ave, Makati City',
+        taxType: 'vat', tin: '112-345-678-000',
+        contactPerson: 'Lisa Tan', contactNumber: '+63 927 123 4560', email: 'info@smartanalytics.ph',
+        paymentTerms: 'Net 30', bankAccountName: 'SmartAnalytics PH Inc.', bankAccountNumber: '1122334455', bankName: 'BPI',
+        status: 'active', notes: 'Alternative AI platform, more modules available', createdBy: procurementUser._id,
+      },
+      {
+        companyName: 'VisionAI Corporation',
+        address: '7F Estancia Mall Tower, Pasig City',
+        taxType: 'vat', tin: '223-456-789-000',
+        contactPerson: 'Ramon Santos', contactNumber: '+63 928 234 5671', email: 'enterprise@visionai.ph',
+        paymentTerms: 'Net 30', bankAccountName: 'VisionAI Corporation', bankAccountNumber: '2233445566', bankName: 'Landbank',
+        status: 'active', notes: 'Newer company but has strong local support team', createdBy: procurementUser._id,
+      },
+      {
+        companyName: 'WorkSafe Solutions Inc.',
+        address: '77 Mindanao Ave, Quezon City',
+        taxType: 'vat', tin: '778-901-234-000',
+        contactPerson: 'Ben Garcia', contactNumber: '+63 933 789 0126', email: 'orders@worksafe.ph',
+        paymentTerms: 'Net 15', bankAccountName: 'WorkSafe Solutions Inc.', bankAccountNumber: '3344556677', bankName: 'Metrobank',
+        status: 'active', notes: 'ISO-certified products, includes safety training', createdBy: procurementUser._id,
+      },
+      {
+        companyName: 'ProtectPro Philippines',
+        address: '88 Kamuning Rd, Quezon City',
+        taxType: 'non_vat', tin: '889-012-345-000',
+        contactPerson: 'Aileen Cruz', contactNumber: '+63 934 890 1237', email: 'protect@protectpro.ph',
+        paymentTerms: 'COD', bankAccountName: 'ProtectPro Philippines', bankAccountNumber: '4455667788', bankName: 'PNB',
+        status: 'active', notes: 'Premium brands only, higher price point', createdBy: procurementUser._id,
+      },
+      {
+        companyName: 'NetworkPlus Philippines',
+        address: '33 Scout Area, Quezon City',
+        taxType: 'vat', tin: '101-234-567-000',
+        contactPerson: 'Carlos Reyes', contactNumber: '+63 936 012 3459', email: 'service@networkplus.ph',
+        paymentTerms: 'Net 30', bankAccountName: 'NetworkPlus Philippines', bankAccountNumber: '5566778899', bankName: 'BDO Unibank',
+        status: 'active', notes: 'Certified network engineers, flexible scheduling', createdBy: procurementUser._id,
+      },
+      {
+        companyName: 'ProInstall Solutions',
+        address: '44 Ortigas Extension, Pasig City',
+        taxType: 'non_vat', tin: '202-345-678-000',
+        contactPerson: 'Mario Lopez', contactNumber: '+63 937 123 4560', email: 'info@proinstall.ph',
+        paymentTerms: 'Net 15', bankAccountName: 'ProInstall Solutions', bankAccountNumber: '6677889900', bankName: 'Security Bank',
+        status: 'active', notes: 'Available for urgent mobilization, higher rate', createdBy: procurementUser._id,
+      },
+      {
+        companyName: 'Office Depot Manila Corp.',
+        address: '456 Makati Ave, Makati City',
+        taxType: 'vat', tin: '334-567-890-000',
+        contactPerson: 'Susan Lim', contactNumber: '+63 929 345 6782', email: 'orders@officedepot.ph',
+        paymentTerms: 'Net 15', bankAccountName: 'Office Depot Manila Corp.', bankAccountNumber: '7788990011', bankName: 'BPI',
+        status: 'active', notes: 'Bulk pricing available, same-day delivery', createdBy: procurementUser._id,
+      },
+      {
+        companyName: 'NBS Philippines',
+        address: '789 Taft Ave, Manila',
+        taxType: 'vat', tin: '445-678-901-000',
+        contactPerson: 'Angela Ramos', contactNumber: '+63 930 456 7893', email: 'corporate@nbs.ph',
+        paymentTerms: 'COD', bankAccountName: 'NBS Philippines', bankAccountNumber: '8899001122', bankName: 'Metrobank',
+        status: 'active', notes: 'Wide selection, loyalty program member', createdBy: accountingUser._id,
+      },
+      {
+        companyName: 'Shopwise Business Supplies',
+        address: '100 EDSA Cubao, Quezon City',
+        taxType: 'non_vat', tin: '556-789-012-000',
+        contactPerson: 'Roberto Tan', contactNumber: '+63 931 567 8904', email: 'biz@shopwise.ph',
+        paymentTerms: 'COD', bankAccountName: 'Shopwise Business Supplies', bankAccountNumber: '9900112233', bankName: 'PNB',
+        status: 'active', notes: 'Good for mixed supplies, higher per-unit cost', createdBy: accountingUser._id,
+      },
     ]);
     console.log(`  Created ${suppliers.length} suppliers`);
 
     for (const prDoc of allPrs) {
-      if (['approved', 'quoted', 'pending_quotation', 'level2_review', 'level3_review'].includes(prDoc.status)) {
+      if (['approved', 'completed', 'quoted', 'pending_quotation', 'level2_review', 'level3_review'].includes(prDoc.status)) {
         applyQuotedPricingToPr(prDoc, suppliers);
       }
       await attachReferencePhotos(prDoc);
@@ -1763,6 +1907,10 @@ async function seed() {
 
     // ─── Insert PRs ───────────────────────────────────────────
     console.log(`  Inserting ${allPrs.length} purchase/job requests...`);
+    // Strip _seedPrice helper field before persisting
+    for (const pr of allPrs) {
+      pr.items = pr.items.map(({ _seedPrice, ...rest }: any) => rest);
+    }
     await PurchaseRequest.insertMany(allPrs);
 
     // ─── PURCHASE ORDERS ──────────────────────────────────────
@@ -1771,20 +1919,20 @@ async function seed() {
     let poSeq = 0;
     const nextPoNumber = () => `PO-${poYear}-${String(++poSeq).padStart(5, '0')}`;
 
-    const approvedPrDocs = allPrs.filter(p => p.status === 'approved');
+    const completedPrDocs = allPrs.filter(p => p.status === 'completed' || p.status === 'approved');
     const allPos: mongoose.Document[] = [];
 
-    // PO 1: Issued – IP Dome Cameras Batch 1
-    if (approvedPrDocs[0]) {
-      const pr = approvedPrDocs[0];
+    // Helper to build a PO from a PR
+    const buildPoFromPr = (pr: any, overrides: Record<string, any> = {}) => {
       const canvassEntries = buildCanvassEntries(pr, suppliers);
-      const selectedEntry = canvassEntries.find((entry) => entry.isSelected) ?? canvassEntries[0];
-      allPos.push(new PurchaseOrder({
+      const selectedEntry = canvassEntries.find((entry: any) => entry.isSelected) ?? canvassEntries[0];
+      return new PurchaseOrder({
         poNumber: nextPoNumber(),
         purchaseRequestId: pr._id,
         sourceRequestNumber: pr.prNumber,
         sourceRequestType: pr.requestType,
         supplierId: selectedEntry?.supplierId ?? null,
+        supplierName: selectedEntry?.supplierName ?? null,
         projectName: getProjectName(pr.projectId),
         items: pr.items.map((item: any) => ({
           _id: new Types.ObjectId(),
@@ -1796,134 +1944,85 @@ async function seed() {
         })),
         totalAmount: pr.totalAmount,
         canvassEntries,
-        status: 'issued',
-        createdBy: procurementUser._id,
-        approvedBy: coo._id,
-        approvedAt: daysAgo(48),
-        issuedAt: daysAgo(45),
-        remarks: 'Delivery completed. All 120 cameras received and inspected.',
-      }));
+        createdBy: pr.requesterId,
+        ...overrides,
+      });
+    };
+
+    // PO 1: Received – IP Dome Cameras Batch 1
+    if (completedPrDocs[0]) {
+      const pr = completedPrDocs[0];
+      pr.status = 'completed';
+      const po = buildPoFromPr(pr, {
+        status: 'received',
+        orderedAt: daysAgo(48),
+        orderedBy: procurementUser._id,
+        estimatedArrivalDate: daysAgo(40),
+        receivedAt: daysAgo(38),
+        receivedBy: procurementUser._id,
+        receivingNotes: 'All 120 cameras received and inspected. No damage.',
+      });
+      pr.purchaseOrderId = po._id;
+      allPos.push(po);
     }
 
-    // PO 2: Issued – Cat6 Cabling
-    if (approvedPrDocs[1]) {
-      const pr = approvedPrDocs[1];
-      const canvassEntries = buildCanvassEntries(pr, suppliers);
-      const selectedEntry = canvassEntries.find((entry) => entry.isSelected) ?? canvassEntries[0];
-      allPos.push(new PurchaseOrder({
-        poNumber: nextPoNumber(),
-        purchaseRequestId: pr._id,
-        sourceRequestNumber: pr.prNumber,
-        sourceRequestType: pr.requestType,
-        supplierId: selectedEntry?.supplierId ?? null,
-        projectName: getProjectName(pr.projectId),
-        items: pr.items.map((item: any) => ({
-          _id: new Types.ObjectId(),
-          description: item.description,
-          quantity: item.quantity,
-          unit: item.unit,
-          unitPrice: item.quotedUnitPrice ?? item.estimatedPrice,
-          totalPrice: item.totalPrice,
-        })),
-        totalAmount: pr.totalAmount,
-        canvassEntries,
-        status: 'issued',
-        createdBy: procurementUser._id,
-        approvedBy: coo._id,
-        approvedAt: daysAgo(43),
-        issuedAt: daysAgo(41),
-        remarks: 'All cabling materials delivered to site warehouse.',
-      }));
+    // PO 2: Received – Cat6 Cabling
+    if (completedPrDocs[1]) {
+      const pr = completedPrDocs[1];
+      pr.status = 'completed';
+      const po = buildPoFromPr(pr, {
+        status: 'received',
+        orderedAt: daysAgo(43),
+        orderedBy: procurementUser._id,
+        estimatedArrivalDate: daysAgo(36),
+        receivedAt: daysAgo(35),
+        receivedBy: procurementUser._id,
+        receivingNotes: 'All cabling materials delivered to site warehouse.',
+      });
+      pr.purchaseOrderId = po._id;
+      allPos.push(po);
     }
 
-    // PO 3: Approved – Edge AI Server
-    if (approvedPrDocs[7]) {
-      const pr = approvedPrDocs[7];
-      const canvassEntries = buildCanvassEntries(pr, suppliers);
-      const selectedEntry = canvassEntries.find((entry) => entry.isSelected) ?? canvassEntries[0];
-      allPos.push(new PurchaseOrder({
-        poNumber: nextPoNumber(),
-        purchaseRequestId: pr._id,
-        sourceRequestNumber: pr.prNumber,
-        sourceRequestType: pr.requestType,
-        supplierId: selectedEntry?.supplierId ?? null,
-        projectName: getProjectName(pr.projectId),
-        items: pr.items.map((item: any) => ({
-          _id: new Types.ObjectId(),
-          description: item.description,
-          quantity: item.quantity,
-          unit: item.unit,
-          unitPrice: item.quotedUnitPrice ?? item.estimatedPrice,
-          totalPrice: item.totalPrice,
-        })),
-        totalAmount: pr.totalAmount,
-        canvassEntries,
-        status: 'approved',
-        createdBy: procurementUser._id,
-        approvedBy: coo._id,
-        approvedAt: daysAgo(30),
-        remarks: 'Awaiting delivery. ETA 2 weeks from issuance.',
-      }));
+    // PO 3: Ordered – Edge AI Server (awaiting delivery)
+    if (completedPrDocs[7]) {
+      const pr = completedPrDocs[7];
+      pr.status = 'completed';
+      const po = buildPoFromPr(pr, {
+        status: 'ordered',
+        orderedAt: daysAgo(14),
+        orderedBy: procurementUser._id,
+        estimatedArrivalDate: daysFromNow(7),
+        remarks: 'Supplier confirmed shipment. ETA next week.',
+      });
+      pr.purchaseOrderId = po._id;
+      allPos.push(po);
     }
 
-    // PO 4: Submitted – AI Analytics License
-    if (approvedPrDocs[8]) {
-      const pr = approvedPrDocs[8];
-      const canvassEntries = buildCanvassEntries(pr, suppliers);
-      const selectedEntry = canvassEntries.find((entry) => entry.isSelected) ?? canvassEntries[0];
-      allPos.push(new PurchaseOrder({
-        poNumber: nextPoNumber(),
-        purchaseRequestId: pr._id,
-        sourceRequestNumber: pr.prNumber,
-        sourceRequestType: pr.requestType,
-        supplierId: selectedEntry?.supplierId ?? null,
-        projectName: getProjectName(pr.projectId),
-        items: pr.items.map((item: any) => ({
-          _id: new Types.ObjectId(),
-          description: item.description,
-          quantity: item.quantity,
-          unit: item.unit,
-          unitPrice: item.quotedUnitPrice ?? item.estimatedPrice,
-          totalPrice: item.totalPrice,
-        })),
-        totalAmount: pr.totalAmount,
-        canvassEntries,
-        status: 'submitted',
-        createdBy: procurementUser._id,
-      }));
-    }
-
-    // PO 5: Draft – AI Commissioning JR
-    if (jrId) {
-      const jrPr = allPrs.find(p => p._id.equals(jrId));
-      if (jrPr) {
-        const canvassEntries = buildCanvassEntries(jrPr, suppliers);
-        const selectedEntry = canvassEntries.find((entry) => entry.isSelected) ?? canvassEntries[0];
-        allPos.push(new PurchaseOrder({
-          purchaseRequestId: jrPr._id,
-          sourceRequestNumber: jrPr.prNumber,
-          sourceRequestType: 'job_request',
-          supplierId: selectedEntry?.supplierId ?? null,
-          projectName: getProjectName(jrPr.projectId),
-          items: jrPr.items.map((item: any) => ({
-            _id: new Types.ObjectId(),
-            description: item.description,
-            quantity: item.quantity,
-            unit: item.unit,
-            unitPrice: item.quotedUnitPrice ?? item.estimatedPrice,
-            totalPrice: item.totalPrice,
-          })),
-          totalAmount: jrPr.totalAmount,
-          canvassEntries,
-          status: 'draft',
-          createdBy: procurementUser._id,
-          remarks: 'Awaiting final service agreement from TechInstall Services.',
-        }));
-      }
+    // PO 4: Pending – AI Analytics License (just auto-created)
+    if (completedPrDocs[8]) {
+      const pr = completedPrDocs[8];
+      pr.status = 'completed';
+      const po = buildPoFromPr(pr, {
+        status: 'pending',
+      });
+      pr.purchaseOrderId = po._id;
+      allPos.push(po);
     }
 
     console.log(`  Inserting ${allPos.length} purchase orders...`);
     await PurchaseOrder.insertMany(allPos);
+
+    // Update PRs that were linked to POs (status → completed, purchaseOrderId set)
+    const prPoUpdates = allPos.map((po: any) => ({
+      updateOne: {
+        filter: { _id: po.purchaseRequestId },
+        update: { $set: { status: 'completed', purchaseOrderId: po._id } },
+      },
+    }));
+    if (prPoUpdates.length > 0) {
+      await PurchaseRequest.bulkWrite(prPoUpdates);
+      console.log(`  Updated ${prPoUpdates.length} PRs to completed status with PO links`);
+    }
 
     console.log(`  Inserting ${allApprovals.length} approval records...`);
     await Approval.insertMany(allApprovals);
@@ -1972,6 +2071,7 @@ async function seed() {
     console.log('  └───────────────────────────────────────────────────────┘');
     console.log('\n  PR Status Distribution:');
     console.log(`    Approved:   ${allPrs.filter(p => p.status === 'approved').length}`);
+    console.log(`    Completed:  ${allPrs.filter(p => p.status === 'completed').length}`);
     console.log(`    Quoted:     ${allPrs.filter(p => p.status === 'quoted').length}`);
     console.log(`    Pending Quotation: ${allPrs.filter(p => p.status === 'pending_quotation').length}`);
     console.log(`    In Review:  ${allPrs.filter(p => ['level1_review', 'level2_review', 'level3_review'].includes(p.status)).length}`);

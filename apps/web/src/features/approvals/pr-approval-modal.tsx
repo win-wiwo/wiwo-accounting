@@ -3,16 +3,13 @@ import {
   CheckCircle2,
   XCircle,
   RotateCcw,
-  Calendar,
   User,
   Paperclip,
   Download,
-  ShoppingCart,
   Eye,
   Camera,
   ImageIcon,
   FileText,
-  Clock,
   AlertTriangle,
   Check,
   ExternalLink,
@@ -20,13 +17,12 @@ import {
   X,
 } from 'lucide-react';
 import {
+  APPROVAL_LEVEL_LABELS,
   ATTACHMENT_CATEGORY_LABELS,
   AttachmentCategory,
-  PR_STATUS_LABELS,
   PR_PRIORITY_LABELS,
   PrStatus,
   SourcingType,
-  type PrStatus as PrStatusType,
   type PrPriority as PrPriorityType,
 } from '@prams/shared';
 import { usePurchaseRequest } from '@/hooks/use-purchase-requests';
@@ -34,7 +30,6 @@ import { useApprovalHistory, useProcessApproval } from '@/hooks/use-approvals';
 import { purchaseRequestsApi } from '@/lib/api-services';
 import apiClient from '@/lib/api-client';
 import { useToast } from '@/components/ui/toast';
-import { PurchaseRequestWorkflowTimeline } from '@/components/purchase-request-workflow-timeline';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
@@ -99,6 +94,7 @@ export function PrApprovalModal({
   const [itemPhotoDialog, setItemPhotoDialog] = useState<{
     open: boolean; url: string | null; loading: boolean;
   }>({ open: false, url: null, loading: false });
+  const [itemsExpanded, setItemsExpanded] = useState(false);
   const [expandedSellers, setExpandedSellers] = useState<Record<number, boolean>>({});
 
   const requester = pr?.requesterId as unknown as {
@@ -111,8 +107,7 @@ export function PrApprovalModal({
   const procurementItems = pr?.items.filter((i) => i.sourcingType === SourcingType.PROCUREMENT) ?? [];
   const hasProcurementItems = procurementItems.length > 0;
   const hasUnquotedItems = procurementItems.some((i) => !i.quotedUnitPrice);
-  const neededByDays = daysPast(pr?.neededByDate ?? undefined);
-  const isOverdue = pr?.neededByDate ? neededByDays > 0 : false;
+  const isOverdue = pr?.neededByDate ? daysPast(pr.neededByDate) > 0 : false;
 
   // Supplier comparison stats
   const canvassEntries = pr?.canvassEntries ?? [];
@@ -258,11 +253,6 @@ export function PrApprovalModal({
                         Price Review
                       </span>
                     )}
-                    {hasProcurementItems && !isPriceReview && (
-                      <span className="inline-flex items-center gap-0.5 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-600">
-                        <ShoppingCart className="h-2.5 w-2.5" /> Procurement
-                      </span>
-                    )}
                   </div>
                   <h2 className="mt-1.5 text-[17px] font-bold leading-snug text-zinc-900 tracking-[-0.01em]">{pr.title}</h2>
                 </div>
@@ -289,281 +279,223 @@ export function PrApprovalModal({
               ) : pr ? (
                 <>
                   {/* ── Main content (~70%) ──────────────────── */}
-                  <div className="flex-1 overflow-y-auto px-7 py-6 space-y-7">
+                  <div className="flex-1 overflow-y-auto px-7 py-5 space-y-4">
 
-                    {/* Decision context banner */}
-                    {isPriceReview ? (
-                      <div className="rounded-xl bg-emerald-50/70 border border-emerald-200/60 px-5 py-4">
-                        <p className="text-[13px] font-semibold text-emerald-900">
-                          Price Review &mdash; validate supplier selection and costs
-                        </p>
-                        <p className="text-[12px] text-emerald-700/80 mt-1 leading-relaxed">
-                          {canvassEntries.length} supplier{canvassEntries.length !== 1 ? 's' : ''} canvassed.
-                          Approve to finalise, or return to procurement for revised quotes.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="rounded-xl bg-blue-50/60 border border-blue-200/50 px-5 py-4">
-                        <p className="text-[13px] font-semibold text-blue-900">
-                          {PR_STATUS_LABELS[pr.status as PrStatusType]} &mdash; you are approving the business need
-                        </p>
-                        {hasProcurementItems && (
-                          <p className="text-[12px] text-blue-700/80 mt-1 leading-relaxed">
-                            Pricing is not final yet. Procurement will source suppliers after full management sign-off.
+                    {/* Summary strip */}
+                    <div className="rounded-xl border border-zinc-200/60 bg-zinc-50/40 px-5 py-3 flex items-center gap-4 flex-wrap">
+                      <div className="flex-1 min-w-[180px]">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400 mb-0.5">Purpose</p>
+                        <p className="text-[12px] leading-relaxed text-zinc-800 line-clamp-2">{pr.justification}</p>
+                        {pr.projectId && (
+                          <p className="text-[11px] text-zinc-500 mt-1 flex items-center gap-1.5">
+                            <span className="text-zinc-400">Project:</span>
+                            <span className="font-medium text-zinc-700">
+                              {(pr.projectId as unknown as { name: string; code: string | null }).name}
+                            </span>
+                            {(pr.projectId as unknown as { code: string | null }).code && (
+                              <span className="font-mono text-[10px] bg-zinc-100 text-zinc-500 px-1 py-px rounded">
+                                {(pr.projectId as unknown as { code: string | null }).code}
+                              </span>
+                            )}
                           </p>
                         )}
                       </div>
-                    )}
-
-                    {/* Purpose + Total */}
-                    <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
-                      <div className="rounded-xl border border-zinc-200/60 bg-zinc-50/40 px-5 py-4 space-y-1.5">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400">Purpose</p>
-                        <p className="text-[13px] leading-relaxed text-zinc-800">{pr.justification}</p>
-                      </div>
-                      <div className="rounded-xl border border-zinc-200/60 bg-zinc-50/40 px-5 py-4 flex flex-col items-end justify-center gap-1 min-w-[160px]">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400">Total</p>
+                      <div className="h-8 w-px bg-zinc-200/60 shrink-0 hidden sm:block" />
+                      <div className="text-right shrink-0">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400 mb-0.5">Total</p>
                         {hasProcurementItems && hasUnquotedItems && !isPriceReview ? (
-                          <>
-                            <p className="text-[18px] font-bold text-amber-600">Pending Quote</p>
-                            <p className="text-[10px] text-zinc-400">Prices set after procurement</p>
-                          </>
+                          <p className="text-[14px] font-bold text-amber-600">Pending Quote</p>
                         ) : (
-                          <p className="text-[24px] font-bold tabular-nums text-zinc-900 tracking-tight">{formatCurrency(pr.totalAmount)}</p>
+                          <p className="text-[17px] font-bold tabular-nums text-zinc-900 tracking-tight">{formatCurrency(pr.totalAmount)}</p>
                         )}
+                      </div>
+                      {pr.neededByDate && (
+                        <>
+                          <div className="h-8 w-px bg-zinc-200/60 shrink-0 hidden sm:block" />
+                          <div className="text-right shrink-0">
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400 mb-0.5">Needed by</p>
+                            <p className={`text-[13px] font-semibold ${isOverdue ? 'text-red-500' : 'text-zinc-800'}`}>
+                              {formatDate(pr.neededByDate)}
+                              {isOverdue && <span className="text-[10px] ml-1 text-red-500 font-medium">(overdue)</span>}
+                            </p>
+                          </div>
+                        </>
+                      )}
+                      <div className="h-8 w-px bg-zinc-200/60 shrink-0 hidden sm:block" />
+                      <div className="text-right shrink-0">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400 mb-0.5">Items</p>
+                        <p className="text-[13px] font-semibold text-zinc-800 tabular-nums">{pr.items.length}</p>
                       </div>
                     </div>
 
-                    {pr.description && (
-                      <p className="text-[13px] text-zinc-500 leading-relaxed">{pr.description}</p>
-                    )}
-
-                    {pr.projectId && (
-                      <div className="flex items-center gap-2.5">
-                        <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400">Project</span>
-                        <span className="text-[13px] font-medium text-zinc-800">
-                          {(pr.projectId as unknown as { name: string; code: string | null }).name}
+                    {/* ── Collapsible Line Items ──────────────────── */}
+                    <div className="rounded-xl border border-zinc-200/60 overflow-hidden">
+                      <button
+                        type="button"
+                        className="flex w-full items-center justify-between px-4 py-3 hover:bg-zinc-50/60 transition-colors group"
+                        onClick={() => setItemsExpanded(!itemsExpanded)}
+                      >
+                        <span className="text-[12px] font-semibold text-zinc-700">
+                          {pr.items.length} Item{pr.items.length !== 1 ? 's' : ''} Requested
                         </span>
-                        {(pr.projectId as unknown as { code: string | null }).code && (
-                          <span className="font-mono text-[11px] bg-zinc-100 text-zinc-500 px-1.5 py-0.5 rounded-md">
-                            {(pr.projectId as unknown as { code: string | null }).code}
-                          </span>
-                        )}
-                      </div>
-                    )}
+                        <ChevronDown className={`h-3.5 w-3.5 text-zinc-400 transition-transform duration-200 ${itemsExpanded ? 'rotate-180' : ''}`} />
+                      </button>
+                      {itemsExpanded && (
+                        <div className="border-t border-zinc-100">
+                          {pr.items.map((item, i) => {
+                            const isProcurement = item.sourcingType === SourcingType.PROCUREMENT;
+                            const displayPrice = isProcurement
+                              ? (item.quotedUnitPrice ?? item.estimatedPrice ?? 0)
+                              : (item.estimatedPrice ?? 0);
+                            const isPending = isProcurement && !item.quotedUnitPrice;
+                            const sellers = (!isProcurement && item.sellerReferences) || [];
 
-                    {/* ── Line Items ────────────────────────────── */}
-                    <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400 mb-3">
-                        Line Items ({pr.items.length})
-                      </p>
-                      <div className="space-y-3">
-                        {pr.items.map((item, i) => {
-                          const isProcurement = item.sourcingType === SourcingType.PROCUREMENT;
-                          const displayPrice = isProcurement
-                            ? (item.quotedUnitPrice ?? item.estimatedPrice ?? 0)
-                            : (item.estimatedPrice ?? 0);
-                          const isPending = isProcurement && !item.quotedUnitPrice;
-                          const sellers = (!isProcurement && item.sellerReferences) || [];
-
-                          return (
-                            <div
-                              key={item._id}
-                              className="rounded-xl border border-zinc-200/60 bg-white overflow-hidden"
-                            >
-                              {/* ── Item header row ── */}
-                              <div className="flex items-start justify-between gap-3 px-4 py-3">
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-100 text-[10px] font-bold text-zinc-500 tabular-nums shrink-0">
-                                      {i + 1}
-                                    </span>
-                                    <p className="text-[13px] font-semibold text-zinc-800 leading-snug truncate">{item.description}</p>
-                                    {isProcurement ? (
-                                      <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold text-blue-600 bg-blue-50 border border-blue-100 rounded-full px-1.5 py-0.5 shrink-0">
-                                        <ShoppingCart className="h-2 w-2" /> Procurement
-                                      </span>
-                                    ) : (
-                                      <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold text-zinc-500 bg-zinc-50 border border-zinc-100 rounded-full px-1.5 py-0.5 shrink-0">
-                                        Online
-                                      </span>
+                            return (
+                              <div key={item._id} className={`${i > 0 ? 'border-t border-zinc-100/60' : ''}`}>
+                                <div className="flex items-center justify-between gap-3 px-4 py-2.5">
+                                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                                    <span className="flex h-5 w-5 items-center justify-center rounded-md bg-zinc-100 text-[10px] font-bold text-zinc-500 tabular-nums shrink-0">{i + 1}</span>
+                                    <p className="text-[12.5px] font-medium text-zinc-800 truncate">{item.description}</p>
+                                    {isProcurement && (
+                                      <span className="inline-flex items-center text-[9px] font-semibold text-blue-600 bg-blue-50 border border-blue-100 rounded-full px-1.5 py-0.5 shrink-0">Procurement</span>
+                                    )}
+                                    {item.referencePhotoPath && (
+                                      <button type="button" onClick={(e) => { e.stopPropagation(); handleViewItemPhoto(item._id); }}
+                                        className="h-5 w-5 rounded flex items-center justify-center text-zinc-400 hover:text-zinc-600 shrink-0">
+                                        <Camera className="h-3 w-3" />
+                                      </button>
                                     )}
                                   </div>
-                                  {item.specifications && (
-                                    <p className="text-[11px] text-zinc-400 mt-1 ml-7 line-clamp-2">{item.specifications}</p>
-                                  )}
-                                  {typeof item.selectedSupplierId === 'object' && item.selectedSupplierId?.companyName && (
-                                    <p className="text-[11px] text-emerald-600 mt-1 ml-7 flex items-center gap-1">
-                                      <Check className="h-3 w-3" />
-                                      Supplier: {item.selectedSupplierId.companyName}
-                                    </p>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-3 shrink-0">
-                                  {item.referencePhotoPath && (
-                                    <button
-                                      type="button"
-                                      onClick={(e) => { e.stopPropagation(); handleViewItemPhoto(item._id); }}
-                                      title="View reference photo"
-                                      className="h-7 w-7 rounded-lg flex items-center justify-center text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-all duration-150"
-                                    >
-                                      <Camera className="h-3.5 w-3.5" />
-                                    </button>
-                                  )}
-                                  <div className="text-right">
-                                    <p className="text-[11px] text-zinc-400 whitespace-nowrap tabular-nums">{item.quantity} {item.unit}</p>
-                                    <p className="text-[11px] text-zinc-400 mt-0.5 tabular-nums">
-                                      {isPending ? (
-                                        <span className="text-amber-600 font-medium">TBQ</span>
-                                      ) : (
-                                        <span>@ {formatCurrency(displayPrice)}</span>
-                                      )}
-                                    </p>
-                                  </div>
-                                  <div className="pl-2 border-l border-zinc-100">
-                                    <p className="text-[14px] font-bold tabular-nums text-zinc-800 min-w-[72px] text-right">
+                                  <div className="flex items-center gap-3 shrink-0 text-[12px] tabular-nums">
+                                    <span className="text-zinc-400">{item.quantity} {item.unit}</span>
+                                    <span className="text-zinc-300">&middot;</span>
+                                    {isPending
+                                      ? <span className="text-amber-600 font-medium">TBQ</span>
+                                      : <span className="text-zinc-500">@ {formatCurrency(displayPrice)}</span>}
+                                    <span className="font-semibold text-zinc-800 min-w-[72px] text-right">
                                       {item.totalPrice > 0 ? formatCurrency(item.totalPrice) : '\u2014'}
-                                    </p>
+                                    </span>
                                   </div>
                                 </div>
-                              </div>
 
-                              {/* ── Seller comparison (online items, collapsible) ── */}
-                              {sellers.length > 0 && (() => {
-                                const isExpanded = expandedSellers[i] ?? false;
-                                const selectedSeller = sellers.find((s) => s.price === item.estimatedPrice);
-                                return (
-                                  <div className="border-t border-zinc-100 bg-zinc-50/40">
-                                    <button
-                                      type="button"
-                                      onClick={() => setExpandedSellers((p) => ({ ...p, [i]: !p[i] }))}
-                                      className="flex w-full items-center justify-between px-4 py-2 text-left hover:bg-zinc-100/40 transition-colors"
-                                    >
-                                      <div className="flex items-center gap-2">
-                                        <p className="text-[9px] font-semibold uppercase tracking-[0.08em] text-zinc-400">
-                                          Seller Comparison ({sellers.length})
-                                        </p>
-                                        {!isExpanded && selectedSeller && (
-                                          <span className="flex items-center gap-1 text-[10px] text-emerald-600 font-medium">
-                                            <Check className="h-3 w-3" />
-                                            {selectedSeller.sellerName} &mdash; {formatCurrency(selectedSeller.price)}
-                                          </span>
-                                        )}
-                                      </div>
-                                      <ChevronDown className={`h-3.5 w-3.5 text-zinc-400 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
-                                    </button>
-                                    {isExpanded && (
-                                      <div className="px-4 pb-2.5 space-y-1.5">
-                                        {sellers.map((ref, ri) => {
-                                          const isSelected = ref.price === item.estimatedPrice;
-                                          return (
-                                            <div
-                                              key={ri}
-                                              className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[11px] transition-colors ${
-                                                isSelected
-                                                  ? 'bg-emerald-50/80 border border-emerald-200/60'
-                                                  : 'bg-white border border-zinc-100 hover:border-zinc-200'
-                                              }`}
-                                            >
-                                              <span className={`flex h-4 w-4 items-center justify-center rounded-full shrink-0 ${
-                                                isSelected ? 'bg-emerald-500' : 'border border-zinc-200'
-                                              }`}>
-                                                {isSelected && <Check className="h-2.5 w-2.5 text-white" />}
-                                              </span>
-                                              <div className="flex-1 min-w-0">
-                                                <p className={`truncate leading-tight ${isSelected ? 'font-semibold text-zinc-800' : 'text-zinc-600'}`}>
-                                                  {ref.sellerName}
-                                                </p>
-                                                {ref.notes && (
-                                                  <p className="text-[10px] text-zinc-400 truncate mt-0.5">{ref.notes}</p>
+                                {/* Seller comparison (online items) */}
+                                {sellers.length > 0 && (() => {
+                                  const isExpanded = expandedSellers[i] ?? false;
+                                  const selectedSeller = sellers.find((s) => s.price === item.estimatedPrice);
+                                  return (
+                                    <div className="border-t border-zinc-100/60 bg-zinc-50/40">
+                                      <button
+                                        type="button"
+                                        onClick={() => setExpandedSellers((p) => ({ ...p, [i]: !p[i] }))}
+                                        className="flex w-full items-center justify-between px-4 py-2 text-left hover:bg-zinc-100/40 transition-colors"
+                                      >
+                                        <div className="flex items-center gap-2">
+                                          <p className="text-[9px] font-semibold uppercase tracking-[0.08em] text-zinc-400">
+                                            Seller Comparison ({sellers.length})
+                                          </p>
+                                          {!isExpanded && selectedSeller && (
+                                            <span className="flex items-center gap-1 text-[10px] text-emerald-600 font-medium">
+                                              <Check className="h-3 w-3" />
+                                              {selectedSeller.sellerName} &mdash; {formatCurrency(selectedSeller.price)}
+                                            </span>
+                                          )}
+                                        </div>
+                                        <ChevronDown className={`h-3.5 w-3.5 text-zinc-400 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                                      </button>
+                                      {isExpanded && (
+                                        <div className="px-4 pb-2.5 space-y-1.5">
+                                          {sellers.map((ref, ri) => {
+                                            const isSelected = ref.price === item.estimatedPrice;
+                                            return (
+                                              <div
+                                                key={ri}
+                                                className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[11px] transition-colors ${
+                                                  isSelected
+                                                    ? 'bg-emerald-50/80 border border-emerald-200/60'
+                                                    : 'bg-white border border-zinc-100 hover:border-zinc-200'
+                                                }`}
+                                              >
+                                                <span className={`flex h-4 w-4 items-center justify-center rounded-full shrink-0 ${
+                                                  isSelected ? 'bg-emerald-500' : 'border border-zinc-200'
+                                                }`}>
+                                                  {isSelected && <Check className="h-2.5 w-2.5 text-white" />}
+                                                </span>
+                                                <div className="flex-1 min-w-0">
+                                                  <p className={`truncate leading-tight ${isSelected ? 'font-semibold text-zinc-800' : 'text-zinc-600'}`}>
+                                                    {ref.sellerName}
+                                                  </p>
+                                                </div>
+                                                <span className={`shrink-0 tabular-nums font-semibold ${isSelected ? 'text-emerald-700' : 'text-zinc-500'}`}>
+                                                  {formatCurrency(ref.price)}
+                                                </span>
+                                                {ref.url && (
+                                                  <a
+                                                    href={ref.url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    className="flex h-6 items-center gap-1 rounded-md border border-zinc-200 bg-white px-2 text-[10px] font-medium text-zinc-500 hover:border-zinc-300 hover:text-zinc-700 transition-colors shrink-0"
+                                                  >
+                                                    View <ExternalLink className="h-2.5 w-2.5" />
+                                                  </a>
                                                 )}
                                               </div>
-                                              <span className={`shrink-0 tabular-nums font-semibold ${
-                                                isSelected ? 'text-emerald-700' : 'text-zinc-500'
-                                              }`}>
-                                                {formatCurrency(ref.price)}
-                                              </span>
-                                              {ref.url && (
-                                                <a
-                                                  href={ref.url}
-                                                  target="_blank"
-                                                  rel="noopener noreferrer"
-                                                  onClick={(e) => e.stopPropagation()}
-                                                  className="flex h-6 items-center gap-1 rounded-md border border-zinc-200 bg-white px-2 text-[10px] font-medium text-zinc-500 hover:border-zinc-300 hover:text-zinc-700 transition-colors shrink-0"
-                                                >
-                                                  View <ExternalLink className="h-2.5 w-2.5" />
-                                                </a>
-                                              )}
-                                            </div>
-                                          );
-                                        })}
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })()}
-                            </div>
-                          );
-                        })}
-                      </div>
+                                            );
+                                          })}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })()}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
 
                     {/* ── Supplier Comparison ───────────────────── */}
                     {canvassEntries.length > 0 && (
                       <div>
-                        <div className="flex items-center justify-between mb-4">
-                          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400">
-                            Supplier Comparison ({canvassEntries.length})
-                          </p>
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-3">
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400">
+                              Supplier Comparison ({canvassEntries.length})
+                            </p>
+                            {selectedSupplier && (
+                              <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700">
+                                <CheckCircle2 className="h-3 w-3" />
+                                {selectedSupplier.supplierName} &mdash; {formatCurrency(selectedSupplier.totalQuotedAmount)}
+                                {canvassEntries.length > 1 && selectedSupplier.totalQuotedAmount === lowestTotal && (
+                                  <span className="text-[10px] font-medium text-emerald-600/80 ml-0.5">Lowest</span>
+                                )}
+                                {canvassEntries.length > 1 && highestTotal > selectedSupplier.totalQuotedAmount && (
+                                  <span className="text-[10px] font-medium text-emerald-600 ml-1">
+                                    (saves {formatCurrency(highestTotal - selectedSupplier.totalQuotedAmount)})
+                                  </span>
+                                )}
+                              </span>
+                            )}
+                          </div>
                           {canvassEntries.length < 3 && pr.canvassJustification && (
                             <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
-                              <AlertTriangle className="h-2.5 w-2.5" /> Fewer than 3 justified
+                              <AlertTriangle className="h-2.5 w-2.5" /> &lt;3 suppliers
                             </span>
                           )}
                         </div>
-
-                        {/* Selected supplier highlight */}
-                        {selectedSupplier && (
-                          <div className="rounded-xl border border-emerald-200/60 bg-emerald-50/40 px-5 py-4 mb-3">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
-                                    <CheckCircle2 className="h-2.5 w-2.5" /> Selected
-                                  </span>
-                                  <span className="text-[14px] font-semibold text-zinc-900">{selectedSupplier.supplierName}</span>
-                                </div>
-                                {selectedSupplier.remarks && (
-                                  <p className="text-[11px] text-zinc-500 italic mt-1">{selectedSupplier.remarks}</p>
-                                )}
-                              </div>
-                              <p className="text-[18px] font-bold tabular-nums text-zinc-900">{formatCurrency(selectedSupplier.totalQuotedAmount)}</p>
-                            </div>
-                            {canvassEntries.length > 1 && highestTotal > lowestTotal && (
-                              <div className="mt-3 pt-3 border-t border-emerald-200/60 flex items-center gap-4">
-                                <span className="text-[11px] text-zinc-500">
-                                  Range: {formatCurrency(lowestTotal)} &ndash; {formatCurrency(highestTotal)}
-                                </span>
-                                {selectedSupplier.totalQuotedAmount === lowestTotal && (
-                                  <span className="text-[10px] font-semibold text-emerald-700">Lowest quote</span>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        )}
 
                         {/* Comparison table */}
                         <div className="rounded-xl border border-zinc-200/60 overflow-hidden">
                           <table className="w-full text-[12px]">
                             <thead>
                               <tr className="border-b border-zinc-100 bg-zinc-50/60">
-                                <th className="text-left px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-zinc-400">Supplier</th>
+                                <th className="text-left px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.06em] text-zinc-400">Supplier</th>
                                 {canvassEntries[0]?.quotedItems.map((qi) => (
-                                  <th key={qi.itemId} className="text-right px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-zinc-400 max-w-[120px] truncate">
-                                    {qi.description}
+                                  <th key={qi.itemId} className="text-right px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.06em] text-zinc-400 max-w-[100px]" title={qi.description}>
+                                    <span className="block truncate">{qi.description}</span>
                                   </th>
                                 ))}
-                                <th className="text-right px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-zinc-400">Total</th>
+                                <th className="text-right px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.06em] text-zinc-400">Total</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -572,24 +504,27 @@ export function PrApprovalModal({
                                   key={entry._id ?? `${entry.supplierName}-${entry.totalQuotedAmount}`}
                                   className={`border-b border-zinc-100/60 last:border-0 transition-colors duration-100 ${entry.isSelected ? 'bg-emerald-50/30' : 'hover:bg-zinc-50/60'}`}
                                 >
-                                  <td className="px-4 py-3">
+                                  <td className="px-3 py-2.5">
                                     <div className="flex items-center gap-2">
-                                      <span className="text-[13px] font-medium text-zinc-800">{entry.supplierName}</span>
+                                      <span className="text-[12px] font-medium text-zinc-800">{entry.supplierName}</span>
                                       {entry.isSelected && (
                                         <span className="inline-flex items-center rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-700">Selected</span>
                                       )}
+                                      {!entry.isSelected && canvassEntries.length > 1 && entry.totalQuotedAmount === lowestTotal && (
+                                        <span className="inline-flex items-center rounded-full bg-zinc-100 px-1.5 py-0.5 text-[9px] font-medium text-zinc-500">Lowest</span>
+                                      )}
                                     </div>
                                     {entry.remarks && (
-                                      <p className="text-[11px] text-zinc-400 italic mt-0.5">{entry.remarks}</p>
+                                      <p className="text-[10px] text-zinc-400 italic mt-0.5 line-clamp-1">{entry.remarks}</p>
                                     )}
                                   </td>
                                   {entry.quotedItems.map((qi) => (
-                                    <td key={qi.itemId} className="px-4 py-3 text-right text-[12px] tabular-nums text-zinc-600">
+                                    <td key={qi.itemId} className="px-3 py-2.5 text-right text-[12px] tabular-nums text-zinc-600">
                                       {formatCurrency(qi.unitPrice)}
                                     </td>
                                   ))}
-                                  <td className="px-4 py-3 text-right">
-                                    <span className="text-[13px] font-semibold tabular-nums text-zinc-800">
+                                  <td className="px-3 py-2.5 text-right">
+                                    <span className={`text-[13px] font-semibold tabular-nums ${entry.isSelected ? 'text-emerald-700' : 'text-zinc-800'}`}>
                                       {formatCurrency(entry.totalQuotedAmount)}
                                     </span>
                                   </td>
@@ -600,11 +535,12 @@ export function PrApprovalModal({
                         </div>
 
                         {pr.canvassJustification && canvassEntries.length < 3 && (
-                          <div className="rounded-xl border border-amber-200/60 bg-amber-50/40 px-5 py-3.5 mt-3">
+                          <div className="rounded-xl border border-amber-200/60 bg-amber-50/40 px-4 py-3 mt-2">
                             <p className="text-[11px] font-semibold text-amber-800">Fewer than 3 suppliers &mdash; justification</p>
                             <p className="mt-1 text-[12px] text-amber-900/80 leading-relaxed">{pr.canvassJustification}</p>
                           </div>
                         )}
+
                       </div>
                     )}
 
@@ -638,14 +574,14 @@ export function PrApprovalModal({
                   </div>
 
                   {/* ── Right panel (~30%) ──────────────────────── */}
-                  <div className="w-[300px] shrink-0 border-l border-zinc-100 bg-zinc-50/30 flex flex-col overflow-hidden">
-                    <div className="flex-1 overflow-y-auto px-5 py-6 space-y-6">
+                  <div className="w-[280px] shrink-0 border-l border-zinc-100 bg-zinc-50/30 flex flex-col overflow-hidden">
+                    <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4">
 
                       {/* Requester */}
                       <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400 mb-3">Requester</p>
-                        <div className="flex items-center gap-3 mb-3">
-                          <div className="h-9 w-9 rounded-full bg-white border border-zinc-200/80 flex items-center justify-center shrink-0 text-zinc-500 font-semibold text-[12px]">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400 mb-2">Requester</p>
+                        <div className="flex items-center gap-3">
+                          <div className="h-8 w-8 rounded-full bg-white border border-zinc-200/80 flex items-center justify-center shrink-0 text-zinc-500 font-semibold text-[12px]">
                             {requester ? requester.firstName[0] : <User className="h-3.5 w-3.5" />}
                           </div>
                           <div className="min-w-0">
@@ -655,69 +591,51 @@ export function PrApprovalModal({
                             <p className="text-[11px] text-zinc-400 truncate">{department?.name ?? '\u2014'}</p>
                           </div>
                         </div>
-                        <div className="space-y-2 text-[11px]">
-                          <div className="flex items-center gap-2 text-zinc-500">
-                            <Calendar className="h-3 w-3 shrink-0 text-zinc-300" />
-                            <span>Submitted {formatDate(pr.submittedAt)}</span>
-                          </div>
-                          {pr.neededByDate && (
-                            <div className={`flex items-center gap-2 ${isOverdue ? 'text-red-600 font-medium' : 'text-zinc-500'}`}>
-                              <Clock className={`h-3 w-3 shrink-0 ${isOverdue ? 'text-red-400' : 'text-zinc-300'}`} />
-                              <span>Needed by {formatDate(pr.neededByDate)}</span>
-                              {isOverdue && (
-                                <span className="inline-flex items-center rounded-full bg-red-50 px-1.5 py-0.5 text-[9px] font-semibold text-red-600">
-                                  Overdue
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
                       </div>
 
                       <div className="h-px bg-zinc-200/60" />
 
-                      {/* Request details */}
+                      {/* Workflow history — compressed */}
                       <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400 mb-3">Details</p>
-                        <div className="space-y-2.5">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[11px] text-zinc-500">Priority</span>
-                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${priorityStyle[pr.priority] ?? 'bg-zinc-100 text-zinc-500'}`}>
-                              {PR_PRIORITY_LABELS[pr.priority as PrPriorityType]}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-[11px] text-zinc-500">Items</span>
-                            <span className="text-[12px] font-medium text-zinc-800 tabular-nums">{pr.items.length}</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-[11px] text-zinc-500">Type</span>
-                            <span className="text-[12px] font-medium text-zinc-800">{pr.requestType === 'job_request' ? 'Job Request' : 'Purchase'}</span>
-                          </div>
-                          {hasProcurementItems && (
-                            <div className="flex items-center justify-between">
-                              <span className="text-[11px] text-zinc-500">Procurement</span>
-                              <span className="text-[12px] font-medium text-zinc-800 tabular-nums">{procurementItems.length} item{procurementItems.length !== 1 ? 's' : ''}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="h-px bg-zinc-200/60" />
-
-                      {/* Workflow history */}
-                      <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400 mb-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400 mb-2">
                           Workflow History
                         </p>
                         {approvalHistory.length === 0 ? (
                           <p className="text-[11px] text-zinc-400">No actions yet.</p>
                         ) : (
-                          <PurchaseRequestWorkflowTimeline
-                            pr={pr}
-                            approvalHistory={approvalHistory}
-                            compact
-                          />
+                          <div className="space-y-1">
+                            {[...approvalHistory]
+                              .sort((a, b) => new Date(a.actionDate).getTime() - new Date(b.actionDate).getTime())
+                              .map((entry) => {
+                                const approver = typeof entry.approverId === 'string'
+                                  ? 'Unknown'
+                                  : `${entry.approverId.firstName} ${entry.approverId.lastName}`;
+                                const levelLabel = APPROVAL_LEVEL_LABELS[entry.approvalLevel] || `Level ${entry.approvalLevel}`;
+                                const dateStr = new Date(entry.actionDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                                const icon = entry.action === 'approved'
+                                  ? <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" />
+                                  : entry.action === 'rejected'
+                                    ? <XCircle className="h-3 w-3 text-red-500 shrink-0" />
+                                    : <RotateCcw className="h-3 w-3 text-amber-500 shrink-0" />;
+                                return (
+                                  <div key={entry._id} className="flex items-start gap-1.5 py-1">
+                                    <div className="mt-px">{icon}</div>
+                                    <div className="min-w-0 flex-1">
+                                      <p className="text-[11px] text-zinc-700 leading-tight">
+                                        <span className="font-medium">{levelLabel}</span>
+                                        <span className="text-zinc-400"> — </span>
+                                        <span>{approver}</span>
+                                        <span className="text-zinc-300 mx-1">/</span>
+                                        <span className="text-zinc-400 tabular-nums">{dateStr}</span>
+                                      </p>
+                                      {entry.comments && (
+                                        <p className="text-[10px] text-zinc-400 italic mt-0.5 line-clamp-2">&ldquo;{entry.comments}&rdquo;</p>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                          </div>
                         )}
                       </div>
                     </div>
@@ -726,7 +644,6 @@ export function PrApprovalModal({
                     <div className="border-t border-zinc-200/60 bg-white px-5 py-4 shrink-0 shadow-[0_-4px_12px_rgba(0,0,0,0.03)]">
                       {confirmStep === null ? (
                         <div className="space-y-2.5">
-                          {/* Approve — primary */}
                           <button
                             className="w-full inline-flex items-center justify-center gap-2 rounded-xl h-10 text-[13px] font-semibold text-white bg-emerald-600 transition-all duration-200 hover:bg-emerald-700 hover:-translate-y-px hover:shadow-md disabled:opacity-50 disabled:pointer-events-none"
                             onClick={() => startAction('approved')}
@@ -740,18 +657,16 @@ export function PrApprovalModal({
                           )}
 
                           <div className="flex gap-2">
-                            {/* Return */}
                             <button
-                              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl h-9 text-[12px] font-medium text-zinc-600 border border-zinc-200 bg-white transition-all duration-150 hover:bg-zinc-50 hover:border-zinc-300 disabled:opacity-50 disabled:pointer-events-none"
+                              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl h-9 text-[12px] font-medium text-zinc-500 bg-transparent transition-all duration-150 hover:bg-zinc-100 hover:text-zinc-700 disabled:opacity-50 disabled:pointer-events-none"
                               onClick={() => startAction('returned')}
                               disabled={!pr || processApproval.isPending}
                             >
                               <RotateCcw className="h-3.5 w-3.5" />
-                              {isPriceReview ? 'Return' : 'Return'}
+                              Return
                             </button>
-                            {/* Reject */}
                             <button
-                              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl h-9 text-[12px] font-medium text-red-600 border border-red-200 bg-white transition-all duration-150 hover:bg-red-50 hover:border-red-300 disabled:opacity-50 disabled:pointer-events-none"
+                              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl h-9 text-[12px] font-medium text-red-500/80 bg-transparent transition-all duration-150 hover:bg-red-50 hover:text-red-600 disabled:opacity-50 disabled:pointer-events-none"
                               onClick={() => startAction('rejected')}
                               disabled={!pr || processApproval.isPending}
                             >
