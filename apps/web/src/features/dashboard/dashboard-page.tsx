@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  FileText, Clock, CheckCircle2, XCircle, ArrowRight,
-  ShoppingCart, Plus, AlertTriangle, ChevronRight, RotateCcw, Activity,
+  FileText, Clock, CheckCircle2, ArrowRight,
+  Plus, ChevronRight,
 } from 'lucide-react';
 import {
   PR_STATUS_LABELS, PR_PRIORITY_LABELS,
@@ -14,7 +14,6 @@ import { useAuthStore } from '@/stores/auth.store';
 import { usePrStats, usePurchaseRequests, useProjectSpending, useManagementStats } from '@/hooks/use-purchase-requests';
 import { usePendingApprovals, usePendingCount } from '@/hooks/use-approvals';
 import { usePoMonthlyStats } from '@/hooks/use-purchase-orders';
-import { useNotifications } from '@/hooks/use-notifications';
 import type { ProjectSpendingItem } from '@/lib/api-services';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -67,21 +66,6 @@ function compact(n: number) {
   return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(n);
 }
 
-function full(n: number) {
-  return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(n);
-}
-
-function timeAgo(dateStr: string | undefined): string {
-  if (!dateStr) return '—';
-  const s = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
-  if (s < 60) return 'just now';
-  const m = Math.floor(s / 60);
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.floor(h / 24)}d ago`;
-}
-
 export function DashboardPage() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
@@ -97,8 +81,6 @@ export function DashboardPage() {
   const { data: mgmtStats, isLoading: mgmtLoading } = useManagementStats();
   const { data: posIssuedThisMonth } = usePoMonthlyStats();
   const { data: pendingCountData } = usePendingCount();
-  const { data: notifData } = useNotifications({ page: 1, limit: 6 });
-  const recentNotifs = ((notifData as unknown as { data?: { _id: string; message: string; isRead: boolean; createdAt: string; purchaseRequestId: string | null }[] })?.data ?? []).slice(0, 5);
   const { data: pendingPrsData, isLoading: queueLoading } = usePendingApprovals({ page: 1, limit: 10 });
   const { data: myPrsData, isLoading: myPrsLoading } = usePurchaseRequests(
     { limit: 5 },
@@ -134,7 +116,6 @@ export function DashboardPage() {
   const approvedCount   = byStatus[PrStatus.APPROVED]?.count ?? 0;
   const rejectedCount   = byStatus[PrStatus.REJECTED]?.count ?? 0;
   const returnedCount   = byStatus[PrStatus.RETURNED]?.count ?? 0;
-  const draftCount      = byStatus[PrStatus.DRAFT]?.count ?? 0;
   const inReviewCount   = (byStatus[PrStatus.LEVEL1_REVIEW]?.count ?? 0) +
                           (byStatus[PrStatus.LEVEL2_REVIEW]?.count ?? 0) +
                           (byStatus[PrStatus.LEVEL3_REVIEW]?.count ?? 0);
@@ -655,68 +636,6 @@ export function DashboardPage() {
             </Card>
           )}
 
-          {/* Insights */}
-          {(pendingTotalValue > 0 || returnedCount > 0 || rejectedCount > 0 || draftCount > 0 || oldestAge > 0) && (
-            <Card>
-              <CardHeader className="pb-4 px-6 pt-5">
-                <CardTitle className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
-                  Insights
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0 px-6 pb-5 space-y-3">
-                {pendingTotalValue > 0 && (
-                  <InsightRow icon={<ShoppingCart className="h-3.5 w-3.5" />}
-                    text={`${full(pendingTotalValue)} awaiting approval`} />
-                )}
-                {oldestAge >= 5 && (
-                  <InsightRow icon={<AlertTriangle className="h-3.5 w-3.5" />}
-                    text={`Oldest pending request: ${oldestAge} days`} urgent />
-                )}
-                {returnedCount > 0 && (
-                  <InsightRow icon={<RotateCcw className="h-3.5 w-3.5" />}
-                    text={`${returnedCount} request${returnedCount > 1 ? 's' : ''} returned for revision`} />
-                )}
-                {draftCount > 0 && !isApprover && (
-                  <InsightRow icon={<FileText className="h-3.5 w-3.5" />}
-                    text={`${draftCount} draft${draftCount > 1 ? 's' : ''} not yet submitted`} />
-                )}
-                {rejectedCount > 0 && (
-                  <InsightRow icon={<XCircle className="h-3.5 w-3.5" />}
-                    text={`${rejectedCount} request${rejectedCount > 1 ? 's' : ''} rejected`} />
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Recent Activity */}
-          {recentNotifs.length > 0 && (
-            <Card>
-              <CardHeader className="pb-3 px-6 pt-5 flex flex-row items-center justify-between">
-                <CardTitle className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-400">
-                  Recent Activity
-                </CardTitle>
-                <Activity className="h-3 w-3 text-zinc-300" />
-              </CardHeader>
-              <CardContent className="pt-0 px-6 pb-5 space-y-3.5">
-                {recentNotifs.map((n) => (
-                  <div
-                    key={n._id}
-                    className={`flex items-start gap-2.5 group/activity ${n.purchaseRequestId ? 'cursor-pointer' : ''}`}
-                    onClick={() => n.purchaseRequestId && navigate(`/purchase-requests/${n.purchaseRequestId}`)}
-                  >
-                    <span className={`mt-[5px] h-1.5 w-1.5 shrink-0 rounded-full transition-colors duration-150 ${n.isRead ? 'bg-zinc-200' : 'bg-zinc-500'}`} />
-                    <div className="min-w-0">
-                      <p className="text-[12px] leading-snug text-zinc-600 group-hover/activity:text-zinc-800 transition-colors duration-150 line-clamp-2">
-                        {n.message}
-                      </p>
-                      <p className="text-[11px] text-zinc-400 mt-0.5 tabular-nums">{timeAgo(n.createdAt)}</p>
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
-
         </div>
       </div>
     </div>
@@ -791,15 +710,6 @@ function KpiCard({
         <span className={`h-2 w-2 rounded-full ${dotStyles[variant]}`} />
       </div>
       <p className={`kpi-value text-[32px] font-bold tabular-nums leading-none ${valueStyles[variant]}`}>{value}</p>
-    </div>
-  );
-}
-
-function InsightRow({ icon, text, urgent }: { icon: React.ReactNode; text: string; urgent?: boolean }) {
-  return (
-    <div className={`flex items-start gap-2.5 text-[13px] leading-snug ${urgent ? 'text-red-500' : 'text-zinc-500'}`}>
-      <span className={`shrink-0 mt-0.5 ${urgent ? 'text-red-400' : 'text-zinc-400'}`}>{icon}</span>
-      <span>{text}</span>
     </div>
   );
 }
