@@ -95,6 +95,9 @@ const prSchema = new mongoose.Schema({
   canvassJustification: { type: String, default: null },
   quotationReturnHistory: { type: [mongoose.Schema.Types.Mixed], default: [] },
   recallHistory: { type: [mongoose.Schema.Types.Mixed], default: [] },
+  clarificationReplies: { type: [mongoose.Schema.Types.Mixed], default: [] },
+  previousSubmissionSnapshot: { type: mongoose.Schema.Types.Mixed, default: null },
+  resubmissionNote: { type: String, default: null },
 }, { timestamps: true });
 
 const supplierSchema = new mongoose.Schema({
@@ -1088,6 +1091,9 @@ async function seed() {
         quotationNote: null,
         quotationReturnHistory: [],
         recallHistory: [],
+        clarificationReplies: [],
+        previousSubmissionSnapshot: null,
+        resubmissionNote: null,
         createdAt: created, updatedAt: created,
         attachments: [],
       });
