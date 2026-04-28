@@ -154,6 +154,17 @@ export function useReturnForInfo() {
   });
 }
 
+export function useReplyToClarification() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, note }: { id: string; note: string }) =>
+      purchaseRequestsApi.replyToClarification(id, note),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['purchase-requests'] });
+    },
+  });
+}
+
 export function useUploadItemPhoto() {
   const queryClient = useQueryClient();
   return useMutation({

@@ -242,6 +242,7 @@ export class PurchaseRequestsService {
       .populate('projectId', 'name code')
       .populate('items.selectedSupplierId', 'companyName')
       .populate('quotationReturnHistory.returnedBy', 'firstName lastName')
+      .populate('clarificationReplies.repliedBy', 'firstName lastName')
       .populate('recallHistory.recalledBy', 'firstName lastName')
       .exec();
 
@@ -276,9 +277,9 @@ export class PurchaseRequestsService {
       throw new ForbiddenException('You can only edit your own purchase requests');
     }
 
-    const editableStatuses: string[] = [PrStatus.DRAFT, PrStatus.RETURNED, PrStatus.RETURNED_FOR_INFO];
+    const editableStatuses: string[] = [PrStatus.DRAFT, PrStatus.RETURNED];
     if (!editableStatuses.includes(pr.status)) {
-      throw new BadRequestException('Can only edit PRs in Draft, Returned, or Returned for Info status');
+      throw new BadRequestException('Can only edit PRs in Draft or Returned status');
     }
 
     if (dto.items) {
@@ -332,9 +333,9 @@ export class PurchaseRequestsService {
       throw new ForbiddenException('You can only submit your own purchase requests');
     }
 
-    const submittableStatuses: string[] = [PrStatus.DRAFT, PrStatus.RETURNED, PrStatus.RETURNED_FOR_INFO];
+    const submittableStatuses: string[] = [PrStatus.DRAFT, PrStatus.RETURNED];
     if (!submittableStatuses.includes(pr.status)) {
-      throw new BadRequestException('Can only submit PRs in Draft, Returned, or Returned for Info status');
+      throw new BadRequestException('Can only submit PRs in Draft or Returned status');
     }
 
     if (!pr.items || pr.items.length === 0) {
@@ -535,13 +536,12 @@ export class PurchaseRequestsService {
 
     if (!note?.trim()) throw new BadRequestException('A note is required when returning for info');
 
-    pr.status = PrStatus.RETURNED_FOR_INFO;
-    pr.currentApprovalLevel = 0;
     pr.set('quotationNote', note.trim());
     pr.quotationReturnHistory.push({
       note: note.trim(),
       returnedBy: new Types.ObjectId(user._id),
       returnedAt: new Date(),
+      source: 'procurement',
     } as any);
 
     await pr.save();
@@ -552,6 +552,51 @@ export class PurchaseRequestsService {
       .findById(id)
       .populate('requesterId', 'firstName lastName email employeeId')
       .populate('departmentId', 'name code')
+      .exec() as Promise<PurchaseRequest>;
+  }
+
+  async replyToClarification(
+    id: string,
+    note: string,
+    user: RequestUser,
+  ): Promise<PurchaseRequest> {
+    const pr = await this.prModel.findById(id).exec();
+
+    if (!pr) throw new NotFoundException('Purchase request not found');
+
+    if (pr.requesterId.toString() !== user._id) {
+      throw new ForbiddenException('Only the requester can reply to clarification');
+    }
+
+    const hasProcurementClarification = pr.quotationReturnHistory?.some(
+      (e: any) => !e.source || e.source === 'procurement',
+    );
+    if (!hasProcurementClarification) {
+      throw new BadRequestException('No clarification request to reply to');
+    }
+
+    if (!note?.trim()) throw new BadRequestException('A reply note is required');
+
+    if (!pr.clarificationReplies) {
+      pr.set('clarificationReplies', []);
+    }
+
+    pr.clarificationReplies.push({
+      note: note.trim(),
+      repliedBy: new Types.ObjectId(user._id),
+      repliedAt: new Date(),
+    } as any);
+
+    await pr.save();
+
+    this.eventEmitter.emit('pr.clarification_replied', { purchaseRequest: pr.toJSON(), repliedBy: user._id });
+
+    return this.prModel
+      .findById(id)
+      .populate('requesterId', 'firstName lastName email employeeId')
+      .populate('departmentId', 'name code')
+      .populate('quotationReturnHistory.returnedBy', 'firstName lastName')
+      .populate('clarificationReplies.repliedBy', 'firstName lastName')
       .exec() as Promise<PurchaseRequest>;
   }
 
@@ -653,9 +698,9 @@ export class PurchaseRequestsService {
       throw new ForbiddenException('You can only add attachments to your own purchase requests');
     }
 
-    const editableStatuses: string[] = [PrStatus.DRAFT, PrStatus.RETURNED, PrStatus.RETURNED_FOR_INFO];
+    const editableStatuses: string[] = [PrStatus.DRAFT, PrStatus.RETURNED];
     if (!editableStatuses.includes(pr.status)) {
-      throw new BadRequestException('Can only add attachments to PRs in Draft, Returned, or Returned for Info status');
+      throw new BadRequestException('Can only add attachments to PRs in Draft or Returned status');
     }
 
     pr.attachments.push({
@@ -730,7 +775,7 @@ export class PurchaseRequestsService {
       throw new ForbiddenException('You can only remove attachments from your own purchase requests');
     }
 
-    const editableStatuses: string[] = [PrStatus.DRAFT, PrStatus.RETURNED, PrStatus.RETURNED_FOR_INFO];
+    const editableStatuses: string[] = [PrStatus.DRAFT, PrStatus.RETURNED];
     if (!editableStatuses.includes(pr.status)) {
       throw new BadRequestException('Can only remove attachments from PRs in Draft, Returned, or Returned for Info status');
     }
@@ -796,7 +841,7 @@ export class PurchaseRequestsService {
       throw new ForbiddenException('You can only modify your own purchase requests');
     }
 
-    const editableStatuses: string[] = [PrStatus.DRAFT, PrStatus.RETURNED, PrStatus.RETURNED_FOR_INFO];
+    const editableStatuses: string[] = [PrStatus.DRAFT, PrStatus.RETURNED];
     if (!editableStatuses.includes(pr.status)) {
       throw new BadRequestException('Can only add photos to PRs in Draft, Returned, or Returned for Info status');
     }

@@ -132,6 +132,16 @@ export class PurchaseRequestsController {
     return this.prService.returnForInfo(id, dto.note, user);
   }
 
+  @Post(':id/clarification-reply')
+  @ApiOperation({ summary: 'Requester: reply to a procurement clarification request' })
+  async replyToClarification(
+    @Param('id', ParseObjectIdPipe) id: string,
+    @Body('note') note: string,
+    @CurrentUser() user: { _id: string; role: string; departmentId: string | null },
+  ) {
+    return this.prService.replyToClarification(id, note, user);
+  }
+
   @Post(':id/cancel')
   @ApiOperation({ summary: 'Cancel a PR before approval work has started' })
   async cancel(

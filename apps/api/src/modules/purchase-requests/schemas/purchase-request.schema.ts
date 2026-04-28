@@ -163,9 +163,29 @@ export class QuotationReturn {
 
   @Prop({ required: true, default: () => new Date() })
   returnedAt: Date;
+
+  // 'procurement' = Return for Info from procurement; 'coo' = COO rejected the canvass
+  @Prop({ type: String, enum: ['procurement', 'coo'], default: 'procurement' })
+  source: 'procurement' | 'coo';
 }
 
 export const QuotationReturnSchema = SchemaFactory.createForClass(QuotationReturn);
+
+@Schema({ _id: true })
+export class ClarificationReply {
+  _id: Types.ObjectId;
+
+  @Prop({ required: true, trim: true })
+  note: string;
+
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  repliedBy: Types.ObjectId;
+
+  @Prop({ required: true, default: () => new Date() })
+  repliedAt: Date;
+}
+
+export const ClarificationReplySchema = SchemaFactory.createForClass(ClarificationReply);
 
 @Schema({ _id: true })
 export class RecallEvent {
@@ -255,6 +275,10 @@ export class PurchaseRequest extends Document {
   // Persistent history of all procurement returns
   @Prop({ type: [QuotationReturnSchema], default: [] })
   quotationReturnHistory: QuotationReturn[];
+
+  // Requester replies to procurement clarification requests
+  @Prop({ type: [ClarificationReplySchema], default: [] })
+  clarificationReplies: ClarificationReply[];
 
   // Persistent history of all requester recalls
   @Prop({ type: [RecallEventSchema], default: [] })

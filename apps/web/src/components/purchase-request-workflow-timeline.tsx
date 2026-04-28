@@ -107,6 +107,8 @@ function buildTimelineEntries(
   }
 
   for (const entry of pr.quotationReturnHistory ?? []) {
+    // coo-sourced entries are already represented in the approval history as "Returned"
+    if (entry.source === 'coo') continue;
     entries.push({
       id: `return-for-info-${entry._id}`,
       date: entry.returnedAt,

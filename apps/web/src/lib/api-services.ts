@@ -155,6 +155,9 @@ export const purchaseRequestsApi = {
   returnForInfo: (id: string, note: string) =>
     apiClient.post<ApiResponse<PurchaseRequest>>(`/purchase-requests/${id}/return-for-info`, { note }).then((r) => r.data),
 
+  replyToClarification: (id: string, note: string) =>
+    apiClient.post<ApiResponse<PurchaseRequest>>(`/purchase-requests/${id}/clarification-reply`, { note }).then((r) => r.data),
+
   uploadAttachment: (id: string, file: File, category?: AttachmentCategory) => {
     const formData = new FormData();
     formData.append('file', file);

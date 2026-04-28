@@ -157,6 +157,7 @@ export class ApprovalsService {
           returnedBy: new Types.ObjectId(user._id),
           note: dto.comments,
           returnedAt: new Date(),
+          source: 'coo',
         } as any);
       } else {
         // Normal return: back to requester

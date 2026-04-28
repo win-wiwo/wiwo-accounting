@@ -20,7 +20,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import type { QuotationReturn } from '@prams/shared';
+import type { QuotationReturn, ClarificationReply } from '@prams/shared';
 import { formatCurrency, formatDate, formatDateTime, canPreviewAttachment, getErrorMessage } from './utils';
 import { useCanvass } from './use-canvass';
 import { CanvassMatrix } from './canvass-matrix';
@@ -234,7 +234,7 @@ export function ProcurementWorkspacePage() {
     );
   }
 
-  const hasReturnHistory = pr.quotationReturnHistory && pr.quotationReturnHistory.length > 0;
+  const hasReturnHistory = pr.quotationReturnHistory?.some((e) => !e.source || e.source === 'procurement');
 
   // Comparison intelligence
   const existingEntries = pr.canvassEntries ?? [];
@@ -354,6 +354,43 @@ export function ProcurementWorkspacePage() {
         {/* LEFT: Context Rail (sticky, collapsible) */}
         <div className="lg:sticky lg:top-[100px] lg:max-h-[calc(100vh-120px)] lg:overflow-y-auto space-y-0 pb-4 rounded-xl border border-zinc-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
 
+          {/* Clarification thread — pinned to top so replies are immediately visible */}
+          {hasReturnHistory && (() => {
+            const thread: Array<{ id: string; note: string; author: string; isoAt: string; displayAt: string; side: 'procurement' | 'requester' }> = [];
+            for (const entry of pr.quotationReturnHistory as QuotationReturn[]) {
+              if (entry.source === 'coo') continue;
+              const by = typeof entry.returnedBy === 'object' && entry.returnedBy
+                ? `${entry.returnedBy.firstName} ${entry.returnedBy.lastName}` : 'Procurement';
+              thread.push({ id: entry._id, note: entry.note, author: by, isoAt: entry.returnedAt, displayAt: formatDateTime(entry.returnedAt), side: 'procurement' });
+            }
+            for (const reply of (pr.clarificationReplies ?? []) as ClarificationReply[]) {
+              const by = typeof reply.repliedBy === 'object' && reply.repliedBy
+                ? `${reply.repliedBy.firstName} ${reply.repliedBy.lastName}` : 'Requester';
+              thread.push({ id: reply._id, note: reply.note, author: by, isoAt: reply.repliedAt, displayAt: formatDateTime(reply.repliedAt), side: 'requester' });
+            }
+            thread.sort((a, b) => new Date(a.isoAt).getTime() - new Date(b.isoAt).getTime());
+            return (
+              <>
+                <RailSection
+                  title="Clarification"
+                  badge={<span className="text-[10px] font-medium text-amber-600 tabular-nums">{thread.length}</span>}
+                >
+                  <div className="space-y-2.5">
+                    {thread.map((msg) => (
+                      <div key={msg.id} className="space-y-1">
+                        <p className="text-[10.5px] text-zinc-400">{msg.author} · {msg.displayAt}</p>
+                        <div className={`rounded-lg px-2.5 py-2 text-[12px] leading-relaxed ${msg.side === 'procurement' ? 'bg-amber-50 border border-amber-200/60 text-amber-800 italic' : 'bg-zinc-100 text-zinc-700'}`}>
+                          "{msg.note}"
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </RailSection>
+                <Separator />
+              </>
+            );
+          })()}
+
           {/* Requester */}
           <RailSection title="Requester">
             <div className="flex items-center gap-2.5 mb-3">
@@ -425,31 +462,6 @@ export function ProcurementWorkspacePage() {
             )}
           </RailSection>
 
-          {/* Clarification History */}
-          {hasReturnHistory && (
-            <>
-              <Separator />
-              <RailSection
-                title="Clarification History"
-                badge={<span className="text-[10px] font-medium text-amber-600 tabular-nums">{pr.quotationReturnHistory!.length}</span>}
-              >
-                <div className="space-y-3">
-                  {[...pr.quotationReturnHistory!].reverse().map((entry: QuotationReturn) => {
-                    const returnedBy = typeof entry.returnedBy === 'object' && entry.returnedBy
-                      ? `${entry.returnedBy.firstName} ${entry.returnedBy.lastName}` : 'Procurement';
-                    return (
-                      <div key={entry._id} className="space-y-1">
-                        <p className="text-[11px] text-zinc-400">{returnedBy} · {formatDateTime(entry.returnedAt)}</p>
-                        <div className="rounded-lg bg-amber-50 border border-amber-200/60 px-2.5 py-2">
-                          <p className="text-[12px] text-amber-800 italic leading-relaxed">"{entry.note}"</p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </RailSection>
-            </>
-          )}
         </div>
 
         {/* RIGHT: Main Workspace */}
@@ -599,25 +611,33 @@ export function ProcurementWorkspacePage() {
 
           {/* ── Request Clarification Panel ───────────────── */}
           {canvass.actionStep === 'return' && (
-            <div className="rounded-xl border border-amber-200 bg-amber-50/30 p-5 space-y-3">
-              <div className="flex items-center gap-2">
-                <RotateCcw className="h-4 w-4 text-amber-600" />
-                <p className="text-[14px] font-semibold text-amber-900">Request Clarification from Requester</p>
+            <div className="rounded-xl border border-zinc-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+              <div className="px-5 pt-4 pb-3 flex items-center gap-2 border-b border-zinc-100">
+                <RotateCcw className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                <p className="text-[13px] font-semibold text-zinc-800">Ask the requester for clarification</p>
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="return-note" className="text-[12px] text-amber-800">
-                  Message to Requester <span className="text-red-500">*</span>
-                </Label>
+              <div className="px-5 py-4 flex gap-3 items-end">
                 <textarea
                   id="return-note"
-                  rows={4}
-                  className="flex w-full rounded-lg border border-amber-300 bg-white px-3 py-2.5 text-[13px] shadow-sm placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 resize-none transition-shadow duration-150"
-                  placeholder="e.g. Please specify the exact model number, wattage, and whether brand equivalents are acceptable..."
+                  rows={2}
+                  className="flex-1 rounded-xl border border-zinc-200/80 bg-zinc-50/40 px-3.5 py-2.5 text-[13px] placeholder:text-zinc-400 focus:outline-none focus:border-zinc-300 focus:bg-white resize-none transition-all duration-150"
+                  placeholder="e.g. Please specify the exact model number or acceptable brand equivalents…"
                   value={canvass.returnNote}
                   onChange={(e) => canvass.setReturnNote(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && canvass.returnNote.trim()) canvass.handleReturnForInfo(); }}
                   autoFocus
                 />
+                <Button
+                  size="sm"
+                  className="h-9 shrink-0 bg-amber-600 hover:bg-amber-700 text-white text-[12px]"
+                  onClick={canvass.handleReturnForInfo}
+                  disabled={canvass.isReturning || !canvass.returnNote.trim()}
+                >
+                  {canvass.isReturning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
+                  Send
+                </Button>
               </div>
+              <p className="px-5 pb-3 text-[11px] text-zinc-400">Cmd/Ctrl + Enter to send · requester will be notified</p>
             </div>
           )}
 
@@ -822,14 +842,9 @@ export function ProcurementWorkspacePage() {
       {canvass.actionStep === 'return' && (
         <StickyFooter className="border-t border-zinc-200 bg-white/90">
           <div className="flex items-center justify-end gap-2">
+            <p className="text-[12px] text-zinc-400 mr-auto">Type your question above and click Send, or press Cmd/Ctrl + Enter</p>
             <Button variant="outline" className="text-[12px] h-9" onClick={() => canvass.setActionStep(null)} disabled={canvass.isReturning}>
               Cancel
-            </Button>
-            <Button
-              className="bg-amber-600 hover:bg-amber-700 text-white text-[12px] h-9"
-              onClick={canvass.handleReturnForInfo} disabled={canvass.isReturning || !canvass.returnNote.trim()}>
-              {canvass.isReturning ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
-              Send Clarification
             </Button>
           </div>
         </StickyFooter>

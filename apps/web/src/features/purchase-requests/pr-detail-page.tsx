@@ -21,7 +21,6 @@ import {
   Clock3,
 } from "lucide-react";
 import {
-
   normalizePrStatus,
   PR_STATUS_LABELS,
   PR_PRIORITY_LABELS,
@@ -32,6 +31,8 @@ import {
   type PrPriority as PrPriorityType,
   type PreviousSubmissionSnapshot,
   type PrLineItem,
+  type ClarificationReply,
+  type QuotationReturn,
 } from "@prams/shared";
 import {
   usePurchaseRequest,
@@ -39,7 +40,7 @@ import {
   useDeletePr,
   useRecallPr,
   useCancelPr,
-
+  useReplyToClarification,
 } from "@/hooks/use-purchase-requests";
 import { purchaseRequestsApi } from "@/lib/api-services";
 import apiClient from "@/lib/api-client";
@@ -332,6 +333,9 @@ export function PrDetailPage() {
   const [cancelDialog, setCancelDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
 
+  const [replyNote, setReplyNote] = useState("");
+  const replyMutation = useReplyToClarification();
+
   const [approvalDialog, setApprovalDialog] = useState<{
     open: boolean;
     action: "approved" | "rejected" | "returned";
@@ -612,8 +616,8 @@ export function PrDetailPage() {
     }
     if (runtimeStatus === PrStatus.RETURNED_FOR_INFO) {
       return {
-        title: "Procurement Needs Clarification",
-        nextStep: "Update item specs, photos, or quantities based on the note below, then resubmit.",
+        title: "Procurement Has a Question",
+        nextStep: "Procurement needs clarification on this request. See the Clarification History below for details. No resubmission needed.",
         icon: <RotateCcw className="h-4 w-4" />,
         tone: "border-amber-200 bg-amber-50/60 text-amber-900",
       };
@@ -1067,23 +1071,86 @@ export function PrDetailPage() {
           )}
 
 
-          {/* Returned for Info Note */}
-          {pr.quotationNote && (
-            <div className="rounded-xl border border-amber-200 bg-amber-50/50 px-5 py-4">
-              <div className="flex items-start gap-3">
-                <div className="rounded-lg bg-amber-100 p-1.5 mt-0.5 shrink-0">
-                  <RotateCcw className="h-4 w-4 text-amber-700" />
+          {/* Clarification thread — only shown when procurement has asked at least one question */}
+          {pr.quotationReturnHistory && pr.quotationReturnHistory.some((e) => !e.source || e.source === 'procurement') && (() => {
+            // Only include procurement-sourced notes (not COO price-review returns)
+            const thread: Array<{ id: string; note: string; author: string; isoAt: string; displayAt: string; side: 'procurement' | 'requester' }> = [];
+            for (const entry of pr.quotationReturnHistory as QuotationReturn[]) {
+              if (entry.source === 'coo') continue;
+              const by = typeof entry.returnedBy === 'object' && entry.returnedBy
+                ? `${entry.returnedBy.firstName} ${entry.returnedBy.lastName}` : 'Procurement';
+              thread.push({ id: entry._id, note: entry.note, author: by, isoAt: entry.returnedAt, displayAt: formatDate(entry.returnedAt), side: 'procurement' });
+            }
+            for (const reply of (pr.clarificationReplies ?? []) as ClarificationReply[]) {
+              const by = typeof reply.repliedBy === 'object' && reply.repliedBy
+                ? `${reply.repliedBy.firstName} ${reply.repliedBy.lastName}` : 'Requester';
+              thread.push({ id: reply._id, note: reply.note, author: by, isoAt: reply.repliedAt, displayAt: formatDate(reply.repliedAt), side: 'requester' });
+            }
+            thread.sort((a, b) => new Date(a.isoAt).getTime() - new Date(b.isoAt).getTime());
+
+            const handleReply = async () => {
+              if (!replyNote.trim()) return;
+              try {
+                await replyMutation.mutateAsync({ id: id!, note: replyNote.trim() });
+                setReplyNote('');
+                toast({ title: 'Reply sent', description: 'Procurement has been notified.', variant: 'success' });
+              } catch (err) {
+                toast({ title: 'Failed to send reply', variant: 'error' });
+              }
+            };
+
+            return (
+              <div className="rounded-xl border border-amber-200/70 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+                <div className="px-6 pt-5 pb-3 flex items-center gap-2">
+                  <h3 className="text-[13px] font-semibold text-zinc-900">Procurement Clarification</h3>
+                  <span className="inline-flex items-center rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                    {thread.length}
+                  </span>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-[14px] font-semibold text-amber-800">Procurement Needs More Information</p>
-                  <p className="mt-2 text-[13px] leading-relaxed text-amber-900/80">{pr.quotationNote}</p>
-                  <p className="mt-2.5 text-[12px] text-amber-600">
-                    Update the request details, item specs, or photos, then resubmit.
-                  </p>
+                <div className="px-6 pb-4 space-y-3">
+                  {thread.map((msg) => (
+                    <div key={msg.id} className={`flex gap-2.5 ${msg.side === 'requester' ? 'flex-row-reverse' : ''}`}>
+                      <div className={`shrink-0 h-7 w-7 rounded-full flex items-center justify-center text-[10px] font-bold mt-0.5 ${msg.side === 'procurement' ? 'bg-amber-100 text-amber-700' : 'bg-zinc-200 text-zinc-600'}`}>
+                        {msg.author.charAt(0).toUpperCase()}
+                      </div>
+                      <div className={`max-w-[80%] space-y-1 ${msg.side === 'requester' ? 'items-end' : 'items-start'} flex flex-col`}>
+                        <p className="text-[10.5px] text-zinc-400">{msg.author} · {msg.displayAt}</p>
+                        <div className={`rounded-xl px-3.5 py-2.5 text-[13px] leading-relaxed ${msg.side === 'procurement' ? 'bg-amber-50 border border-amber-200/60 text-amber-900' : 'bg-zinc-900 text-white'}`}>
+                          {msg.note}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
+                {/* Reply input — only for the requester/owner */}
+                {isOwner && (
+                  <div className="px-6 pb-5 border-t border-zinc-100 pt-4">
+                    <div className="flex gap-2.5 items-end">
+                      <textarea
+                        rows={2}
+                        placeholder="Reply to procurement…"
+                        className="flex-1 rounded-xl border border-zinc-200/80 bg-zinc-50/40 px-3.5 py-2.5 text-[13px] placeholder:text-zinc-400 focus:outline-none focus:border-zinc-300 focus:bg-white resize-none transition-all duration-150"
+                        value={replyNote}
+                        onChange={(e) => setReplyNote(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleReply(); }}
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="h-9 shrink-0"
+                        disabled={!replyNote.trim() || replyMutation.isPending}
+                        onClick={handleReply}
+                      >
+                        {replyMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                        Send
+                      </Button>
+                    </div>
+                    <p className="mt-1.5 text-[11px] text-zinc-400">Cmd/Ctrl + Enter to send</p>
+                  </div>
+                )}
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Resubmission diff — visible to approvers after requester resubmits */}
           {pr.previousSubmissionSnapshot && (

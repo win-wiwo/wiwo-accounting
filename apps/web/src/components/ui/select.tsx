@@ -41,7 +41,7 @@ const SelectContent = React.forwardRef<
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        'relative z-50 max-h-[min(320px,var(--radix-select-content-available-height))] min-w-[8rem] overflow-hidden',
+        'relative z-50 max-h-[min(320px,var(--radix-select-content-available-height))] min-w-[8rem] overflow-y-auto',
         'rounded-xl border border-zinc-200/80 bg-white text-zinc-800',
         'shadow-[0_4px_24px_rgba(0,0,0,0.08),0_1px_4px_rgba(0,0,0,0.04)]',
         'data-[state=open]:animate-in data-[state=closed]:animate-out',
@@ -59,7 +59,7 @@ const SelectContent = React.forwardRef<
         className={cn(
           'p-1.5',
           position === 'popper' &&
-            'h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]',
+            'w-full min-w-[var(--radix-select-trigger-width)]',
         )}
       >
         {children}

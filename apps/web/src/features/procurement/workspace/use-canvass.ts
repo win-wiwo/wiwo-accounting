@@ -172,7 +172,7 @@ export function useCanvass(prId: string | undefined, procItems: PrItem[], onComp
     }
     try {
       await returnMutation.mutateAsync({ id: prId!, note: returnNote.trim() });
-      toast({ title: 'Returned for info', description: 'Requester has been notified.', variant: 'success' });
+      toast({ title: 'Clarification requested', description: 'Requester has been notified. PR remains in your queue.', variant: 'success' });
       onComplete();
     } catch (error) {
       toast({ title: 'Action failed', description: getErrorMessage(error, 'The request could not be returned for more information.'), variant: 'error' });

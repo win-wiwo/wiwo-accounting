@@ -224,15 +224,22 @@ export function CanvassMatrix({
                           <div className="relative">
                             <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-zinc-400 font-medium">P</span>
                             <Input
-                              type="number"
-                              min={0}
-                              step="0.01"
+                              type="text"
+                              inputMode="decimal"
                               placeholder="0.00"
                               className={`h-8 text-[12px] pl-7 tabular-nums bg-white ${isCheapest ? 'border-emerald-300 focus-visible:ring-emerald-300' : ''} ${isHighest ? 'border-red-200 focus-visible:ring-red-200' : ''}`}
                               value={entry.quotedPrices[item._id] ?? ''}
-                              onChange={(e) => onUpdateEntry(entry.localId, {
-                                quotedPrices: { ...entry.quotedPrices, [item._id]: e.target.value },
-                              })}
+                              onChange={(e) => {
+                                // Allow only digits and one decimal point
+                                let v = e.target.value.replace(/[^\d.]/g, '');
+                                const dot = v.indexOf('.');
+                                if (dot !== -1) v = v.slice(0, dot + 1) + v.slice(dot + 1).replace(/\./g, '');
+                                // Strip leading zeros before a non-zero digit
+                                v = v.replace(/^0+([1-9])/, '$1');
+                                onUpdateEntry(entry.localId, {
+                                  quotedPrices: { ...entry.quotedPrices, [item._id]: v },
+                                });
+                              }}
                             />
                           </div>
                           {price > 0 && (

@@ -14,9 +14,11 @@ import {
   PR_PRIORITY_LABELS,
   PR_PRIORITIES,
   PrStatus,
+  SourcingType,
   UserRole,
   type PrStatus as PrStatusType,
   type PrPriority as PrPriorityType,
+  type PurchaseRequest,
 } from '@prams/shared';
 import { usePurchaseRequests, usePrStats } from '@/hooks/use-purchase-requests';
 import { useAuthStore } from '@/stores/auth.store';
@@ -48,6 +50,13 @@ const priorityStyle: Record<string, string> = {
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(amount);
+}
+
+/** True when any procurement item still has no quoted price */
+function hasPendingQuote(pr: PurchaseRequest): boolean {
+  return pr.items.some(
+    (item) => item.sourcingType === SourcingType.PROCUREMENT && item.totalPrice === 0,
+  );
 }
 
 export function PrListPage() {
@@ -292,9 +301,13 @@ export function PrListPage() {
 
                         {/* Amount */}
                         <td className="px-5 py-4 text-right">
-                          <span className="text-[13px] font-semibold tabular-nums text-zinc-800">
-                            {formatCurrency(pr.totalAmount)}
-                          </span>
+                          {hasPendingQuote(pr) ? (
+                            <span className="text-[13px] font-semibold text-amber-600">TBD</span>
+                          ) : (
+                            <span className="text-[13px] font-semibold tabular-nums text-zinc-800">
+                              {formatCurrency(pr.totalAmount)}
+                            </span>
+                          )}
                         </td>
 
                         {/* Priority */}

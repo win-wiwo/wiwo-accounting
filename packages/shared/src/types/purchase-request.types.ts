@@ -65,6 +65,14 @@ export interface QuotationReturn {
   note: string;
   returnedBy: { _id: string; firstName: string; lastName: string } | string;
   returnedAt: string;
+  source?: 'procurement' | 'coo';
+}
+
+export interface ClarificationReply {
+  _id: string;
+  note: string;
+  repliedBy: { _id: string; firstName: string; lastName: string } | string;
+  repliedAt: string;
 }
 
 export interface RecallHistoryEntry {
@@ -113,6 +121,7 @@ export interface PurchaseRequest {
   canvassEntries?: CanvassEntry[];
   canvassJustification?: string | null;
   quotationReturnHistory?: QuotationReturn[];
+  clarificationReplies?: ClarificationReply[];
   recallHistory?: RecallHistoryEntry[];
   previousSubmissionSnapshot?: PreviousSubmissionSnapshot | null;
   resubmissionNote?: string | null;
