@@ -222,3 +222,29 @@ export class ReturnForInfoDto {
   @MaxLength(1000)
   note: string;
 }
+
+export class UpdateItemSpecDto {
+  @ApiProperty()
+  @IsString()
+  itemId: string;
+
+  @ApiProperty()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(500)
+  description: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  specifications?: string;
+}
+
+export class UpdateItemSpecsDto {
+  @ApiProperty({ type: [UpdateItemSpecDto] })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => UpdateItemSpecDto)
+  items: UpdateItemSpecDto[];
+}

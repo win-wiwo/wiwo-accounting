@@ -3,11 +3,13 @@ import { Bell, CheckCheck, Search, FileText, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useUnreadCount, useNotifications, useMarkAsRead, useMarkAllAsRead } from '@/hooks/use-notifications';
+import { useNotificationStream } from '@/hooks/use-notification-stream';
 import { usePurchaseRequests } from '@/hooks/use-purchase-requests';
 import { Button } from '@/components/ui/button';
-import { PR_STATUS_LABELS, type PrStatus } from '@prams/shared';
+import { PR_STATUS_LABELS, type PrStatus, UserRole } from '@prams/shared';
 import { cn } from '@/lib/utils';
 import * as Popover from '@radix-ui/react-popover';
+import { useAuthStore } from '@/stores/auth.store';
 
 interface HeaderProps {
   sidebarCollapsed: boolean;
@@ -162,6 +164,9 @@ function QuickSearch() {
 export function Header({ sidebarCollapsed }: HeaderProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const user = useAuthStore((s) => s.user);
+
+  useNotificationStream();
 
   const { data: unreadData } = useUnreadCount();
   const unreadCount = (unreadData as unknown as { data?: { count: number } })?.data?.count ?? 0;
@@ -184,7 +189,17 @@ export function Header({ sidebarCollapsed }: HeaderProps) {
       markAsRead.mutate(notif._id);
     }
     if (notif.purchaseRequestId) {
-      navigate(`/purchase-requests/${notif.purchaseRequestId}`);
+      if (notif.type === 'pr_needs_action') {
+        if (user?.role === UserRole.PROCUREMENT) {
+          navigate(`/procurement/${notif.purchaseRequestId}`);
+        } else if (user?.role === UserRole.DEPT_HEAD || user?.role === UserRole.COO || user?.role === UserRole.CEO) {
+          navigate(`/approvals?pr=${notif.purchaseRequestId}`);
+        } else {
+          navigate(`/purchase-requests/${notif.purchaseRequestId}`);
+        }
+      } else {
+        navigate(`/purchase-requests/${notif.purchaseRequestId}`);
+      }
       setNotifOpen(false);
     }
   };

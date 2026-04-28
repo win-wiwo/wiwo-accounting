@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, FilterQuery, Types } from 'mongoose';
 import { OnEvent } from '@nestjs/event-emitter';
+import { Subject, Observable } from 'rxjs';
 import {
   ApprovalAction,
   APPROVAL_LEVEL_LABELS,
@@ -17,12 +18,45 @@ import { User } from '../users/schemas/user.schema';
 
 @Injectable()
 export class NotificationsService {
+  // One Subject per connected user — SSE streams subscribe to these
+  private clients = new Map<string, Subject<{ data: unknown }>>();
+
   constructor(
     @InjectModel(Notification.name) private notificationModel: Model<Notification>,
     @InjectModel(PurchaseRequest.name) private prModel: Model<PurchaseRequest>,
     @InjectModel(Department.name) private departmentModel: Model<Department>,
     @InjectModel(User.name) private userModel: Model<User>,
   ) {}
+
+  /**
+   * Register an SSE client for a user. Returns an Observable that the @Sse
+   * controller method will pipe to the browser as an event stream.
+   */
+  registerClient(userId: string): Observable<{ data: unknown }> {
+    // If the user already has an open stream (e.g. duplicate tab), reuse it
+    if (!this.clients.has(userId)) {
+      this.clients.set(userId, new Subject<{ data: unknown }>());
+    }
+    return this.clients.get(userId)!.asObservable();
+  }
+
+  /**
+   * Remove a client when the SSE connection closes.
+   */
+  removeClient(userId: string): void {
+    const subject = this.clients.get(userId);
+    if (subject) {
+      subject.complete();
+      this.clients.delete(userId);
+    }
+  }
+
+  /**
+   * Push a notification event to a connected client (if any).
+   */
+  private push(userId: string, data: unknown): void {
+    this.clients.get(userId.toString())?.next({ data });
+  }
 
   /**
    * Listen for approval actions and create notifications for relevant users.
@@ -74,6 +108,7 @@ export class NotificationsService {
         type: typeMap[approval.action] || 'system',
         purchaseRequestId: purchaseRequest._id,
       });
+      this.push(purchaseRequest.requesterId, { type: 'notification' });
     }
 
     // If approved and moving to next level (or to procurement), notify the next actor
@@ -109,6 +144,32 @@ export class NotificationsService {
       type: 'pr_needs_action',
       purchaseRequestId: purchaseRequest._id,
     });
+    this.push(purchaseRequest.requesterId, { type: 'notification' });
+  }
+
+  /**
+   * Notify procurement officers when requester replies to a clarification request.
+   */
+  @OnEvent('pr.clarification_replied')
+  async handleClarificationReplied(payload: { purchaseRequest: { _id: string; prNumber: string }; repliedBy: string }) {
+    const { purchaseRequest } = payload;
+    const procurementUsers = await this.userModel
+      .find({ role: UserRole.PROCUREMENT, isActive: true })
+      .select('_id')
+      .exec();
+
+    if (procurementUsers.length > 0) {
+      await this.notificationModel.insertMany(
+        procurementUsers.map((user) => ({
+          recipientId: user._id,
+          title: 'Clarification Received',
+          message: `The requester has replied to your clarification request on PR "${purchaseRequest.prNumber}".`,
+          type: 'pr_needs_action',
+          purchaseRequestId: purchaseRequest._id,
+        })),
+      );
+      procurementUsers.forEach((u) => this.push(u._id.toString(), { type: 'notification' }));
+    }
   }
 
   /**
@@ -127,6 +188,8 @@ export class NotificationsService {
       purchaseRequestId: purchaseRequest._id,
     });
 
+    this.push(purchaseRequest.requesterId, { type: 'notification' });
+
     // Notify COO for price sign-off
     await this.notifyNextApprover(purchaseRequest);
   }
@@ -136,7 +199,6 @@ export class NotificationsService {
 
     // Determine who to notify based on current status
     if (normalizedStatus === PrStatus.LEVEL1_REVIEW) {
-      // Notify dept head
       const dept = await this.departmentModel.findById(pr.departmentId).exec();
       if (dept?.headId) {
         await this.notificationModel.create({
@@ -146,12 +208,12 @@ export class NotificationsService {
           type: 'pr_needs_action',
           purchaseRequestId: pr._id,
         });
+        this.push(dept.headId.toString(), { type: 'notification' });
       }
       return;
     }
 
     if (normalizedStatus === PrStatus.QUOTED) {
-      // Notify COO for price sign-off
       const cooUsers = await this.userModel
         .find({ role: UserRole.COO, isActive: true })
         .select('_id')
@@ -166,6 +228,7 @@ export class NotificationsService {
             purchaseRequestId: pr._id,
           })),
         );
+        cooUsers.forEach((u) => this.push(u._id.toString(), { type: 'notification' }));
       }
       return;
     }
@@ -186,6 +249,7 @@ export class NotificationsService {
             purchaseRequestId: pr._id,
           })),
         );
+        procurementUsers.forEach((u) => this.push(u._id.toString(), { type: 'notification' }));
       }
       return;
     }
@@ -208,6 +272,7 @@ export class NotificationsService {
             purchaseRequestId: pr._id,
           })),
         );
+        approvers.forEach((u) => this.push(u._id.toString(), { type: 'notification' }));
       }
     }
   }

@@ -23,7 +23,7 @@ import { existsSync, createReadStream } from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { AttachmentCategory } from '@prams/shared';
 import { PurchaseRequestsService } from './purchase-requests.service';
-import { CreatePurchaseRequestDto, UpdatePurchaseRequestDto, QueryPurchaseRequestsDto, SubmitQuotationDto, ReturnForInfoDto } from './dto';
+import { CreatePurchaseRequestDto, UpdatePurchaseRequestDto, QueryPurchaseRequestsDto, SubmitQuotationDto, ReturnForInfoDto, UpdateItemSpecsDto } from './dto';
 import { CurrentUser } from '../../common/decorators';
 import { ParseObjectIdPipe } from '../../common/pipes';
 
@@ -140,6 +140,16 @@ export class PurchaseRequestsController {
     @CurrentUser() user: { _id: string; role: string; departmentId: string | null },
   ) {
     return this.prService.replyToClarification(id, note, user);
+  }
+
+  @Patch(':id/item-specs')
+  @ApiOperation({ summary: 'Requester: update item descriptions/specs while PR is pending quotation' })
+  async updateItemSpecs(
+    @Param('id', ParseObjectIdPipe) id: string,
+    @Body() dto: UpdateItemSpecsDto,
+    @CurrentUser() user: { _id: string; role: string; departmentId: string | null },
+  ) {
+    return this.prService.updateItemSpecs(id, dto.items, user);
   }
 
   @Post(':id/cancel')

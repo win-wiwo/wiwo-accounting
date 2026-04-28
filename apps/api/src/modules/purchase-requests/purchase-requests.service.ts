@@ -397,13 +397,6 @@ export class PurchaseRequestsService {
       throw new BadRequestException('PR has no procurement items to canvass');
     }
 
-    const quotationAttachments = pr.attachments.filter(
-      (attachment) => attachment.category === AttachmentCategory.CANVASS,
-    );
-    if (quotationAttachments.length === 0) {
-      throw new BadRequestException('At least one quotation evidence file is required');
-    }
-
     if (!dto.canvassEntries?.length) {
       throw new BadRequestException('At least one canvass entry is required');
     }
@@ -597,6 +590,39 @@ export class PurchaseRequestsService {
       .populate('departmentId', 'name code')
       .populate('quotationReturnHistory.returnedBy', 'firstName lastName')
       .populate('clarificationReplies.repliedBy', 'firstName lastName')
+      .exec() as Promise<PurchaseRequest>;
+  }
+
+  async updateItemSpecs(
+    id: string,
+    items: Array<{ itemId: string; description: string; specifications?: string }>,
+    user: RequestUser,
+  ): Promise<PurchaseRequest> {
+    const pr = await this.prModel.findById(id).exec();
+    if (!pr) throw new NotFoundException('Purchase request not found');
+
+    if (pr.requesterId.toString() !== user._id) {
+      throw new ForbiddenException('Only the requester can update item details');
+    }
+
+    if (pr.status !== PrStatus.PENDING_QUOTATION) {
+      throw new BadRequestException('Item details can only be updated while the PR is pending procurement');
+    }
+
+    for (const update of items) {
+      const item = pr.items.find((i) => i._id.toString() === update.itemId);
+      if (!item) continue;
+      item.description = update.description.trim();
+      item.specifications = update.specifications?.trim() || null;
+    }
+
+    pr.markModified('items');
+    await pr.save();
+
+    return this.prModel
+      .findById(id)
+      .populate('requesterId', 'firstName lastName email employeeId')
+      .populate('departmentId', 'name code')
       .exec() as Promise<PurchaseRequest>;
   }
 

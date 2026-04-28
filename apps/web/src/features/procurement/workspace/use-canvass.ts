@@ -87,7 +87,7 @@ export function useCanvass(prId: string | undefined, procItems: PrItem[], onComp
     setCanvassEntries((current) => current.map((e) => ({ ...e, isSelected: e.localId === localId })));
   };
 
-  const handleSubmitQuotation = async (quotationAttachmentsCount: number) => {
+  const handleSubmitQuotation = async () => {
     if (canvassEntries.length === 0) {
       toast({ title: 'Canvass entries required', description: 'Add at least one supplier canvass entry.', variant: 'error' });
       return;
@@ -111,11 +111,6 @@ export function useCanvass(prId: string | undefined, procItems: PrItem[], onComp
       toast({ title: 'Justification required', description: 'Explain why fewer than 3 suppliers were canvassed.', variant: 'error' });
       return;
     }
-    if (quotationAttachmentsCount === 0) {
-      toast({ title: 'Quotation evidence required', description: 'Upload at least one canvass or supplier quotation before submitting.', variant: 'error' });
-      return;
-    }
-
     const payloadEntries: SubmitQuotationDto['canvassEntries'] = [];
     for (const entry of canvassEntries) {
       const supplier = suppliers.find((s: { _id: string; companyName: string }) => s._id === entry.supplierId);
@@ -173,7 +168,8 @@ export function useCanvass(prId: string | undefined, procItems: PrItem[], onComp
     try {
       await returnMutation.mutateAsync({ id: prId!, note: returnNote.trim() });
       toast({ title: 'Clarification requested', description: 'Requester has been notified. PR remains in your queue.', variant: 'success' });
-      onComplete();
+      setReturnNote('');
+      setActionStep(null);
     } catch (error) {
       toast({ title: 'Action failed', description: getErrorMessage(error, 'The request could not be returned for more information.'), variant: 'error' });
     }

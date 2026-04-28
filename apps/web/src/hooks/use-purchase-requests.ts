@@ -165,6 +165,17 @@ export function useReplyToClarification() {
   });
 }
 
+export function useUpdateItemSpecs() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, items }: { id: string; items: Array<{ itemId: string; description: string; specifications?: string }> }) =>
+      purchaseRequestsApi.updateItemSpecs(id, items),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['purchase-requests'] });
+    },
+  });
+}
+
 export function useUploadItemPhoto() {
   const queryClient = useQueryClient();
   return useMutation({

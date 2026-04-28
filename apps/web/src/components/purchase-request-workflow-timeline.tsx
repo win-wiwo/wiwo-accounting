@@ -106,18 +106,6 @@ function buildTimelineEntries(
     });
   }
 
-  for (const entry of pr.quotationReturnHistory ?? []) {
-    // coo-sourced entries are already represented in the approval history as "Returned"
-    if (entry.source === 'coo') continue;
-    entries.push({
-      id: `return-for-info-${entry._id}`,
-      date: entry.returnedAt,
-      title: "Returned for Info",
-      actor: returnedByName(entry.returnedBy),
-      note: entry.note,
-      icon: <RotateCcw className="h-4 w-4 text-amber-600" />,
-    });
-  }
 
   for (const entry of pr.recallHistory ?? []) {
     entries.push({

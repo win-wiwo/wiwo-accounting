@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   CheckCircle2,
   ChevronRight,
@@ -18,6 +18,7 @@ import {
 } from '@prams/shared';
 import { usePendingApprovals } from '@/hooks/use-approvals';
 import { useAuthStore } from '@/stores/auth.store';
+import { useSearchParams } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PrApprovalModal } from './pr-approval-modal';
 
@@ -50,6 +51,7 @@ const priorityStyle: Record<string, string> = {
 
 export function ApprovalsPage() {
   const user = useAuthStore((s) => s.user);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [page, setPage] = useState(1);
   const { data, isLoading } = usePendingApprovals({ page, limit: 10 });
@@ -68,6 +70,18 @@ export function ApprovalsPage() {
       return new Date(a.submittedAt ?? 0).getTime() - new Date(b.submittedAt ?? 0).getTime();
     });
   }, [rawPrs]);
+
+  // Auto-open modal when navigated from a notification with ?pr=<id>
+  useEffect(() => {
+    const prId = searchParams.get('pr');
+    if (!prId || isLoading || prs.length === 0) return;
+    const idx = prs.findIndex((pr) => pr._id === prId);
+    if (idx !== -1) {
+      setActiveIndex(idx);
+      setModalOpen(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, prs, isLoading, setSearchParams]);
 
   const prIds = prs.map((pr) => pr._id);
 

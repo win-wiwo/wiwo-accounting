@@ -41,6 +41,7 @@ import {
   useRecallPr,
   useCancelPr,
   useReplyToClarification,
+  useUpdateItemSpecs,
 } from "@/hooks/use-purchase-requests";
 import { purchaseRequestsApi } from "@/lib/api-services";
 import apiClient from "@/lib/api-client";
@@ -336,6 +337,10 @@ export function PrDetailPage() {
   const [replyNote, setReplyNote] = useState("");
   const replyMutation = useReplyToClarification();
 
+  const [editSpecsOpen, setEditSpecsOpen] = useState(false);
+  const [editSpecsDraft, setEditSpecsDraft] = useState<Array<{ itemId: string; description: string; specifications: string }>>([]);
+  const updateItemSpecsMutation = useUpdateItemSpecs();
+
   const [approvalDialog, setApprovalDialog] = useState<{
     open: boolean;
     action: "approved" | "rejected" | "returned";
@@ -533,6 +538,7 @@ export function PrDetailPage() {
   const isCancelled = runtimeStatus === PrStatus.CANCELLED;
   const isOwner = requester?._id === user?._id;
   const canEdit = isOwner && (isDraft || isReturned || isReturnedForInfo);
+  const canEditSpecs = isOwner && runtimeStatus === PrStatus.PENDING_QUOTATION;
   const canRecall =
     isOwner &&
     (runtimeStatus === PrStatus.LEVEL1_REVIEW ||
@@ -708,6 +714,23 @@ export function PrDetailPage() {
             {!isDraft && (
               <Button size="sm" variant="outline" className="rounded-lg text-[13px] h-8" onClick={handleGenerateReport}>
                 <FileText className="h-3.5 w-3.5" /> Report
+              </Button>
+            )}
+            {canEditSpecs && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="rounded-lg text-[13px] h-8"
+                onClick={() => {
+                  setEditSpecsDraft(pr.items.map((item) => ({
+                    itemId: item._id,
+                    description: item.description,
+                    specifications: item.specifications ?? '',
+                  })));
+                  setEditSpecsOpen(true);
+                }}
+              >
+                <Pencil className="h-3.5 w-3.5" /> Update Item Details
               </Button>
             )}
             {canEdit && (
@@ -1542,6 +1565,77 @@ export function PrDetailPage() {
               />
             ) : null}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Update Item Details Dialog ─────────────────────── */}
+      <Dialog open={editSpecsOpen} onOpenChange={setEditSpecsOpen}>
+        <DialogContent className="max-w-xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-[16px]">Update Item Details</DialogTitle>
+            <DialogDescription className="text-[13px]">
+              Update item descriptions and specifications to reflect the clarification. Quantities and sourcing type cannot be changed.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-5 py-2">
+            {editSpecsDraft.map((draft, i) => (
+              <div key={draft.itemId} className="space-y-3">
+                {i > 0 && <div className="h-px bg-zinc-100" />}
+                <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-zinc-400">Item {i + 1}</p>
+                <div className="space-y-1.5">
+                  <label className="text-[12px] font-medium text-zinc-700">Description</label>
+                  <input
+                    type="text"
+                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-[13px] text-zinc-800 focus:outline-none focus:border-zinc-400 focus:bg-white transition-all duration-150"
+                    value={draft.description}
+                    onChange={(e) => setEditSpecsDraft((prev) =>
+                      prev.map((d, idx) => idx === i ? { ...d, description: e.target.value } : d)
+                    )}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[12px] font-medium text-zinc-700">Specifications <span className="text-zinc-400 font-normal">(optional)</span></label>
+                  <textarea
+                    rows={2}
+                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-[13px] text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:border-zinc-400 focus:bg-white resize-none transition-all duration-150"
+                    placeholder="Brand, model, technical requirements…"
+                    value={draft.specifications}
+                    onChange={(e) => setEditSpecsDraft((prev) =>
+                      prev.map((d, idx) => idx === i ? { ...d, specifications: e.target.value } : d)
+                    )}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" className="text-[12px]" onClick={() => setEditSpecsOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              className="text-[12px] bg-zinc-900 hover:bg-zinc-800 text-white"
+              disabled={updateItemSpecsMutation.isPending || editSpecsDraft.some((d) => !d.description.trim())}
+              onClick={async () => {
+                try {
+                  await updateItemSpecsMutation.mutateAsync({
+                    id: id!,
+                    items: editSpecsDraft.map((d) => ({
+                      itemId: d.itemId,
+                      description: d.description.trim(),
+                      specifications: d.specifications.trim() || undefined,
+                    })),
+                  });
+                  setEditSpecsOpen(false);
+                  toast({ title: 'Item details updated', description: 'Procurement will see the updated specifications.', variant: 'success' });
+                } catch {
+                  toast({ title: 'Failed to update', description: 'Please try again.', variant: 'error' });
+                }
+              }}
+            >
+              {updateItemSpecsMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+              Save Changes
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

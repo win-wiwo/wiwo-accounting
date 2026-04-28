@@ -158,6 +158,9 @@ export const purchaseRequestsApi = {
   replyToClarification: (id: string, note: string) =>
     apiClient.post<ApiResponse<PurchaseRequest>>(`/purchase-requests/${id}/clarification-reply`, { note }).then((r) => r.data),
 
+  updateItemSpecs: (id: string, items: Array<{ itemId: string; description: string; specifications?: string }>) =>
+    apiClient.patch<ApiResponse<PurchaseRequest>>(`/purchase-requests/${id}/item-specs`, { items }).then((r) => r.data),
+
   uploadAttachment: (id: string, file: File, category?: AttachmentCategory) => {
     const formData = new FormData();
     formData.append('file', file);
