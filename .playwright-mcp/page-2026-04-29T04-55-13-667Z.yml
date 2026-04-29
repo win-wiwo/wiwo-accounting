@@ -1,0 +1,282 @@
+- generic:
+  - generic:
+    - generic:
+      - complementary:
+        - generic:
+          - generic:
+            - img
+          - button:
+            - img
+        - navigation:
+          - link:
+            - /url: /dashboard
+            - img
+            - generic: Dashboard
+          - link:
+            - /url: /purchase-requests
+            - img
+            - generic: Purchase Requests
+          - link:
+            - /url: /procurement
+            - img
+            - generic: Procurement Queue
+          - link:
+            - /url: /suppliers
+            - img
+            - generic: Suppliers
+          - link:
+            - /url: /purchase-orders
+            - img
+            - generic: Purchase Orders
+          - link:
+            - /url: /search
+            - img
+            - generic: Search & Monitor
+          - link:
+            - /url: /reports
+            - img
+            - generic: Reports
+          - generic:
+            - generic: Admin
+          - link:
+            - /url: /projects
+            - img
+            - generic: Projects
+          - link:
+            - /url: /users
+            - img
+            - generic: Users
+          - link:
+            - /url: /departments
+            - img
+            - generic: Departments
+          - link:
+            - /url: /settings
+            - img
+            - generic: Settings
+        - generic:
+          - generic:
+            - link:
+              - /url: /profile
+              - generic:
+                - img
+              - generic:
+                - paragraph: System Admin
+                - paragraph: Admin
+            - button:
+              - img
+              - text: Sign out
+      - banner:
+        - generic:
+          - generic:
+            - img
+            - textbox:
+              - /placeholder: Search PRs... (Ctrl+K)
+        - generic:
+          - button:
+            - img
+      - main:
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - heading [level=1]: Purchase Requests
+                    - paragraph: Create, track, and manage purchase requests.
+                  - generic:
+                    - generic:
+                      - generic: 37 Total
+                      - generic: 3 Draft
+                      - generic: 5 In Review
+                - generic:
+                  - generic:
+                    - generic:
+                      - img
+                      - textbox:
+                        - /placeholder: Search by PR number or item summary...
+                    - generic:
+                      - combobox [expanded]:
+                        - generic: All Statuses
+                        - img
+                      - combobox:
+                        - generic: All Priorities
+                        - img
+                      - combobox:
+                        - generic: All Types
+                        - img
+                - generic:
+                  - generic:
+                    - table:
+                      - rowgroup:
+                        - row:
+                          - columnheader: PR Number
+                          - columnheader: Request
+                          - columnheader:
+                            - generic:
+                              - text: Amount
+                              - img
+                          - columnheader: Priority
+                          - columnheader: Status
+                          - columnheader:
+                            - generic:
+                              - text: Date
+                              - img
+                      - rowgroup:
+                        - row:
+                          - cell: PR-ADM-2026-00003
+                          - cell:
+                            - generic:
+                              - paragraph: Canva Teams – Annual Subscription
+                          - cell: ₱45,000.00
+                          - cell:
+                            - generic: Low
+                          - cell:
+                            - generic: Dept Head Review
+                          - cell: Apr 29, 2026
+                        - row:
+                          - cell: Draft
+                          - cell:
+                            - generic:
+                              - paragraph: AI Camera Phase 2 – Additional Zones
+                          - cell: TBD
+                          - cell:
+                            - generic: Medium
+                          - cell:
+                            - generic: Draft
+                          - cell: Apr 29, 2026
+                        - row:
+                          - cell: Draft
+                          - cell:
+                            - generic:
+                              - paragraph: UPS Systems – Busway Station NVR Rooms
+                          - cell: TBD
+                          - cell:
+                            - generic: High
+                          - cell:
+                            - generic: Draft
+                          - cell: Apr 29, 2026
+                        - row:
+                          - cell: PR-ENG-2026-00007
+                          - cell:
+                            - generic:
+                              - paragraph: Ergonomic Office Chairs – Engineering Team
+                          - cell: TBD
+                          - cell:
+                            - generic: Medium
+                          - cell:
+                            - generic: Dept Head Review
+                          - cell: Apr 29, 2026
+                        - row:
+                          - cell: Draft
+                          - cell:
+                            - generic:
+                              - paragraph: CCTV Preventive Maintenance – Busway Phase 1 Systems
+                          - cell: TBD
+                          - cell:
+                            - generic: Medium
+                          - cell:
+                            - generic: Draft
+                          - cell: Apr 28, 2026
+                        - row:
+                          - cell: PR-OPS-2026-00003
+                          - cell:
+                            - generic:
+                              - paragraph: Camera Mounting Poles and Hardware – Busway Phase 2
+                          - cell: ₱162,820.00
+                          - cell:
+                            - generic: Medium
+                          - cell:
+                            - generic: Pending Procurement
+                          - cell: Apr 27, 2026
+                        - row:
+                          - cell: PR-FIN-2026-00001
+                          - cell:
+                            - generic:
+                              - paragraph: IT Equipment Refresh – Finance Department
+                          - cell: TBD
+                          - cell:
+                            - generic: Medium
+                          - cell:
+                            - generic: Dept Head Review
+                          - cell: Apr 27, 2026
+                        - row:
+                          - cell: PR-ENG-2026-00006
+                          - cell:
+                            - generic:
+                              - paragraph: PTZ Speed Dome Cameras – Busway Intersections
+                          - cell: ₱350,000.00
+                          - cell:
+                            - generic: High
+                          - cell:
+                            - generic: Pending Procurement
+                          - cell: Apr 26, 2026
+                        - row:
+                          - cell: PR-ENG-2026-00013
+                          - cell:
+                            - generic:
+                              - paragraph: Cable Pulling and Termination Tools
+                          - cell: TBD
+                          - cell:
+                            - generic: Medium
+                          - cell:
+                            - generic: Returned
+                          - cell: Apr 26, 2026
+                        - row:
+                          - cell: PR-ITS-2026-00009
+                          - cell:
+                            - generic:
+                              - paragraph: Network Video Recorder – AI Backup Recording
+                          - cell: ₱579,000.00
+                          - cell:
+                            - generic: High
+                          - cell:
+                            - generic: Pending Procurement
+                          - cell: Apr 25, 2026
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic: Rows per page
+                        - combobox:
+                          - generic: "10"
+                          - img
+                      - paragraph: Page 1 of 4·37 total
+                    - generic:
+                      - button [disabled]:
+                        - img
+                        - text: Previous
+                      - button: "1"
+                      - button: "2"
+                      - button: "3"
+                      - button: "4"
+                      - button:
+                        - text: Next
+                        - img
+  - listbox [ref=e279]:
+    - option "All Statuses" [active] [selected] [ref=e280]:
+      - generic [ref=e281]: All Statuses
+      - img [ref=e284]
+    - option "Draft" [ref=e286]:
+      - generic [ref=e287]: Draft
+    - option "Pending Procurement" [ref=e289]:
+      - generic [ref=e290]: Pending Procurement
+    - option "Price Review" [ref=e292]:
+      - generic [ref=e293]: Price Review
+    - option "Dept Head Review" [ref=e295]:
+      - generic [ref=e296]: Dept Head Review
+    - option "COO Review" [ref=e298]:
+      - generic [ref=e299]: COO Review
+    - option "CEO Review" [ref=e301]:
+      - generic [ref=e302]: CEO Review
+    - option "Approved" [ref=e304]:
+      - generic [ref=e305]: Approved
+    - option "Completed" [ref=e307]:
+      - generic [ref=e308]: Completed
+    - option "Rejected" [ref=e310]:
+      - generic [ref=e311]: Rejected
+    - option "Returned" [ref=e313]:
+      - generic [ref=e314]: Returned
+    - option "Returned for Info" [ref=e316]:
+      - generic [ref=e317]: Returned for Info
+    - option "Cancelled" [ref=e319]:
+      - generic [ref=e320]: Cancelled

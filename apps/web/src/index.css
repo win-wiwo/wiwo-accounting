@@ -335,11 +335,40 @@
     border-color: var(--color-border);
   }
 
+  html {
+    scrollbar-gutter: stable;
+    background-color: #000000;
+    scrollbar-color: #404040 #000000;
+  }
+
+  html::-webkit-scrollbar {
+    width: 14px;
+    height: 14px;
+  }
+
+  html::-webkit-scrollbar-track {
+    background: #000000;
+  }
+
+  html::-webkit-scrollbar-thumb {
+    background: #404040;
+    border: 3px solid #000000;
+    border-radius: 7px;
+  }
+
+  html::-webkit-scrollbar-thumb:hover {
+    background: #555555;
+  }
+
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  html body[data-scroll-locked] {
+    margin-right: 0 !important;
   }
 }

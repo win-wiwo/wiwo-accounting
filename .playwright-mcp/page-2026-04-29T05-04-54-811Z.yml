@@ -1,0 +1,228 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - img "WIWO" [ref=e7]
+      - button [ref=e8]:
+        - img [ref=e9]
+    - navigation [ref=e12]:
+      - link "Dashboard" [ref=e13] [cursor=pointer]:
+        - /url: /dashboard
+        - img [ref=e14]
+        - generic [ref=e19]: Dashboard
+      - link "Purchase Requests" [ref=e20] [cursor=pointer]:
+        - /url: /purchase-requests
+        - img [ref=e21]
+        - generic [ref=e24]: Purchase Requests
+      - link "Procurement Queue" [ref=e25] [cursor=pointer]:
+        - /url: /procurement
+        - img [ref=e26]
+        - generic [ref=e29]: Procurement Queue
+      - link "Suppliers" [ref=e30] [cursor=pointer]:
+        - /url: /suppliers
+        - img [ref=e31]
+        - generic [ref=e36]: Suppliers
+      - link "Purchase Orders" [ref=e37] [cursor=pointer]:
+        - /url: /purchase-orders
+        - img [ref=e38]
+        - generic [ref=e42]: Purchase Orders
+      - link "Search & Monitor" [ref=e43] [cursor=pointer]:
+        - /url: /search
+        - img [ref=e44]
+        - generic [ref=e47]: Search & Monitor
+      - link "Reports" [ref=e48] [cursor=pointer]:
+        - /url: /reports
+        - img [ref=e49]
+        - generic [ref=e51]: Reports
+      - generic [ref=e54]: Admin
+      - link "Projects" [ref=e56] [cursor=pointer]:
+        - /url: /projects
+        - img [ref=e57]
+        - generic [ref=e59]: Projects
+      - link "Users" [ref=e60] [cursor=pointer]:
+        - /url: /users
+        - img [ref=e61]
+        - generic [ref=e66]: Users
+      - link "Departments" [ref=e67] [cursor=pointer]:
+        - /url: /departments
+        - img [ref=e68]
+        - generic [ref=e72]: Departments
+      - link "Settings" [ref=e73] [cursor=pointer]:
+        - /url: /settings
+        - img [ref=e74]
+        - generic [ref=e77]: Settings
+    - generic [ref=e80]:
+      - link "SA System Admin Admin" [ref=e81] [cursor=pointer]:
+        - /url: /profile
+        - img "SA" [ref=e83]
+        - generic [ref=e84]:
+          - paragraph [ref=e85]: System Admin
+          - paragraph [ref=e86]: Admin
+      - button "Sign out" [ref=e87]:
+        - img
+        - text: Sign out
+  - banner [ref=e88]:
+    - generic [ref=e90]:
+      - img [ref=e91]
+      - textbox "Search PRs... (Ctrl+K)" [ref=e94]
+    - button [ref=e96]:
+      - img
+  - main [ref=e97]:
+    - generic [ref=e101]:
+      - generic [ref=e102]:
+        - generic [ref=e103]:
+          - heading "Purchase Requests" [level=1] [ref=e104]
+          - paragraph [ref=e105]: Create, track, and manage purchase requests.
+        - generic [ref=e107]:
+          - generic [ref=e108]: 37 Total
+          - generic [ref=e109]: 3 Draft
+          - generic [ref=e110]: 5 In Review
+      - generic [ref=e112]:
+        - generic [ref=e113]:
+          - img [ref=e114]
+          - textbox "Search by PR number or item summary..." [active] [ref=e117]
+        - generic [ref=e118]:
+          - combobox [ref=e119]:
+            - generic: All Statuses
+            - img [ref=e120]
+          - combobox [ref=e122]:
+            - generic: All Priorities
+            - img [ref=e123]
+          - combobox [ref=e125]:
+            - generic: All Types
+            - img [ref=e126]
+      - generic [ref=e128]:
+        - table [ref=e130]:
+          - rowgroup [ref=e131]:
+            - row "PR Number Request Amount Priority Status Date" [ref=e132]:
+              - columnheader "PR Number" [ref=e133]
+              - columnheader "Request" [ref=e134]
+              - columnheader "Amount" [ref=e135]:
+                - generic [ref=e136] [cursor=pointer]:
+                  - text: Amount
+                  - img [ref=e137]
+              - columnheader "Priority" [ref=e140]
+              - columnheader "Status" [ref=e141]
+              - columnheader "Date" [ref=e142]:
+                - generic [ref=e143] [cursor=pointer]:
+                  - text: Date
+                  - img [ref=e144]
+          - rowgroup [ref=e146]:
+            - row "PR-ADM-2026-00003 Canva Teams – Annual Subscription ₱45,000.00 Low Dept Head Review Apr 29, 2026" [ref=e147] [cursor=pointer]:
+              - cell "PR-ADM-2026-00003" [ref=e148]
+              - cell "Canva Teams – Annual Subscription" [ref=e149]:
+                - paragraph [ref=e151]: Canva Teams – Annual Subscription
+              - cell "₱45,000.00" [ref=e152]
+              - cell "Low" [ref=e153]:
+                - generic [ref=e154]: Low
+              - cell "Dept Head Review" [ref=e155]:
+                - generic [ref=e156]: Dept Head Review
+              - cell "Apr 29, 2026" [ref=e157]
+            - row "Draft AI Camera Phase 2 – Additional Zones TBD Medium Draft Apr 29, 2026" [ref=e158] [cursor=pointer]:
+              - cell "Draft" [ref=e159]
+              - cell "AI Camera Phase 2 – Additional Zones" [ref=e160]:
+                - paragraph [ref=e162]: AI Camera Phase 2 – Additional Zones
+              - cell "TBD" [ref=e163]
+              - cell "Medium" [ref=e164]:
+                - generic [ref=e165]: Medium
+              - cell "Draft" [ref=e166]:
+                - generic [ref=e167]: Draft
+              - cell "Apr 29, 2026" [ref=e168]
+            - row "Draft UPS Systems – Busway Station NVR Rooms TBD High Draft Apr 29, 2026" [ref=e169] [cursor=pointer]:
+              - cell "Draft" [ref=e170]
+              - cell "UPS Systems – Busway Station NVR Rooms" [ref=e171]:
+                - paragraph [ref=e173]: UPS Systems – Busway Station NVR Rooms
+              - cell "TBD" [ref=e174]
+              - cell "High" [ref=e175]:
+                - generic [ref=e176]: High
+              - cell "Draft" [ref=e177]:
+                - generic [ref=e178]: Draft
+              - cell "Apr 29, 2026" [ref=e179]
+            - row "PR-ENG-2026-00007 Ergonomic Office Chairs – Engineering Team TBD Medium Dept Head Review Apr 29, 2026" [ref=e180] [cursor=pointer]:
+              - cell "PR-ENG-2026-00007" [ref=e181]
+              - cell "Ergonomic Office Chairs – Engineering Team" [ref=e182]:
+                - paragraph [ref=e184]: Ergonomic Office Chairs – Engineering Team
+              - cell "TBD" [ref=e185]
+              - cell "Medium" [ref=e186]:
+                - generic [ref=e187]: Medium
+              - cell "Dept Head Review" [ref=e188]:
+                - generic [ref=e189]: Dept Head Review
+              - cell "Apr 29, 2026" [ref=e190]
+            - row "Draft CCTV Preventive Maintenance – Busway Phase 1 Systems TBD Medium Draft Apr 28, 2026" [ref=e191] [cursor=pointer]:
+              - cell "Draft" [ref=e192]
+              - cell "CCTV Preventive Maintenance – Busway Phase 1 Systems" [ref=e193]:
+                - paragraph [ref=e195]: CCTV Preventive Maintenance – Busway Phase 1 Systems
+              - cell "TBD" [ref=e196]
+              - cell "Medium" [ref=e197]:
+                - generic [ref=e198]: Medium
+              - cell "Draft" [ref=e199]:
+                - generic [ref=e200]: Draft
+              - cell "Apr 28, 2026" [ref=e201]
+            - row "PR-OPS-2026-00003 Camera Mounting Poles and Hardware – Busway Phase 2 ₱162,820.00 Medium Pending Procurement Apr 27, 2026" [ref=e202] [cursor=pointer]:
+              - cell "PR-OPS-2026-00003" [ref=e203]
+              - cell "Camera Mounting Poles and Hardware – Busway Phase 2" [ref=e204]:
+                - paragraph [ref=e206]: Camera Mounting Poles and Hardware – Busway Phase 2
+              - cell "₱162,820.00" [ref=e207]
+              - cell "Medium" [ref=e208]:
+                - generic [ref=e209]: Medium
+              - cell "Pending Procurement" [ref=e210]:
+                - generic [ref=e211]: Pending Procurement
+              - cell "Apr 27, 2026" [ref=e212]
+            - row "PR-FIN-2026-00001 IT Equipment Refresh – Finance Department TBD Medium Dept Head Review Apr 27, 2026" [ref=e213] [cursor=pointer]:
+              - cell "PR-FIN-2026-00001" [ref=e214]
+              - cell "IT Equipment Refresh – Finance Department" [ref=e215]:
+                - paragraph [ref=e217]: IT Equipment Refresh – Finance Department
+              - cell "TBD" [ref=e218]
+              - cell "Medium" [ref=e219]:
+                - generic [ref=e220]: Medium
+              - cell "Dept Head Review" [ref=e221]:
+                - generic [ref=e222]: Dept Head Review
+              - cell "Apr 27, 2026" [ref=e223]
+            - row "PR-ENG-2026-00006 PTZ Speed Dome Cameras – Busway Intersections ₱350,000.00 High Pending Procurement Apr 26, 2026" [ref=e224] [cursor=pointer]:
+              - cell "PR-ENG-2026-00006" [ref=e225]
+              - cell "PTZ Speed Dome Cameras – Busway Intersections" [ref=e226]:
+                - paragraph [ref=e228]: PTZ Speed Dome Cameras – Busway Intersections
+              - cell "₱350,000.00" [ref=e229]
+              - cell "High" [ref=e230]:
+                - generic [ref=e231]: High
+              - cell "Pending Procurement" [ref=e232]:
+                - generic [ref=e233]: Pending Procurement
+              - cell "Apr 26, 2026" [ref=e234]
+            - row "PR-ENG-2026-00013 Cable Pulling and Termination Tools TBD Medium Returned Apr 26, 2026" [ref=e235] [cursor=pointer]:
+              - cell "PR-ENG-2026-00013" [ref=e236]
+              - cell "Cable Pulling and Termination Tools" [ref=e237]:
+                - paragraph [ref=e239]: Cable Pulling and Termination Tools
+              - cell "TBD" [ref=e240]
+              - cell "Medium" [ref=e241]:
+                - generic [ref=e242]: Medium
+              - cell "Returned" [ref=e243]:
+                - generic [ref=e244]: Returned
+              - cell "Apr 26, 2026" [ref=e245]
+            - row "PR-ITS-2026-00009 Network Video Recorder – AI Backup Recording ₱579,000.00 High Pending Procurement Apr 25, 2026" [ref=e246] [cursor=pointer]:
+              - cell "PR-ITS-2026-00009" [ref=e247]
+              - cell "Network Video Recorder – AI Backup Recording" [ref=e248]:
+                - paragraph [ref=e250]: Network Video Recorder – AI Backup Recording
+              - cell "₱579,000.00" [ref=e251]
+              - cell "High" [ref=e252]:
+                - generic [ref=e253]: High
+              - cell "Pending Procurement" [ref=e254]:
+                - generic [ref=e255]: Pending Procurement
+              - cell "Apr 25, 2026" [ref=e256]
+        - generic [ref=e257]:
+          - generic [ref=e258]:
+            - generic [ref=e259]:
+              - generic [ref=e260]: Rows per page
+              - combobox [ref=e261]:
+                - generic: "10"
+                - img [ref=e262]
+            - paragraph [ref=e264]: Page 1 of 4·37 total
+          - generic [ref=e265]:
+            - button "Previous" [disabled]:
+              - img
+              - text: Previous
+            - button "1" [ref=e266]
+            - button "2" [ref=e267]
+            - button "3" [ref=e268]
+            - button "4" [ref=e269]
+            - button "Next" [ref=e270]:
+              - text: Next
+              - img [ref=e271]

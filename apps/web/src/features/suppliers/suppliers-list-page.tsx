@@ -198,42 +198,51 @@ export function SuppliersListPage() {
 
           {/* Filters */}
           <div className="flex items-center gap-2 flex-wrap shrink-0">
-            <select
-              value={statusFilter}
-              onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-              className="h-10 rounded-lg border border-zinc-200 bg-white px-3 pr-8 text-[13px] text-zinc-600 outline-none transition-colors duration-150 focus:border-zinc-400 cursor-pointer appearance-none"
-              style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center' }}
+            <Select
+              value={statusFilter || 'all'}
+              onValueChange={(v) => { setStatusFilter(v === 'all' ? '' : v); setPage(1); }}
             >
-              <option value="">All Statuses</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="blacklisted">Blacklisted</option>
-            </select>
+              <SelectTrigger className="w-full sm:w-[150px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]">
+                <SelectValue placeholder="All Statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+                <SelectItem value="blacklisted">Blacklisted</SelectItem>
+              </SelectContent>
+            </Select>
 
-            <select
-              value={taxTypeFilter}
-              onChange={(e) => { setTaxTypeFilter(e.target.value); setPage(1); }}
-              className="h-10 rounded-lg border border-zinc-200 bg-white px-3 pr-8 text-[13px] text-zinc-600 outline-none transition-colors duration-150 focus:border-zinc-400 cursor-pointer appearance-none"
-              style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center' }}
+            <Select
+              value={taxTypeFilter || 'all'}
+              onValueChange={(v) => { setTaxTypeFilter(v === 'all' ? '' : v); setPage(1); }}
             >
-              <option value="">All Tax Types</option>
-              <option value="vat">VAT</option>
-              <option value="non_vat">Non-VAT</option>
-            </select>
+              <SelectTrigger className="w-full sm:w-[150px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]">
+                <SelectValue placeholder="All Tax Types" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Tax Types</SelectItem>
+                <SelectItem value="vat">VAT</SelectItem>
+                <SelectItem value="non_vat">Non-VAT</SelectItem>
+              </SelectContent>
+            </Select>
 
-            <select
+            <Select
               value={sortValue}
-              onChange={(e) => { setSortValue(e.target.value); setPage(1); }}
-              className="h-10 rounded-lg border border-zinc-200 bg-white px-3 pr-8 text-[13px] text-zinc-600 outline-none transition-colors duration-150 focus:border-zinc-400 cursor-pointer appearance-none"
-              style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center' }}
+              onValueChange={(v) => { setSortValue(v); setPage(1); }}
             >
-              <option value="companyName:asc">Name A → Z</option>
-              <option value="companyName:desc">Name Z → A</option>
-              <option value="createdAt:desc">Recently Added</option>
-              <option value="createdAt:asc">Oldest First</option>
-              <option value="updatedAt:desc">Recently Updated</option>
-              <option value="status:asc">By Status</option>
-            </select>
+              <SelectTrigger className="w-full sm:w-[180px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="companyName:asc">Name A → Z</SelectItem>
+                <SelectItem value="companyName:desc">Name Z → A</SelectItem>
+                <SelectItem value="createdAt:desc">Recently Added</SelectItem>
+                <SelectItem value="createdAt:asc">Oldest First</SelectItem>
+                <SelectItem value="updatedAt:desc">Recently Updated</SelectItem>
+                <SelectItem value="status:asc">By Status</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>
