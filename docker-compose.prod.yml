@@ -33,6 +33,8 @@ services:
     environment:
       - MONGODB_URI=mongodb://mongodb:27017/prams?replicaSet=rs0
       - NODE_ENV=production
+    volumes:
+      - uploads-data:/app/uploads
     depends_on:
       mongodb:
         condition: service_healthy
@@ -82,6 +84,7 @@ services:
 volumes:
   mongo-data:
   mongo-backups:
+  uploads-data:
 
 networks:
   internal:

@@ -44,6 +44,7 @@ export class AuthService {
         role: user.role,
         departmentId: user.departmentId,
         photoUrl: user.photoUrl ?? null,
+        signatureUrl: user.signatureUrl ?? null,
       },
       tokens,
     };
@@ -83,6 +84,7 @@ export class AuthService {
       role: user.role,
       departmentId: user.departmentId,
       photoUrl: user.photoUrl ?? null,
+      signatureUrl: user.signatureUrl ?? null,
     };
   }
 
