@@ -4,28 +4,15 @@ import { useNavigate } from 'react-router-dom';
 import {
   Search,
   ShoppingCart,
-  MoreHorizontal,
-  Eye,
-  Package,
-  XCircle,
-  Truck,
   ChevronLeft,
   ChevronRight,
   ArrowUp,
   ArrowDown,
   ArrowUpDown,
 } from 'lucide-react';
-import { UserRole } from '@prams/shared';
-import {
-  usePurchaseOrders,
-  usePoStats,
-  useCancelPurchaseOrder,
-} from '@/hooks/use-purchase-orders';
-import { useAuthStore } from '@/stores/auth.store';
-import { useToast } from '@/components/ui/toast';
+import { usePurchaseOrders, usePoStats } from '@/hooks/use-purchase-orders';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -107,9 +94,6 @@ function getPageNumbers(current: number, total: number): (number | string)[] {
 export function PoListPage() {
   usePageTitle('Purchase Orders');
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const user = useAuthStore((s) => s.user);
-  const canManage = ([UserRole.PROCUREMENT, UserRole.ADMIN] as string[]).includes(user?.role ?? '');
 
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -117,11 +101,6 @@ export function PoListPage() {
   const [sourceFilter, setSourceFilter] = useState('');
   const [limit, setLimit] = useState(10);
   const [sortValue, setSortValue] = useState('createdAt:desc');
-
-  const [cancelDialog, setCancelDialog] = useState<{ open: boolean; poId: string; poNumber: string }>({
-    open: false, poId: '', poNumber: '',
-  });
-  const [cancelReason, setCancelReason] = useState('');
 
   const [sortField, sortOrder] = sortValue.split(':') as [string, 'asc' | 'desc'];
 
@@ -145,24 +124,11 @@ export function PoListPage() {
   });
 
   const { data: stats } = usePoStats();
-  const cancelMutation = useCancelPurchaseOrder();
 
   const pos = (data?.data ?? []) as PoRow[];
   const meta = data?.meta;
 
   const hasFilters = !!search || !!statusFilter || !!sourceFilter;
-
-  const handleCancelConfirm = async () => {
-    if (!cancelReason.trim()) return;
-    try {
-      await cancelMutation.mutateAsync({ id: cancelDialog.poId, reason: cancelReason });
-      toast({ title: `${cancelDialog.poNumber} cancelled`, variant: 'success' });
-    } catch {
-      toast({ title: 'Action failed', variant: 'error' });
-    }
-    setCancelDialog({ open: false, poId: '', poNumber: '' });
-    setCancelReason('');
-  };
 
   return (
     <div className="space-y-5 max-w-screen-2xl">
@@ -301,6 +267,9 @@ export function PoListPage() {
                     <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
                       Order
                     </th>
+                    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400 hidden lg:table-cell">
+                      Title
+                    </th>
                     <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400 hidden md:table-cell">
                       Supplier
                     </th>
@@ -329,18 +298,17 @@ export function PoListPage() {
                           : <ArrowUpDown className="h-3 w-3 opacity-40" />}
                       </span>
                     </th>
-                    <th className="h-11 w-10" />
                   </tr>
                 </thead>
                 <tbody>
                   {pos.map((po, idx) => {
-                    const isPending = po.status === 'pending';
                     const isCancelled = po.status === 'cancelled';
                     const isReceived = po.status === 'received';
 
                     const sourceNumber = po.sourceRequestNumber
                       ?? (po.purchaseRequestId as { prNumber?: string } | null)?.prNumber
                       ?? null;
+                    const sourceTitle = po.purchaseRequestId?.title ?? null;
 
                     const dateToShow = isReceived && po.receivedAt
                       ? po.receivedAt
@@ -365,6 +333,17 @@ export function PoListPage() {
                               </p>
                             )}
                           </div>
+                        </td>
+
+                        {/* Title */}
+                        <td className="px-5 py-4 hidden lg:table-cell">
+                          {sourceTitle ? (
+                            <p className="text-[13px] text-zinc-700 max-w-[280px] truncate">
+                              {sourceTitle}
+                            </p>
+                          ) : (
+                            <span className="text-[12px] text-zinc-300 italic">—</span>
+                          )}
                         </td>
 
                         {/* Supplier */}
@@ -410,63 +389,6 @@ export function PoListPage() {
                               </p>
                             )}
                           </div>
-                        </td>
-
-                        {/* Actions */}
-                        <td className="px-3 py-4" onClick={(e) => e.stopPropagation()}>
-                          <DropdownMenu.Root>
-                            <DropdownMenu.Trigger asChild>
-                              <button className="h-7 w-7 flex items-center justify-center rounded-lg text-zinc-300 hover:bg-zinc-100 hover:text-zinc-700 opacity-0 group-hover:opacity-100 transition-all duration-150 focus:opacity-100">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </button>
-                            </DropdownMenu.Trigger>
-                            <DropdownMenu.Portal>
-                              <DropdownMenu.Content
-                                className="z-50 min-w-[168px] overflow-hidden rounded-xl border border-zinc-200 bg-white p-1 shadow-[0_4px_24px_rgba(0,0,0,0.10)] animate-in fade-in-0 zoom-in-95"
-                                align="end"
-                                sideOffset={4}
-                              >
-                                <DropdownMenu.Item
-                                  className="flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] text-zinc-700 outline-none hover:bg-zinc-50 transition-colors"
-                                  onSelect={() => navigate(`/purchase-orders/${po._id}`)}
-                                >
-                                  <Eye className="h-3.5 w-3.5 text-zinc-400" /> View PO
-                                </DropdownMenu.Item>
-
-                                {canManage && isPending && (
-                                  <DropdownMenu.Item
-                                    className="flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] text-blue-700 outline-none hover:bg-blue-50 transition-colors"
-                                    onSelect={() => navigate(`/purchase-orders/${po._id}`)}
-                                  >
-                                    <Truck className="h-3.5 w-3.5 text-blue-500" /> Mark as Ordered
-                                  </DropdownMenu.Item>
-                                )}
-
-                                {canManage && po.status === 'ordered' && (
-                                  <DropdownMenu.Item
-                                    className="flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] text-emerald-700 outline-none hover:bg-emerald-50 transition-colors"
-                                    onSelect={() => navigate(`/purchase-orders/${po._id}`)}
-                                  >
-                                    <Package className="h-3.5 w-3.5 text-emerald-500" /> Receive Order
-                                  </DropdownMenu.Item>
-                                )}
-
-                                {canManage && !isCancelled && !isReceived && (
-                                  <>
-                                    <DropdownMenu.Separator className="my-1 h-px bg-zinc-100" />
-                                    <DropdownMenu.Item
-                                      className="flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] text-red-600 outline-none hover:bg-red-50 transition-colors"
-                                      onSelect={() =>
-                                        setCancelDialog({ open: true, poId: po._id, poNumber: po.poNumber ?? 'Draft PO' })
-                                      }
-                                    >
-                                      <XCircle className="h-3.5 w-3.5 text-red-400" /> Cancel PO
-                                    </DropdownMenu.Item>
-                                  </>
-                                )}
-                              </DropdownMenu.Content>
-                            </DropdownMenu.Portal>
-                          </DropdownMenu.Root>
                         </td>
                       </tr>
                     );
@@ -537,54 +459,6 @@ export function PoListPage() {
           </>
         )}
       </div>
-
-      {/* ── Cancel Dialog ────────────────────────────────────── */}
-      {cancelDialog.open && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
-          onClick={() => setCancelDialog({ open: false, poId: '', poNumber: '' })}
-        >
-          <div
-            className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-[0_24px_80px_rgba(0,0,0,0.18)] mx-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center gap-3 mb-5">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 shrink-0">
-                <XCircle className="h-5 w-5 text-red-500" />
-              </div>
-              <div>
-                <h3 className="text-[15px] font-semibold text-zinc-900">Cancel Purchase Order</h3>
-                <p className="text-[12px] text-zinc-500 mt-0.5">{cancelDialog.poNumber}</p>
-              </div>
-            </div>
-            <p className="text-[13px] text-zinc-600 mb-4">
-              This action cannot be undone. Please provide a reason for cancellation.
-            </p>
-            <textarea
-              value={cancelReason}
-              onChange={(e) => setCancelReason(e.target.value)}
-              placeholder="e.g. Supplier unavailable, budget reallocated..."
-              rows={3}
-              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-[13px] text-zinc-800 placeholder:text-zinc-400 outline-none resize-none transition-all duration-200 focus:border-zinc-400 focus:bg-white focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]"
-            />
-            <div className="mt-4 flex items-center justify-end gap-2.5">
-              <button
-                onClick={() => { setCancelDialog({ open: false, poId: '', poNumber: '' }); setCancelReason(''); }}
-                className="px-4 py-2 rounded-lg border border-zinc-200 text-[13px] font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"
-              >
-                Dismiss
-              </button>
-              <button
-                onClick={handleCancelConfirm}
-                disabled={!cancelReason.trim() || cancelMutation.isPending}
-                className="px-4 py-2 rounded-lg bg-red-600 text-[13px] font-semibold text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {cancelMutation.isPending ? 'Cancelling…' : 'Cancel PO'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
     </div>
   );

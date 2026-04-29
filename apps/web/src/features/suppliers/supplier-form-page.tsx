@@ -1,6 +1,5 @@
-import { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ArrowLeft, Loader2, Save } from 'lucide-react';
@@ -50,59 +49,80 @@ type SupplierFormData = z.infer<typeof supplierFormSchema>;
 export function SupplierFormPage() {
   const { id } = useParams();
   const isEdit = !!id;
+  const { data: supplierData, isLoading: supplierLoading } = useSupplier(id ?? '');
+
+  if (isEdit && (supplierLoading || !supplierData?.data)) {
+    return (
+      <div className="space-y-6 max-w-screen-2xl">
+        <Skeleton className="h-8 w-64" />
+        <Surface>
+          <div className="p-6 space-y-3">
+            <Skeleton className="h-5 w-40" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+        </Surface>
+      </div>
+    );
+  }
+
+  const initialValues: SupplierFormData =
+    isEdit && supplierData?.data
+      ? {
+          companyName: supplierData.data.companyName,
+          address: supplierData.data.address,
+          taxType: supplierData.data.taxType,
+          tin: supplierData.data.tin,
+          contactPerson: supplierData.data.contactPerson || '',
+          contactNumber: supplierData.data.contactNumber || '',
+          email: supplierData.data.email || '',
+          paymentTerms: supplierData.data.paymentTerms || '',
+          bankAccountName: supplierData.data.bankAccountName || '',
+          bankAccountNumber: supplierData.data.bankAccountNumber || '',
+          bankName: supplierData.data.bankName || '',
+          notes: supplierData.data.notes || '',
+          status: supplierData.data.status,
+        }
+      : {
+          companyName: '',
+          address: '',
+          taxType: undefined as unknown as 'vat' | 'non_vat',
+          tin: '',
+          contactPerson: '',
+          contactNumber: '',
+          email: '',
+          paymentTerms: '',
+          bankAccountName: '',
+          bankAccountNumber: '',
+          bankName: '',
+          notes: '',
+          status: 'active',
+        };
+
+  return <SupplierForm id={id} isEdit={isEdit} initialValues={initialValues} />;
+}
+
+interface SupplierFormProps {
+  id: string | undefined;
+  isEdit: boolean;
+  initialValues: SupplierFormData;
+}
+
+function SupplierForm({ id, isEdit, initialValues }: SupplierFormProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
-
-  const { data: supplierData, isLoading: supplierLoading } = useSupplier(id ?? '');
   const createMutation = useCreateSupplier();
   const updateMutation = useUpdateSupplier();
 
   const {
     register,
     handleSubmit,
-    setValue,
-    watch,
-    reset,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<SupplierFormData>({
     resolver: zodResolver(supplierFormSchema),
-    defaultValues: {
-      companyName: '',
-      address: '',
-      taxType: undefined,
-      tin: '',
-      contactPerson: '',
-      contactNumber: '',
-      email: '',
-      paymentTerms: '',
-      bankAccountName: '',
-      bankAccountNumber: '',
-      bankName: '',
-      notes: '',
-      status: 'active',
-    },
+    defaultValues: initialValues,
   });
-
-  useEffect(() => {
-    if (isEdit && supplierData?.data) {
-      const s = supplierData.data;
-      reset({
-        companyName: s.companyName,
-        address: s.address,
-        taxType: s.taxType,
-        tin: s.tin,
-        contactPerson: s.contactPerson || '',
-        contactNumber: s.contactNumber || '',
-        email: s.email || '',
-        paymentTerms: s.paymentTerms || '',
-        bankAccountName: s.bankAccountName || '',
-        bankAccountNumber: s.bankAccountNumber || '',
-        bankName: s.bankName || '',
-        notes: s.notes || '',
-        status: s.status,
-      });
-    }
-  }, [isEdit, supplierData, reset]);
 
   const onSubmit = async (data: SupplierFormData) => {
     try {
@@ -140,21 +160,6 @@ export function SupplierFormPage() {
       });
     }
   };
-
-  if (isEdit && supplierLoading) {
-    return (
-      <div className="space-y-6 max-w-screen-2xl">
-        <Skeleton className="h-8 w-64" />
-        <Surface>
-          <div className="p-6 space-y-3">
-            <Skeleton className="h-5 w-40" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-          </div>
-        </Surface>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6 max-w-screen-2xl">
@@ -204,20 +209,24 @@ export function SupplierFormPage() {
               </FormField>
 
               <FormField label="Tax Type" required error={errors.taxType?.message}>
-                <Select
-                  value={watch('taxType') || ''}
-                  onValueChange={(v) =>
-                    setValue('taxType', v as 'vat' | 'non_vat', { shouldValidate: true })
-                  }
-                >
-                  <SelectTrigger className={premiumSelectTriggerClass}>
-                    <SelectValue placeholder="Select tax type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="vat">VAT</SelectItem>
-                    <SelectItem value="non_vat">Non-VAT</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Controller
+                  control={control}
+                  name="taxType"
+                  render={({ field }) => (
+                    <Select
+                      value={field.value ?? ''}
+                      onValueChange={(v) => field.onChange(v as 'vat' | 'non_vat')}
+                    >
+                      <SelectTrigger className={premiumSelectTriggerClass}>
+                        <SelectValue placeholder="Select tax type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="vat">VAT</SelectItem>
+                        <SelectItem value="non_vat">Non-VAT</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </FormField>
 
               <FormField
@@ -340,25 +349,27 @@ export function SupplierFormPage() {
             <div className="grid gap-5 sm:grid-cols-2">
               {isEdit && (
                 <FormField label="Status">
-                  <Select
-                    value={watch('status') || 'active'}
-                    onValueChange={(v) =>
-                      setValue(
-                        'status',
-                        v as 'active' | 'inactive' | 'blacklisted',
-                        { shouldValidate: true },
-                      )
-                    }
-                  >
-                    <SelectTrigger className={premiumSelectTriggerClass}>
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="inactive">Inactive</SelectItem>
-                      <SelectItem value="blacklisted">Blacklisted</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Controller
+                    control={control}
+                    name="status"
+                    render={({ field }) => (
+                      <Select
+                        value={field.value ?? 'active'}
+                        onValueChange={(v) =>
+                          field.onChange(v as 'active' | 'inactive' | 'blacklisted')
+                        }
+                      >
+                        <SelectTrigger className={premiumSelectTriggerClass}>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="inactive">Inactive</SelectItem>
+                          <SelectItem value="blacklisted">Blacklisted</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
                 </FormField>
               )}
 

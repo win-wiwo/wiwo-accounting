@@ -5,20 +5,15 @@ import {
   Plus,
   Search,
   Building2,
-  MoreHorizontal,
-  Eye,
-  Pencil,
-  XCircle,
   AlertCircle,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
 import { UserRole } from '@prams/shared';
-import { useSuppliers, useSuppliersStats, useUpdateSupplier } from '@/hooks/use-suppliers';
+import { useSuppliers, useSuppliersStats } from '@/hooks/use-suppliers';
 import { useAuthStore } from '@/stores/auth.store';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 
 type SupplierRow = {
   _id: string;
@@ -104,7 +99,6 @@ export function SuppliersListPage() {
   const { data: statsRaw } = useSuppliersStats();
   const stats = statsRaw?.data;
 
-  const updateSupplier = useUpdateSupplier();
   const suppliers = (data?.data ?? []) as SupplierRow[];
   const meta = data?.meta;
 
@@ -291,9 +285,6 @@ export function SuppliersListPage() {
                       Contact
                     </th>
                     <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400 hidden lg:table-cell">
-                      Category
-                    </th>
-                    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400 hidden lg:table-cell">
                       Tax / TIN
                     </th>
                     <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
@@ -302,7 +293,6 @@ export function SuppliersListPage() {
                     <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400 hidden xl:table-cell">
                       Last Updated
                     </th>
-                    <th className="h-11 w-10" />
                   </tr>
                 </thead>
                 <tbody>
@@ -352,17 +342,6 @@ export function SuppliersListPage() {
                           )}
                         </td>
 
-                        {/* Category */}
-                        <td className="px-5 py-4 hidden lg:table-cell">
-                          {supplier.category ? (
-                            <span className="inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-0.5 text-[11px] font-medium text-zinc-600">
-                              {supplier.category}
-                            </span>
-                          ) : (
-                            <span className="text-[12px] text-zinc-300">—</span>
-                          )}
-                        </td>
-
                         {/* Tax / TIN */}
                         <td className="px-5 py-4 hidden lg:table-cell">
                           <div className="space-y-1">
@@ -390,70 +369,6 @@ export function SuppliersListPage() {
                           <span className="text-[12px] text-zinc-400 tabular-nums whitespace-nowrap">
                             {dateLabel(supplier.updatedAt)}
                           </span>
-                        </td>
-
-                        {/* Actions */}
-                        <td className="px-3 py-4" onClick={(e) => e.stopPropagation()}>
-                          <DropdownMenu.Root>
-                            <DropdownMenu.Trigger asChild>
-                              <button className="h-7 w-7 flex items-center justify-center rounded-lg text-zinc-300 hover:bg-zinc-100 hover:text-zinc-700 opacity-0 group-hover:opacity-100 transition-all duration-150 focus:opacity-100">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </button>
-                            </DropdownMenu.Trigger>
-                            <DropdownMenu.Portal>
-                              <DropdownMenu.Content
-                                className="z-50 min-w-[160px] overflow-hidden rounded-xl border border-zinc-200 bg-white p-1 shadow-[0_4px_24px_rgba(0,0,0,0.10)] animate-in fade-in-0 zoom-in-95"
-                                align="end"
-                                sideOffset={4}
-                              >
-                                <DropdownMenu.Item
-                                  className="flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] text-zinc-700 outline-none hover:bg-zinc-50 transition-colors"
-                                  onSelect={() => navigate(`/suppliers/${supplier._id}`)}
-                                >
-                                  <Eye className="h-3.5 w-3.5 text-zinc-400" /> View Profile
-                                </DropdownMenu.Item>
-                                {canManage && (
-                                  <>
-                                    <DropdownMenu.Item
-                                      className="flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] text-zinc-700 outline-none hover:bg-zinc-50 transition-colors"
-                                      onSelect={() => navigate(`/suppliers/${supplier._id}/edit`)}
-                                    >
-                                      <Pencil className="h-3.5 w-3.5 text-zinc-400" /> Edit
-                                    </DropdownMenu.Item>
-                                    {supplier.status === 'active' && (
-                                      <>
-                                        <DropdownMenu.Separator className="my-1 h-px bg-zinc-100" />
-                                        <DropdownMenu.Item
-                                          className="flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] text-zinc-500 outline-none hover:bg-zinc-50 transition-colors"
-                                          onSelect={() =>
-                                            updateSupplier.mutate({ id: supplier._id, data: { status: 'inactive' } })
-                                          }
-                                        >
-                                          <XCircle className="h-3.5 w-3.5 text-zinc-400" /> Disable
-                                        </DropdownMenu.Item>
-                                      </>
-                                    )}
-                                    {supplier.status === 'inactive' && (
-                                      <>
-                                        <DropdownMenu.Separator className="my-1 h-px bg-zinc-100" />
-                                        <DropdownMenu.Item
-                                          className="flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] text-emerald-700 outline-none hover:bg-zinc-50 transition-colors"
-                                          onSelect={() =>
-                                            updateSupplier.mutate({ id: supplier._id, data: { status: 'active' } })
-                                          }
-                                        >
-                                          <span className="h-3.5 w-3.5 flex items-center justify-center">
-                                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                                          </span>
-                                          Enable
-                                        </DropdownMenu.Item>
-                                      </>
-                                    )}
-                                  </>
-                                )}
-                              </DropdownMenu.Content>
-                            </DropdownMenu.Portal>
-                          </DropdownMenu.Root>
                         </td>
                       </tr>
                     );

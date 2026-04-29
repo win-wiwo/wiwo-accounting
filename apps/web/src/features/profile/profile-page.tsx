@@ -210,8 +210,8 @@ export function ProfilePage() {
               <div>
                 <h2 className="text-[15px] font-semibold text-zinc-900">Signature</h2>
                 <p className="mt-1 text-[12.5px] text-zinc-500">
-                  Used on printed PR documents (Annex A) for the blocks where you appear as
-                  requester or approver. Upload a transparent PNG for best results.
+                  Used on printed documents for the blocks where you appear as requester or
+                  approver. Upload a transparent PNG for best results.
                 </p>
               </div>
             </div>
