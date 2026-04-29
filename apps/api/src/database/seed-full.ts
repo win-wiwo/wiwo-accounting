@@ -877,51 +877,51 @@ async function seed() {
     console.log('\nCreating users...');
     const userDataRaw = [
       // Admin
-      { employeeId: 'EMP-0001', email: 'admin@wiwo.com', passwordHash: password, firstName: 'System', lastName: 'Admin', role: 'admin', isActive: true, departmentId: null },
+      { employeeId: 'EMP-0001', email: 'admin@wilsonworksph.com', passwordHash: password, firstName: 'System', lastName: 'Admin', role: 'admin', isActive: true, departmentId: null },
 
       // C-level
-      { employeeId: 'EMP-0002', email: 'ceo@wiwo.com', passwordHash: password, firstName: 'Roberto', lastName: 'Santos', role: 'ceo', isActive: true, departmentId: null },
-      { employeeId: 'EMP-0003', email: 'coo@wiwo.com', passwordHash: password, firstName: 'Maria', lastName: 'Reyes', role: 'coo', isActive: true, departmentId: null },
+      { employeeId: 'EMP-0002', email: 'ceo@wilsonworksph.com', passwordHash: password, firstName: 'Roberto', lastName: 'Santos', role: 'ceo', isActive: true, departmentId: null },
+      { employeeId: 'EMP-0003', email: 'coo@wilsonworksph.com', passwordHash: password, firstName: 'Maria', lastName: 'Reyes', role: 'coo', isActive: true, departmentId: null },
 
       // Department Heads
-      { employeeId: 'EMP-0010', email: 'eng.head@wiwo.com', passwordHash: password, firstName: 'Carlos', lastName: 'Garcia', role: 'dept_head', departmentId: eng._id, isActive: true },
-      { employeeId: 'EMP-0011', email: 'its.head@wiwo.com', passwordHash: password, firstName: 'Jerome', lastName: 'Aquino', role: 'dept_head', departmentId: its._id, isActive: true },
-      { employeeId: 'EMP-0012', email: 'ops.head@wiwo.com', passwordHash: password, firstName: 'Ricardo', lastName: 'Mendoza', role: 'dept_head', departmentId: ops._id, isActive: true },
-      { employeeId: 'EMP-0013', email: 'fin.head@wiwo.com', passwordHash: password, firstName: 'Jose', lastName: 'Tan', role: 'dept_head', departmentId: fin._id, isActive: true },
-      { employeeId: 'EMP-0014', email: 'pro.head@wiwo.com', passwordHash: password, firstName: 'Lucia', lastName: 'Flores', role: 'dept_head', departmentId: pro._id, isActive: true },
-      { employeeId: 'EMP-0015', email: 'adm.head@wiwo.com', passwordHash: password, firstName: 'Patricia', lastName: 'Lim', role: 'dept_head', departmentId: adm._id, isActive: true },
+      { employeeId: 'EMP-0010', email: 'eng.head@wilsonworksph.com', passwordHash: password, firstName: 'Carlos', lastName: 'Garcia', role: 'dept_head', departmentId: eng._id, isActive: true },
+      { employeeId: 'EMP-0011', email: 'its.head@wilsonworksph.com', passwordHash: password, firstName: 'Jerome', lastName: 'Aquino', role: 'dept_head', departmentId: its._id, isActive: true },
+      { employeeId: 'EMP-0012', email: 'ops.head@wilsonworksph.com', passwordHash: password, firstName: 'Ricardo', lastName: 'Mendoza', role: 'dept_head', departmentId: ops._id, isActive: true },
+      { employeeId: 'EMP-0013', email: 'fin.head@wilsonworksph.com', passwordHash: password, firstName: 'Jose', lastName: 'Tan', role: 'dept_head', departmentId: fin._id, isActive: true },
+      { employeeId: 'EMP-0014', email: 'pro.head@wilsonworksph.com', passwordHash: password, firstName: 'Lucia', lastName: 'Flores', role: 'dept_head', departmentId: pro._id, isActive: true },
+      { employeeId: 'EMP-0015', email: 'adm.head@wilsonworksph.com', passwordHash: password, firstName: 'Patricia', lastName: 'Lim', role: 'dept_head', departmentId: adm._id, isActive: true },
 
       // Engineering staff
-      { employeeId: 'EMP-0100', email: 'juan.delacruz@wiwo.com', passwordHash: password, firstName: 'Juan', lastName: 'Dela Cruz', role: 'staff', departmentId: eng._id, isActive: true },
-      { employeeId: 'EMP-0101', email: 'mark.ramos@wiwo.com', passwordHash: password, firstName: 'Mark', lastName: 'Ramos', role: 'staff', departmentId: eng._id, isActive: true },
-      { employeeId: 'EMP-0102', email: 'sarah.villanueva@wiwo.com', passwordHash: password, firstName: 'Sarah', lastName: 'Villanueva', role: 'staff', departmentId: eng._id, isActive: true },
-      { employeeId: 'EMP-0103', email: 'kevin.bautista@wiwo.com', passwordHash: password, firstName: 'Kevin', lastName: 'Bautista', role: 'staff', departmentId: eng._id, isActive: true },
+      { employeeId: 'EMP-0100', email: 'juan.delacruz@wilsonworksph.com', passwordHash: password, firstName: 'Juan', lastName: 'Dela Cruz', role: 'staff', departmentId: eng._id, isActive: true },
+      { employeeId: 'EMP-0101', email: 'mark.ramos@wilsonworksph.com', passwordHash: password, firstName: 'Mark', lastName: 'Ramos', role: 'staff', departmentId: eng._id, isActive: true },
+      { employeeId: 'EMP-0102', email: 'sarah.villanueva@wilsonworksph.com', passwordHash: password, firstName: 'Sarah', lastName: 'Villanueva', role: 'staff', departmentId: eng._id, isActive: true },
+      { employeeId: 'EMP-0103', email: 'kevin.bautista@wilsonworksph.com', passwordHash: password, firstName: 'Kevin', lastName: 'Bautista', role: 'staff', departmentId: eng._id, isActive: true },
 
       // IT staff
-      { employeeId: 'EMP-0110', email: 'diana.fernandez@wiwo.com', passwordHash: password, firstName: 'Diana', lastName: 'Fernandez', role: 'staff', departmentId: its._id, isActive: true },
-      { employeeId: 'EMP-0111', email: 'miguel.aquino@wiwo.com', passwordHash: password, firstName: 'Miguel', lastName: 'Aquino', role: 'staff', departmentId: its._id, isActive: true },
+      { employeeId: 'EMP-0110', email: 'diana.fernandez@wilsonworksph.com', passwordHash: password, firstName: 'Diana', lastName: 'Fernandez', role: 'staff', departmentId: its._id, isActive: true },
+      { employeeId: 'EMP-0111', email: 'miguel.aquino@wilsonworksph.com', passwordHash: password, firstName: 'Miguel', lastName: 'Aquino', role: 'staff', departmentId: its._id, isActive: true },
 
       // Operations staff
-      { employeeId: 'EMP-0120', email: 'grace.santos@wiwo.com', passwordHash: password, firstName: 'Grace', lastName: 'Santos', role: 'staff', departmentId: ops._id, isActive: true },
-      { employeeId: 'EMP-0121', email: 'ryan.lopez@wiwo.com', passwordHash: password, firstName: 'Ryan', lastName: 'Lopez', role: 'staff', departmentId: ops._id, isActive: true },
+      { employeeId: 'EMP-0120', email: 'grace.santos@wilsonworksph.com', passwordHash: password, firstName: 'Grace', lastName: 'Santos', role: 'staff', departmentId: ops._id, isActive: true },
+      { employeeId: 'EMP-0121', email: 'ryan.lopez@wilsonworksph.com', passwordHash: password, firstName: 'Ryan', lastName: 'Lopez', role: 'staff', departmentId: ops._id, isActive: true },
 
       // Finance staff
-      { employeeId: 'EMP-0130', email: 'christine.navarro@wiwo.com', passwordHash: password, firstName: 'Christine', lastName: 'Navarro', role: 'staff', departmentId: fin._id, isActive: true },
+      { employeeId: 'EMP-0130', email: 'christine.navarro@wilsonworksph.com', passwordHash: password, firstName: 'Christine', lastName: 'Navarro', role: 'staff', departmentId: fin._id, isActive: true },
 
       // Procurement staff
-      { employeeId: 'EMP-0140', email: 'paolo.castro@wiwo.com', passwordHash: password, firstName: 'Paolo', lastName: 'Castro', role: 'staff', departmentId: pro._id, isActive: true },
-      { employeeId: 'EMP-0141', email: 'nina.dela.rosa@wiwo.com', passwordHash: password, firstName: 'Nina', lastName: 'Dela Rosa', role: 'staff', departmentId: pro._id, isActive: true },
+      { employeeId: 'EMP-0140', email: 'paolo.castro@wilsonworksph.com', passwordHash: password, firstName: 'Paolo', lastName: 'Castro', role: 'staff', departmentId: pro._id, isActive: true },
+      { employeeId: 'EMP-0141', email: 'nina.dela.rosa@wilsonworksph.com', passwordHash: password, firstName: 'Nina', lastName: 'Dela Rosa', role: 'staff', departmentId: pro._id, isActive: true },
 
       // Admin staff
-      { employeeId: 'EMP-0150', email: 'ramon.aguilar@wiwo.com', passwordHash: password, firstName: 'Ramon', lastName: 'Aguilar', role: 'staff', departmentId: adm._id, isActive: true },
-      { employeeId: 'EMP-0151', email: 'isabella.morales@wiwo.com', passwordHash: password, firstName: 'Isabella', lastName: 'Morales', role: 'staff', departmentId: adm._id, isActive: true },
+      { employeeId: 'EMP-0150', email: 'ramon.aguilar@wilsonworksph.com', passwordHash: password, firstName: 'Ramon', lastName: 'Aguilar', role: 'staff', departmentId: adm._id, isActive: true },
+      { employeeId: 'EMP-0151', email: 'isabella.morales@wilsonworksph.com', passwordHash: password, firstName: 'Isabella', lastName: 'Morales', role: 'staff', departmentId: adm._id, isActive: true },
 
       // Special roles
-      { employeeId: 'EMP-0160', email: 'accounting@wiwo.com', passwordHash: password, firstName: 'Maricel', lastName: 'Dimaculangan', role: 'accounting', departmentId: fin._id, isActive: true },
-      { employeeId: 'EMP-0170', email: 'procurement@wiwo.com', passwordHash: password, firstName: 'Eduardo', lastName: 'Villanueva', role: 'procurement', departmentId: pro._id, isActive: true },
+      { employeeId: 'EMP-0160', email: 'accounting@wilsonworksph.com', passwordHash: password, firstName: 'Maricel', lastName: 'Dimaculangan', role: 'accounting', departmentId: fin._id, isActive: true },
+      { employeeId: 'EMP-0170', email: 'procurement@wilsonworksph.com', passwordHash: password, firstName: 'Eduardo', lastName: 'Villanueva', role: 'procurement', departmentId: pro._id, isActive: true },
 
       // Inactive
-      { employeeId: 'EMP-0199', email: 'former.employee@wiwo.com', passwordHash: password, firstName: 'Former', lastName: 'Employee', role: 'staff', departmentId: eng._id, isActive: false },
+      { employeeId: 'EMP-0199', email: 'former.employee@wilsonworksph.com', passwordHash: password, firstName: 'Former', lastName: 'Employee', role: 'staff', departmentId: eng._id, isActive: false },
     ];
 
     console.log('  Downloading user avatars from DiceBear...');
@@ -946,39 +946,39 @@ async function seed() {
     for (const u of users) userMap[u.email as string] = u;
     console.log(`  Created ${users.length} users (1 inactive)`);
 
-    await Department.updateOne({ _id: eng._id }, { headId: userMap['eng.head@wiwo.com']._id });
-    await Department.updateOne({ _id: its._id }, { headId: userMap['its.head@wiwo.com']._id });
-    await Department.updateOne({ _id: ops._id }, { headId: userMap['ops.head@wiwo.com']._id });
-    await Department.updateOne({ _id: fin._id }, { headId: userMap['fin.head@wiwo.com']._id });
-    await Department.updateOne({ _id: pro._id }, { headId: userMap['pro.head@wiwo.com']._id });
-    await Department.updateOne({ _id: adm._id }, { headId: userMap['adm.head@wiwo.com']._id });
+    await Department.updateOne({ _id: eng._id }, { headId: userMap['eng.head@wilsonworksph.com']._id });
+    await Department.updateOne({ _id: its._id }, { headId: userMap['its.head@wilsonworksph.com']._id });
+    await Department.updateOne({ _id: ops._id }, { headId: userMap['ops.head@wilsonworksph.com']._id });
+    await Department.updateOne({ _id: fin._id }, { headId: userMap['fin.head@wilsonworksph.com']._id });
+    await Department.updateOne({ _id: pro._id }, { headId: userMap['pro.head@wilsonworksph.com']._id });
+    await Department.updateOne({ _id: adm._id }, { headId: userMap['adm.head@wilsonworksph.com']._id });
     console.log('  Assigned department heads');
 
     // ─── Purchase Requests Setup ───
-    const admin = userMap['admin@wiwo.com'];
-    const ceo = userMap['ceo@wiwo.com'];
-    const coo = userMap['coo@wiwo.com'];
-    const engHead = userMap['eng.head@wiwo.com'];
-    const itsHead = userMap['its.head@wiwo.com'];
-    const opsHead = userMap['ops.head@wiwo.com'];
-    const finHead = userMap['fin.head@wiwo.com'];
-    const proHead = userMap['pro.head@wiwo.com'];
-    const admHead = userMap['adm.head@wiwo.com'];
-    const juan = userMap['juan.delacruz@wiwo.com'];
-    const mark = userMap['mark.ramos@wiwo.com'];
-    const sarah = userMap['sarah.villanueva@wiwo.com'];
-    const kevin = userMap['kevin.bautista@wiwo.com'];
-    const diana = userMap['diana.fernandez@wiwo.com'];
-    const miguel = userMap['miguel.aquino@wiwo.com'];
-    const grace = userMap['grace.santos@wiwo.com'];
-    const ryan = userMap['ryan.lopez@wiwo.com'];
-    const christine = userMap['christine.navarro@wiwo.com'];
-    const paolo = userMap['paolo.castro@wiwo.com'];
-    const nina = userMap['nina.dela.rosa@wiwo.com'];
-    const ramon = userMap['ramon.aguilar@wiwo.com'];
-    const isabella = userMap['isabella.morales@wiwo.com'];
-    const procurementUser = userMap['procurement@wiwo.com'];
-    const accountingUser = userMap['accounting@wiwo.com'];
+    const admin = userMap['admin@wilsonworksph.com'];
+    const ceo = userMap['ceo@wilsonworksph.com'];
+    const coo = userMap['coo@wilsonworksph.com'];
+    const engHead = userMap['eng.head@wilsonworksph.com'];
+    const itsHead = userMap['its.head@wilsonworksph.com'];
+    const opsHead = userMap['ops.head@wilsonworksph.com'];
+    const finHead = userMap['fin.head@wilsonworksph.com'];
+    const proHead = userMap['pro.head@wilsonworksph.com'];
+    const admHead = userMap['adm.head@wilsonworksph.com'];
+    const juan = userMap['juan.delacruz@wilsonworksph.com'];
+    const mark = userMap['mark.ramos@wilsonworksph.com'];
+    const sarah = userMap['sarah.villanueva@wilsonworksph.com'];
+    const kevin = userMap['kevin.bautista@wilsonworksph.com'];
+    const diana = userMap['diana.fernandez@wilsonworksph.com'];
+    const miguel = userMap['miguel.aquino@wilsonworksph.com'];
+    const grace = userMap['grace.santos@wilsonworksph.com'];
+    const ryan = userMap['ryan.lopez@wilsonworksph.com'];
+    const christine = userMap['christine.navarro@wilsonworksph.com'];
+    const paolo = userMap['paolo.castro@wilsonworksph.com'];
+    const nina = userMap['nina.dela.rosa@wilsonworksph.com'];
+    const ramon = userMap['ramon.aguilar@wilsonworksph.com'];
+    const isabella = userMap['isabella.morales@wilsonworksph.com'];
+    const procurementUser = userMap['procurement@wilsonworksph.com'];
+    const accountingUser = userMap['accounting@wilsonworksph.com'];
 
     console.log('\nCreating projects...');
     const projects = await Project.insertMany([
@@ -2121,26 +2121,26 @@ async function seed() {
     console.log(`  Notifications:       ${allNotifications.length}`);
     console.log(`  PDF Attachments:     ${attachmentCount} files → ${UPLOADS_DIR}`);
     console.log('\n  All passwords: Password@123');
-    console.log('\n  ┌───────────────────────────────────────────────────────┐');
-    console.log('  │ Test Accounts                                         │');
-    console.log('  ├───────────────────────────────────────────────────────┤');
-    console.log('  │ admin@wiwo.com               → Admin                  │');
-    console.log('  │ ceo@wiwo.com                 → CEO                    │');
-    console.log('  │ coo@wiwo.com                 → COO                    │');
-    console.log('  │ accounting@wiwo.com           → Accounting Officer     │');
-    console.log('  │ procurement@wiwo.com          → Procurement Officer    │');
-    console.log('  │ eng.head@wiwo.com             → Dept Head (ENG)        │');
-    console.log('  │ its.head@wiwo.com             → Dept Head (ITS)        │');
-    console.log('  │ ops.head@wiwo.com             → Dept Head (OPS)        │');
-    console.log('  │ fin.head@wiwo.com             → Dept Head (FIN)        │');
-    console.log('  │ pro.head@wiwo.com             → Dept Head (PRO)        │');
-    console.log('  │ adm.head@wiwo.com             → Dept Head (ADM)        │');
-    console.log('  │ juan.delacruz@wiwo.com        → Staff (ENG)            │');
-    console.log('  │ diana.fernandez@wiwo.com      → Staff (ITS)            │');
-    console.log('  │ grace.santos@wiwo.com         → Staff (OPS)            │');
-    console.log('  │ christine.navarro@wiwo.com    → Staff (FIN)            │');
-    console.log('  │ paolo.castro@wiwo.com         → Staff (PRO)            │');
-    console.log('  └───────────────────────────────────────────────────────┘');
+    console.log('\n  ┌────────────────────────────────────────────────────────────────┐');
+    console.log('  │ Test Accounts                                                  │');
+    console.log('  ├────────────────────────────────────────────────────────────────┤');
+    console.log('  │ admin@wilsonworksph.com               → Admin                  │');
+    console.log('  │ ceo@wilsonworksph.com                 → CEO                    │');
+    console.log('  │ coo@wilsonworksph.com                 → COO                    │');
+    console.log('  │ accounting@wilsonworksph.com           → Accounting Officer     │');
+    console.log('  │ procurement@wilsonworksph.com          → Procurement Officer    │');
+    console.log('  │ eng.head@wilsonworksph.com             → Dept Head (ENG)        │');
+    console.log('  │ its.head@wilsonworksph.com             → Dept Head (ITS)        │');
+    console.log('  │ ops.head@wilsonworksph.com             → Dept Head (OPS)        │');
+    console.log('  │ fin.head@wilsonworksph.com             → Dept Head (FIN)        │');
+    console.log('  │ pro.head@wilsonworksph.com             → Dept Head (PRO)        │');
+    console.log('  │ adm.head@wilsonworksph.com             → Dept Head (ADM)        │');
+    console.log('  │ juan.delacruz@wilsonworksph.com        → Staff (ENG)            │');
+    console.log('  │ diana.fernandez@wilsonworksph.com      → Staff (ITS)            │');
+    console.log('  │ grace.santos@wilsonworksph.com         → Staff (OPS)            │');
+    console.log('  │ christine.navarro@wilsonworksph.com    → Staff (FIN)            │');
+    console.log('  │ paolo.castro@wilsonworksph.com         → Staff (PRO)            │');
+    console.log('  └────────────────────────────────────────────────────────────────┘');
     console.log('\n  PR Status Distribution:');
     console.log(`    Approved:   ${allPrs.filter(p => p.status === 'approved').length}`);
     console.log(`    Completed:  ${allPrs.filter(p => p.status === 'completed').length}`);
