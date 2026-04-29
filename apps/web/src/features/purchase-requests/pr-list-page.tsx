@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { usePageTitle } from '@/hooks/use-page-title';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Plus,
@@ -61,6 +62,7 @@ function hasPendingQuote(pr: PurchaseRequest): boolean {
 }
 
 export function PrListPage() {
+  usePageTitle('Purchase Requests');
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
 

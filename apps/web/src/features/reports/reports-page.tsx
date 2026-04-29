@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { usePageTitle } from '@/hooks/use-page-title';
 import {
   FileSpreadsheet,
   FileText,
@@ -42,6 +43,7 @@ async function downloadReport(url: string, filename: string) {
 }
 
 export function ReportsPage() {
+  usePageTitle('Reports');
   const { toast } = useToast();
 
   const [startDate, setStartDate] = useState('');

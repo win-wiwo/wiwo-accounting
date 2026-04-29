@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { usePageTitle } from '@/hooks/use-page-title';
 import { useNavigate } from 'react-router-dom';
 import {
   Search,
@@ -100,6 +101,7 @@ function getPageNumbers(current: number, total: number): (number | string)[] {
 // ─── Component ───────────────────────────────────────────
 
 export function PoListPage() {
+  usePageTitle('Purchase Orders');
   const navigate = useNavigate();
   const { toast } = useToast();
   const user = useAuthStore((s) => s.user);

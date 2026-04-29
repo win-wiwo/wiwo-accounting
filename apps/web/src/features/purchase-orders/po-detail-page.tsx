@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { usePageTitle } from '@/hooks/use-page-title';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -88,6 +89,7 @@ function formatDateTime(d: string | null) {
 }
 
 export function PoDetailPage() {
+  usePageTitle('Purchase Order');
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();

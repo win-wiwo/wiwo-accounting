@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { usePageTitle } from '@/hooks/use-page-title';
 import {
   Plus,
   Pencil,
@@ -223,6 +224,7 @@ function ProjectFormDialog({ project, open, onClose }: ProjectFormDialogProps) {
 // ─── Page ────────────────────────────────────────────────────
 
 export function ProjectsPage() {
+  usePageTitle('Projects');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('active');
   const [dialogOpen, setDialogOpen] = useState(false);

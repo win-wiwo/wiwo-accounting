@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { usePageTitle } from '@/hooks/use-page-title';
 import { useNavigate } from 'react-router-dom';
 import {
   KeyRound,
@@ -34,6 +35,7 @@ const ROLE_TONE: Record<string, BadgeTone> = {
 };
 
 export function ProfilePage() {
+  usePageTitle('Profile');
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);

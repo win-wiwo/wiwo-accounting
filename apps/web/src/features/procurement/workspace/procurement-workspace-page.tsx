@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { usePageTitle } from '@/hooks/use-page-title';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, ShoppingCart, Eye, CheckCircle2,
@@ -44,6 +45,7 @@ function initials(name: string) {
 /* ── Main Page ───────────────────────────────────────────── */
 
 export function ProcurementWorkspacePage() {
+  usePageTitle('Procurement Workspace');
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();

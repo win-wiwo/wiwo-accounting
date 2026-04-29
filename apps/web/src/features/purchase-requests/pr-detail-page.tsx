@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { usePageTitle } from '@/hooks/use-page-title';
 import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -312,6 +313,7 @@ const priorityStyle: Record<string, string> = {
 };
 
 export function PrDetailPage() {
+  usePageTitle('Purchase Request');
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();

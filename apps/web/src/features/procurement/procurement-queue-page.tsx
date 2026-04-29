@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { usePageTitle } from '@/hooks/use-page-title';
 import { useNavigate } from 'react-router-dom';
 import {
   ChevronLeft,
@@ -57,6 +58,7 @@ function relativeAge(dateStr: string | null | undefined): { label: string; days:
 const PRIORITY_ORDER: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 };
 
 export function ProcurementQueuePage() {
+  usePageTitle('Procurement');
   const navigate = useNavigate();
 
   const [page, setPage] = useState(1);

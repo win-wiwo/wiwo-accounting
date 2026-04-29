@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { usePageTitle } from '@/hooks/use-page-title';
 import {
   CheckCircle2,
   ChevronRight,
@@ -50,6 +51,7 @@ const priorityStyle: Record<string, string> = {
 };
 
 export function ApprovalsPage() {
+  usePageTitle('Approvals');
   const user = useAuthStore((s) => s.user);
   const [searchParams, setSearchParams] = useSearchParams();
 

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { usePageTitle } from '@/hooks/use-page-title';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Settings, Eye, Save, Hash } from 'lucide-react';
 import apiClient from '@/lib/api-client';
@@ -82,6 +83,7 @@ function usePreviewQuery() {
 }
 
 export function SettingsPage() {
+  usePageTitle('Settings');
   const { toast } = useToast();
   const queryClient = useQueryClient();
 

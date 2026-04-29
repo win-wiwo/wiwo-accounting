@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { usePageTitle } from '@/hooks/use-page-title';
 import { ArrowLeft, Loader2, Save, Send, ImageIcon } from 'lucide-react';
 import { purchaseRequestsApi } from '@/lib/api-services';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -25,6 +26,7 @@ import { GuidedStepper } from './form/guided-stepper';
 import { ContextualPanel } from './form/contextual-panels';
 
 export function PrFormPage() {
+  usePageTitle('Purchase Request');
   const stagedFiles = useStagedFiles();
   const pr = usePrForm(stagedFiles);
   const { form, isEdit, id, prData, prLoading, navigate } = pr;

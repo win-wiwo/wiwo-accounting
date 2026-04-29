@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { usePageTitle } from '@/hooks/use-page-title';
 import { useNavigate } from 'react-router-dom';
 import {
   FileText, Clock, CheckCircle2, ArrowRight,
@@ -66,6 +67,7 @@ function compact(n: number) {
 }
 
 export function DashboardPage() {
+  usePageTitle('Dashboard');
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const isApprover = user ? APPROVER_ROLES.includes(user.role as typeof APPROVER_ROLES[number]) : false;

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { usePageTitle } from '@/hooks/use-page-title';
 import { useNavigate } from 'react-router-dom';
 import { Plus, MoreHorizontal, UserCheck, UserX, Pencil, Users } from 'lucide-react';
 import { ROLE_LABELS, USER_ROLES, type UserRole } from '@prams/shared';
@@ -50,6 +51,7 @@ const ROLE_TONE: Record<string, BadgeTone> = {
 };
 
 export function UsersListPage() {
+  usePageTitle('Users');
   const navigate = useNavigate();
   const { toast } = useToast();
 

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { usePageTitle } from '@/hooks/use-page-title';
 import { useNavigate } from 'react-router-dom';
 import {
   Plus,
@@ -75,6 +76,7 @@ function getPageNumbers(current: number, total: number): (number | string)[] {
 }
 
 export function SuppliersListPage() {
+  usePageTitle('Suppliers');
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const canManage = ([UserRole.ADMIN, UserRole.ACCOUNTING, UserRole.PROCUREMENT] as string[]).includes(user?.role ?? '');

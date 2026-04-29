@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
+import { usePageTitle } from '@/hooks/use-page-title';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Search,
@@ -117,6 +118,7 @@ const PREMIUM_INPUT_CLASS =
 // ─── Component ────────────────────────────────────────────────
 
 export function SearchPage() {
+  usePageTitle('Search');
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();

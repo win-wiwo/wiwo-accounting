@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { usePageTitle } from '@/hooks/use-page-title';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Users, Crown, Trash2, Pencil } from 'lucide-react';
 import { useDepartments, useDeleteDepartment } from '@/hooks/use-departments';
@@ -25,6 +26,7 @@ import {
 } from '@/components/premium';
 
 export function DepartmentsListPage() {
+  usePageTitle('Departments');
   const navigate = useNavigate();
   const { toast } = useToast();
   const [page, setPage] = useState(1);
