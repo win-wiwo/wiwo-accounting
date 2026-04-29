@@ -9,6 +9,9 @@ import {
   Hash,
   Camera,
   Loader2,
+  PenLine,
+  Trash2,
+  Upload,
 } from 'lucide-react';
 import { ROLE_LABELS, type UserRole, type User } from '@prams/shared';
 import { useAuthStore } from '@/stores/auth.store';
@@ -41,7 +44,10 @@ export function ProfilePage() {
   const setUser = useAuthStore((s) => s.setUser);
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const signatureInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isUploadingSignature, setIsUploadingSignature] = useState(false);
+  const [isRemovingSignature, setIsRemovingSignature] = useState(false);
 
   if (!user) return null;
 
@@ -62,6 +68,37 @@ export function ProfilePage() {
       });
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleSignatureUpload = async (file: File | null) => {
+    if (!file) return;
+    try {
+      setIsUploadingSignature(true);
+      const result = await usersApi.uploadSignature(file);
+      setUser(result.data as User);
+      toast({ title: 'Signature updated', variant: 'success' });
+    } catch {
+      toast({
+        title: 'Failed to upload signature',
+        description: 'Please try a transparent PNG, JPG, or WebP under 5 MB.',
+        variant: 'error',
+      });
+    } finally {
+      setIsUploadingSignature(false);
+    }
+  };
+
+  const handleSignatureRemove = async () => {
+    try {
+      setIsRemovingSignature(true);
+      const result = await usersApi.removeSignature();
+      setUser(result.data as User);
+      toast({ title: 'Signature removed', variant: 'success' });
+    } catch {
+      toast({ title: 'Failed to remove signature', variant: 'error' });
+    } finally {
+      setIsRemovingSignature(false);
     }
   };
 
@@ -157,6 +194,77 @@ export function ProfilePage() {
                   }
                 />
               )}
+            </div>
+          </div>
+        </Surface>
+      </div>
+
+      {/* Signature */}
+      <div className="pr-list-section" style={{ animationDelay: '0.08s' }}>
+        <Surface>
+          <div className="flex flex-col gap-4 px-6 pt-6 pb-6 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-start gap-3">
+              <div className="rounded-lg bg-zinc-100 p-2 text-zinc-500 shrink-0">
+                <PenLine className="h-4 w-4" />
+              </div>
+              <div>
+                <h2 className="text-[15px] font-semibold text-zinc-900">Signature</h2>
+                <p className="mt-1 text-[12.5px] text-zinc-500">
+                  Used on printed PR documents (Annex A) for the blocks where you appear as
+                  requester or approver. Upload a transparent PNG for best results.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-center gap-3 sm:items-end">
+              <div className="flex h-[80px] w-[220px] items-center justify-center rounded-lg border border-dashed border-zinc-200 bg-zinc-50">
+                {user.signatureUrl ? (
+                  <img
+                    src={resolvePhotoUrl(user.signatureUrl)}
+                    alt="Signature"
+                    className="max-h-[68px] max-w-[200px] object-contain"
+                  />
+                ) : (
+                  <span className="text-[12px] text-zinc-400">No signature on file</span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <GhostButton
+                  onClick={() => signatureInputRef.current?.click()}
+                  disabled={isUploadingSignature || isRemovingSignature}
+                >
+                  {isUploadingSignature ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Upload className="h-3.5 w-3.5" />
+                  )}
+                  {user.signatureUrl ? 'Replace' : 'Upload'}
+                </GhostButton>
+                {user.signatureUrl && (
+                  <GhostButton
+                    onClick={handleSignatureRemove}
+                    disabled={isUploadingSignature || isRemovingSignature}
+                  >
+                    {isRemovingSignature ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-3.5 w-3.5" />
+                    )}
+                    Remove
+                  </GhostButton>
+                )}
+              </div>
+              <input
+                ref={signatureInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={(e) => {
+                  handleSignatureUpload(e.target.files?.[0] ?? null);
+                  e.target.value = '';
+                }}
+              />
             </div>
           </div>
         </Surface>

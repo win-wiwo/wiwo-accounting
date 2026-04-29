@@ -15,6 +15,7 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/prams'
 const UPLOADS_DIR = join(process.cwd(), 'uploads', 'attachments');
 const ITEM_PHOTOS_DIR = join(process.cwd(), 'uploads', 'item-photos');
 const USER_PHOTOS_DIR = join(process.cwd(), 'uploads', 'user-photos');
+const SIGNATURES_DIR = join(process.cwd(), 'uploads', 'signatures');
 
 // Relative paths stored in DB — works in both host dev and Docker container
 const REL_ITEM_PHOTOS = 'uploads/item-photos';
@@ -33,6 +34,7 @@ const userSchema = new mongoose.Schema({
   refreshToken: { type: String, default: null },
   lastLoginAt: { type: Date, default: null },
   photoUrl: { type: String, default: null },
+  signatureUrl: { type: String, default: null },
 }, { timestamps: true });
 
 const departmentSchema = new mongoose.Schema({
@@ -262,6 +264,68 @@ function ensureUploadsDir() {
   if (!fs.existsSync(USER_PHOTOS_DIR)) {
     fs.mkdirSync(USER_PHOTOS_DIR, { recursive: true });
   }
+  if (!fs.existsSync(SIGNATURES_DIR)) {
+    fs.mkdirSync(SIGNATURES_DIR, { recursive: true });
+  }
+}
+
+async function generateDummySignature(employeeId: string, firstName: string, lastName: string): Promise<string> {
+  const filename = `${employeeId.toLowerCase()}.png`;
+  const filePath = join(SIGNATURES_DIR, filename);
+  const localUrl = `/uploads/signatures/${filename}`;
+
+  if (fs.existsSync(filePath)) return localUrl;
+
+  // The Alpine container doesn't ship with handwriting fonts and librsvg silently
+  // drops <text> nodes whose font-family resolves to nothing. Draw a procedural
+  // signature scribble instead — deterministic from the name, font-independent.
+  const seedStr = `${firstName} ${lastName}`;
+  const seed = seedStr.split('').reduce((s, c) => s + c.charCodeAt(0), 0);
+  let rngState = seed * 9301 + 49297;
+  const rand = () => {
+    rngState = (rngState * 9301 + 49297) % 233280;
+    return rngState / 233280;
+  };
+
+  const W = 480;
+  const H = 140;
+  const baselineY = 95;
+  const inkColor = '#0b1a4a';
+
+  // Build a flowing stroke with letter-shaped loops along a baseline
+  let x = 30;
+  let path = `M ${x} ${baselineY}`;
+  const loops = 7 + Math.floor(rand() * 4); // 7-10 loops
+  for (let i = 0; i < loops; i++) {
+    const dx = 28 + Math.floor(rand() * 22);
+    const peakY = baselineY - 25 - Math.floor(rand() * 25);
+    const dipY = baselineY + 6 + Math.floor(rand() * 12);
+    const endY = baselineY + (rand() > 0.5 ? -3 : 3);
+    path += ` C ${x + dx * 0.3} ${peakY}, ${x + dx * 0.7} ${dipY}, ${x + dx} ${endY}`;
+    x += dx;
+  }
+  // Big trailing flourish (signature tail)
+  path += ` Q ${Math.min(x + 35, W - 20)} ${baselineY - 50}, ${Math.min(x + 60, W - 10)} ${baselineY - 5}`;
+  // Dot accent
+  const dotX = 30 + Math.floor(rand() * (W - 60));
+  const dotY = baselineY - 35 - Math.floor(rand() * 10);
+
+  // Initial cap stroke (looks like a leading capital letter swoosh)
+  const capStart = `M 30 ${baselineY + 10} C 25 ${baselineY - 30}, 50 ${baselineY - 40}, 60 ${baselineY - 5} L 35 ${baselineY + 8}`;
+
+  const svg = `<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="${inkColor}" stroke-linecap="round" stroke-linejoin="round">
+      <path d="${capStart}" stroke-width="2.6"/>
+      <path d="${path}" stroke-width="2.2"/>
+    </g>
+    <circle cx="${dotX}" cy="${dotY}" r="1.6" fill="${inkColor}"/>
+  </svg>`;
+
+  await sharp(Buffer.from(svg))
+    .png()
+    .toFile(filePath);
+
+  return localUrl;
 }
 
 async function downloadDiceBearAvatar(employeeId: string, firstName: string, lastName: string, role: string): Promise<string> {
@@ -868,7 +932,15 @@ async function seed() {
       }))
     );
 
-    const users = await User.insertMany(userDataWithPhotos);
+    console.log('  Generating user signatures...');
+    const userDataWithSignatures = await Promise.all(
+      userDataWithPhotos.map(async (u) => ({
+        ...u,
+        signatureUrl: await generateDummySignature(u.employeeId, u.firstName, u.lastName),
+      }))
+    );
+
+    const users = await User.insertMany(userDataWithSignatures);
 
     const userMap: Record<string, typeof users[0]> = {};
     for (const u of users) userMap[u.email as string] = u;

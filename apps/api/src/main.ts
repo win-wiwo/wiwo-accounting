@@ -13,6 +13,7 @@ async function bootstrap() {
   mkdirSync(join(process.cwd(), 'uploads', 'attachments'), { recursive: true });
   mkdirSync(join(process.cwd(), 'uploads', 'item-photos'), { recursive: true });
   mkdirSync(join(process.cwd(), 'uploads', 'user-photos'), { recursive: true });
+  mkdirSync(join(process.cwd(), 'uploads', 'signatures'), { recursive: true });
   mkdirSync(join(process.cwd(), 'uploads', 'po-proofs'), { recursive: true });
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule);

@@ -8,6 +8,8 @@ import {
   ChevronLeft,
   ChevronRight,
   ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
 import {
   PR_STATUS_LABELS,
@@ -73,14 +75,29 @@ export function PrListPage() {
   const [statusFilter, setStatusFilter] = useState<string>(searchParams.get('status') ?? 'all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [limit, setLimit] = useState(10);
+  const [sortBy, setSortBy] = useState<'createdAt' | 'totalAmount'>('createdAt');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
+  function toggleSort(field: 'createdAt' | 'totalAmount') {
+    if (sortBy === field) {
+      setSortOrder((o) => (o === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(field);
+      setSortOrder('desc');
+    }
+    setPage(1);
+  }
 
   const { data, isLoading } = usePurchaseRequests({
     page,
-    limit: 10,
+    limit,
     search: search || undefined,
     status: statusFilter !== 'all' ? statusFilter : undefined,
     priority: priorityFilter !== 'all' ? priorityFilter : undefined,
     requestType: typeFilter !== 'all' ? typeFilter : undefined,
+    sort: sortBy,
+    order: sortOrder,
   });
 
   const { data: statsData } = usePrStats();
@@ -245,7 +262,7 @@ export function PrListPage() {
         ) : (
           <>
             {/* ── Table ────────────────────────────────────────── */}
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto overflow-y-hidden">
               <table className="w-full">
                 <thead className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm">
                   <tr className="border-b border-zinc-100">
@@ -256,8 +273,14 @@ export function PrListPage() {
                       Request
                     </th>
                     <th className="h-11 px-5 text-right text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
-                      <span className="inline-flex items-center gap-1 cursor-pointer select-none hover:text-zinc-600 transition-colors duration-150">
-                        Amount <ArrowUpDown className="h-3 w-3 opacity-40" />
+                      <span
+                        onClick={() => toggleSort('totalAmount')}
+                        className={`inline-flex items-center gap-1 cursor-pointer select-none transition-colors duration-150 ${sortBy === 'totalAmount' ? 'text-zinc-700' : 'hover:text-zinc-600'}`}
+                      >
+                        Amount
+                        {sortBy === 'totalAmount'
+                          ? (sortOrder === 'asc' ? <ArrowUp className="h-3 w-3 opacity-70" /> : <ArrowDown className="h-3 w-3 opacity-70" />)
+                          : <ArrowUpDown className="h-3 w-3 opacity-40" />}
                       </span>
                     </th>
                     <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
@@ -267,8 +290,14 @@ export function PrListPage() {
                       Status
                     </th>
                     <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
-                      <span className="inline-flex items-center gap-1 cursor-pointer select-none hover:text-zinc-600 transition-colors duration-150">
-                        Date <ArrowUpDown className="h-3 w-3 opacity-40" />
+                      <span
+                        onClick={() => toggleSort('createdAt')}
+                        className={`inline-flex items-center gap-1 cursor-pointer select-none transition-colors duration-150 ${sortBy === 'createdAt' ? 'text-zinc-700' : 'hover:text-zinc-600'}`}
+                      >
+                        Date
+                        {sortBy === 'createdAt'
+                          ? (sortOrder === 'asc' ? <ArrowUp className="h-3 w-3 opacity-70" /> : <ArrowDown className="h-3 w-3 opacity-70" />)
+                          : <ArrowUpDown className="h-3 w-3 opacity-40" />}
                       </span>
                     </th>
                   </tr>
@@ -347,48 +376,62 @@ export function PrListPage() {
             </div>
 
             {/* ── Pagination ─────────────────────────────────── */}
-            {meta && meta.totalPages > 1 && (
+            {meta && (
               <div className="flex items-center justify-between border-t border-zinc-100 px-5 py-3">
                 <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[12px] text-zinc-400">Rows per page</span>
+                    <Select value={String(limit)} onValueChange={(v) => { setLimit(Number(v)); setPage(1); }}>
+                      <SelectTrigger className="w-auto h-8 px-2.5 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="min-w-0">
+                        <SelectItem value="10">10</SelectItem>
+                        <SelectItem value="25">25</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <p className="text-[12px] text-zinc-400 tabular-nums">
-                    Page {meta.page} of {meta.totalPages}
-                    <span className="text-zinc-300 mx-1.5">&middot;</span>
+                    {meta.totalPages > 1 && <>Page {meta.page} of {meta.totalPages}<span className="text-zinc-300 mx-1.5">&middot;</span></>}
                     {meta.total} total
                   </p>
                 </div>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => setPage(page - 1)}
-                    disabled={page <= 1}
-                    className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-500 transition-all duration-150 hover:bg-zinc-50 hover:text-zinc-700 disabled:opacity-40 disabled:pointer-events-none"
-                  >
-                    <ChevronLeft className="h-3.5 w-3.5" /> Previous
-                  </button>
-                  {getPageNumbers(meta.page, meta.totalPages).map((p, i) =>
-                    p === '...' ? (
-                      <span key={`dots-${i}`} className="px-1.5 text-[12px] text-zinc-300">...</span>
-                    ) : (
-                      <button
-                        key={p}
-                        onClick={() => setPage(p as number)}
-                        className={`h-8 w-8 rounded-lg text-[12px] font-semibold transition-all duration-150 ${
-                          p === meta.page
-                            ? 'bg-zinc-900 text-white shadow-sm'
-                            : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700'
-                        }`}
-                      >
-                        {p}
-                      </button>
-                    ),
-                  )}
-                  <button
-                    onClick={() => setPage(page + 1)}
-                    disabled={page >= meta.totalPages}
-                    className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-500 transition-all duration-150 hover:bg-zinc-50 hover:text-zinc-700 disabled:opacity-40 disabled:pointer-events-none"
-                  >
-                    Next <ChevronRight className="h-3.5 w-3.5" />
-                  </button>
-                </div>
+                {meta.totalPages > 1 && (
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setPage(page - 1)}
+                      disabled={page <= 1}
+                      className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-500 transition-all duration-150 hover:bg-zinc-50 hover:text-zinc-700 disabled:opacity-40 disabled:pointer-events-none"
+                    >
+                      <ChevronLeft className="h-3.5 w-3.5" /> Previous
+                    </button>
+                    {getPageNumbers(meta.page, meta.totalPages).map((p, i) =>
+                      p === '...' ? (
+                        <span key={`dots-${i}`} className="px-1.5 text-[12px] text-zinc-300">...</span>
+                      ) : (
+                        <button
+                          key={p}
+                          onClick={() => setPage(p as number)}
+                          className={`h-8 w-8 rounded-lg text-[12px] font-semibold transition-all duration-150 ${
+                            p === meta.page
+                              ? 'bg-zinc-900 text-white shadow-sm'
+                              : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700'
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      ),
+                    )}
+                    <button
+                      onClick={() => setPage(page + 1)}
+                      disabled={page >= meta.totalPages}
+                      className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-500 transition-all duration-150 hover:bg-zinc-50 hover:text-zinc-700 disabled:opacity-40 disabled:pointer-events-none"
+                    >
+                      Next <ChevronRight className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </>

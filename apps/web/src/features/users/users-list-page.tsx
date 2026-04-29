@@ -56,6 +56,7 @@ export function UsersListPage() {
   const { toast } = useToast();
 
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [deptFilter, setDeptFilter] = useState<string>('all');
@@ -69,7 +70,7 @@ export function UsersListPage() {
 
   const { data, isLoading } = useUsers({
     page,
-    limit: 10,
+    limit,
     search: search || undefined,
     role: roleFilter !== 'all' ? roleFilter : undefined,
     departmentId: deptFilter !== 'all' ? deptFilter : undefined,
@@ -207,7 +208,7 @@ export function UsersListPage() {
           />
         ) : (
           <>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto overflow-y-hidden">
               <table className="w-full">
                 <thead className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm">
                   <tr className="border-b border-zinc-100">
@@ -320,12 +321,14 @@ export function UsersListPage() {
                 </tbody>
               </table>
             </div>
-            {meta && meta.totalPages > 1 && (
+            {meta && (
               <Pagination
                 page={meta.page}
                 totalPages={meta.totalPages}
                 total={meta.total}
                 onPageChange={setPage}
+                limit={limit}
+                onLimitChange={(l) => { setLimit(l); setPage(1); }}
               />
             )}
           </>

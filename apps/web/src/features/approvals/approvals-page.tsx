@@ -8,8 +8,9 @@ import {
   RotateCcw,
   Clock,
   AlertTriangle,
-
   ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
 import {
   PR_PRIORITY_LABELS,
@@ -21,6 +22,7 @@ import { usePendingApprovals } from '@/hooks/use-approvals';
 import { useAuthStore } from '@/stores/auth.store';
 import { useSearchParams } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { PrApprovalModal } from './pr-approval-modal';
 
 function formatCurrency(amount: number) {
@@ -56,22 +58,45 @@ export function ApprovalsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [page, setPage] = useState(1);
-  const { data, isLoading } = usePendingApprovals({ page, limit: 10 });
+  const [limit, setLimit] = useState(10);
+  const { data, isLoading } = usePendingApprovals({ page, limit });
 
   const [modalOpen, setModalOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
 
+  const [sortCol, setSortCol] = useState<'priority' | 'amount' | 'age'>('priority');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  function toggleSort(col: 'amount' | 'age') {
+    if (sortCol === col) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortCol(col);
+      setSortDir('desc');
+    }
+  }
+
   const rawPrs = data?.data ?? [];
   const meta = data?.meta;
 
-  // Sort: urgent/high/medium/low first, then oldest first within same priority
   const prs = useMemo(() => {
     return [...rawPrs].sort((a, b) => {
+      if (sortCol === 'amount') {
+        return sortDir === 'asc'
+          ? a.totalAmount - b.totalAmount
+          : b.totalAmount - a.totalAmount;
+      }
+      if (sortCol === 'age') {
+        const aTime = new Date(a.submittedAt ?? 0).getTime();
+        const bTime = new Date(b.submittedAt ?? 0).getTime();
+        return sortDir === 'asc' ? bTime - aTime : aTime - bTime;
+      }
+      // default: priority first, then oldest
       const pDiff = (PRIORITY_ORDER[a.priority] ?? 3) - (PRIORITY_ORDER[b.priority] ?? 3);
       if (pDiff !== 0) return pDiff;
       return new Date(a.submittedAt ?? 0).getTime() - new Date(b.submittedAt ?? 0).getTime();
     });
-  }, [rawPrs]);
+  }, [rawPrs, sortCol, sortDir]);
 
   // Auto-open modal when navigated from a notification with ?pr=<id>
   useEffect(() => {
@@ -164,7 +189,7 @@ export function ApprovalsPage() {
         ) : (
           <>
             {/* ── Table ────────────────────────────────────────── */}
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto overflow-y-hidden">
               <table className="w-full">
                 <thead className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm">
                   <tr className="border-b border-zinc-100">
@@ -178,16 +203,28 @@ export function ApprovalsPage() {
                       Requester
                     </th>
                     <th className="h-11 px-5 text-right text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
-                      <span className="inline-flex items-center gap-1 cursor-pointer select-none hover:text-zinc-600 transition-colors duration-150">
-                        Amount <ArrowUpDown className="h-3 w-3 opacity-40" />
+                      <span
+                        onClick={() => toggleSort('amount')}
+                        className={`inline-flex items-center gap-1 cursor-pointer select-none transition-colors duration-150 ${sortCol === 'amount' ? 'text-zinc-700' : 'hover:text-zinc-600'}`}
+                      >
+                        Amount
+                        {sortCol === 'amount'
+                          ? (sortDir === 'asc' ? <ArrowUp className="h-3 w-3 opacity-70" /> : <ArrowDown className="h-3 w-3 opacity-70" />)
+                          : <ArrowUpDown className="h-3 w-3 opacity-40" />}
                       </span>
                     </th>
                     <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
                       Priority
                     </th>
                     <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
-                      <span className="inline-flex items-center gap-1 cursor-pointer select-none hover:text-zinc-600 transition-colors duration-150">
-                        Age <ArrowUpDown className="h-3 w-3 opacity-40" />
+                      <span
+                        onClick={() => toggleSort('age')}
+                        className={`inline-flex items-center gap-1 cursor-pointer select-none transition-colors duration-150 ${sortCol === 'age' ? 'text-zinc-700' : 'hover:text-zinc-600'}`}
+                      >
+                        Age
+                        {sortCol === 'age'
+                          ? (sortDir === 'asc' ? <ArrowUp className="h-3 w-3 opacity-70" /> : <ArrowDown className="h-3 w-3 opacity-70" />)
+                          : <ArrowUpDown className="h-3 w-3 opacity-40" />}
                       </span>
                     </th>
                     <th className="h-11 w-10"></th>
@@ -309,48 +346,62 @@ export function ApprovalsPage() {
             </div>
 
             {/* ── Pagination ─────────────────────────────────── */}
-            {meta && meta.totalPages > 1 && (
+            {meta && (
               <div className="flex items-center justify-between border-t border-zinc-100 px-5 py-3">
                 <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[12px] text-zinc-400">Rows per page</span>
+                    <Select value={String(limit)} onValueChange={(v) => { setLimit(Number(v)); setPage(1); }}>
+                      <SelectTrigger className="w-auto h-8 px-2.5 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="min-w-0">
+                        <SelectItem value="10">10</SelectItem>
+                        <SelectItem value="25">25</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <p className="text-[12px] text-zinc-400 tabular-nums">
-                    Page {meta.page} of {meta.totalPages}
-                    <span className="text-zinc-300 mx-1.5">&middot;</span>
+                    {meta.totalPages > 1 && <>Page {meta.page} of {meta.totalPages}<span className="text-zinc-300 mx-1.5">&middot;</span></>}
                     {meta.total} total
                   </p>
                 </div>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => setPage(page - 1)}
-                    disabled={page <= 1}
-                    className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-500 transition-all duration-150 hover:bg-zinc-50 hover:text-zinc-700 disabled:opacity-40 disabled:pointer-events-none"
-                  >
-                    <ChevronLeft className="h-3.5 w-3.5" /> Previous
-                  </button>
-                  {getPageNumbers(meta.page, meta.totalPages).map((p, i) =>
-                    p === '...' ? (
-                      <span key={`dots-${i}`} className="px-1.5 text-[12px] text-zinc-300">...</span>
-                    ) : (
-                      <button
-                        key={p}
-                        onClick={() => setPage(p as number)}
-                        className={`h-8 w-8 rounded-lg text-[12px] font-semibold transition-all duration-150 ${
-                          p === meta.page
-                            ? 'bg-zinc-900 text-white shadow-sm'
-                            : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700'
-                        }`}
-                      >
-                        {p}
-                      </button>
-                    ),
-                  )}
-                  <button
-                    onClick={() => setPage(page + 1)}
-                    disabled={page >= meta.totalPages}
-                    className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-500 transition-all duration-150 hover:bg-zinc-50 hover:text-zinc-700 disabled:opacity-40 disabled:pointer-events-none"
-                  >
-                    Next <ChevronRight className="h-3.5 w-3.5" />
-                  </button>
-                </div>
+                {meta.totalPages > 1 && (
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setPage(page - 1)}
+                      disabled={page <= 1}
+                      className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-500 transition-all duration-150 hover:bg-zinc-50 hover:text-zinc-700 disabled:opacity-40 disabled:pointer-events-none"
+                    >
+                      <ChevronLeft className="h-3.5 w-3.5" /> Previous
+                    </button>
+                    {getPageNumbers(meta.page, meta.totalPages).map((p, i) =>
+                      p === '...' ? (
+                        <span key={`dots-${i}`} className="px-1.5 text-[12px] text-zinc-300">...</span>
+                      ) : (
+                        <button
+                          key={p}
+                          onClick={() => setPage(p as number)}
+                          className={`h-8 w-8 rounded-lg text-[12px] font-semibold transition-all duration-150 ${
+                            p === meta.page
+                              ? 'bg-zinc-900 text-white shadow-sm'
+                              : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700'
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      ),
+                    )}
+                    <button
+                      onClick={() => setPage(page + 1)}
+                      disabled={page >= meta.totalPages}
+                      className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-500 transition-all duration-150 hover:bg-zinc-50 hover:text-zinc-700 disabled:opacity-40 disabled:pointer-events-none"
+                    >
+                      Next <ChevronRight className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </>

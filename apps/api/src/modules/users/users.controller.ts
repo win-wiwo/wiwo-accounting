@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
   Param,
   Body,
   Query,
@@ -59,6 +60,43 @@ export class UsersController {
       throw new BadRequestException('Only JPG, PNG, WebP, or GIF images are allowed.');
     }
     return this.usersService.uploadPhoto(userId, file);
+  }
+
+  @Post('me/signature')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Upload signature image for current user' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: join(process.cwd(), 'uploads', 'signatures'),
+        filename: (_req: Express.Request, file: Express.Multer.File, cb: (err: Error | null, filename: string) => void) => {
+          cb(null, `${uuidv4()}${extname(file.originalname)}`);
+        },
+      }),
+    }),
+  )
+  async uploadMySignature(
+    @CurrentUser('_id') userId: string,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 })],
+      }),
+    )
+    file: Express.Multer.File,
+  ) {
+    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowed.includes(file.mimetype)) {
+      throw new BadRequestException('Only JPG, PNG, or WebP images are allowed.');
+    }
+    return this.usersService.uploadSignature(userId, file);
+  }
+
+  @Delete('me/signature')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Remove signature image for current user' })
+  async removeMySignature(@CurrentUser('_id') userId: string) {
+    return this.usersService.removeSignature(userId);
   }
 
   @Post()

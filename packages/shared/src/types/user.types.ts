@@ -11,6 +11,7 @@ export interface User {
   isActive: boolean;
   lastLoginAt: string | null;
   photoUrl: string | null;
+  signatureUrl: string | null;
   createdAt: string;
   updatedAt: string;
 }

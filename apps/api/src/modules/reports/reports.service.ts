@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, FilterQuery } from 'mongoose';
+import { Model, FilterQuery, Types } from 'mongoose';
 import * as ExcelJS from 'exceljs';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -639,10 +639,10 @@ export class ReportsService {
    * Annex A — Purchase Request Form PDF
    * Replicates the official WIWO accounting form layout
    */
-  async generatePrDetailPdf(id: string): Promise<Buffer> {
+  async generatePrDetailPdf(id: string): Promise<{ buffer: Buffer; prNumber: string }> {
     const pr = await this.prModel
       .findById(id)
-      .populate('requesterId', 'firstName lastName email employeeId role')
+      .populate('requesterId', 'firstName lastName email employeeId role signatureUrl')
       .populate('departmentId', 'name code')
       .populate('projectId', 'name code')
       .lean()
@@ -655,16 +655,17 @@ export class ReportsService {
     const typedPr = pr as unknown as PopulatedPr & {
       justification: string;
       priority: string;
+      requestType: string;
       neededByDate: Date | null;
       attachments: Array<{ originalName: string; size: number }>;
       cancellationReason: string | null;
-      requesterId: { firstName: string; lastName: string; email: string; employeeId?: string; role: string } | null;
+      requesterId: { firstName: string; lastName: string; email: string; employeeId?: string; role: string; signatureUrl: string | null } | null;
       projectId: { name: string; code: string | null } | null;
     };
 
     const approvals = await this.approvalModel
-      .find({ purchaseRequestId: id })
-      .populate('approverId', 'firstName lastName role')
+      .find({ purchaseRequestId: new Types.ObjectId(id) })
+      .populate('approverId', 'firstName lastName role signatureUrl')
       .sort({ actionDate: 1 })
       .lean()
       .exec();
@@ -674,8 +675,14 @@ export class ReportsService {
       action: string;
       comments: string;
       actionDate: Date;
-      approverId: { firstName: string; lastName: string; role: string } | null;
+      approverId: { firstName: string; lastName: string; role: string; signatureUrl: string | null } | null;
     }>;
+
+    // Fallback approvers by role (for unapproved/draft PRs or missing approval records)
+    const [cooUser, ceoUser] = await Promise.all([
+      this.userModel.findOne({ role: 'coo', isActive: true }, 'firstName lastName').lean().exec() as Promise<{ firstName: string; lastName: string } | null>,
+      this.userModel.findOne({ role: 'ceo', isActive: true }, 'firstName lastName').lean().exec() as Promise<{ firstName: string; lastName: string } | null>,
+    ]);
 
     // Get department head info for the "Certified by" block
     let deptHead: { firstName: string; lastName: string } | null = null;
@@ -692,7 +699,9 @@ export class ReportsService {
     const logoPath = path.join(__dirname, '..', '..', 'assets', 'wiwo-logo.jpeg');
     const hasLogo = fs.existsSync(logoPath);
 
-    return new Promise((resolve) => {
+    const prNumber = typedPr.prNumber || 'PR-Draft';
+
+    const buffer = await new Promise<Buffer>((resolve) => {
       const doc = new PDFDocument({ margin: 40, size: 'A4' });
       const chunks: Buffer[] = [];
 
@@ -702,6 +711,8 @@ export class ReportsService {
       const LEFT = 40;
       const RIGHT = doc.page.width - 40;
       const pageWidth = RIGHT - LEFT;
+      const HALF = pageWidth / 2;
+
       const formatDate = (d: Date | string | null) =>
         d ? new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
       const formatCurrency = (n: number) =>
@@ -709,203 +720,302 @@ export class ReportsService {
 
       // Helper: draw a bordered cell
       const drawCell = (x: number, y: number, w: number, h: number, text: string, opts?: {
-        bold?: boolean; fontSize?: number; align?: 'left' | 'center' | 'right'; bg?: string; vAlign?: 'top' | 'center';
+        bold?: boolean; italic?: boolean; fontSize?: number; align?: 'left' | 'center' | 'right'; bg?: string; vAlign?: 'top' | 'center'; color?: string; padX?: number; padY?: number;
       }) => {
-        const { bold = false, fontSize = 9, align = 'left', bg, vAlign = 'center' } = opts || {};
+        const { bold = false, italic = false, fontSize = 9, align = 'left', bg, vAlign = 'center', color = '#000', padX = 4, padY = 3 } = opts || {};
         if (bg) {
           doc.save().rect(x, y, w, h).fillColor(bg).fill().restore();
         }
         doc.rect(x, y, w, h).strokeColor('#000').lineWidth(0.5).stroke();
-        doc.fillColor('#000').fontSize(fontSize).font(bold ? 'Helvetica-Bold' : 'Helvetica');
-        const padding = 4;
-        const textY = vAlign === 'top' ? y + padding : y + (h - fontSize) / 2;
-        doc.text(text, x + padding, textY, { width: w - padding * 2, align });
+        const fontName = bold && italic ? 'Helvetica-BoldOblique' : bold ? 'Helvetica-Bold' : italic ? 'Helvetica-Oblique' : 'Helvetica';
+        doc.fillColor(color).fontSize(fontSize).font(fontName);
+        const textY = vAlign === 'top' ? y + padY : y + (h - fontSize) / 2 + 1;
+        doc.text(text, x + padX, textY, { width: w - padX * 2, align });
       };
 
       // ════════════════════════════════════════════════════════════
-      // HEADER — Company Logo + Form Title + Document Info
+      // FORM VARIANT — Purchase Request (Annex A) or Job Request (Annex B)
       // ════════════════════════════════════════════════════════════
-      const headerTop = doc.y;
+      const isJobRequest = typedPr.requestType === 'job_request';
+      const formCode = isJobRequest ? 'JR' : 'PR';
+      const formAnnex = isJobRequest ? 'B' : 'A';
+      const formTitle = isJobRequest ? 'JOB REQUEST' : 'PURCHASE REQUEST';
+      const numberLabel = isJobRequest ? 'JR No.:' : 'PR No.:';
+
+      // ════════════════════════════════════════════════════════════
+      // TOP-RIGHT FORM TAG (italic, no border)
+      // ════════════════════════════════════════════════════════════
+      const tagYear = new Date(typedPr.submittedAt || typedPr.createdAt).getFullYear();
+      doc.fontSize(9).font('Helvetica-Oblique').fillColor('#000')
+        .text(`${tagYear} ACCTG-${formCode} Annex ${formAnnex}`, LEFT, 30, { width: pageWidth, align: 'right' });
+
+      // Start the bordered form
+      const formTop = 50;
+      let cursorY = formTop;
+
+      // ════════════════════════════════════════════════════════════
+      // HEADER — Logo (left) + Company Info (right)
+      // ════════════════════════════════════════════════════════════
+      const headerH = 68;
+      const logoCellW = 130;
+      // Single outer border for the header row (no inner divider)
+      doc.rect(LEFT, cursorY, pageWidth, headerH).strokeColor('#000').lineWidth(0.5).stroke();
 
       if (hasLogo) {
-        doc.image(logoPath, LEFT, headerTop, { width: 60 });
-      }
-
-      // Company name and form title
-      const titleX = LEFT + (hasLogo ? 70 : 0);
-      doc.fontSize(11).font('Helvetica-Bold').fillColor('#000')
-        .text('WILSONWORKS PH', titleX, headerTop, { width: pageWidth - (hasLogo ? 70 : 0) - 150 });
-      doc.fontSize(8).font('Helvetica').fillColor('#444')
-        .text('Purchase Request and Approval Management System', titleX, headerTop + 14, { width: pageWidth - (hasLogo ? 70 : 0) - 150 });
-
-      // Form title — right side
-      doc.fontSize(14).font('Helvetica-Bold').fillColor('#000')
-        .text('ANNEX A', RIGHT - 150, headerTop, { width: 150, align: 'right' });
-      doc.fontSize(10).font('Helvetica')
-        .text('Purchase Request Form', RIGHT - 150, headerTop + 18, { width: 150, align: 'right' });
-
-      doc.y = headerTop + 45;
-
-      // Separator line
-      doc.moveTo(LEFT, doc.y).lineTo(RIGHT, doc.y).lineWidth(1.5).strokeColor('#000').stroke();
-      doc.y += 8;
-
-      // ════════════════════════════════════════════════════════════
-      // FORM INFO — Date, PR No., Requestor, Department, Project
-      // ════════════════════════════════════════════════════════════
-      const infoTop = doc.y;
-      const col1W = 80;  // label width
-      const col2W = pageWidth / 2 - col1W; // value width
-      const col3W = 80;
-      const col4W = pageWidth / 2 - col3W;
-      const rowH = 20;
-
-      // Row 1: Date | PR No.
-      drawCell(LEFT, infoTop, col1W, rowH, 'Date:', { bold: true, bg: '#f5f5f5' });
-      drawCell(LEFT + col1W, infoTop, col2W, rowH, formatDate(typedPr.submittedAt || typedPr.createdAt));
-      drawCell(LEFT + pageWidth / 2, infoTop, col3W, rowH, 'PR No.:', { bold: true, bg: '#f5f5f5' });
-      drawCell(LEFT + pageWidth / 2 + col3W, infoTop, col4W, rowH, typedPr.prNumber || 'DRAFT');
-
-      // Row 2: Requestor | Department
-      const row2Y = infoTop + rowH;
-      drawCell(LEFT, row2Y, col1W, rowH, 'Requestor:', { bold: true, bg: '#f5f5f5' });
-      drawCell(LEFT + col1W, row2Y, col2W, rowH,
-        typedPr.requesterId ? `${typedPr.requesterId.firstName} ${typedPr.requesterId.lastName}` : '—');
-      drawCell(LEFT + pageWidth / 2, row2Y, col3W, rowH, 'Department:', { bold: true, bg: '#f5f5f5' });
-      drawCell(LEFT + pageWidth / 2 + col3W, row2Y, col4W, rowH, typedPr.departmentId?.name || '—');
-
-      // Row 3: Project Name (full width)
-      const row3Y = row2Y + rowH;
-      drawCell(LEFT, row3Y, col1W, rowH, 'Project:', { bold: true, bg: '#f5f5f5' });
-      drawCell(LEFT + col1W, row3Y, pageWidth - col1W, rowH,
-        typedPr.projectId ? `${typedPr.projectId.name}${typedPr.projectId.code ? ` (${typedPr.projectId.code})` : ''}` : typedPr.title);
-
-      doc.y = row3Y + rowH + 4;
-
-      // ════════════════════════════════════════════════════════════
-      // PURPOSE
-      // ════════════════════════════════════════════════════════════
-      const purposeTop = doc.y;
-      const purposeH = Math.max(40, Math.ceil(typedPr.justification.length / 90) * 14 + 16);
-      drawCell(LEFT, purposeTop, col1W, purposeH, 'Purpose:', { bold: true, bg: '#f5f5f5', vAlign: 'top' });
-      drawCell(LEFT + col1W, purposeTop, pageWidth - col1W, purposeH, typedPr.justification, { vAlign: 'top' });
-
-      doc.y = purposeTop + purposeH + 8;
-
-      // ════════════════════════════════════════════════════════════
-      // LINE ITEMS TABLE
-      // ════════════════════════════════════════════════════════════
-      const tableTop = doc.y;
-      const colWidths = [30, pageWidth - 30 - 45 - 50 - 80 - 80, 45, 50, 80, 80];
-      const colStarts = [LEFT];
-      for (let i = 1; i < colWidths.length; i++) {
-        colStarts.push(colStarts[i - 1] + colWidths[i - 1]);
-      }
-      const tableHeaders = ['No.', 'Item Description', 'Qty', 'Unit', 'Est. Cost', 'Total'];
-      const headerH = 22;
-
-      // Header row
-      tableHeaders.forEach((h, i) => {
-        drawCell(colStarts[i], tableTop, colWidths[i], headerH, h, {
-          bold: true, fontSize: 8, align: i >= 2 ? 'center' : 'left', bg: '#e8e8e8',
+        // fit + align/valign preserves aspect ratio and centers the image inside the box
+        doc.image(logoPath, LEFT + 8, cursorY + 6, {
+          fit: [logoCellW - 16, headerH - 12],
+          align: 'center',
+          valign: 'center',
         });
+      }
+
+      // Center the company info text relative to the whole header (logo overlays on the left, ignore it for text positioning)
+      const infoBlockH = 14 + 12 + 12 + 12; // title + line1 + line2 + tin
+      const infoStartY = cursorY + (headerH - infoBlockH) / 2;
+      doc.fontSize(13).font('Helvetica-Bold').fillColor('#000')
+        .text('WILSON WORKS TRADING INC.', LEFT, infoStartY, { width: pageWidth, align: 'center' });
+      doc.fontSize(9).font('Helvetica').fillColor('#000')
+        .text('Unit 605, Jafer Place Bldg. 19,', LEFT, infoStartY + 18, { width: pageWidth, align: 'center' });
+      doc.text('Eisenhower St. Brgy. Greenhills 1502, City of San Juan, NCR', LEFT, infoStartY + 30, { width: pageWidth, align: 'center' });
+      doc.fontSize(9).font('Helvetica-Bold')
+        .text('TIN: 010-430-279-00000', LEFT, infoStartY + 42, { width: pageWidth, align: 'center' });
+
+      cursorY += headerH;
+
+      // ════════════════════════════════════════════════════════════
+      // TITLE ROW — "PURCHASE REQUEST" (left) | Date + PR No. (right)
+      // ════════════════════════════════════════════════════════════
+      const titleRowH = 44;
+      const subRowH = titleRowH / 2;
+      const labelW = 70;
+
+      // Left half: form title (spans both sub-rows)
+      drawCell(LEFT, cursorY, HALF, titleRowH, formTitle, {
+        bold: true, fontSize: 12, align: 'center',
       });
 
-      let currentY = tableTop + headerH;
+      // Right half: 2 sub-rows (Date, PR No.)
+      drawCell(LEFT + HALF, cursorY, labelW, subRowH, 'Date:', { bold: true });
+      drawCell(LEFT + HALF + labelW, cursorY, HALF - labelW, subRowH,
+        formatDate(typedPr.submittedAt || typedPr.createdAt), { align: 'center' });
 
-      for (let idx = 0; idx < typedPr.items.length; idx++) {
-        const item = typedPr.items[idx];
+      drawCell(LEFT + HALF, cursorY + subRowH, labelW, subRowH, numberLabel, { bold: true });
+      drawCell(LEFT + HALF + labelW, cursorY + subRowH, HALF - labelW, subRowH,
+        typedPr.prNumber || 'DRAFT', { align: 'center' });
 
-        // Calculate row height based on description length
-        const descLines = Math.ceil(item.description.length / 45);
-        const itemRowH = Math.max(18, descLines * 12 + 6);
+      cursorY += titleRowH;
 
-        if (currentY + itemRowH > 720) {
-          doc.addPage();
-          currentY = 40;
+      // ════════════════════════════════════════════════════════════
+      // INFO ROWS — Requestor, Department, Project Name
+      // ════════════════════════════════════════════════════════════
+      const infoRowH = 20;
+      const infoLabelW = 90;
+
+      drawCell(LEFT, cursorY, infoLabelW, infoRowH, 'Requestor', { bold: true });
+      drawCell(LEFT + infoLabelW, cursorY, pageWidth - infoLabelW, infoRowH,
+        typedPr.requesterId ? `${typedPr.requesterId.firstName} ${typedPr.requesterId.lastName}` : '');
+      cursorY += infoRowH;
+
+      drawCell(LEFT, cursorY, infoLabelW, infoRowH, 'Department', { bold: true });
+      drawCell(LEFT + infoLabelW, cursorY, pageWidth - infoLabelW, infoRowH,
+        typedPr.departmentId?.name || '');
+      cursorY += infoRowH;
+
+      drawCell(LEFT, cursorY, infoLabelW, infoRowH, 'Project Name', { bold: true });
+      drawCell(LEFT + infoLabelW, cursorY, pageWidth - infoLabelW, infoRowH,
+        typedPr.projectId
+          ? `${typedPr.projectId.name}${typedPr.projectId.code ? ` (${typedPr.projectId.code})` : ''}`
+          : (typedPr.title || ''));
+      cursorY += infoRowH;
+
+      // ════════════════════════════════════════════════════════════
+      // PURPOSE — full-width header bar + body
+      // ════════════════════════════════════════════════════════════
+      const purposeHeaderH = 18;
+      drawCell(LEFT, cursorY, pageWidth, purposeHeaderH, 'Purpose', {
+        bold: true, align: 'center', fontSize: 10,
+      });
+      cursorY += purposeHeaderH;
+
+      const purposeText = typedPr.justification || '';
+      const purposeBodyH = Math.max(50, Math.ceil(purposeText.length / 95) * 12 + 14);
+      drawCell(LEFT, cursorY, pageWidth, purposeBodyH, purposeText, { vAlign: 'top', padY: 6, padX: 6 });
+      cursorY += purposeBodyH;
+
+      // ════════════════════════════════════════════════════════════
+      // ITEMS TABLE — 4 columns: Description | Qty | Estimated Cost | Total
+      // ════════════════════════════════════════════════════════════
+      const qtyW = 50;
+      const estCostW = 95;
+      const totalW = 95;
+      const descW = pageWidth - qtyW - estCostW - totalW;
+      const colXs = [LEFT, LEFT + descW, LEFT + descW + qtyW, LEFT + descW + qtyW + estCostW];
+      const colWs = [descW, qtyW, estCostW, totalW];
+
+      const itemHeaderH = 22;
+      const itemHeaders = ['Item Description', 'Qty', 'Estimated Cost', 'Total'];
+      itemHeaders.forEach((h, i) => {
+        drawCell(colXs[i], cursorY, colWs[i], itemHeaderH, h, {
+          bold: true, fontSize: 10, align: 'center',
+        });
+      });
+      cursorY += itemHeaderH;
+
+      // Item rows — pad to a minimum number of rows so the form looks consistent
+      const MIN_ITEM_ROWS = 10;
+      const itemRowH = 18;
+      const itemCount = typedPr.items.length;
+      const totalRows = Math.max(itemCount, MIN_ITEM_ROWS);
+      const itemsBodyTop = cursorY;
+      const itemsBodyH = totalRows * itemRowH;
+
+      // Draw outer border + vertical column dividers only (no horizontal lines between rows)
+      doc.rect(LEFT, itemsBodyTop, pageWidth, itemsBodyH).strokeColor('#000').lineWidth(0.5).stroke();
+      for (let i = 1; i < colXs.length; i++) {
+        doc.moveTo(colXs[i], itemsBodyTop).lineTo(colXs[i], itemsBodyTop + itemsBodyH)
+          .strokeColor('#000').lineWidth(0.5).stroke();
+      }
+
+      // Render text in each row without drawing per-row borders
+      const drawText = (x: number, y: number, w: number, h: number, text: string, opts?: {
+        bold?: boolean; fontSize?: number; align?: 'left' | 'center' | 'right'; color?: string; padX?: number;
+      }) => {
+        const { bold = false, fontSize = 9, align = 'left', color = '#000', padX = 4 } = opts || {};
+        doc.fillColor(color).fontSize(fontSize).font(bold ? 'Helvetica-Bold' : 'Helvetica');
+        const textY = y + (h - fontSize) / 2 + 1;
+        doc.text(text, x + padX, textY, { width: w - padX * 2, align });
+      };
+
+      for (let idx = 0; idx < totalRows; idx++) {
+        if (idx < itemCount) {
+          const item = typedPr.items[idx];
+          drawText(colXs[0], cursorY, colWs[0], itemRowH, item.description, { padX: 6 });
+          drawText(colXs[1], cursorY, colWs[1], itemRowH, String(item.quantity), { align: 'center' });
+          drawText(colXs[2], cursorY, colWs[2], itemRowH, formatCurrency(item.estimatedPrice), { align: 'right', padX: 6 });
+          drawText(colXs[3], cursorY, colWs[3], itemRowH, formatCurrency(item.totalPrice), { align: 'right', padX: 6 });
+        } else {
+          drawText(colXs[3], cursorY, colWs[3], itemRowH, '-', { align: 'right', padX: 6, color: '#666' });
         }
-
-        drawCell(colStarts[0], currentY, colWidths[0], itemRowH, String(idx + 1), { align: 'center' });
-        drawCell(colStarts[1], currentY, colWidths[1], itemRowH, item.description, { vAlign: 'top' });
-        drawCell(colStarts[2], currentY, colWidths[2], itemRowH, String(item.quantity), { align: 'center' });
-        drawCell(colStarts[3], currentY, colWidths[3], itemRowH, item.unit, { align: 'center' });
-        drawCell(colStarts[4], currentY, colWidths[4], itemRowH, formatCurrency(item.estimatedPrice), { align: 'right' });
-        drawCell(colStarts[5], currentY, colWidths[5], itemRowH, formatCurrency(item.totalPrice), { align: 'right' });
-
-        currentY += itemRowH;
+        cursorY += itemRowH;
       }
 
       // Grand Total row
-      const totalRowH = 24;
-      const totalLabelW = colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + colWidths[4];
-      drawCell(colStarts[0], currentY, totalLabelW, totalRowH, 'GRAND TOTAL', {
-        bold: true, fontSize: 10, align: 'right', bg: '#e8e8e8',
+      const totalRowH = 22;
+      const totalLabelW = colWs[0] + colWs[1] + colWs[2];
+      drawCell(colXs[0], cursorY, totalLabelW, totalRowH, 'Total:', {
+        bold: true, fontSize: 11, align: 'right', padX: 8,
       });
-      drawCell(colStarts[5], currentY, colWidths[5], totalRowH, `PHP ${formatCurrency(typedPr.totalAmount)}`, {
-        bold: true, fontSize: 10, align: 'right', bg: '#e8e8e8',
+      drawCell(colXs[3], cursorY, colWs[3], totalRowH, formatCurrency(typedPr.totalAmount), {
+        bold: true, fontSize: 11, align: 'right', padX: 6,
       });
-
-      currentY += totalRowH + 12;
-      doc.y = currentY;
+      cursorY += totalRowH;
 
       // ════════════════════════════════════════════════════════════
-      // SIGNATURE BLOCKS — Annex A requires 4 signature blocks
+      // SIGNATURE BLOCKS — 2x2 grid
+      //   Top-left:  Prepared by (Requestor)
+      //   Top-right: Approved by (Level 2 — COO)
+      //   Bottom-left: Certified by (Level 1 — Dept Head, with cert text)
+      //   Bottom-right: (no header) President (Level 3 — CEO)
       // ════════════════════════════════════════════════════════════
-      // Check if we need a new page for signatures
-      if (doc.y > 540) doc.addPage();
-
-      const sigTop = doc.y;
-      const sigBlockW = (pageWidth - 20) / 2;
-      const sigBlockH = 80;
 
       // Build approval data map
-      const approvedByLevel: Record<number, { name: string; date: Date }> = {};
+      const approvedByLevel: Record<number, { name: string; date: Date; signatureUrl: string | null }> = {};
       for (const entry of typedApprovals) {
         if (entry.action === 'approved' && entry.approverId) {
           approvedByLevel[entry.approvalLevel] = {
             name: `${entry.approverId.firstName} ${entry.approverId.lastName}`,
             date: entry.actionDate,
+            signatureUrl: entry.approverId.signatureUrl ?? null,
           };
         }
       }
 
-      const drawSignatureBlock = (x: number, y: number, w: number, h: number, opts: {
-        headerLabel: string; headerNote?: string; name?: string; designation?: string; date?: string;
-      }) => {
-        doc.rect(x, y, w, h).strokeColor('#000').lineWidth(0.5).stroke();
-
-        // Header label
-        doc.fontSize(8).font('Helvetica-Bold').fillColor('#000')
-          .text(opts.headerLabel, x + 6, y + 4, { width: w - 12 });
-        if (opts.headerNote) {
-          doc.fontSize(7).font('Helvetica-Oblique').fillColor('#555')
-            .text(opts.headerNote, x + 6, y + 14, { width: w - 12 });
-        }
-
-        // Signature line
-        const lineY = y + h - 30;
-        doc.moveTo(x + 20, lineY).lineTo(x + w - 20, lineY).strokeColor('#000').lineWidth(0.5).stroke();
-
-        // Name
-        if (opts.name) {
-          doc.fontSize(9).font('Helvetica-Bold').fillColor('#000')
-            .text(opts.name, x + 6, lineY + 2, { width: w - 12, align: 'center' });
-        }
-
-        // Designation
-        if (opts.designation) {
-          doc.fontSize(7).font('Helvetica').fillColor('#444')
-            .text(opts.designation, x + 6, lineY + 14, { width: w - 12, align: 'center' });
-        }
-
-        // Date
-        if (opts.date) {
-          doc.fontSize(7).font('Helvetica').fillColor('#444')
-            .text(`Date: ${opts.date}`, x + 6, lineY + 22, { width: w - 12, align: 'center' });
-        }
+      // Resolve a signature URL (e.g. "/uploads/signatures/abc.png") to an absolute file path
+      const resolveSignaturePath = (url: string | null | undefined): string | null => {
+        if (!url || !url.startsWith('/uploads/')) return null;
+        const abs = path.join(process.cwd(), url);
+        return fs.existsSync(abs) ? abs : null;
       };
 
-      // Row 1: Prepared by (Requestor) | Certified by (Dept Head)
+      const sigBlockH = 92;
+      const sigDateRowH = 18;
+      const sigContentH = sigBlockH - sigDateRowH;
+      const sigDateLabelW = 60;
+
+      type SigOpts = {
+        x: number; y: number; w: number;
+        headerLabel?: string;
+        certText?: string;
+        name: string;
+        designation: string;
+        dateText: string;
+        signaturePath?: string | null;
+      };
+
+      const drawSigBlock = (opts: SigOpts) => {
+        const { x, y, w, headerLabel, certText, name, designation, dateText, signaturePath } = opts;
+
+        // Outer content cell (without date sub-row)
+        drawCell(x, y, w, sigContentH, '', {});
+
+        let headerEndY = y + 4;
+        if (headerLabel) {
+          doc.fontSize(9).font('Helvetica-Bold').fillColor('#000')
+            .text(headerLabel, x + 6, headerEndY, { width: w - 12 });
+          headerEndY += 12;
+        }
+        if (certText) {
+          doc.fontSize(7.5).font('Helvetica').fillColor('#000')
+            .text(certText, x + 6, headerEndY, { width: w - 12 });
+          // NOTE: do not advance headerEndY here — signature is allowed to overlay
+          // the cert text so the block keeps the same height as the other blocks.
+        }
+
+        // Name + designation pinned near the bottom of the content cell
+        const nameY = y + sigContentH - 26;
+
+        // Signature image (when available) is given a consistent zone between the
+        // header line and the printed name, regardless of cert text. For dept-head
+        // blocks this means the scribble overlays the cert paragraph — desired.
+        if (signaturePath) {
+          const sigZoneTop = headerEndY + 2;
+          const sigZoneBottom = nameY - 2;
+          const sigZoneH = sigZoneBottom - sigZoneTop;
+          if (sigZoneH > 14) {
+            const sigBoxW = Math.min(w - 24, 180);
+            const sigBoxX = x + (w - sigBoxW) / 2;
+            try {
+              doc.image(signaturePath, sigBoxX, sigZoneTop, {
+                fit: [sigBoxW, sigZoneH],
+                align: 'center',
+                valign: 'bottom',
+              });
+            } catch {
+              // ignore unreadable images
+            }
+          }
+        }
+
+        doc.fontSize(10).font('Helvetica-Bold').fillColor('#000')
+          .text(name.toUpperCase(), x + 6, nameY, { width: w - 12, align: 'center' });
+        doc.fontSize(8).font('Helvetica').fillColor('#000')
+          .text(designation, x + 6, nameY + 12, { width: w - 12, align: 'center' });
+
+        // Date sub-row
+        const dateY = y + sigContentH;
+        drawCell(x, dateY, sigDateLabelW, sigDateRowH, 'Date:', { bold: true });
+        drawCell(x + sigDateLabelW, dateY, w - sigDateLabelW, sigDateRowH, dateText, { align: 'center' });
+      };
+
+      // Page-break safety for signature blocks
+      const sigsTotalH = sigBlockH * 2;
+      if (cursorY + sigsTotalH > doc.page.height - 40) {
+        doc.addPage();
+        cursorY = 40;
+      }
+
+      // Row 1: Prepared by | Approved by
       const requesterName = typedPr.requesterId
         ? `${typedPr.requesterId.firstName} ${typedPr.requesterId.lastName}`
         : '';
@@ -913,52 +1023,66 @@ export class ReportsService {
         ? ROLE_LABELS[typedPr.requesterId.role as UserRoleType] || typedPr.requesterId.role
         : '';
 
-      drawSignatureBlock(LEFT, sigTop, sigBlockW, sigBlockH, {
+      // Show requester's signature once the PR has been submitted (i.e. not a draft)
+      const requesterSignaturePath = typedPr.status !== 'draft'
+        ? resolveSignaturePath(typedPr.requesterId?.signatureUrl ?? null)
+        : null;
+
+      drawSigBlock({
+        x: LEFT, y: cursorY, w: HALF,
         headerLabel: 'Prepared by:',
         name: requesterName,
         designation: requesterRole,
-        date: formatDate(typedPr.submittedAt || typedPr.createdAt),
+        dateText: formatDate(typedPr.submittedAt || typedPr.createdAt),
+        signaturePath: requesterSignaturePath,
       });
-
-      const deptHeadApproval = approvedByLevel[1];
-      drawSignatureBlock(LEFT + sigBlockW + 20, sigTop, sigBlockW, sigBlockH, {
-        headerLabel: 'Certified by:',
-        headerNote: 'I certify that items listed are essential to operations',
-        name: deptHeadApproval?.name || (deptHead ? `${deptHead.firstName} ${deptHead.lastName}` : ''),
-        designation: 'Department Head',
-        date: deptHeadApproval ? formatDate(deptHeadApproval.date) : '',
-      });
-
-      // Row 2: Approved by (COO) | Certified by (President/CEO)
-      const row2SigY = sigTop + sigBlockH + 10;
 
       const cooApproval = approvedByLevel[2];
-      drawSignatureBlock(LEFT, row2SigY, sigBlockW, sigBlockH, {
+      const cooName = cooApproval?.name
+        || (cooUser ? `${cooUser.firstName} ${cooUser.lastName}` : '');
+      drawSigBlock({
+        x: LEFT + HALF, y: cursorY, w: HALF,
         headerLabel: 'Approved by:',
-        name: cooApproval?.name || 'Patrick Ryan L. Po',
-        designation: 'Chief Operations Officer (COO)',
-        date: cooApproval ? formatDate(cooApproval.date) : '',
+        name: cooName,
+        designation: 'Chief, Operations Officer',
+        dateText: cooApproval ? formatDate(cooApproval.date) : '',
+        signaturePath: resolveSignaturePath(cooApproval?.signatureUrl ?? null),
+      });
+
+      cursorY += sigBlockH;
+
+      // Row 2: Certified by (Dept Head + cert text) | President (no header)
+      const deptHeadApproval = approvedByLevel[1];
+      const deptHeadName = deptHeadApproval?.name
+        || (deptHead ? `${deptHead.firstName} ${deptHead.lastName}` : '');
+      const deptHeadDesignation = `Department Head${typedPr.departmentId?.name ? `, ${typedPr.departmentId.name}` : ''}`;
+
+      drawSigBlock({
+        x: LEFT, y: cursorY, w: HALF,
+        headerLabel: 'Certified by:',
+        certText: 'I hereby certify that the following items being requested are necessary and essential to the company’s daily operations.',
+        name: deptHeadName,
+        designation: deptHeadDesignation,
+        dateText: deptHeadApproval ? formatDate(deptHeadApproval.date) : '',
+        signaturePath: resolveSignaturePath(deptHeadApproval?.signatureUrl ?? null),
       });
 
       const ceoApproval = approvedByLevel[3];
-      drawSignatureBlock(LEFT + sigBlockW + 20, row2SigY, sigBlockW, sigBlockH, {
-        headerLabel: 'Certified by:',
-        name: ceoApproval?.name || 'Cesar Manuel S. Lorenzo',
+      const ceoName = ceoApproval?.name
+        || (ceoUser ? `${ceoUser.firstName} ${ceoUser.lastName}` : '');
+      drawSigBlock({
+        x: LEFT + HALF, y: cursorY, w: HALF,
+        name: ceoName,
         designation: 'President',
-        date: ceoApproval ? formatDate(ceoApproval.date) : '',
+        dateText: ceoApproval ? formatDate(ceoApproval.date) : '',
+        signaturePath: resolveSignaturePath(ceoApproval?.signatureUrl ?? null),
       });
 
-      doc.y = row2SigY + sigBlockH + 12;
-
-      // ════════════════════════════════════════════════════════════
-      // FOOTER — Form reference
-      // ════════════════════════════════════════════════════════════
-      doc.fontSize(7).font('Helvetica').fillColor('#999')
-        .text('Annex A — Purchase Request Form (For Goods) | WIWO ACCTG-MEMO2026-001', LEFT, doc.y, {
-          width: pageWidth, align: 'center',
-        });
+      cursorY += sigBlockH;
 
       doc.end();
     });
+
+    return { buffer, prNumber };
   }
 }

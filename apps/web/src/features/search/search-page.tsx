@@ -147,6 +147,7 @@ export function SearchPage() {
     );
   });
 
+  const [limit, setLimit] = useState(10);
   const [exporting, setExporting] = useState(false);
 
   const { data: deptData } = useDepartments({ limit: 100 });
@@ -155,7 +156,7 @@ export function SearchPage() {
   const queryParams = useMemo((): PurchaseRequestsQuery => {
     const params: PurchaseRequestsQuery = {
       page: filters.page,
-      limit: 15,
+      limit,
       sort: filters.sort,
       order: filters.order,
     };
@@ -169,7 +170,7 @@ export function SearchPage() {
     if (filters.amountMin) params.amountMin = Number(filters.amountMin);
     if (filters.amountMax) params.amountMax = Number(filters.amountMax);
     return params;
-  }, [filters]);
+  }, [filters, limit]);
 
   const { data, isLoading } = usePurchaseRequests(queryParams);
   const prs = data?.data ?? [];
@@ -581,7 +582,7 @@ export function SearchPage() {
         ) : (
           <>
             {/* Desktop table */}
-            <div className="hidden md:block overflow-x-auto">
+            <div className="hidden md:block overflow-x-auto overflow-y-hidden">
               <table className="w-full">
                 <thead className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm">
                   <tr className="border-b border-zinc-100">
@@ -716,12 +717,14 @@ export function SearchPage() {
             </div>
 
             {/* Pagination */}
-            {meta && meta.totalPages > 1 && (
+            {meta && (
               <Pagination
                 page={meta.page}
                 totalPages={meta.totalPages}
                 total={meta.total}
                 onPageChange={handlePageChange}
+                limit={limit}
+                onLimitChange={(l) => { setLimit(l); handlePageChange(1); }}
               />
             )}
           </>

@@ -11,6 +11,9 @@ import {
   Truck,
   ChevronLeft,
   ChevronRight,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
 } from 'lucide-react';
 import { UserRole } from '@prams/shared';
 import {
@@ -21,6 +24,7 @@ import {
 import { useAuthStore } from '@/stores/auth.store';
 import { useToast } from '@/components/ui/toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 
 // ─── Types ───────────────────────────────────────────────
@@ -111,6 +115,7 @@ export function PoListPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [sourceFilter, setSourceFilter] = useState('');
+  const [limit, setLimit] = useState(10);
   const [sortValue, setSortValue] = useState('createdAt:desc');
 
   const [cancelDialog, setCancelDialog] = useState<{ open: boolean; poId: string; poNumber: string }>({
@@ -120,9 +125,18 @@ export function PoListPage() {
 
   const [sortField, sortOrder] = sortValue.split(':') as [string, 'asc' | 'desc'];
 
+  function toggleSort(field: string) {
+    if (sortField === field) {
+      setSortValue(`${field}:${sortOrder === 'asc' ? 'desc' : 'asc'}`);
+    } else {
+      setSortValue(`${field}:desc`);
+    }
+    setPage(1);
+  }
+
   const { data, isLoading } = usePurchaseOrders({
     page,
-    limit: 15,
+    limit,
     search: search || undefined,
     status: statusFilter || undefined,
     sourceRequestType: sourceFilter || undefined,
@@ -214,41 +228,41 @@ export function PoListPage() {
             />
           </div>
           <div className="flex items-center gap-2 flex-wrap shrink-0">
-            <select
-              value={statusFilter}
-              onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-              className="h-10 rounded-lg border border-zinc-200 bg-white px-3 pr-8 text-[13px] text-zinc-600 outline-none transition-colors duration-150 focus:border-zinc-400 cursor-pointer appearance-none"
-              style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center' }}
-            >
-              <option value="">All Statuses</option>
-              {Object.entries(PO_STATUS_LABELS).map(([v, l]) => (
-                <option key={v} value={v}>{l}</option>
-              ))}
-            </select>
+            <Select value={statusFilter || 'all'} onValueChange={(v) => { setStatusFilter(v === 'all' ? '' : v); setPage(1); }}>
+              <SelectTrigger className="w-full sm:w-[140px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]">
+                <SelectValue placeholder="All Statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                {Object.entries(PO_STATUS_LABELS).map(([v, l]) => (
+                  <SelectItem key={v} value={v}>{l}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-            <select
-              value={sourceFilter}
-              onChange={(e) => { setSourceFilter(e.target.value); setPage(1); }}
-              className="h-10 rounded-lg border border-zinc-200 bg-white px-3 pr-8 text-[13px] text-zinc-600 outline-none transition-colors duration-150 focus:border-zinc-400 cursor-pointer appearance-none"
-              style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center' }}
-            >
-              <option value="">All Sources</option>
-              {Object.entries(SOURCE_LABELS).map(([v, l]) => (
-                <option key={v} value={v}>{l}</option>
-              ))}
-            </select>
+            <Select value={sourceFilter || 'all'} onValueChange={(v) => { setSourceFilter(v === 'all' ? '' : v); setPage(1); }}>
+              <SelectTrigger className="w-full sm:w-[154px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]">
+                <SelectValue placeholder="All Sources" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Sources</SelectItem>
+                {Object.entries(SOURCE_LABELS).map(([v, l]) => (
+                  <SelectItem key={v} value={v}>{l}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-            <select
-              value={sortValue}
-              onChange={(e) => { setSortValue(e.target.value); setPage(1); }}
-              className="h-10 rounded-lg border border-zinc-200 bg-white px-3 pr-8 text-[13px] text-zinc-600 outline-none transition-colors duration-150 focus:border-zinc-400 cursor-pointer appearance-none"
-              style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center' }}
-            >
-              <option value="createdAt:desc">Newest First</option>
-              <option value="createdAt:asc">Oldest First</option>
-              <option value="totalAmount:desc">Highest Amount</option>
-              <option value="totalAmount:asc">Lowest Amount</option>
-            </select>
+            <Select value={sortValue} onValueChange={(v) => { setSortValue(v); setPage(1); }}>
+              <SelectTrigger className="w-full sm:w-[154px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="createdAt:desc">Newest First</SelectItem>
+                <SelectItem value="createdAt:asc">Oldest First</SelectItem>
+                <SelectItem value="totalAmount:desc">Highest Amount</SelectItem>
+                <SelectItem value="totalAmount:asc">Lowest Amount</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>
@@ -280,7 +294,7 @@ export function PoListPage() {
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto overflow-y-hidden">
               <table className="w-full">
                 <thead className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm">
                   <tr className="border-b border-zinc-100">
@@ -291,13 +305,29 @@ export function PoListPage() {
                       Supplier
                     </th>
                     <th className="h-11 px-5 text-right text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
-                      Amount
+                      <span
+                        onClick={() => toggleSort('totalAmount')}
+                        className={`inline-flex items-center gap-1 cursor-pointer select-none transition-colors duration-150 ${sortField === 'totalAmount' ? 'text-zinc-700' : 'hover:text-zinc-600'}`}
+                      >
+                        Amount
+                        {sortField === 'totalAmount'
+                          ? (sortOrder === 'asc' ? <ArrowUp className="h-3 w-3 opacity-70" /> : <ArrowDown className="h-3 w-3 opacity-70" />)
+                          : <ArrowUpDown className="h-3 w-3 opacity-40" />}
+                      </span>
                     </th>
                     <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
                       Status
                     </th>
                     <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400 hidden lg:table-cell">
-                      Date
+                      <span
+                        onClick={() => toggleSort('createdAt')}
+                        className={`inline-flex items-center gap-1 cursor-pointer select-none transition-colors duration-150 ${sortField === 'createdAt' ? 'text-zinc-700' : 'hover:text-zinc-600'}`}
+                      >
+                        Date
+                        {sortField === 'createdAt'
+                          ? (sortOrder === 'asc' ? <ArrowUp className="h-3 w-3 opacity-70" /> : <ArrowDown className="h-3 w-3 opacity-70" />)
+                          : <ArrowUpDown className="h-3 w-3 opacity-40" />}
+                      </span>
                     </th>
                     <th className="h-11 w-10" />
                   </tr>
@@ -446,46 +476,62 @@ export function PoListPage() {
             </div>
 
             {/* ── Pagination ───────────────────────────────── */}
-            {meta && meta.totalPages > 1 && (
+            {meta && (
               <div className="flex items-center justify-between border-t border-zinc-100 px-5 py-3">
-                <p className="text-[12px] text-zinc-400 tabular-nums">
-                  Page {meta.page} of {meta.totalPages}
-                  <span className="text-zinc-300 mx-1.5">&middot;</span>
-                  {meta.total} total
-                </p>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => setPage(page - 1)}
-                    disabled={page <= 1}
-                    className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-500 transition-all duration-150 hover:bg-zinc-50 hover:text-zinc-700 disabled:opacity-40 disabled:pointer-events-none"
-                  >
-                    <ChevronLeft className="h-3.5 w-3.5" /> Previous
-                  </button>
-                  {getPageNumbers(meta.page, meta.totalPages).map((p, i) =>
-                    p === '...' ? (
-                      <span key={`dots-${i}`} className="px-1.5 text-[12px] text-zinc-300">...</span>
-                    ) : (
-                      <button
-                        key={p}
-                        onClick={() => setPage(p as number)}
-                        className={`h-8 w-8 rounded-lg text-[12px] font-semibold transition-all duration-150 ${
-                          p === meta.page
-                            ? 'bg-zinc-900 text-white shadow-sm'
-                            : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700'
-                        }`}
-                      >
-                        {p}
-                      </button>
-                    ),
-                  )}
-                  <button
-                    onClick={() => setPage(page + 1)}
-                    disabled={page >= meta.totalPages}
-                    className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-500 transition-all duration-150 hover:bg-zinc-50 hover:text-zinc-700 disabled:opacity-40 disabled:pointer-events-none"
-                  >
-                    Next <ChevronRight className="h-3.5 w-3.5" />
-                  </button>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[12px] text-zinc-400">Rows per page</span>
+                    <Select value={String(limit)} onValueChange={(v) => { setLimit(Number(v)); setPage(1); }}>
+                      <SelectTrigger className="w-auto h-8 px-2.5 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="min-w-0">
+                        <SelectItem value="10">10</SelectItem>
+                        <SelectItem value="25">25</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <p className="text-[12px] text-zinc-400 tabular-nums">
+                    {meta.totalPages > 1 && <>Page {meta.page} of {meta.totalPages}<span className="text-zinc-300 mx-1.5">&middot;</span></>}
+                    {meta.total} total
+                  </p>
                 </div>
+                {meta.totalPages > 1 && (
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setPage(page - 1)}
+                      disabled={page <= 1}
+                      className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-500 transition-all duration-150 hover:bg-zinc-50 hover:text-zinc-700 disabled:opacity-40 disabled:pointer-events-none"
+                    >
+                      <ChevronLeft className="h-3.5 w-3.5" /> Previous
+                    </button>
+                    {getPageNumbers(meta.page, meta.totalPages).map((p, i) =>
+                      p === '...' ? (
+                        <span key={`dots-${i}`} className="px-1.5 text-[12px] text-zinc-300">...</span>
+                      ) : (
+                        <button
+                          key={p}
+                          onClick={() => setPage(p as number)}
+                          className={`h-8 w-8 rounded-lg text-[12px] font-semibold transition-all duration-150 ${
+                            p === meta.page
+                              ? 'bg-zinc-900 text-white shadow-sm'
+                              : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700'
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      ),
+                    )}
+                    <button
+                      onClick={() => setPage(page + 1)}
+                      disabled={page >= meta.totalPages}
+                      className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-500 transition-all duration-150 hover:bg-zinc-50 hover:text-zinc-700 disabled:opacity-40 disabled:pointer-events-none"
+                    >
+                      Next <ChevronRight className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </>

@@ -37,6 +37,9 @@ export class User extends Document {
   @Prop({ type: String, default: null })
   photoUrl: string | null;
 
+  @Prop({ type: String, default: null })
+  signatureUrl: string | null;
+
   createdAt: Date;
   updatedAt: Date;
 }

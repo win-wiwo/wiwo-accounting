@@ -94,10 +94,11 @@ export class ReportsController {
     @Param('id') id: string,
     @Res() res: Response,
   ) {
-    const buffer = await this.reportsService.generatePrDetailPdf(id);
+    const { buffer, prNumber } = await this.reportsService.generatePrDetailPdf(id);
+    const safeName = (prNumber || 'PR-Draft').replace(/[^A-Za-z0-9._-]+/g, '-');
     res.set({
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename=PR-Detail-${id}.pdf`,
+      'Content-Disposition': `attachment; filename="${safeName}.pdf"`,
       'Content-Length': buffer.length,
     });
     res.send(buffer);

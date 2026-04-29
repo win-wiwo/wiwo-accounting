@@ -488,7 +488,7 @@ export function PrDetailPage() {
       const blob = new Blob([response.data]);
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
-      link.download = `PR-${pr.prNumber || "Draft"}-Report.pdf`;
+      link.download = `${pr.prNumber || "PR-Draft"}.pdf`;
       link.click();
       URL.revokeObjectURL(link.href);
       toast({ title: "Report downloaded", variant: "success" });

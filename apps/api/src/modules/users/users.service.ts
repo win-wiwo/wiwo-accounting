@@ -196,6 +196,41 @@ export class UsersService {
     return updated!;
   }
 
+  async uploadSignature(id: string, file: Express.Multer.File): Promise<User> {
+    const user = await this.userModel.findById(id).exec();
+    if (!user) throw new NotFoundException('User not found');
+
+    if (user.signatureUrl && user.signatureUrl.startsWith('/uploads/')) {
+      const oldPath = join(process.cwd(), user.signatureUrl);
+      if (existsSync(oldPath)) unlinkSync(oldPath);
+    }
+
+    const signatureUrl = `/uploads/signatures/${file.filename}`;
+    const updated = await this.userModel
+      .findByIdAndUpdate(id, { $set: { signatureUrl } }, { new: true })
+      .populate('departmentId', 'name code')
+      .exec();
+
+    return updated!;
+  }
+
+  async removeSignature(id: string): Promise<User> {
+    const user = await this.userModel.findById(id).exec();
+    if (!user) throw new NotFoundException('User not found');
+
+    if (user.signatureUrl && user.signatureUrl.startsWith('/uploads/')) {
+      const oldPath = join(process.cwd(), user.signatureUrl);
+      if (existsSync(oldPath)) unlinkSync(oldPath);
+    }
+
+    const updated = await this.userModel
+      .findByIdAndUpdate(id, { $set: { signatureUrl: null } }, { new: true })
+      .populate('departmentId', 'name code')
+      .exec();
+
+    return updated!;
+  }
+
   async findByDepartment(departmentId: string): Promise<User[]> {
     return this.userModel
       .find({ departmentId: new Types.ObjectId(departmentId), isActive: true })

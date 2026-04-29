@@ -61,6 +61,19 @@ export const usersApi = {
       })
       .then((r) => r.data);
   },
+
+  uploadSignature: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return apiClient
+      .post<ApiResponse<User>>('/users/me/signature', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      .then((r) => r.data);
+  },
+
+  removeSignature: () =>
+    apiClient.delete<ApiResponse<User>>('/users/me/signature').then((r) => r.data),
 };
 
 // ─── Departments ─────────────────────────────────────────────
