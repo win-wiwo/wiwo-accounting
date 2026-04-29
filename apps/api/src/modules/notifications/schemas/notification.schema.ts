@@ -21,6 +21,9 @@ export class Notification extends Document {
   @Prop({ type: Types.ObjectId, ref: 'PurchaseRequest', default: null })
   purchaseRequestId: Types.ObjectId | null;
 
+  @Prop({ type: Types.ObjectId, ref: 'PurchaseOrder', default: null })
+  purchaseOrderId: Types.ObjectId | null;
+
   @Prop({ default: false })
   isRead: boolean;
 

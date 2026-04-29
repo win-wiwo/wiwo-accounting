@@ -128,14 +128,16 @@ export class ApprovalsService {
           pr.status = PrStatus.PENDING_QUOTATION;
           pr.currentApprovalLevel = currentLevel + 1;
         } else {
+          // Online-only PR: procurement officer still places the order.
+          // Move to APPROVED so a PO is auto-created. PR becomes COMPLETED
+          // only once the PO is received.
           pr.status = PrStatus.APPROVED;
-          pr.completedAt = new Date();
           pr.currentApprovalLevel = currentLevel + 1;
         }
       } else if (pr.status === PrStatus.QUOTED) {
-        // COO price sign-off: procurement is done, PO will be auto-created
-        pr.status = PrStatus.COMPLETED;
-        pr.completedAt = new Date();
+        // COO price sign-off: procurement done, PO will be auto-created.
+        // PR stays APPROVED until the PO is received.
+        pr.status = PrStatus.APPROVED;
         pr.currentApprovalLevel = currentLevel + 1;
       } else {
         // Normal approval chain progression

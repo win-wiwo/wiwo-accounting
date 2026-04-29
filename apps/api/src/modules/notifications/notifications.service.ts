@@ -214,6 +214,7 @@ export class NotificationsService {
       message: `Your purchase order ${purchaseOrder.poNumber}${prNumber ? ` (PR ${prNumber})` : ''} has been received by procurement.`,
       type: 'po_received',
       purchaseRequestId: new Types.ObjectId(purchaseRequestId),
+      purchaseOrderId: new Types.ObjectId(purchaseOrder._id),
     });
     this.push(requesterId, { type: 'notification' });
   }

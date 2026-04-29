@@ -76,9 +76,13 @@ export function DashboardPage() {
   const [queueFilter, setQueueFilter] = useState<'all' | 'urgent' | 'procurement'>('all');
 
   const isManagement = user?.role === UserRole.COO || user?.role === UserRole.CEO || user?.role === UserRole.ADMIN;
+  const canSeeProjectSpending = user?.role !== UserRole.STAFF;
 
   const { data: statsData, isLoading: statsLoading } = usePrStats();
-  const { data: projectSpending, isLoading: projectSpendingLoading } = useProjectSpending();
+  const { data: projectSpending, isLoading: projectSpendingLoading } = useProjectSpending(
+    undefined,
+    { enabled: canSeeProjectSpending },
+  );
   const { data: mgmtStats, isLoading: mgmtLoading } = useManagementStats();
   const { data: pendingCountData } = usePendingCount();
   const { data: pendingPrsData, isLoading: queueLoading } = usePendingApprovals({ page: 1, limit: 10 });
@@ -549,7 +553,7 @@ export function DashboardPage() {
           </Card>
 
           {/* Project Spending */}
-          {(projectSpendingLoading || (projectSpending && projectSpending.length > 0)) && (
+          {canSeeProjectSpending && (projectSpendingLoading || (projectSpending && projectSpending.length > 0)) && (
             <Card>
               <CardHeader className="pb-4 px-6 pt-5">
                 <CardTitle className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-400">

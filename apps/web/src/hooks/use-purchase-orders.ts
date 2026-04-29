@@ -37,6 +37,7 @@ export function usePurchaseOrderByPr(prId: string) {
     queryKey: ['purchase-orders', 'by-pr', prId],
     queryFn: () => purchaseOrdersApi.getByPurchaseRequest(prId),
     enabled: !!prId,
+    select: (data) => data?.data,
   });
 }
 

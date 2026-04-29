@@ -29,9 +29,18 @@ type TimelineEntry = {
   icon: ReactNode;
 };
 
+type LinkedPoStatus = "pending" | "ordered" | "received" | "cancelled";
+
+type LinkedPo = {
+  status: LinkedPoStatus;
+  receivedAt?: string | null;
+  receivedBy?: string | { firstName: string; lastName: string } | null;
+} | null;
+
 interface PurchaseRequestWorkflowTimelineProps {
   pr: PurchaseRequest;
   approvalHistory: ApprovalHistoryEntry[];
+  po?: LinkedPo;
   compact?: boolean;
 }
 
@@ -63,9 +72,15 @@ function recalledByName(recalledBy: RecallHistoryEntry["recalledBy"]) {
     : `${recalledBy.firstName} ${recalledBy.lastName}`;
 }
 
+function poActorName(actor: string | { firstName: string; lastName: string } | null | undefined) {
+  if (!actor || typeof actor === "string") return "Procurement";
+  return `${actor.firstName} ${actor.lastName}`;
+}
+
 function buildTimelineEntries(
   pr: PurchaseRequest,
   approvalHistory: ApprovalHistoryEntry[],
+  po: LinkedPo,
 ): TimelineEntry[] {
   const entries: TimelineEntry[] = [];
 
@@ -127,13 +142,60 @@ function buildTimelineEntries(
     });
   }
 
+  if (po?.status === "received") {
+    entries.push({
+      id: `po-received-${pr._id}`,
+      date: po.receivedAt || pr.updatedAt,
+      title: "Completed",
+      actor: poActorName(po.receivedBy),
+      icon: <CheckCircle2 className="h-4 w-4 text-emerald-600" />,
+    });
+  }
+
+  if (po?.status === "cancelled") {
+    entries.push({
+      id: `po-cancelled-${pr._id}`,
+      date: pr.updatedAt,
+      title: "Purchase Order Cancelled",
+      icon: <XCircle className="h-4 w-4 text-muted-foreground" />,
+    });
+  }
+
   return entries.sort(
     (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
   );
 }
 
-function CurrentState({ pr, compact = false }: { pr: PurchaseRequest; compact?: boolean }) {
+function hasCurrentState(pr: PurchaseRequest, po: LinkedPo): boolean {
   const currentStatus = normalizePrStatus(pr.status);
+  const poStatus = po?.status ?? null;
+  if (currentStatus === PrStatus.DRAFT) return true;
+  if (currentStatus === PrStatus.PENDING_QUOTATION) return true;
+  if (currentStatus === PrStatus.QUOTED) return true;
+  if (
+    currentStatus === PrStatus.LEVEL1_REVIEW ||
+    currentStatus === PrStatus.LEVEL2_REVIEW ||
+    currentStatus === PrStatus.LEVEL3_REVIEW
+  ) {
+    return true;
+  }
+  if (currentStatus === PrStatus.COMPLETED || currentStatus === PrStatus.APPROVED) {
+    return poStatus !== "received" && poStatus !== "cancelled";
+  }
+  return false;
+}
+
+function CurrentState({
+  pr,
+  po = null,
+  compact = false,
+}: {
+  pr: PurchaseRequest;
+  po?: LinkedPo;
+  compact?: boolean;
+}) {
+  const currentStatus = normalizePrStatus(pr.status);
+  const poStatus = po?.status ?? null;
   const className = compact
     ? "flex items-center gap-2 text-xs text-muted-foreground"
     : "flex items-center gap-2 text-sm text-muted-foreground";
@@ -177,18 +239,30 @@ function CurrentState({ pr, compact = false }: { pr: PurchaseRequest; compact?: 
     );
   }
 
+  if (currentStatus === PrStatus.COMPLETED || currentStatus === PrStatus.APPROVED) {
+    // Received and cancelled PO states are rendered as real timeline entries above.
+    if (poStatus === "received" || poStatus === "cancelled") return null;
+    return (
+      <div className={className}>
+        <ShoppingCart className={compact ? "h-3.5 w-3.5 text-emerald-600" : "h-4 w-4 text-emerald-600"} />
+        <span>Purchase order in progress.</span>
+      </div>
+    );
+  }
+
   return null;
 }
 
 export function PurchaseRequestWorkflowTimeline({
   pr,
   approvalHistory,
+  po = null,
   compact = false,
 }: PurchaseRequestWorkflowTimelineProps) {
-  const entries = buildTimelineEntries(pr, approvalHistory);
+  const entries = buildTimelineEntries(pr, approvalHistory, po);
 
   if (entries.length === 0) {
-    return <CurrentState pr={pr} compact={compact} />;
+    return <CurrentState pr={pr} po={po} compact={compact} />;
   }
 
   if (compact) {
@@ -215,7 +289,7 @@ export function PurchaseRequestWorkflowTimeline({
             </div>
           </div>
         ))}
-        <CurrentState pr={pr} compact />
+        <CurrentState pr={pr} po={po} compact />
       </div>
     );
   }
@@ -256,14 +330,16 @@ export function PurchaseRequestWorkflowTimeline({
           </div>
         ))}
         {/* Current state */}
-        <div className="flex gap-3 relative">
-          <div className="mt-1 shrink-0 z-[1] flex items-center justify-center w-[22px]">
-            <span className="block h-2 w-2 rounded-full bg-zinc-300 animate-pulse" />
+        {hasCurrentState(pr, po) && (
+          <div className="flex gap-3 relative">
+            <div className="mt-1 shrink-0 z-[1] flex items-center justify-center w-[22px]">
+              <span className="block h-2 w-2 rounded-full bg-zinc-300 animate-pulse" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <CurrentState pr={pr} po={po} />
+            </div>
           </div>
-          <div className="flex-1 min-w-0">
-            <CurrentState pr={pr} />
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

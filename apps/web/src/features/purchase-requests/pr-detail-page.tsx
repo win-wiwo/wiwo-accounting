@@ -658,7 +658,7 @@ export function PrDetailPage() {
       };
     }
     if (runtimeStatus === 'completed') {
-      const po = linkedPo?.data;
+      const po = linkedPo;
       const poStatusLabels: Record<string, string> = {
         pending: 'Purchase order created — awaiting procurement to place the order.',
         ordered: `Order placed with supplier.${po?.estimatedArrivalDate ? ` Estimated arrival: ${new Date(po.estimatedArrivalDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}.` : ''}`,
@@ -1339,6 +1339,7 @@ export function PrDetailPage() {
               <PurchaseRequestWorkflowTimeline
                 pr={pr}
                 approvalHistory={approvalHistory}
+                po={linkedPo ?? null}
               />
             </div>
           </div>

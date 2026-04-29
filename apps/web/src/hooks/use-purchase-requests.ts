@@ -32,11 +32,12 @@ export function usePrStats() {
   });
 }
 
-export function useProjectSpending() {
+export function useProjectSpending(_params?: undefined, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['purchase-requests', 'stats', 'by-project'],
     queryFn: () => purchaseRequestsApi.getProjectSpending(),
     select: (data) => (data as unknown as { data?: ProjectSpendingItem[] })?.data ?? [],
+    enabled: options?.enabled ?? true,
   });
 }
 

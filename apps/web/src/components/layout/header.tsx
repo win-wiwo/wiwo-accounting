@@ -21,6 +21,7 @@ interface NotificationItem {
   message: string;
   type: string;
   purchaseRequestId: string | null;
+  purchaseOrderId: string | null;
   isRead: boolean;
   createdAt: string;
 }
@@ -204,6 +205,11 @@ export function Header({ sidebarCollapsed }: HeaderProps) {
   const handleNotificationClick = (notif: NotificationItem) => {
     if (!notif.isRead) {
       markAsRead.mutate(notif._id);
+    }
+    if (notif.type === 'po_received' && notif.purchaseOrderId) {
+      navigate(`/purchase-orders/${notif.purchaseOrderId}`);
+      setNotifOpen(false);
+      return;
     }
     if (notif.purchaseRequestId) {
       if (notif.type === 'pr_needs_action') {

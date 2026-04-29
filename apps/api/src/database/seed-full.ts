@@ -721,11 +721,15 @@ function buildCanvassEntries(
   prDoc: any,
   supplierDocs: mongoose.Document[],
 ): any[] {
+  // Only procurement items go through canvass — online items have seller-direct prices.
+  const procItems = prDoc.items.filter((i: any) => i.sourcingType === 'procurement');
+  if (procItems.length === 0) return [];
+
   return pickSuppliers(prDoc.title).map((config, index) => {
     const supplier = supplierDocs.find(
       (doc: any) => doc.companyName === config.supplierName,
     );
-    const quotedItems = prDoc.items.map((item: any) => {
+    const quotedItems = procItems.map((item: any) => {
       const basePrice = item._seedPrice ?? item.estimatedPrice;
       const unitPrice = Math.round(basePrice * config.multiplier);
       return {
@@ -761,8 +765,12 @@ function applyQuotedPricingToPr(prDoc: any, supplierDocs: mongoose.Document[]) {
     ? hoursAfter(new Date(prDoc.submittedAt), 2)
     : new Date(prDoc.createdAt);
 
-  prDoc.items = prDoc.items.map((item: any, index: number) => {
-    const quotedItem = selected.quotedItems[index];
+  prDoc.items = prDoc.items.map((item: any) => {
+    if (item.sourcingType !== 'procurement') return item;
+    const quotedItem = selected.quotedItems.find(
+      (qi: any) => qi.itemId.toString() === item._id.toString(),
+    );
+    if (!quotedItem) return item;
     return {
       ...item,
       estimatedPrice: quotedItem.unitPrice,
@@ -1050,8 +1058,8 @@ async function seed() {
         status: 'approved', priority: opts.priority, items, totalAmount: total,
         justification: opts.justification,
         neededByDate: new Date(Date.now() + opts.neededInDays * 86400000),
-        currentApprovalLevel: 3, approvalHistory: [a1Id, a2Id, a3Id],
-        submittedAt: submitted, completedAt: l3Date,
+        currentApprovalLevel: 4, approvalHistory: [a1Id, a2Id, a3Id],
+        submittedAt: submitted, completedAt: null,
         createdAt: created, updatedAt: l3Date,
         attachments: [],
       });
@@ -1960,7 +1968,7 @@ async function seed() {
     console.log(`  Created ${suppliers.length} suppliers`);
 
     for (const prDoc of allPrs) {
-      if (['approved', 'completed', 'quoted', 'pending_quotation', 'level2_review', 'level3_review'].includes(prDoc.status)) {
+      if (['approved', 'completed', 'quoted'].includes(prDoc.status)) {
         applyQuotedPricingToPr(prDoc, suppliers);
       }
       await attachReferencePhotos(prDoc);
@@ -2024,13 +2032,15 @@ async function seed() {
     // PO 1: Received – IP Dome Cameras Batch 1
     if (completedPrDocs[0]) {
       const pr = completedPrDocs[0];
+      const receivedAt = daysAgo(38);
       pr.status = 'completed';
+      pr.completedAt = receivedAt;
       const po = buildPoFromPr(pr, {
         status: 'received',
         orderedAt: daysAgo(48),
         orderedBy: procurementUser._id,
         estimatedArrivalDate: daysAgo(40),
-        receivedAt: daysAgo(38),
+        receivedAt,
         receivedBy: procurementUser._id,
         receivingNotes: 'All 120 cameras received and inspected. No damage.',
       });
@@ -2041,13 +2051,15 @@ async function seed() {
     // PO 2: Received – Cat6 Cabling
     if (completedPrDocs[1]) {
       const pr = completedPrDocs[1];
+      const receivedAt = daysAgo(35);
       pr.status = 'completed';
+      pr.completedAt = receivedAt;
       const po = buildPoFromPr(pr, {
         status: 'received',
         orderedAt: daysAgo(43),
         orderedBy: procurementUser._id,
         estimatedArrivalDate: daysAgo(36),
-        receivedAt: daysAgo(35),
+        receivedAt,
         receivedBy: procurementUser._id,
         receivingNotes: 'All cabling materials delivered to site warehouse.',
       });
@@ -2055,10 +2067,9 @@ async function seed() {
       allPos.push(po);
     }
 
-    // PO 3: Ordered – Edge AI Server (awaiting delivery)
+    // PO 3: Ordered – Edge AI Server (awaiting delivery). PR stays APPROVED.
     if (completedPrDocs[7]) {
       const pr = completedPrDocs[7];
-      pr.status = 'completed';
       const po = buildPoFromPr(pr, {
         status: 'ordered',
         orderedAt: daysAgo(14),
@@ -2070,10 +2081,9 @@ async function seed() {
       allPos.push(po);
     }
 
-    // PO 4: Pending – AI Analytics License (just auto-created)
+    // PO 4: Pending – AI Analytics License (just auto-created). PR stays APPROVED.
     if (completedPrDocs[8]) {
       const pr = completedPrDocs[8];
-      pr.status = 'completed';
       const po = buildPoFromPr(pr, {
         status: 'pending',
       });
@@ -2081,19 +2091,30 @@ async function seed() {
       allPos.push(po);
     }
 
+    // Auto-create pending POs for every other approved PR. PR stays APPROVED
+    // until the PO is received.
+    for (const pr of completedPrDocs) {
+      if ((pr as any).purchaseOrderId) continue;
+      const po = buildPoFromPr(pr, { status: 'pending' });
+      (pr as any).purchaseOrderId = po._id;
+      allPos.push(po);
+    }
+
     console.log(`  Inserting ${allPos.length} purchase orders...`);
     await PurchaseOrder.insertMany(allPos);
 
-    // Update PRs that were linked to POs (status → completed, purchaseOrderId set)
+    // Link POs back to PRs. Only flip PR to COMPLETED when the PO is received.
     const prPoUpdates = allPos.map((po: any) => ({
       updateOne: {
         filter: { _id: po.purchaseRequestId },
-        update: { $set: { status: 'completed', purchaseOrderId: po._id } },
+        update: po.status === 'received'
+          ? { $set: { status: 'completed', completedAt: po.receivedAt, purchaseOrderId: po._id } }
+          : { $set: { purchaseOrderId: po._id } },
       },
     }));
     if (prPoUpdates.length > 0) {
       await PurchaseRequest.bulkWrite(prPoUpdates);
-      console.log(`  Updated ${prPoUpdates.length} PRs to completed status with PO links`);
+      console.log(`  Linked ${prPoUpdates.length} PRs to POs`);
     }
 
     console.log(`  Inserting ${allApprovals.length} approval records...`);

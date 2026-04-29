@@ -41,8 +41,9 @@ export class PurchaseOrdersService {
   }) {
     const { approval, purchaseRequest, actorId } = payload;
 
-    // Only trigger on COO approval of a PR that is now COMPLETED
-    if (approval.action !== 'approved' || purchaseRequest.status !== PrStatus.COMPLETED) {
+    // Trigger on the approval that lands the PR in APPROVED (online-only after
+    // CEO, or procurement after COO price sign-off). PO is created at this point.
+    if (approval.action !== 'approved' || purchaseRequest.status !== PrStatus.APPROVED) {
       return;
     }
 
@@ -63,8 +64,8 @@ export class PurchaseOrdersService {
       throw new NotFoundException('Source purchase request not found');
     }
 
-    if (pr.status !== PrStatus.COMPLETED) {
-      throw new BadRequestException('Source purchase request must be completed before creating a PO');
+    if (pr.status !== PrStatus.APPROVED) {
+      throw new BadRequestException('Source purchase request must be approved before creating a PO');
     }
 
     // Check if PO already exists for this PR
@@ -77,25 +78,23 @@ export class PurchaseOrdersService {
     // Find the selected supplier from canvass entries
     const selectedCanvass = pr.canvassEntries.find((e) => e.isSelected);
 
-    // Build line items from PR items using quoted prices
-    const items = pr.items
-      .filter((item) => item.sourcingType === 'procurement')
-      .map((item) => {
-        // Try to find quoted price from selected canvass
-        const quotedItem = selectedCanvass?.quotedItems?.find(
-          (qi) => qi.itemId?.toString() === item._id.toString(),
-        );
+    // Build line items from PR items. Procurement items use canvass-quoted prices;
+    // online items use the requester-selected seller price (estimatedPrice).
+    const items = pr.items.map((item) => {
+      const quotedItem = selectedCanvass?.quotedItems?.find(
+        (qi) => qi.itemId?.toString() === item._id.toString(),
+      );
 
-        const unitPrice = quotedItem?.unitPrice ?? item.quotedUnitPrice ?? item.estimatedPrice;
-        return {
-          description: item.description,
-          quantity: item.quantity,
-          unit: item.unit,
-          unitPrice,
-          totalPrice: item.quantity * unitPrice,
-          notes: item.notes || null,
-        };
-      });
+      const unitPrice = quotedItem?.unitPrice ?? item.quotedUnitPrice ?? item.estimatedPrice;
+      return {
+        description: item.description,
+        quantity: item.quantity,
+        unit: item.unit,
+        unitPrice,
+        totalPrice: item.quantity * unitPrice,
+        notes: item.notes || null,
+      };
+    });
 
     const totalAmount = items.reduce((sum, item) => sum + item.totalPrice, 0);
 
@@ -257,7 +256,7 @@ export class PurchaseOrdersService {
 
   async findByPurchaseRequest(prId: string): Promise<PurchaseOrder | null> {
     return this.poModel
-      .findOne({ purchaseRequestId: prId })
+      .findOne({ purchaseRequestId: new Types.ObjectId(prId) })
       .populate('createdBy', 'firstName lastName email')
       .populate('orderedBy', 'firstName lastName email')
       .populate('receivedBy', 'firstName lastName email')
@@ -385,11 +384,16 @@ export class PurchaseOrdersService {
 
     const saved = await po.save();
 
-    // Get the PR to find the requester
+    // Flip the linked PR to COMPLETED now that the order has arrived.
     const pr = await this.prModel
       .findById(po.purchaseRequestId)
-      .select('requesterId prNumber')
       .exec();
+
+    if (pr) {
+      pr.status = PrStatus.COMPLETED;
+      pr.completedAt = new Date();
+      await pr.save();
+    }
 
     this.eventEmitter.emit('purchase-order.received', {
       purchaseOrder: saved.toJSON(),

@@ -14,6 +14,7 @@ import {
   Check,
   ExternalLink,
   ChevronDown,
+  Send,
   X,
 } from 'lucide-react';
 import {
@@ -94,7 +95,6 @@ export function PrApprovalModal({
   const [itemPhotoDialog, setItemPhotoDialog] = useState<{
     open: boolean; url: string | null; loading: boolean;
   }>({ open: false, url: null, loading: false });
-  const [itemsExpanded, setItemsExpanded] = useState(false);
   const [expandedSellers, setExpandedSellers] = useState<Record<number, boolean>>({});
 
   const requester = pr?.requesterId as unknown as {
@@ -328,19 +328,14 @@ export function PrApprovalModal({
                       </div>
                     </div>
 
-                    {/* ── Collapsible Line Items ──────────────────── */}
+                    {/* ── Line Items ──────────────────────────────── */}
                     <div className="rounded-xl border border-zinc-200/60 overflow-hidden">
-                      <button
-                        type="button"
-                        className="flex w-full items-center justify-between px-4 py-3 hover:bg-zinc-50/60 transition-colors group"
-                        onClick={() => setItemsExpanded(!itemsExpanded)}
-                      >
+                      <div className="px-4 py-3">
                         <span className="text-[12px] font-semibold text-zinc-700">
                           {pr.items.length} Item{pr.items.length !== 1 ? 's' : ''} Requested
                         </span>
-                        <ChevronDown className={`h-3.5 w-3.5 text-zinc-400 transition-transform duration-200 ${itemsExpanded ? 'rotate-180' : ''}`} />
-                      </button>
-                      {itemsExpanded && (
+                      </div>
+                      {(
                         <div className="border-t border-zinc-100">
                           {pr.items.map((item, i) => {
                             const isProcurement = item.sourcingType === SourcingType.PROCUREMENT;
@@ -442,6 +437,14 @@ export function PrApprovalModal({
                                               </div>
                                             );
                                           })}
+                                          {item.sellerReferencesJustification && (
+                                            <div className="mt-1.5 rounded-lg border border-amber-200/60 bg-amber-50/50 px-2.5 py-2">
+                                              <p className="text-[9px] font-semibold uppercase tracking-[0.08em] text-amber-700 mb-0.5">Justification</p>
+                                              <p className="text-[11px] text-zinc-700 leading-relaxed whitespace-pre-wrap">
+                                                {item.sellerReferencesJustification}
+                                              </p>
+                                            </div>
+                                          )}
                                         </div>
                                       )}
                                     </div>
@@ -600,10 +603,27 @@ export function PrApprovalModal({
                         <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400 mb-2">
                           Workflow History
                         </p>
-                        {approvalHistory.length === 0 ? (
+                        {!pr?.submittedAt && approvalHistory.length === 0 ? (
                           <p className="text-[11px] text-zinc-400">No actions yet.</p>
                         ) : (
                           <div className="space-y-1">
+                            {pr?.submittedAt && (
+                              <div className="flex items-start gap-2 py-1">
+                                <Send className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-[13px] font-semibold text-zinc-800 leading-tight">Submitted</p>
+                                  <p className="text-[11px] tabular-nums text-zinc-400 mt-0.5">
+                                    {new Date(pr.submittedAt).toLocaleString('en-US', {
+                                      month: 'short',
+                                      day: 'numeric',
+                                      year: 'numeric',
+                                      hour: 'numeric',
+                                      minute: '2-digit',
+                                    })}
+                                  </p>
+                                </div>
+                              </div>
+                            )}
                             {[...approvalHistory]
                               .sort((a, b) => new Date(a.actionDate).getTime() - new Date(b.actionDate).getTime())
                               .map((entry) => {

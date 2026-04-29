@@ -117,6 +117,13 @@ export function PoDetailPage() {
   const [etaDialog, setEtaDialog] = useState(false);
   const [newEta, setNewEta] = useState('');
 
+  // Proof photo viewer dialog
+  const [proofPhotoDialog, setProofPhotoDialog] = useState<{
+    open: boolean;
+    url: string | null;
+    name: string;
+  }>({ open: false, url: null, name: '' });
+
   // Cancel dialog
   const [cancelDialog, setCancelDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
@@ -285,6 +292,16 @@ export function PoDetailPage() {
             <GhostButton onClick={() => navigate('/purchase-orders')}>
               <ArrowLeft className="h-3.5 w-3.5" /> Back
             </GhostButton>
+            {sourceRequest?._id && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="rounded-lg text-[13px] h-8 border-blue-200 text-blue-700 hover:bg-blue-50"
+                onClick={() => navigate(`/purchase-requests/${sourceRequest._id}`)}
+              >
+                <FileText className="h-3.5 w-3.5" /> View Purchase Request
+              </Button>
+            )}
             {canCancel && (
               <GhostButton
                 onClick={() => { setCancelReason(''); setCancelDialog(true); }}
@@ -412,21 +429,23 @@ export function PoDetailPage() {
               <PanelHeader icon={<ImageIcon className="h-4 w-4 text-zinc-400" />} title="Receiving Proof Photos" />
               <div className="px-6 pb-6">
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {po.proofPhotos.map((photo: { _id: string; storagePath: string; originalName: string }) => (
-                    <a
-                      key={photo._id}
-                      href={resolvePhotoUrl(`/${photo.storagePath}`)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="group relative aspect-square rounded-xl border border-zinc-200 overflow-hidden hover:border-zinc-300 transition-colors"
-                    >
-                      <img
-                        src={resolvePhotoUrl(`/${photo.storagePath}`)}
-                        alt={photo.originalName}
-                        className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-200"
-                      />
-                    </a>
-                  ))}
+                  {po.proofPhotos.map((photo: { _id: string; storagePath: string; originalName: string }) => {
+                    const photoUrl = resolvePhotoUrl(`/${photo.storagePath}`);
+                    return (
+                      <button
+                        key={photo._id}
+                        type="button"
+                        onClick={() => setProofPhotoDialog({ open: true, url: photoUrl ?? null, name: photo.originalName })}
+                        className="group relative aspect-square rounded-xl border border-zinc-200 overflow-hidden hover:border-zinc-300 transition-colors"
+                      >
+                        <img
+                          src={photoUrl}
+                          alt={photo.originalName}
+                          className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-200"
+                        />
+                      </button>
+                    );
+                  })}
                 </div>
                 {po.receivingNotes && (
                   <div className="mt-4 rounded-lg bg-zinc-50 p-3">
@@ -681,6 +700,31 @@ export function PoDetailPage() {
               <XCircle className="h-4 w-4" /> Cancel PO
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Proof Photo Viewer Dialog */}
+      <Dialog
+        open={proofPhotoDialog.open}
+        onOpenChange={(o) => {
+          if (!o) setProofPhotoDialog({ open: false, url: null, name: '' });
+        }}
+      >
+        <DialogContent className="max-w-2xl" onOpenAutoFocus={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ImageIcon className="h-4 w-4" /> Receiving Proof Photo
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center justify-center min-h-48">
+            {proofPhotoDialog.url ? (
+              <img
+                src={proofPhotoDialog.url}
+                alt={proofPhotoDialog.name || 'Proof photo'}
+                className="max-w-full max-h-[60vh] rounded-md object-contain"
+              />
+            ) : null}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
