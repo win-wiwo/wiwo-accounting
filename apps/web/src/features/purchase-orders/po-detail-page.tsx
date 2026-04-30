@@ -127,6 +127,7 @@ export function PoDetailPage() {
   // Cancel dialog
   const [cancelDialog, setCancelDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
+  const [cancelPrAction, setCancelPrAction] = useState<'keep_approved' | 'requeue_canvass' | 'cancel_pr'>('keep_approved');
 
   const handleMarkOrdered = async () => {
     if (!po) return;
@@ -178,13 +179,24 @@ export function PoDetailPage() {
   const handleCancel = async () => {
     if (!po || !cancelReason.trim()) return;
     try {
-      await cancelMutation.mutateAsync({ id: po._id, reason: cancelReason.trim() });
-      toast({ title: 'PO cancelled', variant: 'success' });
+      await cancelMutation.mutateAsync({
+        id: po._id,
+        reason: cancelReason.trim(),
+        prAction: cancelPrAction,
+      });
+      const followUp =
+        cancelPrAction === 'requeue_canvass'
+          ? 'PR returned to procurement for re-canvassing.'
+          : cancelPrAction === 'cancel_pr'
+            ? 'Parent PR has also been cancelled.'
+            : 'Parent PR remains approved — you can issue a new PO.';
+      toast({ title: 'PO cancelled', description: followUp, variant: 'success' });
     } catch {
       toast({ title: 'Failed to cancel', variant: 'error' });
     }
     setCancelDialog(false);
     setCancelReason('');
+    setCancelPrAction('keep_approved');
   };
 
   const addPhotos = (files: FileList | null) => {
@@ -304,7 +316,7 @@ export function PoDetailPage() {
             )}
             {canCancel && (
               <GhostButton
-                onClick={() => { setCancelReason(''); setCancelDialog(true); }}
+                onClick={() => { setCancelReason(''); setCancelPrAction('keep_approved'); setCancelDialog(true); }}
                 className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
               >
                 <XCircle className="h-3.5 w-3.5" /> Cancel
@@ -496,7 +508,9 @@ export function PoDetailPage() {
               <SidebarLabel>
                 <span className="inline-flex items-center gap-1.5"><ShoppingCart className="h-3 w-3" /> Supplier</span>
               </SidebarLabel>
-              <p className="mt-2 text-[13px] font-semibold text-zinc-900">{po.supplierName || '—'}</p>
+              <p className="mt-2 text-[13px] font-semibold text-zinc-900">
+                {po.supplierName || ((po.canvassEntries?.length ?? 0) === 0 ? 'Online' : '—')}
+              </p>
             </div>
           </Surface>
 
@@ -677,25 +691,62 @@ export function PoDetailPage() {
       </Dialog>
 
       {/* Cancel PO Dialog */}
-      <Dialog open={cancelDialog} onOpenChange={(open) => { setCancelDialog(open); if (!open) setCancelReason(''); }}>
+      <Dialog open={cancelDialog} onOpenChange={(open) => { setCancelDialog(open); if (!open) { setCancelReason(''); setCancelPrAction('keep_approved'); } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Cancel Purchase Order</DialogTitle>
             <DialogDescription>This purchase order will be permanently cancelled.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-2">
-            <Label htmlFor="cancel-reason">Reason <span className="text-destructive">*</span></Label>
-            <textarea
-              id="cancel-reason"
-              rows={3}
-              className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[13px] text-zinc-800 outline-none transition-all duration-200 focus:border-zinc-400 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]"
-              placeholder="Why is this PO being cancelled?"
-              value={cancelReason}
-              onChange={(e) => setCancelReason(e.target.value)}
-            />
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="cancel-reason">Reason <span className="text-destructive">*</span></Label>
+              <textarea
+                id="cancel-reason"
+                rows={3}
+                className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[13px] text-zinc-800 outline-none transition-all duration-200 focus:border-zinc-400 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]"
+                placeholder="Why is this PO being cancelled?"
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[13px]">What should happen to the PR?</Label>
+              <div className="space-y-2">
+                {(([
+                  { value: 'keep_approved', title: 'Keep PR approved', hint: 'Issue a new PO from the existing canvass (e.g. wrong supplier picked, duplicate PO).' },
+                  // Re-canvass only applies if there were procurement items canvassed.
+                  ...((po.canvassEntries?.length ?? 0) > 0
+                    ? [{ value: 'requeue_canvass', title: 'Re-canvass', hint: 'Need still exists but this supplier can\'t fulfill — return PR to procurement to source again.' }]
+                    : []),
+                  { value: 'cancel_pr', title: 'Cancel the PR too', hint: 'Need is gone, duplicate, or budget pulled. PR is closed permanently.' },
+                ]) as ReadonlyArray<{ value: 'keep_approved' | 'requeue_canvass' | 'cancel_pr'; title: string; hint: string }>).map((opt) => (
+                  <label
+                    key={opt.value}
+                    className={`flex items-start gap-3 rounded-lg border px-3 py-2.5 cursor-pointer transition-colors ${
+                      cancelPrAction === opt.value
+                        ? 'border-zinc-400 bg-zinc-50'
+                        : 'border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50/50'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="cancel-pr-action"
+                      value={opt.value}
+                      checked={cancelPrAction === opt.value}
+                      onChange={() => setCancelPrAction(opt.value)}
+                      className="mt-1 shrink-0"
+                    />
+                    <div className="min-w-0">
+                      <p className="text-[13px] font-medium text-zinc-800">{opt.title}</p>
+                      <p className="text-[11.5px] text-zinc-500 leading-snug mt-0.5">{opt.hint}</p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setCancelDialog(false); setCancelReason(''); }}>Back</Button>
+            <Button variant="outline" onClick={() => { setCancelDialog(false); setCancelReason(''); setCancelPrAction('keep_approved'); }}>Back</Button>
             <Button variant="destructive" onClick={handleCancel} disabled={cancelMutation.isPending || !cancelReason.trim()}>
               <XCircle className="h-4 w-4" /> Cancel PO
             </Button>

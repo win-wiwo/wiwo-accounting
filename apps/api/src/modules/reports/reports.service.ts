@@ -652,19 +652,19 @@ export class ReportsService {
       throw new NotFoundException('Purchase request not found');
     }
 
-    const items = ((pr as unknown as { items?: Array<{ sourcingType?: string }> }).items) ?? [];
-    const hasProcurementItems = items.some((it) => it.sourcingType === 'procurement');
+    const sourcingMode = (pr as unknown as { sourcingMode?: string }).sourcingMode ?? 'procurement';
+    const isProcurementMode = sourcingMode === 'procurement';
     const status = (pr as unknown as { status: string }).status;
 
     // PO/PR form may only be printed once the relevant COO sign-off is on record.
-    // - Online-only PR: COO need approval (Level 2) must be done → status is LEVEL3_REVIEW or later.
-    // - PR with procurement items: COO price sign-off (after QUOTED) must be done → status is APPROVED or later.
-    const onlineOnlyAllowed: string[] = [PrStatus.LEVEL3_REVIEW, PrStatus.APPROVED, PrStatus.COMPLETED];
+    // - Online PR: COO need approval (Level 2) must be done → status is LEVEL3_REVIEW or later.
+    // - Procurement PR: COO price sign-off (after QUOTED) must be done → status is APPROVED or later.
+    const onlineAllowed: string[] = [PrStatus.LEVEL3_REVIEW, PrStatus.APPROVED, PrStatus.COMPLETED];
     const procurementAllowed: string[] = [PrStatus.APPROVED, PrStatus.COMPLETED];
-    const allowedStatuses = hasProcurementItems ? procurementAllowed : onlineOnlyAllowed;
+    const allowedStatuses = isProcurementMode ? procurementAllowed : onlineAllowed;
     if (!allowedStatuses.includes(status)) {
       throw new ForbiddenException(
-        hasProcurementItems
+        isProcurementMode
           ? 'PDF can be downloaded only after COO has approved the canvassed price.'
           : 'PDF can be downloaded only after COO has approved the request.',
       );

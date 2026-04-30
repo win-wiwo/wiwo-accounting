@@ -353,7 +353,7 @@ export function PoListPage() {
                               <p className="text-[13px] text-zinc-700 truncate">{po.supplierName}</p>
                             </div>
                           ) : (
-                            <span className="text-[12px] text-zinc-300 italic">No supplier</span>
+                            <span className="text-[12px] text-zinc-500 italic">Online</span>
                           )}
                         </td>
 

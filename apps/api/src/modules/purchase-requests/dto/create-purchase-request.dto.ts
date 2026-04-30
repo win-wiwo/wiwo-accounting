@@ -109,6 +109,10 @@ export class CreatePurchaseRequestDto {
   @IsOptional()
   requestType?: string;
 
+  @ApiProperty({ enum: SourcingType, description: 'Whether items are online-purchased or procurement-canvassed. All items must share this mode.' })
+  @IsEnum(SourcingType)
+  sourcingMode: SourcingType;
+
   @ApiProperty({ example: 'Busway Phase 2 Pole Hardware' })
   @IsString()
   @MinLength(1)

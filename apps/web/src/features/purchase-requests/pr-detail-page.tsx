@@ -32,8 +32,6 @@ import {
   type PrPriority as PrPriorityType,
   type PreviousSubmissionSnapshot,
   type PrLineItem,
-  type ClarificationReply,
-  type QuotationReturn,
 } from "@prams/shared";
 import {
   usePurchaseRequest,
@@ -47,7 +45,7 @@ import {
 import { purchaseRequestsApi } from "@/lib/api-services";
 import apiClient from "@/lib/api-client";
 import { useApprovalHistory, useProcessApproval } from "@/hooks/use-approvals";
-import { usePurchaseOrderByPr } from "@/hooks/use-purchase-orders";
+import { usePurchaseOrderByPr, useIssuePoFromPr } from "@/hooks/use-purchase-orders";
 import { useAuthStore } from "@/stores/auth.store";
 import { useToast } from "@/components/ui/toast";
 import { PurchaseRequestWorkflowTimeline } from "@/components/purchase-request-workflow-timeline";
@@ -326,6 +324,7 @@ export function PrDetailPage() {
   const recallMutation = useRecallPr();
   const cancelMutation = useCancelPr();
   const processApproval = useProcessApproval();
+  const issuePoMutation = useIssuePoFromPr();
 
   const pr = data?.data;
   const { data: approvalHistoryData } = useApprovalHistory(id!);
@@ -577,8 +576,9 @@ export function PrDetailPage() {
         user?.role === UserRole.CEO));
 
   const isPriceReview = runtimeStatus === PrStatus.QUOTED;
-  const hasProcurementItems = pr.items.some((i) => i.sourcingType === SourcingType.PROCUREMENT);
-  const hasUnquotedItems = hasProcurementItems && pr.items.filter((i) => i.sourcingType === SourcingType.PROCUREMENT).some((i) => !i.quotedUnitPrice);
+  // PR-level mode is the source of truth — every item shares it.
+  const hasProcurementItems = pr.sourcingMode === SourcingType.PROCUREMENT;
+  const hasUnquotedItems = hasProcurementItems && pr.items.some((i) => !i.quotedUnitPrice);
 
   // PDF download gate: COO sign-off must be on record before the form can be printed.
   // - Online-only PR: COO Level 2 approval done → status reached LEVEL3_REVIEW or beyond.
@@ -735,6 +735,13 @@ export function PrDetailPage() {
               <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold shrink-0 ${statusStyle[pr.status] ?? 'bg-zinc-100 text-zinc-600'}`}>
                 {PR_STATUS_LABELS[pr.status as PrStatusType]}
               </span>
+              <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold shrink-0 ${
+                pr.sourcingMode === SourcingType.ONLINE
+                  ? 'bg-blue-50 text-blue-700 border border-blue-100'
+                  : 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+              }`}>
+                {pr.sourcingMode === SourcingType.ONLINE ? 'Online' : 'Procurement'}
+              </span>
               <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold shrink-0 ${priorityStyle[pr.priority] ?? 'bg-zinc-100 text-zinc-500'}`}>
                 {PR_PRIORITY_LABELS[pr.priority as PrPriorityType]}
               </span>
@@ -760,6 +767,28 @@ export function PrDetailPage() {
                 <ShoppingCart className="h-3.5 w-3.5" /> View Purchase Order
               </Button>
             )}
+            {runtimeStatus === PrStatus.APPROVED &&
+              (linkedPo?.status === 'cancelled' || !linkedPo) &&
+              (user?.role === UserRole.PROCUREMENT || user?.role === UserRole.ADMIN) && (
+                <Button
+                  size="sm"
+                  className="rounded-lg text-[13px] h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
+                  disabled={issuePoMutation.isPending}
+                  onClick={async () => {
+                    try {
+                      const res = await issuePoMutation.mutateAsync(pr._id);
+                      const newPoId = res?.data?._id;
+                      toast({ title: 'New PO issued', description: 'A new purchase order has been created from this PR.', variant: 'success' });
+                      if (newPoId) navigate(`/purchase-orders/${newPoId}`);
+                    } catch {
+                      toast({ title: 'Failed to issue new PO', variant: 'error' });
+                    }
+                  }}
+                >
+                  {issuePoMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ShoppingCart className="h-3.5 w-3.5" />}
+                  Issue New PO
+                </Button>
+              )}
             {!isDraft && (
               <Tooltip.Provider delayDuration={150}>
                 <Tooltip.Root>
@@ -1168,23 +1197,8 @@ export function PrDetailPage() {
           )}
 
 
-          {/* Clarification thread — only shown when procurement has asked at least one question */}
-          {pr.quotationReturnHistory && pr.quotationReturnHistory.some((e) => !e.source || e.source === 'procurement') && (() => {
-            // Only include procurement-sourced notes (not COO price-review returns)
-            const thread: Array<{ id: string; note: string; author: string; isoAt: string; displayAt: string; side: 'procurement' | 'requester' }> = [];
-            for (const entry of pr.quotationReturnHistory as QuotationReturn[]) {
-              if (entry.source === 'coo') continue;
-              const by = typeof entry.returnedBy === 'object' && entry.returnedBy
-                ? `${entry.returnedBy.firstName} ${entry.returnedBy.lastName}` : 'Procurement';
-              thread.push({ id: entry._id, note: entry.note, author: by, isoAt: entry.returnedAt, displayAt: formatDate(entry.returnedAt), side: 'procurement' });
-            }
-            for (const reply of (pr.clarificationReplies ?? []) as ClarificationReply[]) {
-              const by = typeof reply.repliedBy === 'object' && reply.repliedBy
-                ? `${reply.repliedBy.firstName} ${reply.repliedBy.lastName}` : 'Requester';
-              thread.push({ id: reply._id, note: reply.note, author: by, isoAt: reply.repliedAt, displayAt: formatDate(reply.repliedAt), side: 'requester' });
-            }
-            thread.sort((a, b) => new Date(a.isoAt).getTime() - new Date(b.isoAt).getTime());
-
+          {/* Clarification reply form — only shown when procurement has returned the PR for info and the viewer is the owner */}
+          {isOwner && isReturnedForInfo && (() => {
             const handleReply = async () => {
               if (!replyNote.trim()) return;
               try {
@@ -1198,53 +1212,33 @@ export function PrDetailPage() {
 
             return (
               <div className="rounded-xl border border-amber-200/70 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-                <div className="px-6 pt-5 pb-3 flex items-center gap-2">
-                  <h3 className="text-[13px] font-semibold text-zinc-900">Procurement Clarification</h3>
-                  <span className="inline-flex items-center rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
-                    {thread.length}
-                  </span>
+                <div className="px-6 pt-5 pb-2">
+                  <p className="text-[14px] font-semibold text-zinc-900">Reply to procurement</p>
+                  <p className="text-[12px] text-zinc-500 mt-1">Procurement asked for more info — see the request details in the timeline. Once you reply, the PR returns to procurement.</p>
                 </div>
-                <div className="px-6 pb-4 space-y-3">
-                  {thread.map((msg) => (
-                    <div key={msg.id} className={`flex gap-2.5 ${msg.side === 'requester' ? 'flex-row-reverse' : ''}`}>
-                      <div className={`shrink-0 h-7 w-7 rounded-full flex items-center justify-center text-[10px] font-bold mt-0.5 ${msg.side === 'procurement' ? 'bg-amber-100 text-amber-700' : 'bg-zinc-200 text-zinc-600'}`}>
-                        {msg.author.charAt(0).toUpperCase()}
-                      </div>
-                      <div className={`max-w-[80%] space-y-1 ${msg.side === 'requester' ? 'items-end' : 'items-start'} flex flex-col`}>
-                        <p className="text-[10.5px] text-zinc-400">{msg.author} · {msg.displayAt}</p>
-                        <div className={`rounded-xl px-3.5 py-2.5 text-[13px] leading-relaxed ${msg.side === 'procurement' ? 'bg-amber-50 border border-amber-200/60 text-amber-900' : 'bg-zinc-900 text-white'}`}>
-                          {msg.note}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                {/* Reply input — only for the requester/owner */}
-                {isOwner && (
-                  <div className="px-6 pb-5 border-t border-zinc-100 pt-4">
-                    <div className="flex gap-2.5 items-end">
-                      <textarea
-                        rows={2}
-                        placeholder="Reply to procurement…"
-                        className="flex-1 rounded-xl border border-zinc-200/80 bg-zinc-50/40 px-3.5 py-2.5 text-[13px] placeholder:text-zinc-400 focus:outline-none focus:border-zinc-300 focus:bg-white resize-none transition-all duration-150"
-                        value={replyNote}
-                        onChange={(e) => setReplyNote(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleReply(); }}
-                      />
-                      <Button
-                        type="button"
-                        size="sm"
-                        className="h-9 shrink-0"
-                        disabled={!replyNote.trim() || replyMutation.isPending}
-                        onClick={handleReply}
-                      >
-                        {replyMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-                        Send
-                      </Button>
-                    </div>
-                    <p className="mt-1.5 text-[11px] text-zinc-400">Cmd/Ctrl + Enter to send</p>
+                <div className="px-6 pt-3 pb-5">
+                  <textarea
+                    rows={3}
+                    placeholder="Provide the requested details…"
+                    className="w-full rounded-xl border border-zinc-200/80 bg-zinc-50/50 px-4 py-3 text-[13px] text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:border-zinc-300 focus:bg-white resize-none transition-all duration-150 leading-relaxed"
+                    value={replyNote}
+                    onChange={(e) => setReplyNote(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleReply(); }}
+                  />
+                  <div className="flex items-center justify-between mt-3">
+                    <p className="text-[11px] text-zinc-400">Cmd/Ctrl + Enter to send</p>
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="h-9 bg-zinc-900 hover:bg-zinc-800 text-white text-[12px] gap-1.5"
+                      disabled={!replyNote.trim() || replyMutation.isPending}
+                      onClick={handleReply}
+                    >
+                      {replyMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                      Send Reply
+                    </Button>
                   </div>
-                )}
+                </div>
               </div>
             );
           })()}

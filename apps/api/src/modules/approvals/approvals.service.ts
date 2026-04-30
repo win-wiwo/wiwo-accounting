@@ -120,15 +120,12 @@ export class ApprovalsService {
     // Transition the PR status
     if (dto.action === ApprovalAction.APPROVED) {
       if (currentLevel === ApprovalLevel.CEO) {
-        // CEO approval: check if PR needs procurement
-        const hasProcurementItems = pr.items.some(
-          (item) => item.sourcingType === SourcingType.PROCUREMENT,
-        );
-        if (hasProcurementItems) {
+        // CEO approval: route by PR-level sourcing mode.
+        if (pr.sourcingMode === SourcingType.PROCUREMENT) {
           pr.status = PrStatus.PENDING_QUOTATION;
           pr.currentApprovalLevel = currentLevel + 1;
         } else {
-          // Online-only PR: procurement officer still places the order.
+          // Online PR: procurement officer still places the order.
           // Move to APPROVED so a PO is auto-created. PR becomes COMPLETED
           // only once the PO is received.
           pr.status = PrStatus.APPROVED;

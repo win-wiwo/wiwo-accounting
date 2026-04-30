@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Controller,
   type UseFormReturn,
@@ -37,8 +37,6 @@ interface StepItemsProps {
   append: UseFieldArrayReturn<FormData, 'items'>['append'];
   remove: UseFieldArrayReturn<FormData, 'items'>['remove'];
   totalAmount: number;
-  hasProcurementItems: boolean;
-  hasOnlineItems: boolean;
   stagedFiles: ReturnType<typeof useStagedFiles>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   prData: { data?: any } | undefined;
@@ -51,8 +49,6 @@ export function StepItems({
   append,
   remove,
   totalAmount,
-  hasProcurementItems,
-  hasOnlineItems,
   stagedFiles,
   prData,
   serverPhotoPreviews,
@@ -65,6 +61,29 @@ export function StepItems({
     formState: { errors },
   } = form;
   const watchItems = watch('items');
+  const sourcingMode = watch('sourcingMode');
+
+  // Lock the sourcing mode once a real item has been entered. The form may
+  // start with a placeholder item; we only lock when the user has actually
+  // filled in any details (description, price, or seller refs).
+  const sourcingModeLocked = (watchItems ?? []).some((item) =>
+    Boolean(
+      item?.description?.trim() ||
+        (item?.estimatedPrice ?? 0) > 0 ||
+        (item?.sellerReferences?.length ?? 0) > 0,
+    ),
+  );
+
+  // Keep placeholder items in sync with the chosen sourcing mode so they pass
+  // validation. The lock above guarantees this only runs while items are blank.
+  useEffect(() => {
+    if (!sourcingMode) return;
+    (watchItems ?? []).forEach((item, index) => {
+      if (item && item.sourcingType !== sourcingMode) {
+        setValue(`items.${index}.sourcingType`, sourcingMode, { shouldValidate: false, shouldDirty: false });
+      }
+    });
+  }, [sourcingMode, watchItems, setValue]);
 
   // UI-only: which seller index is "selected" per item (not persisted to schema)
   const [selectedSellerIndexes, setSelectedSellerIndexes] = useState<Record<number, number>>({});
@@ -91,6 +110,45 @@ export function StepItems({
 
   return (
     <div className="space-y-5">
+      {/* ── Sourcing picker — sets the mode for all line items ───── */}
+      <Surface delay={0.02}>
+        <div className="px-6 pt-6 pb-2">
+          <h2 className="flex items-center gap-2 text-[15px] font-semibold text-zinc-900">
+            <ShoppingCart className="h-4 w-4 text-zinc-400" />
+            Sourcing
+          </h2>
+          <p className="mt-1 text-[12px] text-zinc-500 leading-relaxed">
+            {sourcingModeLocked
+              ? 'Sourcing mode is locked once items have content. Clear the items below to change it.'
+              : 'Choose how the items below will be sourced. All items in this PR share the same mode.'}
+          </p>
+        </div>
+        <div className="px-6 pb-6 pt-3">
+          <Controller
+            control={control}
+            name="sourcingMode"
+            render={({ field }) => (
+              <div className={cn('grid gap-3 sm:grid-cols-2', sourcingModeLocked && 'opacity-60 pointer-events-none')}>
+                <SourcingModeCard
+                  selected={field.value === SourcingType.PROCUREMENT}
+                  onClick={() => !sourcingModeLocked && field.onChange(SourcingType.PROCUREMENT)}
+                  icon={<ShoppingCart className="h-4 w-4" />}
+                  title="Procurement"
+                  description="Procurement canvasses suppliers and picks the winning quote."
+                />
+                <SourcingModeCard
+                  selected={field.value === SourcingType.ONLINE}
+                  onClick={() => !sourcingModeLocked && field.onChange(SourcingType.ONLINE)}
+                  icon={<Globe className="h-4 w-4" />}
+                  title="Online"
+                  description="Items purchased online — requester picks the seller per item."
+                />
+              </div>
+            )}
+          />
+        </div>
+      </Surface>
+
       <Surface delay={0.04}>
         {/* ── Section header ─────────────────────────────── */}
         <div className="flex items-center justify-between px-6 pt-6 pb-4">
@@ -100,12 +158,14 @@ export function StepItems({
               Line Items
             </h2>
             <p className="mt-1 text-[12px] text-zinc-500 leading-relaxed">
-              Each item has its own details, sourcing type, and supplier references.
+              {sourcingMode === SourcingType.ONLINE
+                ? 'Add items to be purchased online. List 3 sellers per item (or justify fewer).'
+                : 'Add items procurement will canvass. Specs and reference photos help suppliers quote accurately.'}
             </p>
           </div>
           <PrimaryButton
             type="button"
-            onClick={() => append(defaultItem())}
+            onClick={() => append(defaultItem(sourcingMode))}
           >
             <Plus className="h-3.5 w-3.5" /> Add Item
           </PrimaryButton>
@@ -122,7 +182,8 @@ export function StepItems({
 
           {fields.map((field, index) => {
             const item = watchItems?.[index];
-            const isOnline = item?.sourcingType === SourcingType.ONLINE;
+            // Source-of-truth is PR-level sourcingMode; every item inherits it.
+            const isOnline = sourcingMode === SourcingType.ONLINE;
             const qty = Number(item?.quantity) || 0;
             const price = isOnline ? Number(item?.estimatedPrice) || 0 : 0;
             const lineTotal = qty * price;
@@ -223,31 +284,6 @@ export function StepItems({
 
                 {/* ── Pricing & Sourcing ───────────────── */}
                 <ItemSection title="Pricing & Sourcing">
-                  <FormField label="Sourcing">
-                    <Controller
-                      control={control}
-                      name={`items.${index}.sourcingType`}
-                      render={({ field: f }) => (
-                        <div className="grid grid-cols-2 gap-2">
-                          <SourcingCard
-                            selected={f.value === SourcingType.PROCUREMENT}
-                            onClick={() => f.onChange(SourcingType.PROCUREMENT)}
-                            icon={<ShoppingCart className="h-3.5 w-3.5" />}
-                            title="Procurement"
-                            description="Quoted after approval"
-                          />
-                          <SourcingCard
-                            selected={f.value === SourcingType.ONLINE}
-                            onClick={() => f.onChange(SourcingType.ONLINE)}
-                            icon={<Globe className="h-3.5 w-3.5" />}
-                            title="Online"
-                            description="You enter price & sellers"
-                          />
-                        </div>
-                      )}
-                    />
-                  </FormField>
-
                   {isOnline && (
                     <UnitPriceDisplay
                       selectedSellerIndex={selectedSellerIndexes[index]}
@@ -306,26 +342,15 @@ export function StepItems({
           {/* ── Cumulative summary footer ──────────── */}
           <div className="flex items-center justify-between rounded-xl border border-zinc-200/80 bg-zinc-50/60 px-6 py-4">
             <div className="text-[12px] text-zinc-500 leading-relaxed pr-4">
-              {hasProcurementItems && !hasOnlineItems ? (
-                <>
-                  <p className="flex items-center gap-1.5 font-medium text-zinc-700">
-                    <ShoppingCart className="h-3.5 w-3.5" />
-                    Procurement-sourced items only
-                  </p>
-                  <p className="mt-0.5">
-                    Final pricing will be determined after Procurement canvasses
-                    suppliers. Add clear specs and photos to avoid rework.
-                  </p>
-                </>
-              ) : hasProcurementItems ? (
+              {sourcingMode === SourcingType.PROCUREMENT ? (
                 <>
                   <p className="flex items-center gap-1.5 font-medium text-zinc-700">
                     <ShoppingCart className="h-3.5 w-3.5" />
                     Procurement-sourced items
                   </p>
                   <p className="mt-0.5">
-                    Priced after Procurement canvasses them. Add clear specs and
-                    photos to avoid rework.
+                    Final pricing determined after Procurement canvasses suppliers.
+                    Add clear specs and photos to avoid rework.
                   </p>
                 </>
               ) : (
@@ -333,7 +358,7 @@ export function StepItems({
               )}
             </div>
             <div className="text-right shrink-0">
-              {hasProcurementItems && !hasOnlineItems ? (
+              {sourcingMode === SourcingType.PROCUREMENT ? (
                 <>
                   <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-500">
                     Pricing
@@ -345,7 +370,7 @@ export function StepItems({
               ) : (
                 <>
                   <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-500">
-                    {hasProcurementItems ? 'Online subtotal' : 'Total Amount'}
+                    Total Amount
                   </p>
                   <p className="mt-1 text-[22px] font-bold text-zinc-900 tabular-nums">
                     {formatCurrency(totalAmount)}
@@ -360,10 +385,11 @@ export function StepItems({
   );
 }
 
-/* ── Sourcing selector card ────────────────────────────────────
- * Compact 2-col card matching the Step 1 RequestTypeCard design language.
+/* ── Sourcing mode picker card ─────────────────────────────────
+ * Top-of-step radio that drives the mode for every line item below.
+ * Mirrors RequestTypeCard styling from step-basics.
  */
-interface SourcingCardProps {
+interface SourcingModeCardProps {
   selected: boolean;
   onClick: () => void;
   icon: React.ReactNode;
@@ -371,39 +397,41 @@ interface SourcingCardProps {
   description: string;
 }
 
-function SourcingCard({ selected, onClick, icon, title, description }: SourcingCardProps) {
+function SourcingModeCard({ selected, onClick, icon, title, description }: SourcingModeCardProps) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-pressed={selected}
       className={cn(
-        'flex items-center gap-2.5 rounded-lg border px-3 py-2.5 text-left transition-all duration-150',
+        'group relative flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all duration-200',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/15 focus-visible:ring-offset-2',
         selected
-          ? 'border-zinc-800/85 bg-zinc-50/60 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_3px_8px_rgba(0,0,0,0.04)]'
+          ? 'border-zinc-800/85 bg-zinc-50/60 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_3px_12px_rgba(0,0,0,0.04)]'
           : 'border-zinc-200 bg-white hover:border-zinc-300 hover:shadow-[0_1px_3px_rgba(0,0,0,0.04)]',
       )}
     >
       <span
         className={cn(
-          'flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors duration-150',
-          selected ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-600',
+          'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors duration-200',
+          selected
+            ? 'bg-zinc-900 text-white'
+            : 'bg-zinc-100 text-zinc-700 group-hover:bg-zinc-200/80',
         )}
       >
         {icon}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-[12px] font-semibold text-zinc-900 leading-tight">{title}</p>
-        <p className="mt-0.5 text-[10px] text-zinc-500 leading-snug">{description}</p>
+        <p className="text-[13px] font-semibold text-zinc-900 leading-tight">{title}</p>
+        <p className="mt-0.5 text-[11px] text-zinc-500 leading-relaxed">{description}</p>
       </div>
       <span
         className={cn(
-          'flex h-3 w-3 shrink-0 items-center justify-center rounded-full transition-all duration-150',
-          selected ? 'bg-zinc-800' : 'border border-zinc-300 bg-white',
+          'flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full transition-all duration-200',
+          selected ? 'bg-zinc-800' : 'border border-zinc-300 bg-white group-hover:border-zinc-400',
         )}
       >
-        {selected && <span className="h-1 w-1 rounded-full bg-white" />}
+        {selected && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
       </span>
     </button>
   );

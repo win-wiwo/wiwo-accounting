@@ -397,8 +397,11 @@ export const purchaseOrdersApi = {
       headers: { 'Content-Type': 'multipart/form-data' },
     }).then((r) => r.data),
 
-  cancel: (id: string, reason: string) =>
-    apiClient.post<ApiResponse<any>>(`/purchase-orders/${id}/cancel`, { reason }).then((r) => r.data),
+  cancel: (id: string, reason: string, prAction: 'keep_approved' | 'requeue_canvass' | 'cancel_pr') =>
+    apiClient.post<ApiResponse<any>>(`/purchase-orders/${id}/cancel`, { reason, prAction }).then((r) => r.data),
+
+  issueFromPr: (prId: string) =>
+    apiClient.post<ApiResponse<any>>(`/purchase-orders/from-pr/${prId}`).then((r) => r.data),
 
   getStats: () =>
     apiClient.get<{ data: { total: number; pending: number; ordered: number; received: number; cancelled: number; activeValue: number } }>('/purchase-orders/stats').then((r) => r.data),

@@ -217,6 +217,19 @@ export class ResubmissionEvent {
 
 export const ResubmissionEventSchema = SchemaFactory.createForClass(ResubmissionEvent);
 
+@Schema({ _id: true })
+export class QuotationSubmission {
+  _id: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  submittedBy: Types.ObjectId;
+
+  @Prop({ required: true, default: () => new Date() })
+  submittedAt: Date;
+}
+
+export const QuotationSubmissionSchema = SchemaFactory.createForClass(QuotationSubmission);
+
 @Schema({ timestamps: true })
 export class PurchaseRequest extends Document {
   @Prop({ unique: true, sparse: true })
@@ -242,6 +255,12 @@ export class PurchaseRequest extends Document {
 
   @Prop({ required: true, enum: Object.values(PrStatus), default: PrStatus.DRAFT })
   status: PrStatus;
+
+  // PR-level sourcing mode. All items in this PR must share this mode.
+  // 'online' = per-item sellers picked by requester, no canvass.
+  // 'procurement' = procurement canvasses suppliers and selects a winner.
+  @Prop({ required: true, enum: Object.values(SourcingType), default: SourcingType.PROCUREMENT })
+  sourcingMode: SourcingType;
 
   @Prop({ required: true, enum: Object.values(PrPriority), default: PrPriority.MEDIUM })
   priority: PrPriority;
@@ -305,6 +324,11 @@ export class PurchaseRequest extends Document {
   // Requester replies to procurement clarification requests
   @Prop({ type: [ClarificationReplySchema], default: [] })
   clarificationReplies: ClarificationReply[];
+
+  // Persistent history of every canvass submission (procurement may resubmit
+  // after a COO return), so the workflow timeline can show each event.
+  @Prop({ type: [QuotationSubmissionSchema], default: [] })
+  quotationSubmissionHistory: QuotationSubmission[];
 
   // Persistent history of all requester recalls
   @Prop({ type: [RecallEventSchema], default: [] })

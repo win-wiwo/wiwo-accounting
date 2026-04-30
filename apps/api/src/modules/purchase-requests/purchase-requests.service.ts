@@ -11,7 +11,7 @@ import { existsSync } from 'fs';
 import { join } from 'path';
 import { SubmitQuotationDto, SaveCanvassDraftDto } from './dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { AttachmentCategory, normalizePrStatus, PrStatus, UserRole } from '@prams/shared';
+import { AttachmentCategory, normalizePrStatus, PrStatus, SourcingType, UserRole } from '@prams/shared';
 import { PurchaseRequest } from './schemas/purchase-request.schema';
 import { CreatePurchaseRequestDto, UpdatePurchaseRequestDto, QueryPurchaseRequestsDto } from './dto';
 import { PrNumberingService } from '../pr-numbering/pr-numbering.service';
@@ -74,10 +74,21 @@ export class PurchaseRequestsService {
       throw new BadRequestException('You must be assigned to a department to create a PR');
     }
 
+    // PR-level mode is the source of truth — every item must match it.
+    const sourcingMode = dto.sourcingMode;
+    if (sourcingMode !== SourcingType.ONLINE && sourcingMode !== SourcingType.PROCUREMENT) {
+      throw new BadRequestException('sourcingMode must be either online or procurement');
+    }
+    const mismatch = dto.items.find((item) => item.sourcingType && item.sourcingType !== sourcingMode);
+    if (mismatch) {
+      throw new BadRequestException(`Item "${mismatch.description}" sourcingType does not match the PR sourcingMode (${sourcingMode})`);
+    }
+
     const items = dto.items.map((item) => {
       const price = item.estimatedPrice ?? 0;
       return {
         ...item,
+        sourcingType: sourcingMode,
         estimatedPrice: price,
         totalPrice: item.quantity * price,
       };
@@ -91,6 +102,7 @@ export class PurchaseRequestsService {
       description: '',
       projectId: dto.projectId ? new Types.ObjectId(dto.projectId) : null,
       requestType,
+      sourcingMode,
       requesterId: new Types.ObjectId(user._id),
       departmentId: new Types.ObjectId(user.departmentId),
       status: PrStatus.DRAFT,
@@ -241,6 +253,7 @@ export class PurchaseRequestsService {
       .populate('items.selectedSupplierId', 'companyName')
       .populate('quotationReturnHistory.returnedBy', 'firstName lastName')
       .populate('clarificationReplies.repliedBy', 'firstName lastName')
+      .populate('quotationSubmissionHistory.submittedBy', 'firstName lastName')
       .populate('recallHistory.recalledBy', 'firstName lastName')
       .exec();
 
@@ -421,9 +434,14 @@ export class PurchaseRequestsService {
       throw new BadRequestException('PR is not awaiting quotation');
     }
 
-    const procurementItems = pr.items.filter((item) => item.sourcingType === 'procurement');
+    if (pr.sourcingMode !== SourcingType.PROCUREMENT) {
+      throw new BadRequestException('Only procurement-mode PRs can be canvassed');
+    }
+
+    // In single-mode PRs, every item is a procurement item.
+    const procurementItems = pr.items;
     if (procurementItems.length === 0) {
-      throw new BadRequestException('PR has no procurement items to canvass');
+      throw new BadRequestException('PR has no items to canvass');
     }
 
     if (!dto.canvassEntries?.length) {
@@ -528,6 +546,11 @@ export class PurchaseRequestsService {
     pr.currentApprovalLevel = 2;
     pr.set('quotationNote', null);
 
+    pr.quotationSubmissionHistory.push({
+      submittedBy: new Types.ObjectId(user._id),
+      submittedAt: now,
+    } as PurchaseRequest['quotationSubmissionHistory'][number]);
+
     await pr.save();
 
     this.eventEmitter.emit('pr.quoted', { purchaseRequest: pr.toJSON(), quotedBy: user._id });
@@ -558,11 +581,12 @@ export class PurchaseRequestsService {
       throw new BadRequestException('PR is not awaiting quotation');
     }
 
-    const procurementItemIds = new Set(
-      pr.items
-        .filter((item) => item.sourcingType === 'procurement')
-        .map((item) => item._id.toString()),
-    );
+    if (pr.sourcingMode !== SourcingType.PROCUREMENT) {
+      throw new BadRequestException('Only procurement-mode PRs can be canvassed');
+    }
+
+    // Single-mode PR: every item is a procurement item.
+    const procurementItemIds = new Set(pr.items.map((item) => item._id.toString()));
 
     // Persist only entries that have a supplier picked. The UI may carry
     // empty rows for editing convenience; those don't need to round-trip.
@@ -714,6 +738,7 @@ export class PurchaseRequestsService {
       .populate('departmentId', 'name code')
       .populate('quotationReturnHistory.returnedBy', 'firstName lastName')
       .populate('clarificationReplies.repliedBy', 'firstName lastName')
+      .populate('quotationSubmissionHistory.submittedBy', 'firstName lastName')
       .exec() as Promise<PurchaseRequest>;
   }
 
@@ -795,6 +820,7 @@ export class PurchaseRequestsService {
       .populate('projectId', 'name code')
       .populate('quotationReturnHistory.returnedBy', 'firstName lastName')
       .populate('recallHistory.recalledBy', 'firstName lastName')
+      .populate('quotationSubmissionHistory.submittedBy', 'firstName lastName')
       .exec() as Promise<PurchaseRequest>;
   }
 

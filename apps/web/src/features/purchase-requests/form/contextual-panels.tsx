@@ -167,28 +167,20 @@ function BasicsTips() {
 interface RunningTotalsProps {
   totalAmount: number;
   itemCount: number;
-  procurementCount: number;
-  hasProcurementItems: boolean;
+  sourcingMode: SourcingType;
 }
 
 function RunningTotals({
   totalAmount,
   itemCount,
-  procurementCount,
-  hasProcurementItems,
+  sourcingMode,
 }: RunningTotalsProps) {
-  const onlineCount = itemCount - procurementCount;
+  const isProcurement = sourcingMode === SourcingType.PROCUREMENT;
   return (
     <Surface elevation="subtle">
       <div className="p-5">
-        <PanelLabel>
-          {hasProcurementItems && onlineCount === 0
-            ? 'Pricing'
-            : hasProcurementItems
-              ? 'Online subtotal'
-              : 'Total amount'}
-        </PanelLabel>
-        {hasProcurementItems && onlineCount === 0 ? (
+        <PanelLabel>{isProcurement ? 'Pricing' : 'Total amount'}</PanelLabel>
+        {isProcurement ? (
           <p className="mt-1.5 text-[24px] font-bold text-amber-600 leading-none">
             TBQ
           </p>
@@ -197,38 +189,33 @@ function RunningTotals({
             {formatCurrency(totalAmount)}
           </p>
         )}
-        {hasProcurementItems && (
+        {isProcurement && (
           <p className="mt-1.5 text-[11px] text-amber-600 leading-relaxed">
-            {onlineCount === 0
-              ? 'All items are procurement-sourced. Final pricing after canvass.'
-              : 'Procurement items priced after canvass.'}
+            Final pricing determined after procurement canvasses suppliers.
           </p>
         )}
 
-        <div className="mt-4 grid grid-cols-3 gap-2 border-t border-zinc-100 pt-3">
+        <div className="mt-4 flex items-center justify-between gap-3 border-t border-zinc-100 pt-3">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400">
               Items
             </p>
-            <p className="mt-1 text-[18px] font-bold text-zinc-900 tabular-nums">
+            <p className="mt-1 text-[18px] font-bold text-zinc-900 tabular-nums leading-none">
               {itemCount}
             </p>
           </div>
-          <div>
+          <div className="text-right">
             <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400">
-              Online
+              Sourcing
             </p>
-            <p className="mt-1 text-[18px] font-bold text-zinc-700 tabular-nums">
-              {onlineCount}
-            </p>
-          </div>
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400">
-              Proc.
-            </p>
-            <p className="mt-1 text-[18px] font-bold text-amber-600 tabular-nums">
-              {procurementCount}
-            </p>
+            <span className={cn(
+              'mt-1.5 inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold',
+              isProcurement
+                ? 'bg-amber-50 border-amber-100 text-amber-700'
+                : 'bg-blue-50 border-blue-100 text-blue-700',
+            )}>
+              {isProcurement ? 'Procurement' : 'Online'}
+            </span>
           </div>
         </div>
       </div>
@@ -389,14 +376,12 @@ interface ContextualPanelProps {
   step: number;
   form: UseFormReturn<FormData>;
   totalAmount: number;
-  hasProcurementItems: boolean;
 }
 
 export function ContextualPanel({
   step,
   form,
   totalAmount,
-  hasProcurementItems,
 }: ContextualPanelProps) {
   if (step === 0) {
     return (
@@ -410,17 +395,14 @@ export function ContextualPanel({
 
   if (step === 1) {
     const items = form.watch('items') ?? [];
-    const procurementCount = items.filter(
-      (i) => i.sourcingType === SourcingType.PROCUREMENT,
-    ).length;
+    const sourcingMode = (form.watch('sourcingMode') ?? SourcingType.PROCUREMENT) as SourcingType;
 
     return (
       <div className="space-y-4">
         <RunningTotals
           totalAmount={totalAmount}
           itemCount={items.length}
-          procurementCount={procurementCount}
-          hasProcurementItems={hasProcurementItems}
+          sourcingMode={sourcingMode}
         />
         <SupplierCompleteness items={items} />
         <ItemsReminders />

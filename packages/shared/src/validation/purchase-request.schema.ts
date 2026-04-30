@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { PR_PRIORITIES } from '../constants/pr-status';
+import { PR_PRIORITIES, SourcingType } from '../constants/pr-status';
 
 export const lineItemSchema = z.object({
   description: z.string().min(1, 'Item description is required').max(200).trim(),
@@ -20,6 +20,7 @@ const futureDateString = z.string().datetime().refine(
 
 export const createPurchaseRequestSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200).trim(),
+  sourcingMode: z.enum([SourcingType.ONLINE, SourcingType.PROCUREMENT] as const),
   priority: z.enum(PR_PRIORITIES as [string, ...string[]]),
   items: z.array(lineItemSchema).min(1, 'At least one line item is required'),
   justification: z.string().min(1, 'Purpose is required').max(2000).trim(),

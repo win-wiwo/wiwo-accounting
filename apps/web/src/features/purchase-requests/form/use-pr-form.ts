@@ -33,9 +33,10 @@ export function usePrForm(stagedFiles: ReturnType<typeof useStagedFiles>) {
     resolver: zodResolver(formSchema),
     defaultValues: {
       requestType: 'purchase_request',
+      sourcingMode: SourcingType.PROCUREMENT,
       assignmentType: 'project',
       title: '',
-      items: [defaultItem()],
+      items: [defaultItem(SourcingType.PROCUREMENT)],
       priority: 'medium',
       projectId: '',
       resubmissionNote: '',
@@ -65,6 +66,7 @@ export function usePrForm(stagedFiles: ReturnType<typeof useStagedFiles>) {
       const pr = prData.data;
       form.reset({
         requestType: pr.requestType || 'purchase_request',
+        sourcingMode: (pr.sourcingMode as SourcingType) || SourcingType.PROCUREMENT,
         assignmentType: prProjectId ? 'project' : 'office',
         title: pr.title || '',
         projectId: prProjectId,
@@ -109,12 +111,13 @@ export function usePrForm(stagedFiles: ReturnType<typeof useStagedFiles>) {
     let createdNewDraft = false;
 
     try {
-      const { requestType, assignmentType, _isReturned, resubmissionNote, ...rest } = data;
+      const { requestType, sourcingMode, assignmentType, _isReturned, resubmissionNote, ...rest } = data;
       const payload: CreatePurchaseRequestDto = {
         ...rest,
         projectId: assignmentType === 'office' ? undefined : data.projectId || undefined,
         neededByDate: data.neededByDate ? new Date(data.neededByDate).toISOString() : undefined,
-        ...(!isEdit && { requestType }),
+        // sourcingMode is locked after create — only include it on create.
+        ...(!isEdit && { requestType, sourcingMode }),
         ...(isEdit && _isReturned && { resubmissionNote: resubmissionNote || undefined }),
       };
 

@@ -75,6 +75,12 @@ export interface ClarificationReply {
   repliedAt: string;
 }
 
+export interface QuotationSubmission {
+  _id: string;
+  submittedBy: { _id: string; firstName: string; lastName: string } | string;
+  submittedAt: string;
+}
+
 export interface RecallHistoryEntry {
   _id: string;
   recalledBy: { _id: string; firstName: string; lastName: string } | string;
@@ -106,6 +112,12 @@ export interface PurchaseRequest {
   _id: string;
   prNumber: string;
   requestType: 'purchase_request' | 'job_request';
+  /**
+   * Whether the items in this PR are all online-purchased (per-item sellers,
+   * no canvass) or all procurement-canvassed (procurement sources suppliers).
+   * A PR is single-mode by design — split mixed needs into two PRs.
+   */
+  sourcingMode: SourcingType;
   title: string;
   projectId: { _id: string; name: string; code: string | null } | null;
   description: string;
@@ -130,6 +142,7 @@ export interface PurchaseRequest {
   canvassJustification?: string | null;
   quotationReturnHistory?: QuotationReturn[];
   clarificationReplies?: ClarificationReply[];
+  quotationSubmissionHistory?: QuotationSubmission[];
   recallHistory?: RecallHistoryEntry[];
   resubmissionHistory?: ResubmissionHistoryEntry[];
   previousSubmissionSnapshot?: PreviousSubmissionSnapshot | null;
@@ -159,6 +172,7 @@ export interface CreateLineItemDto {
 
 export interface CreatePurchaseRequestDto {
   requestType?: 'purchase_request' | 'job_request';
+  sourcingMode: SourcingType;
   title: string;
   projectId?: string;
   priority: PrPriority;

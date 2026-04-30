@@ -38,6 +38,7 @@ export const lineItemSchema = z.object({
 
 export const formSchema = z.object({
   requestType: z.enum(['purchase_request', 'job_request']).default('purchase_request'),
+  sourcingMode: z.enum([SourcingType.PROCUREMENT, SourcingType.ONLINE]).default(SourcingType.PROCUREMENT),
   assignmentType: z.enum(['project', 'office']).default('project'),
   title: z.string().min(1, 'Title is required').max(200),
   projectId: z.string().optional(),
@@ -48,6 +49,17 @@ export const formSchema = z.object({
   resubmissionNote: z.string().max(1000).optional(),
   _isReturned: z.boolean().optional(),
 }).superRefine((data, ctx) => {
+  // All items must match the PR's sourcingMode (form locks the toggle once an
+  // item is added, but enforce here as a safety net).
+  data.items.forEach((item, index) => {
+    if (item.sourcingType !== data.sourcingMode) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['items', index, 'sourcingType'],
+        message: `Item sourcing must match the PR sourcing mode (${data.sourcingMode}).`,
+      });
+    }
+  });
   if (data.assignmentType === 'project' && !data.projectId) {
     ctx.addIssue({
       code: 'custom',
@@ -68,12 +80,12 @@ export type FormData = z.infer<typeof formSchema>;
 export type LineItemForm = z.infer<typeof lineItemSchema>;
 export type ProjectOption = { _id: string; name: string; code: string | null };
 
-export const defaultItem = (): LineItemForm => ({
+export const defaultItem = (sourcingType: SourcingType = SourcingType.PROCUREMENT): LineItemForm => ({
   description: '',
   quantity: 1,
   unit: 'pcs',
   specifications: '',
-  sourcingType: SourcingType.PROCUREMENT,
+  sourcingType,
   estimatedPrice: 0,
   sellerReferences: [],
   sellerReferencesJustification: '',
@@ -82,7 +94,7 @@ export const defaultItem = (): LineItemForm => ({
 // Field groups for per-step validation
 export const STEP_FIELDS = {
   0: ['requestType', 'title', 'justification', 'assignmentType', 'projectId', 'priority', 'neededByDate'] as const,
-  1: ['items'] as const,
+  1: ['sourcingMode', 'items'] as const,
   2: ['resubmissionNote'] as const,
 };
 

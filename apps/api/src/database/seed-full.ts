@@ -80,6 +80,7 @@ const prSchema = new mongoose.Schema({
   requesterId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   departmentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Department', required: true },
   status: { type: String, required: true, default: 'draft' },
+  sourcingMode: { type: String, enum: ['procurement', 'online'], required: true, default: 'procurement' },
   priority: { type: String, required: true, default: 'medium' },
   items: [lineItemSchema],
   totalAmount: { type: Number, default: 0 },
@@ -101,6 +102,7 @@ const prSchema = new mongoose.Schema({
   recallHistory: { type: [mongoose.Schema.Types.Mixed], default: [] },
   resubmissionHistory: { type: [mongoose.Schema.Types.Mixed], default: [] },
   clarificationReplies: { type: [mongoose.Schema.Types.Mixed], default: [] },
+  quotationSubmissionHistory: { type: [mongoose.Schema.Types.Mixed], default: [] },
   previousSubmissionSnapshot: { type: mongoose.Schema.Types.Mixed, default: null },
   resubmissionNote: { type: String, default: null },
 }, { timestamps: true });
@@ -242,6 +244,45 @@ function makeItems(items: Array<{
 
 function totalOf(items: ReturnType<typeof makeItems>) {
   return items.reduce((sum, i) => sum + i.totalPrice, 0);
+}
+
+/**
+ * Single-mode invariant: every PR is either fully online or fully procurement.
+ * If a PR template happened to mix sourcing types, coerce all items to the
+ * majority mode (ties go to procurement) and recompute pricing fields so the
+ * data is internally consistent.
+ */
+function normalizeSourcingMode(prDoc: any): void {
+  const items = prDoc.items ?? [];
+  if (items.length === 0) {
+    prDoc.sourcingMode = prDoc.sourcingMode || 'procurement';
+    return;
+  }
+  const counts = items.reduce(
+    (acc: { online: number; procurement: number }, i: any) => {
+      if (i.sourcingType === 'online') acc.online += 1;
+      else acc.procurement += 1;
+      return acc;
+    },
+    { online: 0, procurement: 0 },
+  );
+  const mode: 'online' | 'procurement' = counts.online > counts.procurement ? 'online' : 'procurement';
+  prDoc.sourcingMode = mode;
+
+  for (const item of items) {
+    if (item.sourcingType !== mode) {
+      item.sourcingType = mode;
+      const seedPrice = item._seedPrice ?? 0;
+      if (mode === 'online') {
+        item.estimatedPrice = seedPrice;
+        item.totalPrice = seedPrice * (item.quantity || 0);
+      } else {
+        item.estimatedPrice = 0;
+        item.totalPrice = 0;
+      }
+    }
+  }
+  prDoc.totalAmount = items.reduce((sum: number, i: any) => sum + (i.totalPrice || 0), 0);
 }
 
 // ─── Attachment PDF Generation ─────────────────────────────
@@ -757,7 +798,11 @@ function buildCanvassEntries(
   }).filter((entry) => entry.supplierId);
 }
 
-function applyQuotedPricingToPr(prDoc: any, supplierDocs: mongoose.Document[]) {
+function applyQuotedPricingToPr(
+  prDoc: any,
+  supplierDocs: mongoose.Document[],
+  procurementUserId?: Types.ObjectId,
+) {
   const canvassEntries = buildCanvassEntries(prDoc, supplierDocs);
   const selected = canvassEntries.find((entry) => entry.isSelected) ?? canvassEntries[0];
   if (!selected) return;
@@ -787,6 +832,17 @@ function applyQuotedPricingToPr(prDoc: any, supplierDocs: mongoose.Document[]) {
   );
   prDoc.canvassEntries = canvassEntries;
   prDoc.canvassJustification = null;
+
+  if (procurementUserId) {
+    prDoc.quotationSubmissionHistory = [
+      ...(prDoc.quotationSubmissionHistory ?? []),
+      {
+        _id: new Types.ObjectId(),
+        submittedBy: procurementUserId,
+        submittedAt: quotedAtBase,
+      },
+    ];
+  }
 }
 
 async function attachReferencePhotos(prDoc: any): Promise<void> {
@@ -2003,7 +2059,7 @@ async function seed() {
 
     for (const prDoc of allPrs) {
       if (['approved', 'completed', 'quoted'].includes(prDoc.status)) {
-        applyQuotedPricingToPr(prDoc, suppliers);
+        applyQuotedPricingToPr(prDoc, suppliers, procurementUser._id as Types.ObjectId);
       }
       await attachReferencePhotos(prDoc);
     }
@@ -2029,9 +2085,17 @@ async function seed() {
 
     // ─── Insert PRs ───────────────────────────────────────────
     console.log(`  Inserting ${allPrs.length} purchase/job requests...`);
-    // Strip _seedPrice helper field before persisting
+    // Enforce single-mode PRs and strip _seedPrice helper field before persisting
+    let coerced = 0;
     for (const pr of allPrs) {
+      const beforeSourcing = pr.items?.map((i: any) => i.sourcingType).join(',');
+      normalizeSourcingMode(pr);
+      const afterSourcing = pr.items?.map((i: any) => i.sourcingType).join(',');
+      if (beforeSourcing !== afterSourcing) coerced += 1;
       pr.items = pr.items.map(({ _seedPrice, ...rest }: any) => rest);
+    }
+    if (coerced > 0) {
+      console.log(`  Coerced ${coerced} mixed-sourcing PR(s) to single mode`);
     }
     await PurchaseRequest.insertMany(allPrs);
 

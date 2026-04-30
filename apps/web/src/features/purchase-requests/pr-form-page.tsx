@@ -154,8 +154,6 @@ export function PrFormPage() {
                 append={pr.append}
                 remove={pr.remove}
                 totalAmount={pr.totalAmount}
-                hasProcurementItems={pr.hasProcurementItems}
-                hasOnlineItems={pr.hasOnlineItems}
                 stagedFiles={stagedFiles}
                 prData={prData}
                 serverPhotoPreviews={serverPhotoPreviews}
@@ -167,8 +165,6 @@ export function PrFormPage() {
                 form={form}
                 projectOptions={pr.projectOptions}
                 totalAmount={pr.totalAmount}
-                hasProcurementItems={pr.hasProcurementItems}
-                hasOnlineItems={pr.hasOnlineItems}
                 stagedPhotosCount={Object.keys(stagedFiles.stagedPhotos).length}
                 onGoToStep={goToStep}
               />
@@ -182,8 +178,6 @@ export function PrFormPage() {
                 step={step}
                 form={form}
                 totalAmount={pr.totalAmount}
-                hasProcurementItems={pr.hasProcurementItems}
-                hasOnlineItems={pr.hasOnlineItems}
               />
             </div>
           </aside>

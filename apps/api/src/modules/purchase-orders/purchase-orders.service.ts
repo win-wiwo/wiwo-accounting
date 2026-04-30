@@ -68,11 +68,15 @@ export class PurchaseOrdersService {
       throw new BadRequestException('Source purchase request must be approved before creating a PO');
     }
 
-    // Check if PO already exists for this PR
-    const existingPo = await this.poModel.findOne({ purchaseRequestId: pr._id }).exec();
-    if (existingPo) {
-      this.logger.warn(`PO already exists for PR ${prId}, skipping auto-creation`);
-      return existingPo;
+    // Block only if there's an active (non-cancelled) PO. If all prior POs were
+    // cancelled (e.g. supplier couldn't fulfill, wrong supplier picked), we
+    // allow creating a fresh one from the same canvass.
+    const activePo = await this.poModel
+      .findOne({ purchaseRequestId: pr._id, status: { $ne: 'cancelled' } })
+      .exec();
+    if (activePo) {
+      this.logger.warn(`Active PO already exists for PR ${prId}, skipping creation`);
+      return activePo;
     }
 
     // Find the selected supplier from canvass entries
@@ -405,7 +409,12 @@ export class PurchaseOrdersService {
     return saved;
   }
 
-  async cancel(id: string, reason: string, user: RequestUser): Promise<PurchaseOrder> {
+  async cancel(
+    id: string,
+    reason: string,
+    prAction: 'keep_approved' | 'requeue_canvass' | 'cancel_pr',
+    user: RequestUser,
+  ): Promise<PurchaseOrder> {
     const po = await this.poModel.findById(id);
     if (!po) {
       throw new NotFoundException('Purchase order not found');
@@ -415,8 +424,13 @@ export class PurchaseOrdersService {
       throw new BadRequestException('Received or already cancelled purchase orders cannot be cancelled');
     }
 
-    if (!reason || reason.trim().length === 0) {
+    const trimmedReason = reason?.trim() ?? '';
+    if (trimmedReason.length === 0) {
       throw new BadRequestException('Cancellation reason is required');
+    }
+
+    if (!(['keep_approved', 'requeue_canvass', 'cancel_pr'] as const).includes(prAction)) {
+      throw new BadRequestException('Invalid prAction');
     }
 
     if (!(([UserRole.PROCUREMENT, UserRole.ADMIN] as string[]).includes(user.role))) {
@@ -424,15 +438,51 @@ export class PurchaseOrdersService {
     }
 
     po.status = 'cancelled';
-    po.cancellationReason = reason.trim();
+    po.cancellationReason = trimmedReason;
 
     const saved = await po.save();
+
+    // Apply the chosen side-effect on the parent PR.
+    if (prAction !== 'keep_approved' && po.purchaseRequestId) {
+      const pr = await this.prModel.findById(po.purchaseRequestId);
+      if (pr) {
+        const isProcurementMode = pr.sourcingMode === 'procurement';
+
+        if (prAction === 'cancel_pr') {
+          pr.status = PrStatus.CANCELLED;
+          pr.cancellationReason = `PO ${po.poNumber ?? ''} cancelled: ${trimmedReason}`.trim();
+          pr.completedAt = null;
+        } else if (prAction === 'requeue_canvass' && !isProcurementMode) {
+          // Online PR has no canvass to redo — keep PR approved so the
+          // canceller can issue a fresh PO with a different seller.
+          pr.purchaseOrderId = null;
+        } else if (prAction === 'requeue_canvass') {
+          pr.status = PrStatus.PENDING_QUOTATION;
+          pr.canvassEntries = [] as typeof pr.canvassEntries;
+          pr.canvassJustification = null;
+          pr.completedAt = null;
+          // Reset per-item quoted state so procurement can re-canvass cleanly.
+          for (const item of pr.items) {
+            item.quotedUnitPrice = null;
+            item.quotedAt = null;
+            item.selectedSupplierId = null;
+            item.estimatedPrice = 0;
+            item.totalPrice = 0;
+          }
+          pr.totalAmount = pr.items.reduce((sum, item) => sum + item.totalPrice, 0);
+          pr.purchaseOrderId = null;
+        }
+        await pr.save();
+      }
+    }
 
     this.eventEmitter.emit('purchase-order.cancelled', {
       purchaseOrderId: saved._id,
       poNumber: saved.poNumber,
       cancelledBy: user._id,
-      reason,
+      reason: trimmedReason,
+      prAction,
+      purchaseRequestId: po.purchaseRequestId?.toString() ?? null,
     });
 
     return saved;

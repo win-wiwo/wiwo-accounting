@@ -4,13 +4,17 @@ import {
   normalizePrStatus,
   PrStatus,
   type ApprovalHistoryEntry,
+  type ClarificationReply,
   type PurchaseRequest,
   type QuotationReturn,
+  type QuotationSubmission,
   type RecallHistoryEntry,
 } from "@prams/shared";
 import {
   CheckCircle2,
+  ClipboardCheck,
   Clock,
+  MessageSquare,
   RefreshCw,
   RotateCcw,
   Send,
@@ -67,6 +71,18 @@ function returnedByName(returnedBy: QuotationReturn["returnedBy"]) {
   return typeof returnedBy === "string"
     ? "Procurement"
     : `${returnedBy.firstName} ${returnedBy.lastName}`;
+}
+
+function repliedByName(repliedBy: ClarificationReply["repliedBy"]) {
+  return typeof repliedBy === "string"
+    ? "Requester"
+    : `${repliedBy.firstName} ${repliedBy.lastName}`;
+}
+
+function submittedByName(submittedBy: QuotationSubmission["submittedBy"]) {
+  return typeof submittedBy === "string"
+    ? "Procurement"
+    : `${submittedBy.firstName} ${submittedBy.lastName}`;
 }
 
 function recalledByName(recalledBy: RecallHistoryEntry["recalledBy"]) {
@@ -145,6 +161,39 @@ function buildTimelineEntries(
         APPROVAL_LEVEL_LABELS[entry.resumedAtLevel] ||
         `Level ${entry.resumedAtLevel}`,
       icon: <RefreshCw className="h-4 w-4 text-blue-600" />,
+    });
+  }
+
+  for (const entry of pr.quotationReturnHistory ?? []) {
+    if (entry.source === "coo") continue;
+    entries.push({
+      id: `clarification-return-${entry._id}`,
+      date: entry.returnedAt,
+      title: "Returned for Clarification",
+      actor: returnedByName(entry.returnedBy),
+      note: entry.note,
+      icon: <MessageSquare className="h-4 w-4 text-amber-600" />,
+    });
+  }
+
+  for (const entry of pr.clarificationReplies ?? []) {
+    entries.push({
+      id: `clarification-reply-${entry._id}`,
+      date: entry.repliedAt,
+      title: "Clarification Replied",
+      actor: repliedByName(entry.repliedBy),
+      note: entry.note,
+      icon: <RefreshCw className="h-4 w-4 text-blue-600" />,
+    });
+  }
+
+  for (const entry of pr.quotationSubmissionHistory ?? []) {
+    entries.push({
+      id: `canvass-submitted-${entry._id}`,
+      date: entry.submittedAt,
+      title: "Canvass Submitted",
+      actor: submittedByName(entry.submittedBy),
+      icon: <ClipboardCheck className="h-4 w-4 text-emerald-600" />,
     });
   }
 

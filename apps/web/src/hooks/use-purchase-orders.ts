@@ -88,10 +88,26 @@ export function useReceivePurchaseOrder() {
 export function useCancelPurchaseOrder() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
-      purchaseOrdersApi.cancel(id, reason),
+    mutationFn: ({ id, reason, prAction }: {
+      id: string;
+      reason: string;
+      prAction: 'keep_approved' | 'requeue_canvass' | 'cancel_pr';
+    }) =>
+      purchaseOrdersApi.cancel(id, reason, prAction),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['purchase-requests'] });
+    },
+  });
+}
+
+export function useIssuePoFromPr() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (prId: string) => purchaseOrdersApi.issueFromPr(prId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['purchase-requests'] });
     },
   });
 }

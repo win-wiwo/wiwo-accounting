@@ -152,6 +152,17 @@ export class PurchaseOrdersController {
     return this.poService.markReceived(id, user, notes, photos);
   }
 
+  @Post('from-pr/:prId')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.PROCUREMENT, UserRole.ADMIN)
+  @ApiOperation({ summary: 'Issue a new PO from an approved PR (used after a prior PO was cancelled)' })
+  async issueFromPr(
+    @Param('prId', ParseObjectIdPipe) prId: string,
+    @CurrentUser() user: { _id: string; role: string; departmentId: string | null },
+  ) {
+    return this.poService.createFromApprovedPR(prId, user._id);
+  }
+
   @Post(':id/cancel')
   @UseGuards(RolesGuard)
   @Roles(UserRole.PROCUREMENT, UserRole.ADMIN)
@@ -159,8 +170,9 @@ export class PurchaseOrdersController {
   async cancel(
     @Param('id', ParseObjectIdPipe) id: string,
     @Body('reason') reason: string,
+    @Body('prAction') prAction: 'keep_approved' | 'requeue_canvass' | 'cancel_pr' | undefined,
     @CurrentUser() user: { _id: string; role: string; departmentId: string | null },
   ) {
-    return this.poService.cancel(id, reason, user);
+    return this.poService.cancel(id, reason, prAction ?? 'keep_approved', user);
   }
 }
