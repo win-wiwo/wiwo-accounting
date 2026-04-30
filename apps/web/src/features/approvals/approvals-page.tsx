@@ -6,7 +6,6 @@ import {
   ChevronLeft,
   ShoppingCart,
   RotateCcw,
-  Clock,
   AlertTriangle,
   ArrowUpDown,
   ArrowUp,
@@ -315,20 +314,15 @@ export function ApprovalsPage() {
 
                         {/* Age */}
                         <td className="px-5 py-4">
-                          <div className="flex items-center gap-1.5">
-                            {ageDays >= 5 && (
-                              <Clock className={`h-3 w-3 shrink-0 ${ageDays >= 10 ? 'text-red-500' : 'text-zinc-400'}`} />
-                            )}
-                            <span className={`text-[13px] tabular-nums whitespace-nowrap ${
-                              ageDays >= 10
-                                ? 'text-red-600 font-semibold'
-                                : ageDays >= 7
-                                  ? 'text-red-500 font-medium'
-                                  : 'text-zinc-400'
-                            }`}>
-                              {ageLabel}
-                            </span>
-                          </div>
+                          <span className={`text-[13px] tabular-nums whitespace-nowrap ${
+                            ageDays >= 10
+                              ? 'text-red-600 font-semibold'
+                              : ageDays >= 7
+                                ? 'text-red-500 font-medium'
+                                : 'text-zinc-400'
+                          }`}>
+                            {ageLabel}
+                          </span>
                         </td>
 
                         {/* Chevron */}

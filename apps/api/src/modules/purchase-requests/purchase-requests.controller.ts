@@ -23,7 +23,7 @@ import { existsSync, createReadStream } from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { AttachmentCategory } from '@prams/shared';
 import { PurchaseRequestsService } from './purchase-requests.service';
-import { CreatePurchaseRequestDto, UpdatePurchaseRequestDto, QueryPurchaseRequestsDto, SubmitQuotationDto, ReturnForInfoDto, UpdateItemSpecsDto } from './dto';
+import { CreatePurchaseRequestDto, UpdatePurchaseRequestDto, QueryPurchaseRequestsDto, SubmitQuotationDto, SaveCanvassDraftDto, ReturnForInfoDto, UpdateItemSpecsDto } from './dto';
 import { CurrentUser } from '../../common/decorators';
 import { ParseObjectIdPipe } from '../../common/pipes';
 
@@ -120,6 +120,16 @@ export class PurchaseRequestsController {
     @CurrentUser() user: { _id: string; role: string; departmentId: string | null },
   ) {
     return this.prService.submitQuotation(id, dto, user);
+  }
+
+  @Post(':id/canvass-draft')
+  @ApiOperation({ summary: 'Procurement: save partial canvass progress without changing PR status' })
+  async saveCanvassDraft(
+    @Param('id', ParseObjectIdPipe) id: string,
+    @Body() dto: SaveCanvassDraftDto,
+    @CurrentUser() user: { _id: string; role: string; departmentId: string | null },
+  ) {
+    return this.prService.saveCanvassDraft(id, dto, user);
   }
 
   @Post(':id/return-for-info')

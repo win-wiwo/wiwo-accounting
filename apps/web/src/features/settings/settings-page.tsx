@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { usePageTitle } from '@/hooks/use-page-title';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Settings, Eye, Save, Hash } from 'lucide-react';
+import { Settings, Eye, Save, Hash, RefreshCw } from 'lucide-react';
 import apiClient from '@/lib/api-client';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,17 +23,12 @@ import {
 
 interface PrNumberConfig {
   _id: string;
-  prefix: string;
   separator: string;
-  includeYear: boolean;
-  yearFormat: string;
-  includeDepartmentCode: boolean;
   sequenceDigits: number;
 }
 
 interface PrSequence {
   _id: string;
-  departmentCode: string;
   year: number;
   lastNumber: number;
 }
@@ -42,6 +37,7 @@ interface SeriesInfo {
   config: PrNumberConfig;
   sequences: PrSequence[];
   year: number;
+  currentSequence: PrSequence | null;
   totalPrsThisYear: number;
   formatPattern: string;
 }
@@ -97,11 +93,7 @@ export function SettingsPage() {
   useEffect(() => {
     if (config && !initialized) {
       setFormState({
-        prefix: config.prefix,
         separator: config.separator,
-        includeYear: config.includeYear,
-        yearFormat: config.yearFormat,
-        includeDepartmentCode: config.includeDepartmentCode,
         sequenceDigits: config.sequenceDigits,
       });
       setInitialized(true);
@@ -109,19 +101,13 @@ export function SettingsPage() {
   }, [config, initialized]);
 
   const localPreview = useMemo(() => {
-    if (!formState.prefix) return '';
     const sep = formState.separator || '-';
-    const parts: string[] = [formState.prefix];
-
-    if (formState.includeDepartmentCode) {
-      parts.push('ENG');
-    }
-    if (formState.includeYear) {
-      const year = new Date().getFullYear();
-      parts.push(formState.yearFormat === 'short' ? String(year).slice(-2) : String(year));
-    }
-    parts.push('0'.repeat(formState.sequenceDigits || 5).slice(0, -1) + '1');
-    return parts.join(sep);
+    const digits = formState.sequenceDigits || 4;
+    const now = new Date();
+    const year = String(now.getFullYear());
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const seq = '0'.repeat(digits - 1) + '1';
+    return [year, month, seq].join(sep);
   }, [formState]);
 
   const updateMutation = useMutation({
@@ -159,7 +145,7 @@ export function SettingsPage() {
     <div className="space-y-6 max-w-screen-2xl">
       <PageHeader
         title="Settings"
-        description="Configure PR numbering format and view series information."
+        description="Configure PR numbering format and the current series counter."
       />
 
       {/* Section 1: PR Number Format Configuration */}
@@ -167,16 +153,18 @@ export function SettingsPage() {
         <div className="px-6 pt-6 pb-4">
           <h2 className="flex items-center gap-2 text-[15px] font-semibold text-zinc-900">
             <Settings className="h-4 w-4 text-zinc-400" />
-            PR Number Format Configuration
+            PR Number Format
           </h2>
           <p className="mt-1 text-[12px] text-zinc-500">
-            Customize how purchase request numbers are generated across the system.
+            All PR numbers follow the format <span className="font-mono">YEAR-MONTH-SERIES</span>.
+            The series number is continuous across the year regardless of transaction month and
+            resets only when the year changes.
           </p>
         </div>
         <div className="px-6 pb-6">
           {configLoading ? (
             <div className="space-y-4">
-              {Array.from({ length: 4 }).map((_, i) => (
+              {Array.from({ length: 2 }).map((_, i) => (
                 <Skeleton key={i} className="h-10 w-full" />
               ))}
             </div>
@@ -189,7 +177,7 @@ export function SettingsPage() {
                   Preview
                 </div>
                 <p className="text-[24px] font-mono font-bold text-zinc-900 tracking-wider">
-                  {localPreview || 'PR-ENG-2026-00001'}
+                  {localPreview}
                 </p>
               </div>
 
@@ -197,21 +185,8 @@ export function SettingsPage() {
 
               <div className="grid gap-5 sm:grid-cols-2">
                 <ConfigField
-                  label="Prefix"
-                  description="The text that appears at the beginning of every PR number."
-                >
-                  <Input
-                    id="prefix"
-                    value={formState.prefix || ''}
-                    onChange={(e) => updateField('prefix', e.target.value)}
-                    placeholder="PR"
-                    maxLength={10}
-                  />
-                </ConfigField>
-
-                <ConfigField
                   label="Separator"
-                  description="Character used to separate parts of the PR number."
+                  description="Character used between year, month, and series."
                 >
                   <Select
                     value={formState.separator || '-'}
@@ -229,68 +204,11 @@ export function SettingsPage() {
                 </ConfigField>
 
                 <ConfigField
-                  label="Include Year"
-                  description="Whether to include the year in the PR number."
-                >
-                  <Select
-                    value={formState.includeYear ? 'yes' : 'no'}
-                    onValueChange={(val) => updateField('includeYear', val === 'yes')}
-                  >
-                    <SelectTrigger className={premiumSelectTriggerClass}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="yes">Yes</SelectItem>
-                      <SelectItem value="no">No</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </ConfigField>
-
-                <ConfigField
-                  label="Year Format"
-                  description="Format for the year component. Disabled when year is not included."
-                >
-                  <Select
-                    value={formState.yearFormat || 'full'}
-                    onValueChange={(val) => updateField('yearFormat', val)}
-                    disabled={!formState.includeYear}
-                  >
-                    <SelectTrigger className={premiumSelectTriggerClass}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="full">Full (2026)</SelectItem>
-                      <SelectItem value="short">Short (26)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </ConfigField>
-
-                <ConfigField
-                  label="Include Department Code"
-                  description="Whether to include the department code in the PR number."
-                >
-                  <Select
-                    value={formState.includeDepartmentCode ? 'yes' : 'no'}
-                    onValueChange={(val) =>
-                      updateField('includeDepartmentCode', val === 'yes')
-                    }
-                  >
-                    <SelectTrigger className={premiumSelectTriggerClass}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="yes">Yes</SelectItem>
-                      <SelectItem value="no">No</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </ConfigField>
-
-                <ConfigField
                   label="Sequence Digits"
-                  description="Number of digits for the sequence number (zero-padded)."
+                  description="Number of digits for the series number (zero-padded)."
                 >
                   <Select
-                    value={String(formState.sequenceDigits || 5)}
+                    value={String(formState.sequenceDigits || 4)}
                     onValueChange={(val) => updateField('sequenceDigits', Number(val))}
                   >
                     <SelectTrigger className={premiumSelectTriggerClass}>
@@ -325,10 +243,11 @@ export function SettingsPage() {
         <div className="px-6 pt-6 pb-4">
           <h2 className="flex items-center gap-2 text-[15px] font-semibold text-zinc-900">
             <Hash className="h-4 w-4 text-zinc-400" />
-            PR Number Series
+            Current Series
           </h2>
           <p className="mt-1 text-[12px] text-zinc-500">
-            View the current PR numbering sequences by department for this year.
+            View the running counter for the current year. Use “Set Current Series” to migrate
+            existing PR numbers issued manually before the system was deployed.
           </p>
         </div>
         <div className="px-6 pb-6">
@@ -340,7 +259,6 @@ export function SettingsPage() {
             </div>
           ) : series ? (
             <div className="space-y-6">
-              {/* Summary cards */}
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <SummaryCard label="Current Format" value={series.formatPattern} mono />
                 <SummaryCard label="Next Preview" value={preview?.preview ?? '—'} mono />
@@ -354,46 +272,139 @@ export function SettingsPage() {
 
               <Divider />
 
-              {/* Sequences table */}
-              {series.sequences.length === 0 ? (
-                <div className="flex h-32 items-center justify-center rounded-xl border border-dashed border-zinc-200 text-[13px] text-zinc-400">
-                  No PR sequences have been created yet this year.
-                </div>
-              ) : (
-                <div className="overflow-x-auto rounded-xl border border-zinc-100">
-                  <table className="w-full">
-                    <thead className="bg-zinc-50/60 border-b border-zinc-100">
-                      <tr>
-                        <Th>Department Code</Th>
-                        <Th>Year</Th>
-                        <Th>Last Assigned Number</Th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {series.sequences.map((seq) => (
-                        <tr
-                          key={seq._id}
-                          className="border-b border-zinc-100/60 last:border-0 hover:bg-zinc-50/60 transition-colors"
-                        >
-                          <td className="px-5 py-3.5 font-mono text-[13px] font-medium text-zinc-800">
-                            {seq.departmentCode}
-                          </td>
-                          <td className="px-5 py-3.5 text-[13px] text-zinc-700 tabular-nums">
-                            {seq.year}
-                          </td>
-                          <td className="px-5 py-3.5 text-[13px] text-zinc-700 tabular-nums">
-                            {seq.lastNumber}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+              <SetSeriesForm currentYear={series.year} currentLastNumber={series.totalPrsThisYear} />
+
+              {series.sequences.length > 1 && (
+                <>
+                  <Divider />
+                  <div>
+                    <div className="mb-3 text-[12px] font-semibold uppercase tracking-[0.08em] text-zinc-500">
+                      Historical Sequences
+                    </div>
+                    <div className="overflow-x-auto rounded-xl border border-zinc-100">
+                      <table className="w-full">
+                        <thead className="bg-zinc-50/60 border-b border-zinc-100">
+                          <tr>
+                            <Th>Year</Th>
+                            <Th>Last Assigned Number</Th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {series.sequences.map((seq) => (
+                            <tr
+                              key={seq._id}
+                              className="border-b border-zinc-100/60 last:border-0 hover:bg-zinc-50/60 transition-colors"
+                            >
+                              <td className="px-5 py-3.5 text-[13px] text-zinc-700 tabular-nums">
+                                {seq.year}
+                              </td>
+                              <td className="px-5 py-3.5 text-[13px] text-zinc-700 tabular-nums">
+                                {seq.lastNumber}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </>
               )}
             </div>
           ) : null}
         </div>
       </Surface>
+    </div>
+  );
+}
+
+function SetSeriesForm({
+  currentYear,
+  currentLastNumber,
+}: {
+  currentYear: number;
+  currentLastNumber: number;
+}) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [year, setYear] = useState<number>(currentYear);
+  const [lastNumber, setLastNumber] = useState<string>(String(currentLastNumber));
+
+  useEffect(() => {
+    setYear(currentYear);
+    setLastNumber(String(currentLastNumber));
+  }, [currentYear, currentLastNumber]);
+
+  const setSeriesMutation = useMutation({
+    mutationFn: async (payload: { year: number; lastNumber: number }) => {
+      const res = await apiClient.patch('/pr-numbering/series', payload);
+      return res.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pr-numbering'] });
+      toast({
+        title: 'Series updated',
+        description: 'The next PR number will continue from this series.',
+        variant: 'success',
+      });
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to update series.',
+        variant: 'error',
+      });
+    },
+  });
+
+  const parsed = Number(lastNumber);
+  const isValid = Number.isFinite(parsed) && parsed >= 0 && Number.isInteger(parsed);
+
+  const handleSubmit = () => {
+    if (!isValid) return;
+    setSeriesMutation.mutate({ year, lastNumber: parsed });
+  };
+
+  return (
+    <div className="rounded-xl border border-zinc-200/80 bg-zinc-50/40 px-5 py-4">
+      <div className="mb-3 flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-[0.08em] text-zinc-600">
+        <RefreshCw className="h-3 w-3" />
+        Set Current Series
+      </div>
+      <p className="text-[12px] text-zinc-500 mb-4">
+        Use this when the year has already started and PR numbers were issued before this system
+        was deployed. The next PR number will be{' '}
+        <span className="font-mono font-semibold text-zinc-700">lastNumber + 1</span>.
+      </p>
+
+      <div className="grid gap-4 sm:grid-cols-[160px_1fr_auto] sm:items-end">
+        <ConfigField label="Year" description="">
+          <Input
+            type="number"
+            value={year}
+            min={2000}
+            max={2100}
+            onChange={(e) => setYear(Number(e.target.value))}
+          />
+        </ConfigField>
+        <ConfigField
+          label="Last Assigned Number"
+          description="Highest series number already issued for this year."
+        >
+          <Input
+            type="number"
+            value={lastNumber}
+            min={0}
+            onChange={(e) => setLastNumber(e.target.value)}
+          />
+        </ConfigField>
+        <PrimaryButton
+          onClick={handleSubmit}
+          disabled={!isValid || setSeriesMutation.isPending}
+        >
+          <Save className="h-4 w-4" />
+          {setSeriesMutation.isPending ? 'Saving...' : 'Apply'}
+        </PrimaryButton>
+      </div>
     </div>
   );
 }
@@ -411,7 +422,9 @@ function ConfigField({
     <div className="space-y-1.5">
       <Label className="text-[12px] font-semibold text-zinc-700">{label}</Label>
       {children}
-      <p className="text-[11px] text-zinc-400 leading-relaxed">{description}</p>
+      {description && (
+        <p className="text-[11px] text-zinc-400 leading-relaxed">{description}</p>
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
-import type { SubmitQuotationDto } from '@prams/shared';
-import { useSubmitQuotation, useReturnForInfo } from '@/hooks/use-purchase-requests';
+import type { SubmitQuotationDto, SaveCanvassDraftDto } from '@prams/shared';
+import { useSubmitQuotation, useSaveCanvassDraft, useReturnForInfo } from '@/hooks/use-purchase-requests';
 import { useSuppliers } from '@/hooks/use-suppliers';
 import { useToast } from '@/components/ui/toast';
 import { getErrorMessage } from './utils';
@@ -19,6 +19,7 @@ type PrItem = any;
 export function useCanvass(prId: string | undefined, procItems: PrItem[], onComplete: () => void) {
   const { toast } = useToast();
   const submitQuotation = useSubmitQuotation();
+  const saveDraftMutation = useSaveCanvassDraft();
   const returnMutation = useReturnForInfo();
   const { data: suppliersData } = useSuppliers({ limit: 100, status: 'active' });
   const suppliers = suppliersData?.data ?? [];
@@ -160,6 +161,53 @@ export function useCanvass(prId: string | undefined, procItems: PrItem[], onComp
     }
   };
 
+  const handleSaveDraft = async () => {
+    if (!prId) return;
+    // Persist whatever the user has so far. Empty rows (no supplier) are
+    // dropped server-side; rows with prices but no supplier stay client-side
+    // until the user picks one.
+    const supplierIds = canvassEntries.map((entry) => entry.supplierId).filter(Boolean);
+    if (new Set(supplierIds).size !== supplierIds.length) {
+      toast({ title: 'Duplicate suppliers', description: 'Each canvass entry must use a different supplier.', variant: 'error' });
+      return;
+    }
+    const payloadEntries: SaveCanvassDraftDto['canvassEntries'] = canvassEntries
+      .filter((entry) => entry.supplierId)
+      .map((entry) => {
+        const quotedItems: NonNullable<SaveCanvassDraftDto['canvassEntries'][number]['quotedItems']> = [];
+        for (const item of procItems) {
+          const raw = entry.quotedPrices[item._id];
+          if (raw === undefined || raw === '') continue;
+          const unitPrice = Number(raw);
+          if (!Number.isFinite(unitPrice) || unitPrice < 0) continue;
+          quotedItems.push({
+            itemId: item._id,
+            description: item.description,
+            unitPrice,
+          });
+        }
+        return {
+          supplierId: entry.supplierId,
+          quotedItems,
+          remarks: entry.remarks.trim() || undefined,
+          isSelected: entry.isSelected,
+        };
+      });
+
+    try {
+      await saveDraftMutation.mutateAsync({
+        id: prId,
+        payload: {
+          canvassEntries: payloadEntries,
+          canvassJustification: canvassJustification.trim() || undefined,
+        },
+      });
+      toast({ title: 'Draft saved', description: 'Your canvass progress has been saved. The PR stays in your queue.', variant: 'success' });
+    } catch (error) {
+      toast({ title: 'Failed to save draft', description: getErrorMessage(error, 'Check supplier selection and try again.'), variant: 'error' });
+    }
+  };
+
   const handleReturnForInfo = async () => {
     if (!returnNote.trim()) {
       toast({ title: 'Note required', description: 'Explain what additional info is needed.', variant: 'error' });
@@ -197,9 +245,11 @@ export function useCanvass(prId: string | undefined, procItems: PrItem[], onComp
     updateEntry,
     setWinner,
     handleSubmitQuotation,
+    handleSaveDraft,
     handleReturnForInfo,
     resetActions,
     isSubmitting: submitQuotation.isPending,
+    isSavingDraft: saveDraftMutation.isPending,
     isReturning: returnMutation.isPending,
   };
 }

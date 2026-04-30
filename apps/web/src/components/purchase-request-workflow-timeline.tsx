@@ -11,13 +11,13 @@ import {
 import {
   CheckCircle2,
   Clock,
+  RefreshCw,
   RotateCcw,
   Send,
   ShoppingCart,
   XCircle,
   Undo2,
 } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
 
 type TimelineEntry = {
   id: string;
@@ -42,6 +42,9 @@ interface PurchaseRequestWorkflowTimelineProps {
   approvalHistory: ApprovalHistoryEntry[];
   po?: LinkedPo;
   compact?: boolean;
+  // Hide the trailing "awaiting" pulse — useful in the approval modal where
+  // the approver is about to make that decision.
+  showCurrentState?: boolean;
 }
 
 function formatDateTime(date: string) {
@@ -129,6 +132,19 @@ function buildTimelineEntries(
       title: "Recalled to Draft",
       actor: recalledByName(entry.recalledBy),
       icon: <Undo2 className="h-4 w-4 text-slate-600" />,
+    });
+  }
+
+  for (const entry of pr.resubmissionHistory ?? []) {
+    entries.push({
+      id: `resubmitted-${entry._id}`,
+      date: entry.resubmittedAt,
+      title: "Resubmitted",
+      note: entry.note,
+      levelLabel:
+        APPROVAL_LEVEL_LABELS[entry.resumedAtLevel] ||
+        `Level ${entry.resumedAtLevel}`,
+      icon: <RefreshCw className="h-4 w-4 text-blue-600" />,
     });
   }
 
@@ -258,85 +274,89 @@ export function PurchaseRequestWorkflowTimeline({
   approvalHistory,
   po = null,
   compact = false,
+  showCurrentState = true,
 }: PurchaseRequestWorkflowTimelineProps) {
   const entries = buildTimelineEntries(pr, approvalHistory, po);
 
   if (entries.length === 0) {
-    return <CurrentState pr={pr} po={po} compact={compact} />;
+    return showCurrentState ? <CurrentState pr={pr} po={po} compact={compact} /> : null;
   }
 
-  if (compact) {
-    return (
-      <div className="space-y-3">
-        {entries.map((entry, index) => (
-          <div key={entry.id} className="text-xs">
-            <div className="flex items-center gap-1.5">
-              {entry.icon}
-              <span className="font-medium">{entry.title}</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              {entry.levelLabel && (
-                <p className="text-muted-foreground mt-0.5">{entry.levelLabel}</p>
-              )}
-              {entry.actor && (
-                <p className="text-muted-foreground mt-0.5">{entry.actor}</p>
-              )}
-              {entry.note && (
-                <p className="mt-1 italic text-muted-foreground">&ldquo;{entry.note}&rdquo;</p>
-              )}
-              <p className="mt-0.5 text-muted-foreground/60">{formatDateTime(entry.date)}</p>
-              {index < entries.length - 1 && <Separator className="mt-2" />}
-            </div>
-          </div>
-        ))}
-        <CurrentState pr={pr} po={po} compact />
-      </div>
-    );
-  }
+  // Density variants share the same vertical-timeline layout, only the
+  // spacing, icon size, and typography scale down for `compact`.
+  const cls = compact
+    ? {
+        line: 'absolute left-[9px] top-[18px] bottom-6 w-px bg-zinc-200',
+        listGap: 'space-y-3',
+        rowGap: 'gap-2',
+        iconWrap: 'mt-0.5 shrink-0 z-[1] rounded-full bg-white p-[2px]',
+        title: 'text-[12px] font-semibold text-zinc-800',
+        badge:
+          'inline-flex items-center rounded-full bg-zinc-100 px-1.5 py-0.5 text-[9px] font-medium text-zinc-600',
+        actor: 'text-[11px] text-zinc-500 mt-0.5',
+        note: 'mt-1 text-[11px] leading-snug text-zinc-500 italic rounded-md bg-zinc-50 px-2.5 py-1.5 border border-zinc-100',
+        date: 'mt-0.5 text-[10px] tabular-nums text-zinc-400',
+        currentDotWrap: 'mt-0.5 shrink-0 z-[1] flex items-center justify-center w-[18px]',
+      }
+    : {
+        line: 'absolute left-[11px] top-[22px] bottom-8 w-px bg-zinc-200',
+        listGap: 'space-y-5',
+        rowGap: 'gap-3',
+        iconWrap: 'mt-0.5 shrink-0 z-[1] rounded-full bg-white p-[3px]',
+        title: 'text-[13px] font-semibold text-zinc-800',
+        badge:
+          'inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-600',
+        actor: 'text-[12px] text-zinc-500 mt-0.5',
+        note: 'mt-1.5 text-[12px] leading-relaxed text-zinc-500 italic rounded-lg bg-zinc-50 px-3 py-2 border border-zinc-100',
+        date: 'mt-1 text-[11px] tabular-nums text-zinc-400',
+        currentDotWrap: 'mt-1 shrink-0 z-[1] flex items-center justify-center w-[22px]',
+      };
+
+  // Re-render entry icons at a smaller size in compact mode.
+  const renderIcon = (icon: ReactNode) => {
+    if (!compact) return icon;
+    if (
+      typeof icon === 'object' &&
+      icon !== null &&
+      'props' in (icon as object)
+    ) {
+      const el = icon as { type: unknown; props: { className?: string } };
+      const next = (el.props.className ?? '').replace(/h-4 w-4/g, 'h-3.5 w-3.5');
+      const Comp = el.type as React.ElementType;
+      return <Comp {...el.props} className={next} />;
+    }
+    return icon;
+  };
 
   return (
     <div className="relative">
-      {/* Vertical connector line */}
-      {entries.length > 1 && (
-        <div className="absolute left-[11px] top-[22px] bottom-8 w-px bg-zinc-200" />
-      )}
-      <div className="space-y-5">
+      {entries.length > 1 && <div className={cls.line} />}
+      <div className={cls.listGap}>
         {entries.map((entry) => (
-          <div key={entry.id} className="flex gap-3 relative">
-            <div className="mt-0.5 shrink-0 z-[1] rounded-full bg-white p-[3px]">
-              {entry.icon}
-            </div>
+          <div key={entry.id} className={`flex ${cls.rowGap} relative`}>
+            <div className={cls.iconWrap}>{renderIcon(entry.icon)}</div>
             <div className="flex-1 min-w-0 pb-0.5">
               <div className="flex items-center gap-2">
-                <span className="text-[13px] font-semibold text-zinc-800">{entry.title}</span>
+                <span className={cls.title}>{entry.title}</span>
                 {entry.levelLabel && (
-                  <span className="inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-600">
-                    {entry.levelLabel}
-                  </span>
+                  <span className={cls.badge}>{entry.levelLabel}</span>
                 )}
               </div>
-              {entry.actor && (
-                <p className="text-[12px] text-zinc-500 mt-0.5">by {entry.actor}</p>
-              )}
+              {entry.actor && <p className={cls.actor}>by {entry.actor}</p>}
               {entry.note && (
-                <p className="mt-1.5 text-[12px] leading-relaxed text-zinc-500 italic rounded-lg bg-zinc-50 px-3 py-2 border border-zinc-100">
-                  &ldquo;{entry.note}&rdquo;
-                </p>
+                <p className={cls.note}>&ldquo;{entry.note}&rdquo;</p>
               )}
-              <p className="mt-1 text-[11px] tabular-nums text-zinc-400">
-                {formatDateTime(entry.date)}
-              </p>
+              <p className={cls.date}>{formatDateTime(entry.date)}</p>
             </div>
           </div>
         ))}
-        {/* Current state */}
-        {hasCurrentState(pr, po) && (
-          <div className="flex gap-3 relative">
-            <div className="mt-1 shrink-0 z-[1] flex items-center justify-center w-[22px]">
+        {showCurrentState && hasCurrentState(pr, po) && (
+          <div className={`flex ${cls.rowGap} relative`}>
+            <div className={cls.currentDotWrap}>
               <span className="block h-2 w-2 rounded-full bg-zinc-300 animate-pulse" />
             </div>
             <div className="flex-1 min-w-0">
-              <CurrentState pr={pr} po={po} />
+              <CurrentState pr={pr} po={po} compact={compact} />
             </div>
           </div>
         )}

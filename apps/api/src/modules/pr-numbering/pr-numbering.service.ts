@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { PrSequence } from './schemas/pr-sequence.schema';
 import { PrNumberConfig } from './schemas/pr-number-config.schema';
 import { UpdatePrNumberConfigDto } from './dto/update-pr-number-config.dto';
+import { SetCurrentSeriesDto } from './dto/set-current-series.dto';
 
 @Injectable()
 export class PrNumberingService {
@@ -32,14 +33,15 @@ export class PrNumberingService {
   async getSeriesInfo() {
     const year = new Date().getFullYear();
     const config = await this.getConfig();
-    const sequences = await this.sequenceModel.find({ year }).sort({ departmentCode: 1 });
-
-    const totalPrsThisYear = sequences.reduce((sum, seq) => sum + seq.lastNumber, 0);
+    const sequences = await this.sequenceModel.find().sort({ year: -1 });
+    const currentSequence = sequences.find((s) => s.year === year) ?? null;
+    const totalPrsThisYear = currentSequence?.lastNumber ?? 0;
 
     return {
       config,
       sequences,
       year,
+      currentSequence,
       totalPrsThisYear,
       formatPattern: this.buildFormatPattern(config),
     };
@@ -47,71 +49,63 @@ export class PrNumberingService {
 
   async getPreview() {
     const config = await this.getConfig();
-    const year = new Date().getFullYear();
-    const exampleDeptCode = 'ENG';
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
 
-    // Find the current sequence for the example department, or use 0
-    const sequence = await this.sequenceModel.findOne({ departmentCode: exampleDeptCode, year });
+    const sequence = await this.sequenceModel.findOne({ year });
     const nextNumber = (sequence?.lastNumber ?? 0) + 1;
 
-    const preview = this.formatPrNumber(config, exampleDeptCode, year, nextNumber);
+    const preview = this.formatPrNumber(config, year, month, nextNumber);
     const pattern = this.buildFormatPattern(config);
 
     return { preview, pattern, nextNumber };
   }
 
-  async generatePrNumber(departmentCode: string, prefixOverride?: string): Promise<string> {
-    const year = new Date().getFullYear();
+  async setCurrentSeries(dto: SetCurrentSeriesDto): Promise<PrSequence> {
+    if (dto.lastNumber < 0) {
+      throw new BadRequestException('lastNumber cannot be negative');
+    }
+    const sequence = await this.sequenceModel.findOneAndUpdate(
+      { year: dto.year },
+      { $set: { lastNumber: dto.lastNumber } },
+      { new: true, upsert: true },
+    );
+    return sequence;
+  }
+
+  async generatePrNumber(): Promise<string> {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
     const config = await this.getConfig();
 
     const sequence = await this.sequenceModel.findOneAndUpdate(
-      { departmentCode, year },
+      { year },
       { $inc: { lastNumber: 1 } },
       { new: true, upsert: true },
     );
 
-    return this.formatPrNumber(config, departmentCode, year, sequence.lastNumber, prefixOverride);
+    return this.formatPrNumber(config, year, month, sequence.lastNumber);
   }
 
   private formatPrNumber(
     config: PrNumberConfig,
-    departmentCode: string,
     year: number,
+    month: number,
     sequenceNumber: number,
-    prefixOverride?: string,
   ): string {
-    const parts: string[] = [prefixOverride ?? config.prefix];
+    const sep = config.separator || '-';
+    const yearStr = String(year);
+    const monthStr = String(month).padStart(2, '0');
+    const seqStr = String(sequenceNumber).padStart(config.sequenceDigits, '0');
 
-    if (config.includeDepartmentCode) {
-      parts.push(departmentCode);
-    }
-
-    if (config.includeYear) {
-      const yearStr = config.yearFormat === 'short'
-        ? String(year).slice(-2)
-        : String(year);
-      parts.push(yearStr);
-    }
-
-    const paddedNumber = String(sequenceNumber).padStart(config.sequenceDigits, '0');
-    parts.push(paddedNumber);
-
-    return parts.join(config.separator);
+    return [yearStr, monthStr, seqStr].join(sep);
   }
 
   private buildFormatPattern(config: PrNumberConfig): string {
-    const parts: string[] = [config.prefix];
-
-    if (config.includeDepartmentCode) {
-      parts.push('{DEPT}');
-    }
-
-    if (config.includeYear) {
-      parts.push(config.yearFormat === 'short' ? '{YY}' : '{YYYY}');
-    }
-
-    parts.push('{' + '#'.repeat(config.sequenceDigits) + '}');
-
-    return parts.join(config.separator);
+    const sep = config.separator || '-';
+    const seqPlaceholder = '{' + '#'.repeat(config.sequenceDigits) + '}';
+    return ['YYYY', 'MM', seqPlaceholder].join(sep);
   }
 }

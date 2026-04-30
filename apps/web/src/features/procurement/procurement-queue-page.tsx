@@ -4,11 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   ChevronLeft,
   ChevronRight,
-  Clock,
-  AlertTriangle,
   CheckCircle2,
-  ShoppingCart,
-  RotateCcw,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
@@ -27,22 +23,38 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 
 /* ── Badge styling (matches other pages) ──────────────── */
+/* Priority — quieter than status: no border, lighter tint */
 const priorityStyle: Record<string, string> = {
-  low:    'bg-zinc-100 text-zinc-500',
-  medium: 'bg-blue-50 text-blue-600',
-  high:   'bg-amber-50 text-amber-700',
-  urgent: 'bg-red-50 text-red-600',
+  low:    'bg-zinc-50 text-zinc-500',
+  medium: 'bg-zinc-50 text-zinc-700',
+  high:   'bg-amber-50/70 text-amber-800',
+  urgent: 'bg-red-50/70 text-red-700',
 };
 
+const priorityDot: Record<string, string> = {
+  low:    'bg-zinc-300',
+  medium: 'bg-zinc-400',
+  high:   'bg-amber-500',
+  urgent: 'bg-red-500',
+};
+
+/* Status — restrained semantic palette with soft border + dot */
 const procStatusStyle: Record<string, string> = {
-  pending_quotation: 'bg-violet-50 text-violet-700',
-  quoted:            'bg-emerald-50 text-emerald-700',
-  returned_for_info: 'bg-amber-50 text-amber-700',
+  pending_quotation: 'bg-blue-50 text-blue-700 border-blue-200',
+  quoted:            'bg-emerald-50 text-emerald-700 border-emerald-200',
+  returned_for_info: 'bg-amber-50 text-amber-800 border-amber-200',
 };
 
+const procStatusDot: Record<string, string> = {
+  pending_quotation: 'bg-blue-500',
+  quoted:            'bg-emerald-500',
+  returned_for_info: 'bg-amber-500',
+};
+
+// QUOTED PRs have already left procurement's hands — they're awaiting COO
+// price review and shouldn't appear in this queue.
 const PROC_STATUSES = [
   PrStatus.PENDING_QUOTATION,
-  PrStatus.QUOTED,
   PrStatus.RETURNED_FOR_INFO,
 ] as const;
 
@@ -101,10 +113,7 @@ export function ProcurementQueuePage() {
         const bTime = new Date(b.submittedAt ?? 0).getTime();
         return sortDir === 'asc' ? bTime - aTime : aTime - bTime;
       }
-      // default: quoted first, then priority, then oldest
-      const aQuoted = a.status === PrStatus.QUOTED ? 0 : 1;
-      const bQuoted = b.status === PrStatus.QUOTED ? 0 : 1;
-      if (aQuoted !== bQuoted) return aQuoted - bQuoted;
+      // default: priority then oldest
       const pDiff = (PRIORITY_ORDER[a.priority] ?? 3) - (PRIORITY_ORDER[b.priority] ?? 3);
       if (pDiff !== 0) return pDiff;
       return new Date(a.submittedAt ?? 0).getTime() - new Date(b.submittedAt ?? 0).getTime();
@@ -223,12 +232,7 @@ export function ProcurementQueuePage() {
                     const requester = pr.requesterId && typeof pr.requesterId === 'object'
                       ? (pr.requesterId as unknown as { firstName: string; lastName: string })
                       : null;
-                    const dept = pr.departmentId && typeof pr.departmentId === 'object'
-                      ? (pr.departmentId as unknown as { name: string })
-                      : null;
                     const hasProcurement = pr.items.some((i) => i.sourcingType === SourcingType.PROCUREMENT);
-                    const isRevised = !!pr.previousSubmissionSnapshot;
-                    const isReturnedForInfo = pr.status === PrStatus.RETURNED_FOR_INFO;
                     const { label: ageLabel, days: ageDays } = relativeAge(pr.submittedAt);
                     const amountIsUnknown = hasProcurement && pr.totalAmount === 0;
 
@@ -248,31 +252,9 @@ export function ProcurementQueuePage() {
 
                         {/* Request */}
                         <td className="px-5 py-4">
-                          <div className="max-w-[320px]">
-                            <p className="text-[13px] font-medium text-zinc-800 leading-snug truncate group-hover:text-zinc-950 transition-colors duration-150">
-                              {pr.title}
-                            </p>
-                            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                              {dept && (
-                                <span className="text-[11px] text-zinc-400">{dept.name}</span>
-                              )}
-                              {hasProcurement && (
-                                <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-blue-700 bg-blue-50 border border-blue-100 rounded-full px-1.5 py-0.5">
-                                  <ShoppingCart className="h-2.5 w-2.5" /> Procurement
-                                </span>
-                              )}
-                              {isRevised && (
-                                <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-amber-700 bg-amber-50 border border-amber-100 rounded-full px-1.5 py-0.5">
-                                  <RotateCcw className="h-2.5 w-2.5" /> Revised
-                                </span>
-                              )}
-                              {isReturnedForInfo && (
-                                <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-amber-700 bg-amber-50 border border-amber-100 rounded-full px-1.5 py-0.5">
-                                  <AlertTriangle className="h-2.5 w-2.5" /> Needs Info
-                                </span>
-                              )}
-                            </div>
-                          </div>
+                          <p className="max-w-[320px] text-[13px] font-medium text-zinc-800 leading-snug truncate group-hover:text-zinc-950 transition-colors duration-150">
+                            {pr.title}
+                          </p>
                         </td>
 
                         {/* Requester */}
@@ -295,34 +277,31 @@ export function ProcurementQueuePage() {
 
                         {/* Status */}
                         <td className="px-5 py-4">
-                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${procStatusStyle[pr.status] ?? 'bg-zinc-100 text-zinc-600'}`}>
+                          <span className={`inline-flex h-[22px] items-center gap-1.5 rounded-md border px-2 text-[11px] font-medium leading-none ${procStatusStyle[pr.status] ?? 'bg-zinc-50 text-zinc-700 border-zinc-200'}`}>
+                            <span className={`h-1.5 w-1.5 rounded-full ${procStatusDot[pr.status] ?? 'bg-zinc-400'}`} />
                             {PR_STATUS_LABELS[pr.status as PrStatusType]}
                           </span>
                         </td>
 
                         {/* Priority */}
                         <td className="px-5 py-4">
-                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${priorityStyle[pr.priority] ?? 'bg-zinc-100 text-zinc-500'}`}>
+                          <span className={`inline-flex h-[22px] items-center gap-1.5 rounded-md px-2 text-[11px] font-medium leading-none ${priorityStyle[pr.priority] ?? 'bg-zinc-50 text-zinc-500'}`}>
+                            <span className={`h-1.5 w-1.5 rounded-full ${priorityDot[pr.priority] ?? 'bg-zinc-300'}`} />
                             {PR_PRIORITY_LABELS[pr.priority as PrPriorityType]}
                           </span>
                         </td>
 
                         {/* Age */}
                         <td className="px-5 py-4">
-                          <div className="flex items-center gap-1.5">
-                            {ageDays >= 5 && (
-                              <Clock className={`h-3 w-3 shrink-0 ${ageDays >= 10 ? 'text-red-500' : 'text-zinc-400'}`} />
-                            )}
-                            <span className={`text-[13px] tabular-nums whitespace-nowrap ${
-                              ageDays >= 10
-                                ? 'text-red-600 font-semibold'
-                                : ageDays >= 7
-                                  ? 'text-red-500 font-medium'
-                                  : 'text-zinc-400'
-                            }`}>
-                              {ageLabel}
-                            </span>
-                          </div>
+                          <span className={`text-[13px] tabular-nums whitespace-nowrap ${
+                            ageDays >= 10
+                              ? 'text-red-600 font-semibold'
+                              : ageDays >= 7
+                                ? 'text-red-500 font-medium'
+                                : 'text-zinc-400'
+                          }`}>
+                            {ageLabel}
+                          </span>
                         </td>
 
                         {/* Chevron */}

@@ -42,17 +42,17 @@ const PO_STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_STYLE: Record<string, string> = {
-  pending:   'bg-amber-50 text-amber-700',
-  ordered:   'bg-blue-50 text-blue-700',
-  received:  'bg-emerald-50 text-emerald-700',
-  cancelled: 'bg-red-50 text-red-500',
+  pending:   'bg-amber-50 text-amber-800 border-amber-200',
+  ordered:   'bg-blue-50 text-blue-700 border-blue-200',
+  received:  'bg-emerald-50 text-emerald-700 border-emerald-200',
+  cancelled: 'bg-red-50 text-red-700 border-red-200',
 };
 
 const STATUS_DOT: Record<string, string> = {
-  pending:   'bg-amber-400',
-  ordered:   'bg-blue-400',
-  received:  'bg-emerald-400',
-  cancelled: 'bg-red-400',
+  pending:   'bg-amber-500',
+  ordered:   'bg-blue-500',
+  received:  'bg-emerald-500',
+  cancelled: 'bg-red-500',
 };
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -366,12 +366,10 @@ export function PoListPage() {
 
                         {/* Status */}
                         <td className="px-5 py-4">
-                          <div className="flex items-center gap-1.5">
-                            <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${STATUS_DOT[po.status] ?? 'bg-zinc-300'}`} />
-                            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${STATUS_STYLE[po.status] ?? 'bg-zinc-100 text-zinc-600'}`}>
-                              {PO_STATUS_LABELS[po.status] ?? po.status}
-                            </span>
-                          </div>
+                          <span className={`inline-flex h-[22px] items-center gap-1.5 rounded-md border px-2 text-[11px] font-medium leading-none ${STATUS_STYLE[po.status] ?? 'bg-zinc-50 text-zinc-700 border-zinc-200'}`}>
+                            <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${STATUS_DOT[po.status] ?? 'bg-zinc-400'}`} />
+                            {PO_STATUS_LABELS[po.status] ?? po.status}
+                          </span>
                         </td>
 
                         {/* Date */}

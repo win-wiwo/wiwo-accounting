@@ -32,7 +32,7 @@ export interface PrLineItem {
   description: string;
   quantity: number;
   unit: string;
-  specifications?: string | null;
+  specifications: string;
   sourcingType: SourcingType;
   estimatedPrice: number;
   totalPrice: number;
@@ -81,6 +81,13 @@ export interface RecallHistoryEntry {
   recalledAt: string;
 }
 
+export interface ResubmissionHistoryEntry {
+  _id: string;
+  resubmittedAt: string;
+  note: string | null;
+  resumedAtLevel: number;
+}
+
 export interface PreviousSubmissionSnapshot {
   title: string;
   priority: string;
@@ -113,6 +120,7 @@ export interface PurchaseRequest {
   neededByDate: string | null;
   attachments: PrAttachment[];
   currentApprovalLevel: number;
+  returnedAtLevel?: number | null;
   approvalHistory: string[];
   submittedAt: string | null;
   completedAt: string | null;
@@ -123,6 +131,7 @@ export interface PurchaseRequest {
   quotationReturnHistory?: QuotationReturn[];
   clarificationReplies?: ClarificationReply[];
   recallHistory?: RecallHistoryEntry[];
+  resubmissionHistory?: ResubmissionHistoryEntry[];
   previousSubmissionSnapshot?: PreviousSubmissionSnapshot | null;
   resubmissionNote?: string | null;
   createdAt: string;
@@ -140,7 +149,7 @@ export interface CreateLineItemDto {
   description: string;
   quantity: number;
   unit: string;
-  specifications?: string;
+  specifications: string;
   sourcingType: SourcingType;
   estimatedPrice?: number;
   notes?: string;
@@ -170,5 +179,28 @@ export interface UpdatePurchaseRequestDto {
 
 export interface SubmitQuotationDto {
   canvassEntries: CanvassEntry[];
+  canvassJustification?: string;
+}
+
+// Draft variant — relaxed: each field can be partial since procurement is
+// mid-canvassing. Only entries with a chosen supplier are persisted on the
+// server; rows still being edited can stay client-side.
+export interface CanvassDraftQuotedItem {
+  itemId: string;
+  description?: string;
+  unitPrice?: number;
+  remarks?: string;
+}
+
+export interface CanvassDraftEntry {
+  supplierId?: string;
+  supplierName?: string;
+  quotedItems?: CanvassDraftQuotedItem[];
+  remarks?: string;
+  isSelected?: boolean;
+}
+
+export interface SaveCanvassDraftDto {
+  canvassEntries: CanvassDraftEntry[];
   canvassJustification?: string;
 }

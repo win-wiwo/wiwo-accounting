@@ -34,8 +34,8 @@ export class LineItem {
   @Prop({ required: true, trim: true })
   unit: string;
 
-  @Prop({ type: String, default: null, trim: true })
-  specifications: string | null;
+  @Prop({ required: true, trim: true })
+  specifications: string;
 
   @Prop({ required: true, enum: Object.values(SourcingType), default: SourcingType.PROCUREMENT })
   sourcingType: string;
@@ -200,6 +200,23 @@ export class RecallEvent {
 
 export const RecallEventSchema = SchemaFactory.createForClass(RecallEvent);
 
+@Schema({ _id: true })
+export class ResubmissionEvent {
+  _id: Types.ObjectId;
+
+  @Prop({ required: true, default: () => new Date() })
+  resubmittedAt: Date;
+
+  @Prop({ type: String, default: null })
+  note: string | null;
+
+  // Level the PR landed on after this resubmission (1, 2, or 3).
+  @Prop({ required: true })
+  resumedAtLevel: number;
+}
+
+export const ResubmissionEventSchema = SchemaFactory.createForClass(ResubmissionEvent);
+
 @Schema({ timestamps: true })
 export class PurchaseRequest extends Document {
   @Prop({ unique: true, sparse: true })
@@ -250,6 +267,12 @@ export class PurchaseRequest extends Document {
   @Prop({ default: 0 })
   currentApprovalLevel: number;
 
+  // Captured when an approver returns a PR. Used on resubmit so the PR goes
+  // straight back to the same approver's level instead of restarting the
+  // approval chain. Cleared once the PR is resubmitted.
+  @Prop({ type: Number, default: null })
+  returnedAtLevel: number | null;
+
   @Prop({ type: [{ type: Types.ObjectId, ref: 'Approval' }], default: [] })
   approvalHistory: Types.ObjectId[];
 
@@ -286,6 +309,11 @@ export class PurchaseRequest extends Document {
   // Persistent history of all requester recalls
   @Prop({ type: [RecallEventSchema], default: [] })
   recallHistory: RecallEvent[];
+
+  // Resubmission events (one per RETURNED → resubmit cycle). Lets the
+  // timeline distinguish the original submission from later resubmissions.
+  @Prop({ type: [ResubmissionEventSchema], default: [] })
+  resubmissionHistory: ResubmissionEvent[];
 
   // Snapshot of PR state at the time it was returned by an approver,
   // used to generate a diff view when the requester resubmits.

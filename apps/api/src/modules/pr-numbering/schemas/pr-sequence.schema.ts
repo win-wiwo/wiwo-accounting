@@ -3,10 +3,7 @@ import { Document } from 'mongoose';
 
 @Schema({ timestamps: true })
 export class PrSequence extends Document {
-  @Prop({ required: true })
-  departmentCode: string;
-
-  @Prop({ required: true })
+  @Prop({ required: true, unique: true })
   year: number;
 
   @Prop({ default: 0 })
@@ -14,5 +11,3 @@ export class PrSequence extends Document {
 }
 
 export const PrSequenceSchema = SchemaFactory.createForClass(PrSequence);
-
-PrSequenceSchema.index({ departmentCode: 1, year: 1 }, { unique: true });

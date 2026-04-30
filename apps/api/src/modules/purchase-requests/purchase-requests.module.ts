@@ -4,7 +4,6 @@ import { PurchaseRequestsService } from './purchase-requests.service';
 import { PurchaseRequestsController } from './purchase-requests.controller';
 import { PurchaseRequest, PurchaseRequestSchema } from './schemas/purchase-request.schema';
 import { PrNumberingModule } from '../pr-numbering/pr-numbering.module';
-import { DepartmentsModule } from '../departments/departments.module';
 import { Supplier, SupplierSchema } from '../suppliers/schemas/supplier.schema';
 
 @Module({
@@ -14,7 +13,6 @@ import { Supplier, SupplierSchema } from '../suppliers/schemas/supplier.schema';
       { name: Supplier.name, schema: SupplierSchema },
     ]),
     PrNumberingModule,
-    DepartmentsModule,
   ],
   controllers: [PurchaseRequestsController],
   providers: [PurchaseRequestsService],

@@ -371,4 +371,30 @@
   html body[data-scroll-locked] {
     margin-right: 0 !important;
   }
+
+  /* Slim, light scrollbar for content inside modals/drawers/cards.
+     Sits flush against light surfaces, fades when not needed. */
+  .scrollbar-modern {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.18) transparent;
+  }
+  .scrollbar-modern::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .scrollbar-modern::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-modern::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.18);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  .scrollbar-modern::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 0, 0, 0.32);
+  }
+  .scrollbar-modern::-webkit-scrollbar-corner {
+    background: transparent;
+  }
 }

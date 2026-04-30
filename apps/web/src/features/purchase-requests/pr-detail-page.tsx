@@ -65,6 +65,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import * as Tooltip from "@radix-ui/react-tooltip";
 
 // ─── Resubmission Diff ──────────────────────────────────────────────────────
 
@@ -579,6 +580,18 @@ export function PrDetailPage() {
   const hasProcurementItems = pr.items.some((i) => i.sourcingType === SourcingType.PROCUREMENT);
   const hasUnquotedItems = hasProcurementItems && pr.items.filter((i) => i.sourcingType === SourcingType.PROCUREMENT).some((i) => !i.quotedUnitPrice);
 
+  // PDF download gate: COO sign-off must be on record before the form can be printed.
+  // - Online-only PR: COO Level 2 approval done → status reached LEVEL3_REVIEW or beyond.
+  // - PR with procurement items: COO price approval done → status is APPROVED or beyond.
+  const canDownloadPdf = hasProcurementItems
+    ? runtimeStatus === PrStatus.APPROVED || runtimeStatus === PrStatus.COMPLETED
+    : runtimeStatus === PrStatus.LEVEL3_REVIEW ||
+      runtimeStatus === PrStatus.APPROVED ||
+      runtimeStatus === PrStatus.COMPLETED;
+  const pdfBlockedReason = hasProcurementItems
+    ? 'Available after COO approves the canvassed price'
+    : 'Available after COO approves the request';
+
   // Approval level → who currently owns this
   const approvalOwnerLabel = (() => {
     if (runtimeStatus === PrStatus.LEVEL1_REVIEW) return "Department Head";
@@ -702,7 +715,7 @@ export function PrDetailPage() {
   return (
     <div className="space-y-6 max-w-screen-2xl">
       {/* ── Sticky header ──────────────────────────────────── */}
-      <div className="sticky top-0 z-10 -mx-4 bg-white/95 backdrop-blur-sm px-4 py-3 border-b border-zinc-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+      <div className="sticky top-16 z-10 -mx-4 bg-white/95 backdrop-blur-sm px-4 py-3 border-b border-zinc-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="min-w-0">
             {/* Breadcrumb */}
@@ -748,9 +761,34 @@ export function PrDetailPage() {
               </Button>
             )}
             {!isDraft && (
-              <Button size="sm" variant="outline" className="rounded-lg text-[13px] h-8" onClick={handleGenerateReport}>
-                <FileText className="h-3.5 w-3.5" /> Report
-              </Button>
+              <Tooltip.Provider delayDuration={150}>
+                <Tooltip.Root>
+                  <Tooltip.Trigger asChild>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className={`rounded-lg text-[13px] h-8 ${canDownloadPdf ? '' : 'opacity-50 hover:bg-background'}`}
+                      style={canDownloadPdf ? undefined : { cursor: 'default' }}
+                      onClick={canDownloadPdf ? handleGenerateReport : (e) => e.preventDefault()}
+                      aria-disabled={!canDownloadPdf}
+                    >
+                      <FileText className="h-3.5 w-3.5" /> Report
+                    </Button>
+                  </Tooltip.Trigger>
+                  {!canDownloadPdf && (
+                    <Tooltip.Portal>
+                      <Tooltip.Content
+                        side="bottom"
+                        sideOffset={6}
+                        className="z-50 max-w-[240px] rounded-lg border border-zinc-800/60 bg-zinc-900 px-3 py-1.5 text-[12px] font-medium text-white shadow-[0_8px_24px_rgba(0,0,0,0.18)] animate-in fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-1 data-[side=top]:slide-in-from-bottom-1"
+                      >
+                        {pdfBlockedReason}
+                        <Tooltip.Arrow className="fill-zinc-900" />
+                      </Tooltip.Content>
+                    </Tooltip.Portal>
+                  )}
+                </Tooltip.Root>
+              </Tooltip.Provider>
             )}
             {canEditSpecs && (
               <Button

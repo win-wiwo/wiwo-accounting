@@ -57,7 +57,7 @@ const lineItemSchema = new mongoose.Schema({
   description: { type: String, required: true },
   quantity: { type: Number, required: true },
   unit: { type: String, required: true },
-  specifications: { type: String, default: null },
+  specifications: { type: String, required: true },
   sourcingType: { type: String, enum: ['procurement', 'online'], default: 'procurement' },
   estimatedPrice: { type: Number, required: true },
   totalPrice: { type: Number, required: true },
@@ -88,6 +88,7 @@ const prSchema = new mongoose.Schema({
   neededByDate: { type: Date, default: null },
   attachments: { type: [mongoose.Schema.Types.Mixed], default: [] },
   currentApprovalLevel: { type: Number, default: 0 },
+  returnedAtLevel: { type: Number, default: null },
   approvalHistory: [{ type: mongoose.Schema.Types.ObjectId }],
   submittedAt: { type: Date, default: null },
   completedAt: { type: Date, default: null },
@@ -98,6 +99,7 @@ const prSchema = new mongoose.Schema({
   canvassJustification: { type: String, default: null },
   quotationReturnHistory: { type: [mongoose.Schema.Types.Mixed], default: [] },
   recallHistory: { type: [mongoose.Schema.Types.Mixed], default: [] },
+  resubmissionHistory: { type: [mongoose.Schema.Types.Mixed], default: [] },
   clarificationReplies: { type: [mongoose.Schema.Types.Mixed], default: [] },
   previousSubmissionSnapshot: { type: mongoose.Schema.Types.Mixed, default: null },
   resubmissionNote: { type: String, default: null },
@@ -184,8 +186,7 @@ const notificationSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 const prSequenceSchema = new mongoose.Schema({
-  departmentCode: { type: String, required: true },
-  year: { type: Number, required: true },
+  year: { type: Number, required: true, unique: true },
   lastNumber: { type: Number, default: 0 },
 }, { timestamps: true });
 
@@ -215,7 +216,7 @@ function makeItems(items: Array<{
   unit: string;
   price: number;
   notes?: string;
-  specs?: string;
+  specs: string;
   sourcingType?: 'procurement' | 'online';
 }>) {
   return items.map(i => ({
@@ -223,7 +224,7 @@ function makeItems(items: Array<{
     description: i.desc,
     quantity: i.qty,
     unit: i.unit,
-    specifications: i.specs || null,
+    specifications: i.specs,
     sourcingType: i.sourcingType || 'procurement',
     estimatedPrice: (i.sourcingType || 'procurement') === 'online' ? i.price : 0,
     totalPrice: (i.sourcingType || 'procurement') === 'online' ? i.qty * i.price : 0,
@@ -859,6 +860,18 @@ async function seed() {
       PurchaseOrder.deleteMany({}),
     ]);
 
+    // Drop the pr-sequence and pr-number-config collections so any stale
+    // indexes (e.g. old departmentCode_1_year_1) and stale config fields
+    // (prefix, includeYear, includeDepartmentCode) are removed before
+    // reseeding. The API recreates the config with current defaults on first read.
+    for (const name of ['prsequences', 'prnumberconfigs']) {
+      try {
+        await mongoose.connection.collection(name).drop();
+      } catch (err: any) {
+        if (err?.codeName !== 'NamespaceNotFound') throw err;
+      }
+    }
+
     // Clear old uploaded files
     if (fs.existsSync(UPLOADS_DIR)) {
       for (const f of fs.readdirSync(UPLOADS_DIR)) {
@@ -1013,15 +1026,15 @@ async function seed() {
     };
     console.log(`  Created ${projects.length} projects`);
 
-    const year = new Date().getFullYear();
-    const seqCounters: Record<string, number> = {};
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    let seqCounter = 0;
 
-    function nextPrNumber(deptCode: string, type: 'purchase_request' | 'job_request' = 'purchase_request'): string {
-      const prefix = type === 'job_request' ? 'JR' : 'PR';
-      const key = deptCode;
-      if (!seqCounters[key]) seqCounters[key] = 0;
-      seqCounters[key]++;
-      return `${prefix}-${deptCode}-${year}-${String(seqCounters[key]).padStart(5, '0')}`;
+    function nextPrNumber(_deptCode: string, _type: 'purchase_request' | 'job_request' = 'purchase_request'): string {
+      seqCounter++;
+      const seq = String(seqCounter).padStart(4, '0');
+      return `${year}-${month}-${seq}`;
     }
 
     const allPrs: any[] = [];
@@ -1085,6 +1098,9 @@ async function seed() {
       stage: 'draft' | 'pending_quotation' | 'quoted' | 'level1_review' | 'level2_review' | 'level3_review' | 'rejected' | 'returned' | 'cancelled';
       createdDaysAgo: number; neededInDays: number;
       rejectReason?: string; returnReason?: string; cancelReason?: string;
+      // Which approval level returned the PR (1=Dept Head, 2=COO, 3=CEO).
+      // Defaults to 1 for backward compatibility.
+      returnedAtLevel?: 1 | 2 | 3;
       requestType?: 'purchase_request' | 'job_request'; projectName?: string;
     }) {
       const items = opts.items;
@@ -1163,9 +1179,25 @@ async function seed() {
       }
 
       if (opts.stage === 'returned') {
-        const a1Id = new Types.ObjectId();
-        allApprovals.push(new Approval({ _id: a1Id, purchaseRequestId: prId, approverId: opts.deptHead._id, approvalLevel: 1, action: 'returned', comments: opts.returnReason || 'Please revise and resubmit.', actionDate: hoursAfter(submitted!, 10) }));
-        approvalIds.push(a1Id);
+        const returnLvl = opts.returnedAtLevel ?? 1;
+        // Build prior approvals: every level below the return level approved
+        // first, then the returner returned it.
+        const baseDate = hoursAfter(submitted!, 4);
+        if (returnLvl >= 2) {
+          const aId = new Types.ObjectId();
+          allApprovals.push(new Approval({ _id: aId, purchaseRequestId: prId, approverId: opts.deptHead._id, approvalLevel: 1, action: 'approved', comments: 'Approved.', actionDate: baseDate }));
+          approvalIds.push(aId);
+        }
+        if (returnLvl >= 3) {
+          const aId = new Types.ObjectId();
+          allApprovals.push(new Approval({ _id: aId, purchaseRequestId: prId, approverId: coo._id, approvalLevel: 2, action: 'approved', comments: 'Approved.', actionDate: hoursAfter(baseDate, 12) }));
+          approvalIds.push(aId);
+        }
+        const returnerId = returnLvl === 1 ? opts.deptHead._id : returnLvl === 2 ? coo._id : ceo._id;
+        const returnDate = hoursAfter(submitted!, 10 + (returnLvl - 1) * 12);
+        const aRet = new Types.ObjectId();
+        allApprovals.push(new Approval({ _id: aRet, purchaseRequestId: prId, approverId: returnerId, approvalLevel: returnLvl, action: 'returned', comments: opts.returnReason || 'Please revise and resubmit.', actionDate: returnDate }));
+        approvalIds.push(aRet);
         allNotifications.push(
           new Notification({ recipientId: opts.requester._id, title: 'PR Returned for Revision', message: `${prNumber} was returned, please revise`, type: 'approval_returned', purchaseRequestId: prId, isRead: false }),
         );
@@ -1198,6 +1230,7 @@ async function seed() {
         justification: opts.justification,
         neededByDate: new Date(Date.now() + opts.neededInDays * 86400000),
         currentApprovalLevel: currentLevel, approvalHistory: approvalIds,
+        returnedAtLevel: opts.stage === 'returned' ? (opts.returnedAtLevel ?? 1) : null,
         submittedAt: submitted,
         cancellationReason: opts.stage === 'cancelled' ? (opts.cancelReason || 'No longer needed') : null,
         quotationNote: null,
@@ -1224,9 +1257,9 @@ async function seed() {
       createdDaysAgo: 55, neededInDays: -20,
       projectName: 'CCTV Installation – Busway Line 1',
       items: makeItems([
-        { desc: 'Hikvision DS-2CD2143G2-I 4MP AcuSense Dome Camera', qty: 120, unit: 'units', price: 8500, notes: 'Indoor/outdoor, IR 40m, H.265+' },
-        { desc: 'Camera Mounting Bracket (Universal Ceiling/Wall)', qty: 120, unit: 'units', price: 350 },
-        { desc: 'Camera Junction Box (Outdoor-rated, IP67)', qty: 60, unit: 'units', price: 480, notes: 'For outdoor platform cameras' },
+        { desc: 'Hikvision DS-2CD2143G2-I 4MP AcuSense Dome Camera', qty: 120, unit: 'units', price: 8500, specs: '4MP IP dome camera, AcuSense human/vehicle classification, 40m IR range, H.265+, IP67/IK10, 2.8mm fixed lens, 12V DC / PoE', notes: 'Indoor/outdoor, IR 40m, H.265+' },
+        { desc: 'Camera Mounting Bracket (Universal Ceiling/Wall)', qty: 120, unit: 'units', price: 350, specs: 'Aluminum-alloy universal ceiling/wall bracket, 1/2"-NPT thread, compatible with standard dome and bullet cameras' },
+        { desc: 'Camera Junction Box (Outdoor-rated, IP67)', qty: 60, unit: 'units', price: 480, specs: 'Outdoor IP67-rated camera junction box, fits behind dome/bullet bodies, weather-sealed gasket and gland', notes: 'For outdoor platform cameras' },
       ]),
     });
 
@@ -1238,11 +1271,11 @@ async function seed() {
       createdDaysAgo: 50, neededInDays: -25,
       projectName: 'CCTV Installation – Busway Line 1',
       items: makeItems([
-        { desc: 'Cat6 UTP Cable (305m/box, Outdoor-rated)', qty: 40, unit: 'boxes', price: 4800 },
-        { desc: 'UPVC Conduit Pipe (1", 3m length)', qty: 500, unit: 'pcs', price: 85 },
-        { desc: 'Metal Conduit (1.5", 3m length, server room)', qty: 80, unit: 'pcs', price: 320 },
-        { desc: 'Cable Tray (100mm x 50mm, 3m)', qty: 60, unit: 'pcs', price: 650 },
-        { desc: 'Junction Box Assorted (IP55)', qty: 200, unit: 'pcs', price: 120 },
+        { desc: 'Cat6 UTP Cable (305m/box, Outdoor-rated)', qty: 40, unit: 'boxes', price: 4800, specs: 'Cat6 UTP, 23AWG solid copper, 4-pair, UV-resistant outdoor jacket, 305m per box, ETL verified' },
+        { desc: 'UPVC Conduit Pipe (1", 3m length)', qty: 500, unit: 'pcs', price: 85, specs: 'UPVC electrical conduit, 1" diameter, 3m length, gray, threaded ends, fire-retardant' },
+        { desc: 'Metal Conduit (1.5", 3m length, server room)', qty: 80, unit: 'pcs', price: 320, specs: 'Galvanized steel EMT conduit, 1.5" diameter, 3m length, threaded ends — for server room' },
+        { desc: 'Cable Tray (100mm x 50mm, 3m)', qty: 60, unit: 'pcs', price: 650, specs: 'Perforated steel cable tray, 100mm x 50mm cross-section, 3m length, hot-dip galvanized' },
+        { desc: 'Junction Box Assorted (IP55)', qty: 200, unit: 'pcs', price: 120, specs: 'PVC junction boxes, IP55 rated, assorted sizes (75/100/150mm), screw-on lids with rubber gasket' },
       ]),
     });
 
@@ -1254,10 +1287,10 @@ async function seed() {
       createdDaysAgo: 48, neededInDays: -18,
       projectName: 'CCTV Installation – Busway Line 1',
       items: makeItems([
-        { desc: 'Hikvision DS-96064NI-I16 64-Channel NVR', qty: 2, unit: 'units', price: 185000, notes: '4K resolution, H.265+' },
-        { desc: 'Seagate SkyHawk 8TB Surveillance HDD', qty: 16, unit: 'units', price: 14500, notes: 'RAID-6 configuration, 8 drives per NVR' },
-        { desc: 'UPS (3kVA, 6-hour backup) for NVR Room', qty: 2, unit: 'units', price: 45000 },
-        { desc: '2U Rack Shelf and Cable Management', qty: 2, unit: 'sets', price: 8500 },
+        { desc: 'Hikvision DS-96064NI-I16 64-Channel NVR', qty: 2, unit: 'units', price: 185000, specs: '64-channel NVR, 4K (8MP) recording, H.265+, 16 SATA bays, 320 Mbps incoming bandwidth, dual NIC, redundant PSU', notes: '4K resolution, H.265+' },
+        { desc: 'Seagate SkyHawk 8TB Surveillance HDD', qty: 16, unit: 'units', price: 14500, specs: 'Seagate SkyHawk 8TB 7200rpm SATA III, 256MB cache, surveillance-rated 24/7 workload, 3-year warranty', notes: 'RAID-6 configuration, 8 drives per NVR' },
+        { desc: 'UPS (3kVA, 6-hour backup) for NVR Room', qty: 2, unit: 'units', price: 45000, specs: '3kVA online double-conversion UPS, 6-hour battery backup at 50% load, rack-mount, LCD display, with AVR' },
+        { desc: '2U Rack Shelf and Cable Management', qty: 2, unit: 'sets', price: 8500, specs: '2U cantilever rack shelf, vented steel, 19" standard, paired with horizontal cable manager' },
       ]),
     });
 
@@ -1269,10 +1302,10 @@ async function seed() {
       createdDaysAgo: 45, neededInDays: -15,
       projectName: 'CCTV Installation – Busway Line 1',
       items: makeItems([
-        { desc: 'Hikvision DS-3E2528P 24-Port PoE+ Managed Switch (370W)', qty: 10, unit: 'units', price: 32000, notes: '8 stations + 2 spares' },
-        { desc: 'SFP Fiber Module (1G, Single-mode, LC)', qty: 20, unit: 'units', price: 2800, notes: '2 per switch for uplink' },
-        { desc: 'Wall-mount Network Enclosure (12U)', qty: 10, unit: 'units', price: 7500 },
-        { desc: 'Patch Panel 24-Port Cat6 (1U)', qty: 10, unit: 'units', price: 2200 },
+        { desc: 'Hikvision DS-3E2528P 24-Port PoE+ Managed Switch (370W)', qty: 10, unit: 'units', price: 32000, specs: '24× PoE+ ports (370W budget), 4× SFP uplinks, Layer 2 managed, IEEE 802.3at, web GUI', notes: '8 stations + 2 spares' },
+        { desc: 'SFP Fiber Module (1G, Single-mode, LC)', qty: 20, unit: 'units', price: 2800, specs: '1Gbps SFP transceiver, single-mode, LC duplex, 10km reach, 1310nm wavelength', notes: '2 per switch for uplink' },
+        { desc: 'Wall-mount Network Enclosure (12U)', qty: 10, unit: 'units', price: 7500, specs: '12U wall-mount network rack, lockable glass front door, 600mm depth, with cooling fans and shelf' },
+        { desc: 'Patch Panel 24-Port Cat6 (1U)', qty: 10, unit: 'units', price: 2200, specs: '24-port Cat6 punch-down patch panel, 1U, T568A/B compatible, with cable management bar' },
       ]),
     });
 
@@ -1284,10 +1317,10 @@ async function seed() {
       createdDaysAgo: 40, neededInDays: -10,
       projectName: 'CCTV Installation – Busway Line 1',
       items: makeItems([
-        { desc: 'Hikvision iVMS-5200 Pro Base License (64-ch)', qty: 2, unit: 'licenses', price: 95000 },
-        { desc: 'VMS Additional Channel License (32-ch expansion)', qty: 1, unit: 'license', price: 45000 },
-        { desc: 'VMS Client Workstation License (5 concurrent)', qty: 3, unit: 'licenses', price: 18000 },
-        { desc: 'Annual Software Maintenance & Support', qty: 1, unit: 'year', price: 35000 },
+        { desc: 'Hikvision iVMS-5200 Pro Base License (64-ch)', qty: 2, unit: 'licenses', price: 95000, specs: 'iVMS-5200 Pro server base license, 64 channels, perpetual, includes recording and live view modules' },
+        { desc: 'VMS Additional Channel License (32-ch expansion)', qty: 1, unit: 'license', price: 45000, specs: 'iVMS-5200 Pro 32-channel expansion pack, stacks on top of base license' },
+        { desc: 'VMS Client Workstation License (5 concurrent)', qty: 3, unit: 'licenses', price: 18000, specs: 'iVMS-5200 Pro client workstation license, 5 concurrent operator sessions per pack' },
+        { desc: 'Annual Software Maintenance & Support', qty: 1, unit: 'year', price: 35000, specs: 'Hikvision software assurance: free updates, hotfixes, 24/7 phone support, 1-year term' },
       ]),
     });
 
@@ -1299,12 +1332,12 @@ async function seed() {
       createdDaysAgo: 52, neededInDays: -30,
       projectName: 'CCTV Installation – Busway Line 1',
       items: makeItems([
-        { desc: 'Safety Helmet (Class B, ANSI Z89.1)', qty: 15, unit: 'pcs', price: 850 },
-        { desc: 'Full-Body Safety Harness (ANSI Z359)', qty: 10, unit: 'sets', price: 4500, notes: 'For elevated work on platforms' },
-        { desc: 'Safety Boots (Steel Toe, Size 7-11)', qty: 15, unit: 'pairs', price: 2800 },
-        { desc: 'Hi-Visibility Safety Vest (ANSI Class 2)', qty: 20, unit: 'pcs', price: 450 },
-        { desc: 'Insulated Electrical Gloves (Class 00)', qty: 10, unit: 'pairs', price: 1800 },
-        { desc: 'First Aid Kit (Industrial, 50-person)', qty: 3, unit: 'kits', price: 3500 },
+        { desc: 'Safety Helmet (Class B, ANSI Z89.1)', qty: 15, unit: 'pcs', price: 850, specs: 'Hard hat, Class B (200V dielectric), ANSI Z89.1-2014, 4-point ratchet suspension, white' },
+        { desc: 'Full-Body Safety Harness (ANSI Z359)', qty: 10, unit: 'sets', price: 4500, specs: 'Full-body fall-arrest harness, ANSI Z359.11, dorsal D-ring, 2× side D-rings, 5-point adjustment', notes: 'For elevated work on platforms' },
+        { desc: 'Safety Boots (Steel Toe, Size 7-11)', qty: 15, unit: 'pairs', price: 2800, specs: 'Leather work boots, ASTM F2413 steel toe, oil/slip-resistant outsole, 6" height, sizes 7-11' },
+        { desc: 'Hi-Visibility Safety Vest (ANSI Class 2)', qty: 20, unit: 'pcs', price: 450, specs: 'Reflective safety vest, ANSI/ISEA 107 Class 2, fluorescent yellow, breakaway design, sizes M-XL' },
+        { desc: 'Insulated Electrical Gloves (Class 00)', qty: 10, unit: 'pairs', price: 1800, specs: 'Rubber insulating gloves, ASTM D120 Class 00 (500V AC), 11" length, with leather over-protectors' },
+        { desc: 'First Aid Kit (Industrial, 50-person)', qty: 3, unit: 'kits', price: 3500, specs: 'ANSI Z308.1-2015 Type III industrial first aid kit, 50-person capacity, wall-mountable metal case' },
       ]),
     });
 
@@ -1316,10 +1349,10 @@ async function seed() {
       createdDaysAgo: 60, neededInDays: -35,
       projectName: 'CCTV Installation – Busway Line 1',
       items: makeItems([
-        { desc: 'Toyota Hi-Ace Cargo Van (Manual, White)', qty: 2, unit: 'units', price: 1450000 },
-        { desc: 'Vehicle Ladder Rack System', qty: 2, unit: 'sets', price: 18500 },
-        { desc: 'Vehicle Lettering / Vinyl Wrap (Company Branding)', qty: 2, unit: 'units', price: 12000 },
-        { desc: 'Vehicle Insurance (Comprehensive, 1 year)', qty: 2, unit: 'units', price: 28000 },
+        { desc: 'Toyota Hi-Ace Cargo Van (Manual, White)', qty: 2, unit: 'units', price: 1450000, specs: 'Toyota Hi-Ace Commuter Deluxe 2.8L diesel, 5-speed manual, modified to cargo configuration, white' },
+        { desc: 'Vehicle Ladder Rack System', qty: 2, unit: 'sets', price: 18500, specs: 'Galvanized steel roof ladder rack, 3-bar configuration, 200kg load capacity, side-loading rollers' },
+        { desc: 'Vehicle Lettering / Vinyl Wrap (Company Branding)', qty: 2, unit: 'units', price: 12000, specs: 'Custom vinyl wrap with company logo and contact info on both sides and rear, 5-year UV-resistant film' },
+        { desc: 'Vehicle Insurance (Comprehensive, 1 year)', qty: 2, unit: 'units', price: 28000, specs: 'Comprehensive insurance, 1-year coverage: CTPL, own damage, theft, third-party liability up to PHP 1M' },
       ]),
     });
 
@@ -1334,10 +1367,10 @@ async function seed() {
       createdDaysAgo: 42, neededInDays: -12,
       projectName: 'AI Camera System – Phase 1',
       items: makeItems([
-        { desc: 'Hikvision DS-2CD2T47G2P 4MP AI Bullet Camera (ColorVu)', qty: 40, unit: 'units', price: 14500, notes: 'Deep learning, 120m IR, strobe alarm' },
-        { desc: 'Hikvision DS-2DE4425IWG-E 4MP PTZ AI Camera', qty: 8, unit: 'units', price: 52000, notes: 'For wide-area surveillance zones' },
-        { desc: 'Camera Outdoor Housing (SS316, IP68)', qty: 40, unit: 'units', price: 2200 },
-        { desc: 'Anti-vibration Camera Mount', qty: 48, unit: 'units', price: 1500 },
+        { desc: 'Hikvision DS-2CD2T47G2P 4MP AI Bullet Camera (ColorVu)', qty: 40, unit: 'units', price: 14500, specs: '4MP ColorVu AI bullet camera, 24/7 full-color, 120m IR + white-light + strobe, deep-learning, IP67/IK10, 4mm fixed lens', notes: 'Deep learning, 120m IR, strobe alarm' },
+        { desc: 'Hikvision DS-2DE4425IWG-E 4MP PTZ AI Camera', qty: 8, unit: 'units', price: 52000, specs: '4MP IR network PTZ, 25× optical zoom (4.8-120mm), AI auto-tracking, 100m IR, IP66/IK10, ONVIF', notes: 'For wide-area surveillance zones' },
+        { desc: 'Camera Outdoor Housing (SS316, IP68)', qty: 40, unit: 'units', price: 2200, specs: 'SS316 marine-grade stainless outdoor housing, IP68, integrated sun shield and cable gland' },
+        { desc: 'Anti-vibration Camera Mount', qty: 48, unit: 'units', price: 1500, specs: 'Spring-damped anti-vibration camera mount, 5kg load capacity, reduces image jitter on outdoor poles' },
       ]),
     });
 
@@ -1349,10 +1382,10 @@ async function seed() {
       createdDaysAgo: 38, neededInDays: -8,
       projectName: 'AI Camera System – Phase 1',
       items: makeItems([
-        { desc: 'Dell PowerEdge R750xa Server (2x Xeon Gold 6326)', qty: 2, unit: 'units', price: 485000 },
-        { desc: 'NVIDIA RTX A4000 16GB GPU', qty: 4, unit: 'units', price: 145000, notes: '2 per server for AI inference' },
-        { desc: '64GB DDR4 ECC RAM (per server)', qty: 2, unit: 'sets', price: 48000 },
-        { desc: '4TB NVMe SSD (OS + AI models)', qty: 4, unit: 'units', price: 28000 },
+        { desc: 'Dell PowerEdge R750xa Server (2x Xeon Gold 6326)', qty: 2, unit: 'units', price: 485000, specs: '2U rackmount, 2× Intel Xeon Gold 6326 (16C/32T each), 4× double-wide GPU bays, redundant 2400W PSU, iDRAC9' },
+        { desc: 'NVIDIA RTX A4000 16GB GPU', qty: 4, unit: 'units', price: 145000, specs: 'NVIDIA RTX A4000 16GB GDDR6 ECC, 6144 CUDA cores, 140W TDP, single-slot blower design', notes: '2 per server for AI inference' },
+        { desc: '64GB DDR4 ECC RAM (per server)', qty: 2, unit: 'sets', price: 48000, specs: '64GB (4×16GB) DDR4-3200 ECC RDIMM kit, registered, dual-rank, server-validated' },
+        { desc: '4TB NVMe SSD (OS + AI models)', qty: 4, unit: 'units', price: 28000, specs: '4TB U.2 NVMe SSD, PCIe 4.0, enterprise-grade DWPD ≥ 1, sequential read up to 7000 MB/s' },
       ]),
     });
 
@@ -1364,11 +1397,11 @@ async function seed() {
       createdDaysAgo: 35, neededInDays: -5,
       projectName: 'AI Camera System – Phase 1',
       items: makeItems([
-        { desc: 'Milestone XProtect Corporate Base License (3-year)', qty: 1, unit: 'license', price: 350000 },
-        { desc: 'Milestone AI Module – People Counting (per camera, 3yr)', qty: 48, unit: 'channels', price: 12000 },
-        { desc: 'Milestone AI Module – Behavior Analytics (3yr)', qty: 48, unit: 'channels', price: 15000 },
-        { desc: 'Milestone LPR Module – License Plate Recognition (3yr)', qty: 8, unit: 'channels', price: 25000 },
-        { desc: 'Premier Support & Maintenance (3-year)', qty: 1, unit: 'contract', price: 185000 },
+        { desc: 'Milestone XProtect Corporate Base License (3-year)', qty: 1, unit: 'license', price: 350000, specs: 'Milestone XProtect Corporate, 3-year SLC term, includes failover servers and edge storage support' },
+        { desc: 'Milestone AI Module – People Counting (per camera, 3yr)', qty: 48, unit: 'channels', price: 12000, specs: 'Milestone people-counting analytics, per-channel, 3-year SLC, GPU-accelerated' },
+        { desc: 'Milestone AI Module – Behavior Analytics (3yr)', qty: 48, unit: 'channels', price: 15000, specs: 'Milestone behavior analytics: intrusion / loitering / crowd, per-channel, 3-year SLC' },
+        { desc: 'Milestone LPR Module – License Plate Recognition (3yr)', qty: 8, unit: 'channels', price: 25000, specs: 'Milestone XProtect LPR, ANPR for 50+ countries including PH plates, per-channel, 3-year SLC' },
+        { desc: 'Premier Support & Maintenance (3-year)', qty: 1, unit: 'contract', price: 185000, specs: 'Milestone Premier Care: 24/7 support, free version upgrades, on-site response within 4 hours, 3-year term' },
       ]),
     });
 
@@ -1380,11 +1413,11 @@ async function seed() {
       createdDaysAgo: 32, neededInDays: -2,
       projectName: 'AI Camera System – Phase 1',
       items: makeItems([
-        { desc: 'Corning OS2 Single-Mode Fiber (6-core, 1km/reel)', qty: 8, unit: 'reels', price: 18500 },
-        { desc: 'Fiber Optic Patch Panel 24-Port SC/APC (1U)', qty: 4, unit: 'units', price: 8500 },
-        { desc: 'SC/APC Fiber Connector (field-terminated)', qty: 200, unit: 'pcs', price: 185 },
-        { desc: 'Fiber Fusion Splicing Service (per splice)', qty: 96, unit: 'splices', price: 350 },
-        { desc: 'OTDR Testing and Fiber Certification', qty: 1, unit: 'lot', price: 35000 },
+        { desc: 'Corning OS2 Single-Mode Fiber (6-core, 1km/reel)', qty: 8, unit: 'reels', price: 18500, specs: 'Corning OS2 single-mode 9/125µm, 6-core armored loose-tube, 1km per reel, OFNR rated' },
+        { desc: 'Fiber Optic Patch Panel 24-Port SC/APC (1U)', qty: 4, unit: 'units', price: 8500, specs: '1U fiber patch panel, 24× SC/APC ports, sliding tray, with splice tray and cable management' },
+        { desc: 'SC/APC Fiber Connector (field-terminated)', qty: 200, unit: 'pcs', price: 185, specs: 'SC/APC field-terminable connector, single-mode, ≤0.3 dB insertion loss, anaerobic-cure type' },
+        { desc: 'Fiber Fusion Splicing Service (per splice)', qty: 96, unit: 'splices', price: 350, specs: 'Per-splice fusion-splicing service, max loss 0.05 dB, includes signed OTDR test report' },
+        { desc: 'OTDR Testing and Fiber Certification', qty: 1, unit: 'lot', price: 35000, specs: 'End-to-end OTDR characterization both directions and wavelengths, signed certification report deliverable' },
       ]),
     });
 
@@ -1397,11 +1430,11 @@ async function seed() {
       priority: 'low', requester: paolo, dept: pro, deptCode: 'PRO', deptHead: proHead,
       createdDaysAgo: 28, neededInDays: -5,
       items: makeItems([
-        { desc: 'A4 Bond Paper (80gsm, 500 sheets/ream)', qty: 80, unit: 'reams', price: 280 },
-        { desc: 'Ballpoint Pens Assorted (box of 50)', qty: 8, unit: 'boxes', price: 450 },
-        { desc: 'Printer Ink Cartridges (HP 664 Black+Color set)', qty: 10, unit: 'sets', price: 1200 },
-        { desc: 'Filing Folders, Binders, and Labels (assorted)', qty: 1, unit: 'lot', price: 6800 },
-        { desc: 'Sticky Notes, Markers, and Whiteboard Supplies', qty: 1, unit: 'lot', price: 3500 },
+        { desc: 'A4 Bond Paper (80gsm, 500 sheets/ream)', qty: 80, unit: 'reams', price: 280, specs: 'A4 sub-20 bond paper, 80gsm, white, 500 sheets per ream, sulphate-free pulp' },
+        { desc: 'Ballpoint Pens Assorted (box of 50)', qty: 8, unit: 'boxes', price: 450, specs: 'Medium-tip ballpoint pens, 1.0mm, mix of blue/black/red ink, smooth-flow, 50 pens per box' },
+        { desc: 'Printer Ink Cartridges (HP 664 Black+Color set)', qty: 10, unit: 'sets', price: 1200, specs: 'HP 664 OEM ink cartridges, set = 1× black + 1× tri-color, for HP DeskJet/Ink Advantage 1115/2135/3835' },
+        { desc: 'Filing Folders, Binders, and Labels (assorted)', qty: 1, unit: 'lot', price: 6800, specs: 'A4 manila folders (50), 2-ring binders (20), and adhesive labels (10 sheets) — assorted colors and sizes' },
+        { desc: 'Sticky Notes, Markers, and Whiteboard Supplies', qty: 1, unit: 'lot', price: 3500, specs: 'Post-it pads (3×3 and 4×6), whiteboard markers (12 assorted), erasers, and cleaning solution' },
       ]),
     });
 
@@ -1412,10 +1445,10 @@ async function seed() {
       priority: 'high', requester: juan, dept: eng, deptCode: 'ENG', deptHead: engHead,
       createdDaysAgo: 22, neededInDays: 5,
       items: makeItems([
-        { desc: 'Lenovo ThinkPad X1 Carbon (i7, 32GB RAM, 512GB SSD)', qty: 5, unit: 'units', price: 92000 },
-        { desc: 'USB-C Multiport Hub (HDMI, LAN, USB 3.0)', qty: 5, unit: 'units', price: 2800 },
-        { desc: 'Laptop Bag (Anti-shock, 15")', qty: 5, unit: 'units', price: 1800 },
-        { desc: 'Microsoft 365 Business Standard License (1yr)', qty: 5, unit: 'licenses', price: 6500 },
+        { desc: 'Lenovo ThinkPad X1 Carbon (i7, 32GB RAM, 512GB SSD)', qty: 5, unit: 'units', price: 92000, specs: 'ThinkPad X1 Carbon Gen 11, Intel i7-1365U vPro, 32GB LPDDR5, 512GB NVMe SSD, 14" 2.8K OLED, Win 11 Pro' },
+        { desc: 'USB-C Multiport Hub (HDMI, LAN, USB 3.0)', qty: 5, unit: 'units', price: 2800, specs: 'USB-C 8-in-1 hub: HDMI 4K, RJ45 GbE, 3× USB 3.0, SD/microSD reader, 100W PD pass-through' },
+        { desc: 'Laptop Bag (Anti-shock, 15")', qty: 5, unit: 'units', price: 1800, specs: '15.6" laptop messenger bag, padded shock-absorbing main compartment, water-resistant nylon, multiple pockets' },
+        { desc: 'Microsoft 365 Business Standard License (1yr)', qty: 5, unit: 'licenses', price: 6500, specs: 'M365 Business Standard, 1-year per-user license — Outlook, Word, Excel, PPT, Teams, OneDrive 1TB' },
       ]),
     });
 
@@ -1427,8 +1460,8 @@ async function seed() {
       priority: 'high', requester: diana, dept: its, deptCode: 'ITS', deptHead: itsHead,
       createdDaysAgo: 18, neededInDays: -3,
       items: makeItems([
-        { desc: 'Microsoft 365 Business Standard License (annual, per user)', qty: 30, unit: 'licenses', price: 7200, sourcingType: 'online', notes: 'Purchased via Microsoft Admin Portal' },
-        { desc: 'Microsoft 365 Business Premium License – IT Admins (annual)', qty: 3, unit: 'licenses', price: 12600, sourcingType: 'online', notes: 'Includes Intune and Azure AD P1' },
+        { desc: 'Microsoft 365 Business Standard License (annual, per user)', qty: 30, unit: 'licenses', price: 7200, sourcingType: 'online', specs: 'M365 Business Standard, annual per-user — Office desktop apps, Exchange Online, Teams, OneDrive 1TB', notes: 'Purchased via Microsoft Admin Portal' },
+        { desc: 'Microsoft 365 Business Premium License – IT Admins (annual)', qty: 3, unit: 'licenses', price: 12600, sourcingType: 'online', specs: 'M365 Business Premium, annual per-user — adds Intune device management, Azure AD P1, Defender for Business', notes: 'Includes Intune and Azure AD P1' },
       ]),
     });
 
@@ -1439,7 +1472,7 @@ async function seed() {
       priority: 'medium', requester: ramon, dept: adm, deptCode: 'ADM', deptHead: admHead,
       createdDaysAgo: 20, neededInDays: -8,
       items: makeItems([
-        { desc: 'Adobe Creative Cloud All Apps – Team License (annual)', qty: 5, unit: 'licenses', price: 32000, sourcingType: 'online', notes: 'Direct from Adobe, includes Photoshop, Illustrator, Premiere Pro' },
+        { desc: 'Adobe Creative Cloud All Apps – Team License (annual)', qty: 5, unit: 'licenses', price: 32000, sourcingType: 'online', specs: 'Adobe CC All Apps Team, annual per-seat — 20+ apps including Photoshop, Illustrator, Premiere Pro, 100GB cloud storage', notes: 'Direct from Adobe, includes Photoshop, Illustrator, Premiere Pro' },
       ]),
     });
 
@@ -1450,8 +1483,8 @@ async function seed() {
       priority: 'high', requester: miguel, dept: its, deptCode: 'ITS', deptHead: itsHead,
       createdDaysAgo: 15, neededInDays: 2,
       items: makeItems([
-        { desc: 'Kaspersky Endpoint Security for Business Select – 30 nodes (1 year)', qty: 1, unit: 'license', price: 48000, sourcingType: 'online' },
-        { desc: 'Kaspersky Security Center Cloud Console', qty: 1, unit: 'license', price: 12000, sourcingType: 'online' },
+        { desc: 'Kaspersky Endpoint Security for Business Select – 30 nodes (1 year)', qty: 1, unit: 'license', price: 48000, sourcingType: 'online', specs: 'Kaspersky Endpoint Security Select, 30 endpoints, 1-year subscription — anti-malware, firewall, application/device control' },
+        { desc: 'Kaspersky Security Center Cloud Console', qty: 1, unit: 'license', price: 12000, sourcingType: 'online', specs: 'Kaspersky Security Center Cloud Console, 1-year subscription, browser-based central management' },
       ]),
     });
 
@@ -1463,10 +1496,10 @@ async function seed() {
       priority: 'low', requester: isabella, dept: adm, deptCode: 'ADM', deptHead: admHead,
       createdDaysAgo: 10, neededInDays: -2,
       items: makeItems([
-        { desc: 'Coffee Beans – Arabica Blend (1kg bags)', qty: 8, unit: 'bags', price: 850, sourcingType: 'online' },
-        { desc: 'Bottled Water – 5-gallon refill', qty: 20, unit: 'gallons', price: 55, sourcingType: 'online' },
-        { desc: 'Assorted Snacks and Biscuits (weekly packs)', qty: 4, unit: 'packs', price: 2500, sourcingType: 'online' },
-        { desc: 'Disposable Cups, Stirrers, Sugar, Creamer', qty: 1, unit: 'lot', price: 1800, sourcingType: 'online' },
+        { desc: 'Coffee Beans – Arabica Blend (1kg bags)', qty: 8, unit: 'bags', price: 850, sourcingType: 'online', specs: '100% Arabica medium-roast coffee beans, 1kg vacuum-sealed bag, recently roasted' },
+        { desc: 'Bottled Water – 5-gallon refill', qty: 20, unit: 'gallons', price: 55, sourcingType: 'online', specs: '5-gallon (18.9L) refill of purified drinking water, sealed cap, fits standard office dispensers' },
+        { desc: 'Assorted Snacks and Biscuits (weekly packs)', qty: 4, unit: 'packs', price: 2500, sourcingType: 'online', specs: 'Weekly snack pack: cookies, crackers, chips, chocolates — single-serving sachets, ~30 pieces per pack' },
+        { desc: 'Disposable Cups, Stirrers, Sugar, Creamer', qty: 1, unit: 'lot', price: 1800, sourcingType: 'online', specs: 'Mixed pack: 6oz paper cups (200), wooden stirrers (200), sachets of refined sugar (200) and non-dairy creamer (200)' },
       ]),
     });
 
@@ -1477,8 +1510,8 @@ async function seed() {
       priority: 'high', requester: diana, dept: its, deptCode: 'ITS', deptHead: itsHead,
       createdDaysAgo: 25, neededInDays: -10,
       items: makeItems([
-        { desc: 'PLDT Enterprise Leased Line 100Mbps Symmetric (annual)', qty: 1, unit: 'year', price: 360000, sourcingType: 'online', notes: 'Direct billing from PLDT Enterprise' },
-        { desc: 'Static IP Block (/29, 5 usable IPs)', qty: 1, unit: 'year', price: 24000, sourcingType: 'online' },
+        { desc: 'PLDT Enterprise Leased Line 100Mbps Symmetric (annual)', qty: 1, unit: 'year', price: 360000, sourcingType: 'online', specs: 'PLDT Enterprise Dedicated Internet Access, 100 Mbps symmetric, SLA 99.7%, 24/7 NOC, 1 static IP included', notes: 'Direct billing from PLDT Enterprise' },
+        { desc: 'Static IP Block (/29, 5 usable IPs)', qty: 1, unit: 'year', price: 24000, sourcingType: 'online', specs: 'IPv4 /29 block (8 addresses, 5 usable), routed via PLDT leased line, BGP not included' },
       ]),
     });
 
@@ -1494,9 +1527,9 @@ async function seed() {
       stage: 'pending_quotation',
       projectName: 'CCTV Installation – Busway Line 1',
       items: makeItems([
-        { desc: 'Hikvision DS-2DE4425IWG-E 4MP PTZ Camera (25x zoom)', qty: 6, unit: 'units', price: 48000 },
-        { desc: 'Heavy-Duty PTZ Wall Mount (Stainless Steel)', qty: 6, unit: 'units', price: 8500 },
-        { desc: 'RS-485 Control Cable (300m, shielded)', qty: 2, unit: 'rolls', price: 5500 },
+        { desc: 'Hikvision DS-2DE4425IWG-E 4MP PTZ Camera (25x zoom)', qty: 6, unit: 'units', price: 48000, specs: '4MP IR network PTZ, 25× optical zoom (4.8-120mm), AcuSense human/vehicle detection, 100m IR, IP66/IK10' },
+        { desc: 'Heavy-Duty PTZ Wall Mount (Stainless Steel)', qty: 6, unit: 'units', price: 8500, specs: 'SS304 stainless wall bracket for PTZ camera, 30kg load capacity, integrated cable management' },
+        { desc: 'RS-485 Control Cable (300m, shielded)', qty: 2, unit: 'rolls', price: 5500, specs: 'RS-485 multicore control cable, 2-pair 22AWG, foil-shielded, PVC outer jacket, 300m roll' },
       ]),
     });
 
@@ -1510,10 +1543,10 @@ async function seed() {
       stage: 'pending_quotation',
       projectName: 'CCTV Installation – Busway Line 1',
       items: makeItems([
-        { desc: 'Galvanized Pole (4-meter, 3" diameter, with base plate)', qty: 24, unit: 'units', price: 4500 },
-        { desc: 'Camera Arm Bracket (2-meter extension)', qty: 24, unit: 'units', price: 1800 },
-        { desc: 'Anchor Bolts Set (M16, per pole)', qty: 24, unit: 'sets', price: 380 },
-        { desc: 'Galvanizing Paint Touch-up (spray)', qty: 10, unit: 'cans', price: 250 },
+        { desc: 'Galvanized Pole (4-meter, 3" diameter, with base plate)', qty: 24, unit: 'units', price: 4500, specs: '4m hot-dip galvanized steel pole, 3" diameter, 3mm wall, with welded 300×300mm base plate' },
+        { desc: 'Camera Arm Bracket (2-meter extension)', qty: 24, unit: 'units', price: 1800, specs: '2-meter cantilever arm bracket, galvanized steel, mounts to pole top, end-cap for camera bracket' },
+        { desc: 'Anchor Bolts Set (M16, per pole)', qty: 24, unit: 'sets', price: 380, specs: 'M16×300mm anchor bolt set with washers and nuts, hot-dip galvanized, for fastening base plates to concrete pads' },
+        { desc: 'Galvanizing Paint Touch-up (spray)', qty: 10, unit: 'cans', price: 250, specs: 'Cold-galvanizing zinc-rich aerosol spray, 400ml can, for repairing scratches and weld points on poles' },
       ]),
     });
 
@@ -1527,9 +1560,9 @@ async function seed() {
       stage: 'pending_quotation',
       projectName: 'AI Camera System – Phase 1',
       items: makeItems([
-        { desc: 'Hikvision DS-96128NI-I24 128-Channel NVR', qty: 1, unit: 'unit', price: 345000 },
-        { desc: 'Seagate SkyHawk AI 10TB HDD (Surveillance)', qty: 12, unit: 'units', price: 18500 },
-        { desc: '2U Rackmount Server Case with Rails', qty: 1, unit: 'unit', price: 12000 },
+        { desc: 'Hikvision DS-96128NI-I24 128-Channel NVR', qty: 1, unit: 'unit', price: 345000, specs: '128-channel NVR, 4K (8MP), H.265+, 24 SATA bays, RAID 0/1/5/6/10, dual 10G NIC, redundant PSU' },
+        { desc: 'Seagate SkyHawk AI 10TB HDD (Surveillance)', qty: 12, unit: 'units', price: 18500, specs: 'Seagate SkyHawk AI 10TB 7200rpm SATA III, dedicated to AI surveillance workloads, MTBF 2M hours' },
+        { desc: '2U Rackmount Server Case with Rails', qty: 1, unit: 'unit', price: 12000, specs: '2U rackmount chassis, 19" standard, with sliding rails kit and 24-bay backplane' },
       ]),
     });
 
@@ -1542,8 +1575,8 @@ async function seed() {
       createdDaysAgo: 1, neededInDays: 21,
       stage: 'level1_review',
       items: makeItems([
-        { desc: 'Sihoo M57 Ergonomic Mesh Office Chair (with headrest)', qty: 8, unit: 'units', price: 12500 },
-        { desc: 'Chair Floor Mat (120cm x 90cm, for tiled floor)', qty: 8, unit: 'pcs', price: 1200 },
+        { desc: 'Sihoo M57 Ergonomic Mesh Office Chair (with headrest)', qty: 8, unit: 'units', price: 12500, specs: 'Sihoo M57, full mesh back, adjustable lumbar + headrest, 4D armrests, BIFMA-rated 150kg, black' },
+        { desc: 'Chair Floor Mat (120cm x 90cm, for tiled floor)', qty: 8, unit: 'pcs', price: 1200, specs: 'Polycarbonate office chair mat, 120×90 cm, smooth-bottom profile for tiled / hard floors, transparent' },
       ]),
     });
 
@@ -1556,7 +1589,7 @@ async function seed() {
       createdDaysAgo: 0, neededInDays: 30,
       stage: 'level1_review',
       items: makeItems([
-        { desc: 'Canva Teams Plan – 10 seats (annual)', qty: 1, unit: 'subscription', price: 45000, sourcingType: 'online', notes: 'Billed annually via canva.com' },
+        { desc: 'Canva Teams Plan – 10 seats (annual)', qty: 1, unit: 'subscription', price: 45000, sourcingType: 'online', specs: 'Canva Teams Annual, 10 seats — brand kit, premium templates, one-click resize, 1TB cloud storage', notes: 'Billed annually via canva.com' },
       ]),
     });
 
@@ -1570,9 +1603,9 @@ async function seed() {
       stage: 'level2_review',
       projectName: 'AI Camera System – Phase 1',
       items: makeItems([
-        { desc: 'Stainless Outdoor Camera Enclosure (SS316, IP66, with heater/blower)', qty: 24, unit: 'units', price: 8500 },
-        { desc: 'Pole Side Mount Adapter Kit', qty: 24, unit: 'sets', price: 1200 },
-        { desc: 'Security Padlock (Weather-resistant, Keyed Alike)', qty: 24, unit: 'units', price: 480 },
+        { desc: 'Stainless Outdoor Camera Enclosure (SS316, IP66, with heater/blower)', qty: 24, unit: 'units', price: 8500, specs: 'SS316 outdoor camera enclosure, IP66, integrated 50W heater + 12V blower, sun shield, cable gland, lockable' },
+        { desc: 'Pole Side Mount Adapter Kit', qty: 24, unit: 'sets', price: 1200, specs: 'Side-mount adapter for pole-mounting camera enclosures, fits 60-120mm OD poles, with stainless U-bolts' },
+        { desc: 'Security Padlock (Weather-resistant, Keyed Alike)', qty: 24, unit: 'units', price: 480, specs: 'Master Lock 6121, weather-resistant body, keyed-alike for fleet management, 51mm hardened steel shackle' },
       ]),
     });
 
@@ -1586,11 +1619,11 @@ async function seed() {
       stage: 'level3_review',
       projectName: 'AI Camera System – Phase 1',
       items: makeItems([
-        { desc: 'Dell OptiPlex 7010 Workstation (i9, 64GB, 1TB NVMe)', qty: 3, unit: 'units', price: 95000, notes: 'VMS operator workstations' },
-        { desc: 'Samsung 55" 4K Commercial Display (UD55F-B)', qty: 6, unit: 'units', price: 85000, notes: 'For 2x3 video wall' },
-        { desc: 'Datapath FX4 Video Wall Controller', qty: 1, unit: 'unit', price: 320000 },
-        { desc: 'Video Wall Mounting Structure (2x3 bezel-free)', qty: 1, unit: 'set', price: 145000 },
-        { desc: 'Control Room Console Desk (curved, 3 positions)', qty: 1, unit: 'unit', price: 185000 },
+        { desc: 'Dell OptiPlex 7010 Workstation (i9, 64GB, 1TB NVMe)', qty: 3, unit: 'units', price: 95000, specs: 'Dell OptiPlex 7010 SFF, i9-13900, 64GB DDR5, 1TB Gen4 NVMe SSD, RTX A2000 6GB, Win 11 Pro', notes: 'VMS operator workstations' },
+        { desc: 'Samsung 55" 4K Commercial Display (UD55F-B)', qty: 6, unit: 'units', price: 85000, specs: 'Samsung UD55F-B, 55" 4K UHD, 700cd/m² brightness, 24/7 operation rated, 1.7mm bezel-to-bezel', notes: 'For 2x3 video wall' },
+        { desc: 'Datapath FX4 Video Wall Controller', qty: 1, unit: 'unit', price: 320000, specs: 'Datapath FX4 4K video wall controller, 1× HDMI/DP input, 4× HDMI outputs, supports 2×2 to 4×1 layouts' },
+        { desc: 'Video Wall Mounting Structure (2x3 bezel-free)', qty: 1, unit: 'set', price: 145000, specs: '2×3 video wall floor-standing mount, micro-adjustable per panel, integrated cable management and service access' },
+        { desc: 'Control Room Console Desk (curved, 3 positions)', qty: 1, unit: 'unit', price: 185000, specs: 'Curved control room console, 3 operator positions, electric sit-stand height, integrated cable trays + monitor arms' },
       ]),
     });
 
@@ -1604,10 +1637,10 @@ async function seed() {
       stage: 'quoted',
       projectName: 'CCTV Installation – Busway Line 1',
       items: makeItems([
-        { desc: 'Hikvision DS-3E2528P 24-Port PoE+ Managed Switch (370W)', qty: 6, unit: 'units', price: 32000 },
-        { desc: 'Patch Panel 24-Port Cat6 (1U)', qty: 6, unit: 'units', price: 2200 },
-        { desc: 'Network Enclosure 12U Wall-mount', qty: 6, unit: 'units', price: 7500 },
-        { desc: 'Fiber SFP Module 1G Single-mode', qty: 12, unit: 'units', price: 2800 },
+        { desc: 'Hikvision DS-3E2528P 24-Port PoE+ Managed Switch (370W)', qty: 6, unit: 'units', price: 32000, specs: '24× PoE+ ports (370W budget), 4× SFP uplinks, Layer 2 managed, IEEE 802.3at, web GUI' },
+        { desc: 'Patch Panel 24-Port Cat6 (1U)', qty: 6, unit: 'units', price: 2200, specs: '24-port Cat6 punch-down patch panel, 1U, with cable management bar' },
+        { desc: 'Network Enclosure 12U Wall-mount', qty: 6, unit: 'units', price: 7500, specs: '12U wall-mount network enclosure, lockable glass door, 600mm depth, integrated cooling fans' },
+        { desc: 'Fiber SFP Module 1G Single-mode', qty: 12, unit: 'units', price: 2800, specs: '1Gbps SFP transceiver, single-mode LC duplex, 10km reach, 1310nm wavelength' },
       ]),
     });
 
@@ -1621,10 +1654,10 @@ async function seed() {
       stage: 'quoted',
       projectName: 'AI Camera System – Phase 1',
       items: makeItems([
-        { desc: 'Hikvision HCP Certification Training (4 participants)', qty: 4, unit: 'persons', price: 18000 },
-        { desc: 'Training Materials and Lab Access (per person)', qty: 4, unit: 'sets', price: 5000 },
-        { desc: 'Certification Exam Fee (per person)', qty: 4, unit: 'persons', price: 6500 },
-        { desc: 'Travel and Accommodation (Manila, 3 days per person)', qty: 4, unit: 'persons', price: 8500 },
+        { desc: 'Hikvision HCP Certification Training (4 participants)', qty: 4, unit: 'persons', price: 18000, specs: 'Hikvision Certified Professional (HCP) classroom training, 5 days, conducted by an authorized HK trainer' },
+        { desc: 'Training Materials and Lab Access (per person)', qty: 4, unit: 'sets', price: 5000, specs: 'HCP training book, USB lab kit, online lab portal access for 90 days post-class' },
+        { desc: 'Certification Exam Fee (per person)', qty: 4, unit: 'persons', price: 6500, specs: 'HCP proctored certification exam, 90 minutes, online or onsite, includes one re-take voucher' },
+        { desc: 'Travel and Accommodation (Manila, 3 days per person)', qty: 4, unit: 'persons', price: 8500, specs: 'Manila travel allowance: domestic flights, 3 nights hotel, per diem, ground transport, per person' },
       ]),
     });
 
@@ -1637,10 +1670,10 @@ async function seed() {
       createdDaysAgo: 2, neededInDays: 14,
       stage: 'level1_review',
       items: makeItems([
-        { desc: 'Dell P2723QE 27" 4K USB-C Monitor', qty: 5, unit: 'units', price: 24500 },
-        { desc: 'Logitech MX Keys S Keyboard', qty: 5, unit: 'units', price: 5800, sourcingType: 'online', notes: 'Available on Lazada Official Store' },
-        { desc: 'Logitech MX Master 3S Mouse', qty: 5, unit: 'units', price: 5200, sourcingType: 'online', notes: 'Available on Lazada Official Store' },
-        { desc: 'Monitor Arm (dual-compatible, clamp mount)', qty: 5, unit: 'units', price: 3800 },
+        { desc: 'Dell P2723QE 27" 4K USB-C Monitor', qty: 5, unit: 'units', price: 24500, specs: 'Dell P2723QE 27" IPS 4K UHD, USB-C 90W power delivery, 4-side InfinityEdge, height-adjust stand, 3-year warranty' },
+        { desc: 'Logitech MX Keys S Keyboard', qty: 5, unit: 'units', price: 5800, sourcingType: 'online', specs: 'Logitech MX Keys S full-size wireless keyboard, smart backlit keys, USB-C, multi-device pairing, Mac/Win', notes: 'Available on Lazada Official Store' },
+        { desc: 'Logitech MX Master 3S Mouse', qty: 5, unit: 'units', price: 5200, sourcingType: 'online', specs: 'Logitech MX Master 3S wireless mouse, 8000 DPI, MagSpeed scroll, USB-C charging, multi-device', notes: 'Available on Lazada Official Store' },
+        { desc: 'Monitor Arm (dual-compatible, clamp mount)', qty: 5, unit: 'units', price: 3800, specs: 'Single-monitor gas-spring arm, supports up to 32" / 9kg, clamp + grommet mount, USB pass-through' },
       ]),
     });
 
@@ -1655,10 +1688,10 @@ async function seed() {
       stage: 'rejected',
       rejectReason: 'Drone procurement requires CAB (Civil Aviation Board) operator certification which the team does not currently hold. Please coordinate with the Engineering head on alternative survey methods. Resubmit when certification requirements are met.',
       items: makeItems([
-        { desc: 'DJI Matrice 350 RTK Enterprise Drone', qty: 1, unit: 'unit', price: 485000 },
-        { desc: 'DJI Zenmuse H20T Camera (Thermal+Optical)', qty: 1, unit: 'unit', price: 285000 },
-        { desc: 'Extra Battery Set and Charging Hub', qty: 2, unit: 'sets', price: 45000 },
-        { desc: 'CAB Drone Operator Training (online, per person)', qty: 3, unit: 'persons', price: 12000 },
+        { desc: 'DJI Matrice 350 RTK Enterprise Drone', qty: 1, unit: 'unit', price: 485000, specs: 'DJI Matrice 350 RTK, 55-min flight time, IP55, dual-control, RTK accuracy ±1cm + 1ppm, 3-prop redundancy' },
+        { desc: 'DJI Zenmuse H20T Camera (Thermal+Optical)', qty: 1, unit: 'unit', price: 285000, specs: 'Zenmuse H20T quad-sensor: 20MP zoom, 12MP wide, 640×512 thermal, laser rangefinder up to 1200m' },
+        { desc: 'Extra Battery Set and Charging Hub', qty: 2, unit: 'sets', price: 45000, specs: 'TB65 battery 4-pack with BS65 charging hub, 100W per channel, multi-charge support' },
+        { desc: 'CAB Drone Operator Training (online, per person)', qty: 3, unit: 'persons', price: 12000, specs: 'CAAP-accredited drone pilot certification course, online theory + practical assessment, ~40 hours' },
       ]),
     });
 
@@ -1673,9 +1706,9 @@ async function seed() {
       stage: 'returned',
       returnReason: 'Please provide: (1) training provider accreditation certificate, (2) detailed training schedule and modules, and (3) at least 3 price quotations from different training providers. Resubmit with complete supporting documents.',
       items: makeItems([
-        { desc: 'CPSTI Certification Training (5 participants)', qty: 5, unit: 'persons', price: 25000 },
-        { desc: 'Training Materials and Module Kit', qty: 5, unit: 'sets', price: 3500 },
-        { desc: 'Certification Exam Fee (per candidate)', qty: 5, unit: 'persons', price: 8500 },
+        { desc: 'CPSTI Certification Training (5 participants)', qty: 5, unit: 'persons', price: 25000, specs: 'ASIS CPSTI 5-day training, 40-hour curriculum, classroom + practical, certified instructor' },
+        { desc: 'Training Materials and Module Kit', qty: 5, unit: 'sets', price: 3500, specs: 'Official CPSTI study guide, sample-equipment kit, slide handouts, online portal access' },
+        { desc: 'Certification Exam Fee (per candidate)', qty: 5, unit: 'persons', price: 8500, specs: 'CPSTI proctored exam fee, 3-hour duration, ASIS International, online or onsite' },
       ]),
     });
 
@@ -1686,13 +1719,14 @@ async function seed() {
       priority: 'medium', requester: kevin, dept: eng, deptCode: 'ENG', deptHead: engHead,
       createdDaysAgo: 3, neededInDays: 20,
       stage: 'returned',
+      returnedAtLevel: 2,
       returnReason: 'Please provide at least 3 canvass sheets from hardware suppliers. Also clarify if these tools are for purchase or rental — rental may be more cost-effective for a single project.',
       items: makeItems([
-        { desc: 'Cable Puller (600m, 800kg pull force)', qty: 1, unit: 'unit', price: 45000 },
-        { desc: 'Fiber Optic Fusion Splicer (Sumitomo TYPE-82)', qty: 1, unit: 'unit', price: 185000 },
-        { desc: 'OTDR (Optical Time Domain Reflectometer)', qty: 1, unit: 'unit', price: 125000 },
-        { desc: 'Network Cable Tester (Fluke Networks)', qty: 2, unit: 'units', price: 28000 },
-        { desc: 'Cable Crimping and Stripping Tool Set', qty: 5, unit: 'sets', price: 4500 },
+        { desc: 'Cable Puller (600m, 800kg pull force)', qty: 1, unit: 'unit', price: 45000, specs: 'Heavy-duty cable puller, 800kg pull force, 600m capacity, gasoline-powered with safety brake' },
+        { desc: 'Fiber Optic Fusion Splicer (Sumitomo TYPE-82)', qty: 1, unit: 'unit', price: 185000, specs: 'Sumitomo TYPE-82 fusion splicer, core alignment, 7-second splice / 14-second heat, color touchscreen' },
+        { desc: 'OTDR (Optical Time Domain Reflectometer)', qty: 1, unit: 'unit', price: 125000, specs: 'Handheld OTDR, dual-wavelength 1310/1550nm, 36/35 dB dynamic range, 5ns event dead-zone' },
+        { desc: 'Network Cable Tester (Fluke Networks)', qty: 2, unit: 'units', price: 28000, specs: 'Fluke Networks MicroScanner2, Cat3-Cat6A continuity + length, distance-to-fault, PoE detection' },
+        { desc: 'Cable Crimping and Stripping Tool Set', qty: 5, unit: 'sets', price: 4500, specs: 'Pro tool set: RJ45/RJ11 crimper, coax crimper, cable stripper, spare blades, in molded case' },
       ]),
     });
 
@@ -1707,9 +1741,9 @@ async function seed() {
       stage: 'cancelled',
       cancelReason: 'Client has provided their own temporary security cameras for site monitoring. Purchase no longer needed.',
       items: makeItems([
-        { desc: 'Analog Dome Camera (AHD 2MP)', qty: 20, unit: 'units', price: 1800 },
-        { desc: '16-Channel DVR (2MP, 2TB HDD included)', qty: 2, unit: 'units', price: 15000 },
-        { desc: 'RG59 Coaxial Cable (100m/roll)', qty: 10, unit: 'rolls', price: 2200 },
+        { desc: 'Analog Dome Camera (AHD 2MP)', qty: 20, unit: 'units', price: 1800, specs: '2MP AHD analog dome camera, 1080p, 30m IR, varifocal 2.8-12mm lens, IP66' },
+        { desc: '16-Channel DVR (2MP, 2TB HDD included)', qty: 2, unit: 'units', price: 15000, specs: '16-channel AHD DVR, 1080p recording, 2TB HDD pre-installed, H.265+, hybrid analog/IP support' },
+        { desc: 'RG59 Coaxial Cable (100m/roll)', qty: 10, unit: 'rolls', price: 2200, specs: 'RG59 coaxial cable, 75 ohm, copper-clad steel center, with 18AWG paired power conductor, 100m roll' },
       ]),
     });
 
@@ -1724,9 +1758,9 @@ async function seed() {
       stage: 'draft',
       projectName: 'CCTV Installation – Busway Line 1',
       items: makeItems([
-        { desc: 'APC Smart-UPS 2200VA LCD RM 2U (SUA2200RMXL5U)', qty: 8, unit: 'units', price: 38500 },
-        { desc: 'UPS Battery Replacement Kit (per unit)', qty: 8, unit: 'sets', price: 8500 },
-        { desc: 'PDU Rackmount (8-outlet, 20A)', qty: 8, unit: 'units', price: 5500 },
+        { desc: 'APC Smart-UPS 2200VA LCD RM 2U (SUA2200RMXL5U)', qty: 8, unit: 'units', price: 38500, specs: 'APC Smart-UPS 2200VA / 1980W, line-interactive, rack-mount 2U, LCD, with network management slot' },
+        { desc: 'UPS Battery Replacement Kit (per unit)', qty: 8, unit: 'sets', price: 8500, specs: 'OEM battery replacement cartridge, hot-swappable, 12V SLA pack matched to APC SUA2200RMXL5U' },
+        { desc: 'PDU Rackmount (8-outlet, 20A)', qty: 8, unit: 'units', price: 5500, specs: '1U horizontal PDU, 8× IEC C13 outlets, 20A NEMA 5-20P input, 10-ft cord, with surge protection' },
       ]),
     });
 
@@ -1739,9 +1773,9 @@ async function seed() {
       stage: 'draft',
       projectName: 'AI Camera System – Phase 1',
       items: makeItems([
-        { desc: 'Hikvision DS-2CD2T47G2P 4MP AI Camera (additional zones)', qty: 20, unit: 'units', price: 14500 },
-        { desc: 'Milestone Additional Channel License (per camera, 3yr)', qty: 20, unit: 'channels', price: 12000 },
-        { desc: 'Mounting Hardware and Accessories (per camera)', qty: 20, unit: 'sets', price: 2500 },
+        { desc: 'Hikvision DS-2CD2T47G2P 4MP AI Camera (additional zones)', qty: 20, unit: 'units', price: 14500, specs: '4MP ColorVu bullet camera with deep-learning AI, 120m IR + strobe, 4mm lens, IP67/IK10' },
+        { desc: 'Milestone Additional Channel License (per camera, 3yr)', qty: 20, unit: 'channels', price: 12000, specs: 'Milestone XProtect Corporate channel license, 3-year SLC, includes recording and analytics support' },
+        { desc: 'Mounting Hardware and Accessories (per camera)', qty: 20, unit: 'sets', price: 2500, specs: 'Per-camera mounting kit: bracket, junction box, anti-tamper screws, weather sealant' },
       ]),
     });
 
@@ -1756,9 +1790,9 @@ async function seed() {
       createdDaysAgo: 25, neededInDays: -5,
       requestType: 'job_request', projectName: 'CCTV Installation – Busway Line 1',
       items: makeItems([
-        { desc: 'Site Survey and Assessment (per station)', qty: 6, unit: 'stations', price: 8500 },
-        { desc: 'Camera Placement Drawing and BOQ Preparation', qty: 6, unit: 'stations', price: 5000 },
-        { desc: 'Site Survey Report and Recommendations', qty: 1, unit: 'lot', price: 15000 },
+        { desc: 'Site Survey and Assessment (per station)', qty: 6, unit: 'stations', price: 8500, specs: 'Full station walkthrough, line-of-sight study, photo documentation, blind-spot analysis — 1 day per station' },
+        { desc: 'Camera Placement Drawing and BOQ Preparation', qty: 6, unit: 'stations', price: 5000, specs: 'Camera placement plan in AutoCAD, BOQ in Excel with quantities and specs, per station' },
+        { desc: 'Site Survey Report and Recommendations', qty: 1, unit: 'lot', price: 15000, specs: 'Consolidated PDF survey report covering all stations: recommendations, risk register, summary BOQ' },
       ]),
     });
 
@@ -1770,10 +1804,10 @@ async function seed() {
       createdDaysAgo: 15, neededInDays: 3,
       requestType: 'job_request', projectName: 'AI Camera System – Phase 1',
       items: makeItems([
-        { desc: 'AI Camera Commissioning (per camera)', qty: 48, unit: 'cameras', price: 1500 },
-        { desc: 'AI Analytics Configuration and Tuning', qty: 48, unit: 'channels', price: 800 },
-        { desc: 'VMS Integration and Testing', qty: 1, unit: 'lot', price: 35000 },
-        { desc: 'Client Acceptance Testing and Documentation', qty: 1, unit: 'lot', price: 25000 },
+        { desc: 'AI Camera Commissioning (per camera)', qty: 48, unit: 'cameras', price: 1500, specs: 'Per-camera commissioning: physical install verify, focus / zoom calibration, network onboarding, firmware update' },
+        { desc: 'AI Analytics Configuration and Tuning', qty: 48, unit: 'channels', price: 800, specs: 'AI rule setup per channel: zones, sensitivity, schedules, alarm rules, with 1-week soak tuning' },
+        { desc: 'VMS Integration and Testing', qty: 1, unit: 'lot', price: 35000, specs: 'Integration of cameras + analytics into Milestone VMS, recording verification, redundancy/failover test' },
+        { desc: 'Client Acceptance Testing and Documentation', qty: 1, unit: 'lot', price: 25000, specs: 'UAT walkthrough with client, signed acceptance form, as-built drawings, operations manual' },
       ]),
     });
 
@@ -1786,10 +1820,10 @@ async function seed() {
       stage: 'draft',
       requestType: 'job_request', projectName: 'CCTV Installation – Busway Line 1',
       items: makeItems([
-        { desc: 'Quarterly PM Service (per station, 8 stations)', qty: 8, unit: 'stations', price: 6500 },
-        { desc: 'Camera Lens Cleaning and Focus Check (per camera)', qty: 120, unit: 'cameras', price: 150 },
-        { desc: 'NVR Health Check and Storage Verification', qty: 2, unit: 'units', price: 8000 },
-        { desc: 'PM Report and Certification per Station', qty: 8, unit: 'reports', price: 1500 },
+        { desc: 'Quarterly PM Service (per station, 8 stations)', qty: 8, unit: 'stations', price: 6500, specs: 'Per-station PM: physical inspection, cleaning, alignment, firmware check, written on-site report — quarterly' },
+        { desc: 'Camera Lens Cleaning and Focus Check (per camera)', qty: 120, unit: 'cameras', price: 150, specs: 'Microfiber + lens-safe cleaner, focus + zoom check, dome cover cleaning, gasket inspection' },
+        { desc: 'NVR Health Check and Storage Verification', qty: 2, unit: 'units', price: 8000, specs: 'Storage integrity scan (SMART + RAID status), video retention audit, replace failing drives if found' },
+        { desc: 'PM Report and Certification per Station', qty: 8, unit: 'reports', price: 1500, specs: 'Signed PM completion report per station, including before/after photos and findings checklist' },
       ]),
     });
 
@@ -1974,16 +2008,24 @@ async function seed() {
       await attachReferencePhotos(prDoc);
     }
 
-    // ─── Generate Attachments for Non-Draft PRs ────────────────
+    // ─── Generate Attachments for Quoted-or-Later PRs ──────────
+    // Quotations are produced by Procurement during canvassing, which happens
+    // AFTER approval. PRs in draft / level1-3_review / pending_quotation have
+    // not yet had supplier quotations sourced, so they must not carry any
+    // quotation attachments. Same for rejected/returned/cancelled PRs that
+    // never made it past approval in this seed.
+    const QUOTATION_STAGES = new Set(['quoted', 'approved', 'completed']);
     console.log('\nGenerating supplier quotation PDFs as attachments...');
     let attachmentCount = 0;
+    let attachedPrCount = 0;
     for (const prDoc of allPrs) {
-      if (prDoc.status === 'draft') continue;
+      if (!QUOTATION_STAGES.has(prDoc.status)) continue;
       await attachQuotations(prDoc, prDoc.requesterId, getProjectName(prDoc.projectId));
       attachmentCount += prDoc.attachments.length;
+      attachedPrCount += 1;
       process.stdout.write('.');
     }
-    console.log(`\n  Generated ${attachmentCount} PDF attachments for ${allPrs.filter(p => p.status !== 'draft').length} PRs`);
+    console.log(`\n  Generated ${attachmentCount} PDF attachments for ${attachedPrCount} PRs`);
 
     // ─── Insert PRs ───────────────────────────────────────────
     console.log(`  Inserting ${allPrs.length} purchase/job requests...`);
@@ -2123,10 +2165,8 @@ async function seed() {
     console.log(`  Inserting ${allNotifications.length} notifications...`);
     await Notification.insertMany(allNotifications);
 
-    for (const [code, count] of Object.entries(seqCounters)) {
-      await PrSequence.create({ departmentCode: code, year, lastNumber: count });
-    }
-    console.log(`  Created PR sequences for ${Object.keys(seqCounters).length} departments`);
+    await PrSequence.create({ year, lastNumber: seqCounter });
+    console.log(`  Created PR sequence for ${year}: lastNumber=${seqCounter}`);
 
     // ─── Summary ─────────────────────────────────────────────
     console.log('\n═══════════════════════════════════════════');

@@ -193,6 +193,15 @@ export function SellerReferencesSection({
                       onBlur={(e) => {
                         if (e.target.value === '') e.target.value = '0';
                       }}
+                      onKeyDown={(e) => {
+                        if (['-', '+', 'e', 'E'].includes(e.key)) {
+                          e.preventDefault();
+                        }
+                      }}
+                      onPaste={(e) => {
+                        const text = e.clipboardData.getData('text');
+                        if (!/^\d*\.?\d+$/.test(text.trim())) e.preventDefault();
+                      }}
                       {...register(
                         `items.${itemIndex}.sellerReferences.${si}.price`,
                         {

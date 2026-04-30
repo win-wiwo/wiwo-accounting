@@ -5,6 +5,7 @@ import { Roles } from '../../common/decorators';
 import { RolesGuard } from '../../common/guards';
 import { PrNumberingService } from './pr-numbering.service';
 import { UpdatePrNumberConfigDto } from './dto/update-pr-number-config.dto';
+import { SetCurrentSeriesDto } from './dto/set-current-series.dto';
 
 @ApiTags('PR Numbering')
 @ApiBearerAuth()
@@ -30,6 +31,17 @@ export class PrNumberingController {
   @ApiOperation({ summary: 'Get PR number series for current year' })
   async getSeries() {
     return this.prNumberingService.getSeriesInfo();
+  }
+
+  @Patch('series')
+  @Roles(UserRole.ADMIN)
+  @UseGuards(RolesGuard)
+  @ApiOperation({
+    summary:
+      'Set the current PR series counter for a year (Admin only). Used to migrate after manual numbering.',
+  })
+  async setSeries(@Body() dto: SetCurrentSeriesDto) {
+    return this.prNumberingService.setCurrentSeries(dto);
   }
 
   @Get('preview')

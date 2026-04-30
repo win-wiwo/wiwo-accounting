@@ -122,7 +122,7 @@ All endpoints return: `{ success: boolean, data: T | null, message: string, meta
 - `approvals` — **separate collection** (queried independently for dashboards/reports)
 - `notifications` — per-user, with TTL index (90 days)
 - `audit-logs` — immutable, TTL index (365 days)
-- `pr-number-sequences` — atomic counter per department+year
+- `pr-number-sequences` — atomic counter per year (system-wide, continuous regardless of month). Both PRs and JRs share the same counter and the same `YYYY-MM-NNNN` format. Admin can set the current series via `PATCH /pr-numbering/series` to migrate when the year already started.
 
 ### Authentication
 
@@ -131,6 +131,28 @@ JWT with refresh token rotation. Access token: 15min, refresh: 7 days. Refresh t
 ### Deployment
 
 Docker Compose on a local company server. Nginx serves the React SPA and proxies `/api/` to the NestJS container. MongoDB runs as a replica set (required for transactions). A `mongo-backup` container runs daily automated backups with 30-day retention.
+
+## Seed Data
+
+Seed scripts live in `apps/api/src/database/`:
+
+- `seed.ts` — minimal users / departments only
+- `seed-full.ts` — full demo dataset (users, departments, suppliers, projects, PRs at every workflow stage, POs, approvals, notifications, generated quotation PDFs, photo references)
+
+Run with:
+
+```bash
+docker exec prams-api sh -c "cd /app/apps/api && npm run seed:full"
+```
+
+**MUST RE-SEED whenever you edit seed data or any shape it depends on.** The seed script wipes and rebuilds the relevant collections, so existing DB state will not reflect your edits until you re-run it. This applies to:
+
+- Editing `seed.ts` or `seed-full.ts` directly (item lists, status distributions, attachment logic, supplier list, etc.)
+- Tightening / loosening a Mongoose schema field (e.g. making a field required) — old documents written before the change will fail validation on the next save
+- Changing an enum value, removing/renaming a status, or altering shared types/constants used by seeded documents
+- Touching attachment-, photo-, or PDF-generation logic that runs inside `seed-full.ts`
+
+Re-seeding is mandatory before declaring the task done — do not leave a stale DB that disagrees with the new code.
 
 ## Documentation
 

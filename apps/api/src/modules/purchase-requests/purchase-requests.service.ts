@@ -9,13 +9,12 @@ import { Model, FilterQuery, Types } from 'mongoose';
 import { unlink } from 'fs/promises';
 import { existsSync } from 'fs';
 import { join } from 'path';
-import { SubmitQuotationDto } from './dto';
+import { SubmitQuotationDto, SaveCanvassDraftDto } from './dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AttachmentCategory, normalizePrStatus, PrStatus, UserRole } from '@prams/shared';
 import { PurchaseRequest } from './schemas/purchase-request.schema';
 import { CreatePurchaseRequestDto, UpdatePurchaseRequestDto, QueryPurchaseRequestsDto } from './dto';
 import { PrNumberingService } from '../pr-numbering/pr-numbering.service';
-import { DepartmentsService } from '../departments/departments.service';
 import { Supplier } from '../suppliers/schemas/supplier.schema';
 
 interface RequestUser {
@@ -30,7 +29,6 @@ export class PurchaseRequestsService {
     @InjectModel(PurchaseRequest.name) private prModel: Model<PurchaseRequest>,
     @InjectModel(Supplier.name) private supplierModel: Model<Supplier>,
     private prNumberingService: PrNumberingService,
-    private departmentsService: DepartmentsService,
     private eventEmitter: EventEmitter2,
   ) {}
 
@@ -344,14 +342,33 @@ export class PurchaseRequestsService {
 
     // Generate PR number on first submission
     if (!pr.prNumber) {
-      const dept = await this.departmentsService.findById(pr.departmentId.toString());
-      const prefixOverride = (pr as any).requestType === 'job_request' ? 'JR' : undefined;
-      pr.prNumber = await this.prNumberingService.generatePrNumber(dept.code, prefixOverride);
+      pr.prNumber = await this.prNumberingService.generatePrNumber();
     }
 
-    // All PRs go to approval first — procurement happens after approval chain
+    // Resubmit of a returned PR: route straight back to the approver who
+    // returned it instead of restarting the chain. Falls back to the default
+    // entry level if the field is missing (legacy data).
+    const wasReturned = pr.status === PrStatus.RETURNED;
+    const returnedAtLevel = (pr as any).returnedAtLevel as number | null;
     const isDeptHead = user.role === UserRole.DEPT_HEAD;
-    if (isDeptHead) {
+    const now = new Date();
+
+    if (wasReturned && returnedAtLevel != null) {
+      const STATUS_BY_LEVEL: Record<number, PrStatus> = {
+        1: PrStatus.LEVEL1_REVIEW,
+        2: PrStatus.LEVEL2_REVIEW,
+        3: PrStatus.LEVEL3_REVIEW,
+      };
+      const target = STATUS_BY_LEVEL[returnedAtLevel];
+      if (target) {
+        pr.status = target;
+        pr.currentApprovalLevel = returnedAtLevel;
+      } else {
+        pr.status = isDeptHead ? PrStatus.LEVEL2_REVIEW : PrStatus.LEVEL1_REVIEW;
+        pr.currentApprovalLevel = isDeptHead ? 2 : 1;
+      }
+      pr.set('returnedAtLevel', null);
+    } else if (isDeptHead) {
       pr.status = PrStatus.LEVEL2_REVIEW;
       pr.currentApprovalLevel = 2;
     } else {
@@ -359,7 +376,19 @@ export class PurchaseRequestsService {
       pr.currentApprovalLevel = 1;
     }
 
-    pr.submittedAt = new Date();
+    // First submission: stamp submittedAt. Resubmits push a new entry to
+    // resubmissionHistory and leave submittedAt as the original date.
+    if (wasReturned) {
+      const note = (pr as any).resubmissionNote as string | null;
+      pr.resubmissionHistory.push({
+        _id: new Types.ObjectId(),
+        resubmittedAt: now,
+        note: note || null,
+        resumedAtLevel: pr.currentApprovalLevel,
+      } as any);
+    } else {
+      pr.submittedAt = now;
+    }
     pr.set('quotationNote', null);
 
     await pr.save();
@@ -510,6 +539,101 @@ export class PurchaseRequestsService {
       .exec() as Promise<PurchaseRequest>;
   }
 
+  // Save partial canvass progress without changing PR status. Procurement
+  // typically gathers quotes from suppliers over several days; this lets
+  // them stash work-in-progress without satisfying every submit-time rule.
+  async saveCanvassDraft(
+    id: string,
+    dto: SaveCanvassDraftDto,
+    user: RequestUser,
+  ): Promise<PurchaseRequest> {
+    const pr = await this.prModel.findById(id).exec();
+    if (!pr) throw new NotFoundException('Purchase request not found');
+
+    if (!([UserRole.PROCUREMENT, UserRole.ADMIN] as string[]).includes(user.role)) {
+      throw new ForbiddenException('Only Procurement can save canvass drafts');
+    }
+
+    if (pr.status !== PrStatus.PENDING_QUOTATION) {
+      throw new BadRequestException('PR is not awaiting quotation');
+    }
+
+    const procurementItemIds = new Set(
+      pr.items
+        .filter((item) => item.sourcingType === 'procurement')
+        .map((item) => item._id.toString()),
+    );
+
+    // Persist only entries that have a supplier picked. The UI may carry
+    // empty rows for editing convenience; those don't need to round-trip.
+    const liveEntries = (dto.canvassEntries ?? []).filter((entry) => !!entry.supplierId);
+
+    const supplierIds = liveEntries.map((entry) => entry.supplierId!).filter(Boolean);
+    const seenSuppliers = new Set<string>();
+    for (const supplierId of supplierIds) {
+      if (seenSuppliers.has(supplierId)) {
+        throw new BadRequestException('Each canvass entry must use a different supplier');
+      }
+      seenSuppliers.add(supplierId);
+    }
+
+    let supplierMap = new Map<string, string>();
+    if (supplierIds.length > 0) {
+      const suppliers = await this.supplierModel
+        .find({
+          _id: { $in: supplierIds.map((sid) => new Types.ObjectId(sid)) },
+          status: 'active',
+        })
+        .exec();
+      if (suppliers.length !== supplierIds.length) {
+        throw new BadRequestException('One or more selected suppliers are invalid or inactive');
+      }
+      supplierMap = new Map(suppliers.map((sup) => [sup._id.toString(), sup.companyName]));
+    }
+
+    const normalizedEntries = liveEntries.map((entry) => {
+      const seenItems = new Set<string>();
+      const quotedItems = (entry.quotedItems ?? [])
+        .filter((quoted) => procurementItemIds.has(quoted.itemId))
+        .map((quoted) => {
+          if (seenItems.has(quoted.itemId)) {
+            throw new BadRequestException('Duplicate item in a canvass entry');
+          }
+          seenItems.add(quoted.itemId);
+          const item = pr.items.find((candidate) => candidate._id.toString() === quoted.itemId);
+          const unitPrice = quoted.unitPrice ?? 0;
+          const totalPrice = item ? item.quantity * unitPrice : 0;
+          return {
+            itemId: item?._id ?? new Types.ObjectId(quoted.itemId),
+            description: item?.description ?? quoted.description ?? '',
+            unitPrice,
+            totalPrice,
+            remarks: quoted.remarks?.trim() || null,
+          };
+        });
+
+      return {
+        supplierId: new Types.ObjectId(entry.supplierId!),
+        supplierName: supplierMap.get(entry.supplierId!) ?? entry.supplierName ?? '',
+        quotedItems,
+        totalQuotedAmount: quotedItems.reduce((sum, qi) => sum + qi.totalPrice, 0),
+        remarks: entry.remarks?.trim() || null,
+        isSelected: Boolean(entry.isSelected),
+      };
+    });
+
+    pr.canvassEntries = normalizedEntries as typeof pr.canvassEntries;
+    pr.canvassJustification = dto.canvassJustification?.trim() || null;
+    // Status stays PENDING_QUOTATION.
+    await pr.save();
+
+    return this.prModel
+      .findById(id)
+      .populate('requesterId', 'firstName lastName email employeeId')
+      .populate('departmentId', 'name code')
+      .exec() as Promise<PurchaseRequest>;
+  }
+
   async returnForInfo(
     id: string,
     note: string,
@@ -595,7 +719,7 @@ export class PurchaseRequestsService {
 
   async updateItemSpecs(
     id: string,
-    items: Array<{ itemId: string; description: string; specifications?: string }>,
+    items: Array<{ itemId: string; description: string; specifications: string }>,
     user: RequestUser,
   ): Promise<PurchaseRequest> {
     const pr = await this.prModel.findById(id).exec();
@@ -612,8 +736,12 @@ export class PurchaseRequestsService {
     for (const update of items) {
       const item = pr.items.find((i) => i._id.toString() === update.itemId);
       if (!item) continue;
+      const specs = update.specifications?.trim();
+      if (!specs) {
+        throw new BadRequestException('Specifications are required for every item');
+      }
       item.description = update.description.trim();
-      item.specifications = update.specifications?.trim() || null;
+      item.specifications = specs;
     }
 
     pr.markModified('items');

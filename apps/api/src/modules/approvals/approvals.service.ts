@@ -162,9 +162,12 @@ export class ApprovalsService {
           source: 'coo',
         } as any);
       } else {
-        // Normal return: back to requester
+        // Normal return: back to requester. Remember the level that returned
+        // it so the resubmit lands at the same approver instead of restarting
+        // the chain.
         pr.status = PrStatus.RETURNED;
         pr.currentApprovalLevel = 0;
+        pr.set('returnedAtLevel', currentLevel);
         pr.set('previousSubmissionSnapshot', {
           title: pr.title,
           priority: pr.priority,

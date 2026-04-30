@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { purchaseRequestsApi, type PurchaseRequestsQuery, type CreatePrPayload, type ProjectSpendingItem, type ManagementStats } from '@/lib/api-services';
-import type { SubmitQuotationDto } from '@prams/shared';
+import type { SubmitQuotationDto, SaveCanvassDraftDto } from '@prams/shared';
 
 interface UsePurchaseRequestsOptions {
   enabled?: boolean;
@@ -138,6 +138,17 @@ export function useSubmitQuotation() {
   return useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: SubmitQuotationDto }) =>
       purchaseRequestsApi.submitQuotation(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['purchase-requests'] });
+    },
+  });
+}
+
+export function useSaveCanvassDraft() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: SaveCanvassDraftDto }) =>
+      purchaseRequestsApi.saveCanvassDraft(id, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchase-requests'] });
     },

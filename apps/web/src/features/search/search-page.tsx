@@ -640,12 +640,12 @@ export function SearchPage() {
                           </span>
                         </td>
                         <td className="px-5 py-4">
-                          <StatusBadge tone={prPriorityTone(pr.priority)}>
+                          <StatusBadge tone={prPriorityTone(pr.priority)} dot muted>
                             {PR_PRIORITY_LABELS[pr.priority as PrPriorityType]}
                           </StatusBadge>
                         </td>
                         <td className="px-5 py-4">
-                          <StatusBadge tone={prStatusTone(pr.status)}>
+                          <StatusBadge tone={prStatusTone(pr.status)} dot>
                             {PR_STATUS_LABELS[pr.status as PrStatusType]}
                           </StatusBadge>
                         </td>
@@ -685,7 +685,7 @@ export function SearchPage() {
                       <span className="font-mono text-[12px] text-zinc-400">
                         {pr.prNumber || 'Draft'}
                       </span>
-                      <StatusBadge tone={prStatusTone(pr.status)}>
+                      <StatusBadge tone={prStatusTone(pr.status)} dot>
                         {PR_STATUS_LABELS[pr.status as PrStatusType]}
                       </StatusBadge>
                     </div>
@@ -700,7 +700,7 @@ export function SearchPage() {
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <StatusBadge tone={prPriorityTone(pr.priority)}>
+                      <StatusBadge tone={prPriorityTone(pr.priority)} dot muted>
                         {PR_PRIORITY_LABELS[pr.priority as PrPriorityType]}
                       </StatusBadge>
                       <span className="text-[12px] text-zinc-400 tabular-nums">

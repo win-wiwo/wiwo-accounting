@@ -31,23 +31,24 @@ type SupplierRow = {
 };
 
 const STATUS_DOT: Record<string, string> = {
-  active:      'bg-emerald-400',
-  inactive:    'bg-zinc-300',
-  blacklisted: 'bg-red-400',
+  active:      'bg-emerald-500',
+  inactive:    'bg-zinc-400',
+  blacklisted: 'bg-red-500',
 };
 const STATUS_LABEL: Record<string, string> = {
   active:      'Active',
   inactive:    'Inactive',
   blacklisted: 'Blacklisted',
 };
-const STATUS_TEXT: Record<string, string> = {
-  active:      'text-emerald-700',
-  inactive:    'text-zinc-500',
-  blacklisted: 'text-red-600',
+const STATUS_STYLE: Record<string, string> = {
+  active:      'bg-emerald-50 text-emerald-700 border-emerald-200',
+  inactive:    'bg-zinc-50 text-zinc-700 border-zinc-200',
+  blacklisted: 'bg-red-50 text-red-700 border-red-200',
 };
+/* Tax chip — secondary, quieter */
 const TAX_CHIP: Record<string, { bg: string; text: string; label: string }> = {
-  vat:     { bg: 'bg-blue-50',  text: 'text-blue-700',  label: 'VAT' },
-  non_vat: { bg: 'bg-zinc-100', text: 'text-zinc-600',  label: 'Non-VAT' },
+  vat:     { bg: 'bg-zinc-50',  text: 'text-zinc-700',  label: 'VAT' },
+  non_vat: { bg: 'bg-zinc-50',  text: 'text-zinc-500',  label: 'Non-VAT' },
 };
 
 function dateLabel(d: string | undefined | null): string {
@@ -346,7 +347,7 @@ export function SuppliersListPage() {
                         <td className="px-5 py-4 hidden lg:table-cell">
                           <div className="space-y-1">
                             {tax && (
-                              <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${tax.bg} ${tax.text}`}>
+                              <span className={`inline-flex h-[22px] items-center rounded-md px-2 text-[11px] font-medium leading-none ${tax.bg} ${tax.text}`}>
                                 {tax.label}
                               </span>
                             )}
@@ -356,12 +357,10 @@ export function SuppliersListPage() {
 
                         {/* Status */}
                         <td className="px-5 py-4">
-                          <div className="flex items-center gap-1.5">
-                            <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${STATUS_DOT[supplier.status] ?? 'bg-zinc-300'}`} />
-                            <span className={`text-[12px] font-medium whitespace-nowrap ${STATUS_TEXT[supplier.status] ?? 'text-zinc-500'}`}>
-                              {STATUS_LABEL[supplier.status] ?? supplier.status}
-                            </span>
-                          </div>
+                          <span className={`inline-flex h-[22px] items-center gap-1.5 rounded-md border px-2 text-[11px] font-medium leading-none ${STATUS_STYLE[supplier.status] ?? 'bg-zinc-50 text-zinc-700 border-zinc-200'}`}>
+                            <span className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT[supplier.status] ?? 'bg-zinc-400'}`} />
+                            {STATUS_LABEL[supplier.status] ?? supplier.status}
+                          </span>
                         </td>
 
                         {/* Last Updated */}

@@ -1,0 +1,171 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - img "WIWO" [ref=e7]
+      - button [ref=e8]:
+        - img [ref=e9]
+    - navigation [ref=e12]:
+      - link "Dashboard" [ref=e13] [cursor=pointer]:
+        - /url: /dashboard
+        - img [ref=e14]
+        - generic [ref=e19]: Dashboard
+      - link "Purchase Requests" [ref=e20] [cursor=pointer]:
+        - /url: /purchase-requests
+        - img [ref=e21]
+        - generic [ref=e24]: Purchase Requests
+      - link "Procurement Queue" [ref=e25] [cursor=pointer]:
+        - /url: /procurement
+        - img [ref=e26]
+        - generic [ref=e29]: Procurement Queue
+      - link "Suppliers" [ref=e30] [cursor=pointer]:
+        - /url: /suppliers
+        - img [ref=e31]
+        - generic [ref=e36]: Suppliers
+      - link "Purchase Orders" [ref=e37] [cursor=pointer]:
+        - /url: /purchase-orders
+        - img [ref=e38]
+        - generic [ref=e42]: Purchase Orders
+      - link "Search & Monitor" [ref=e43] [cursor=pointer]:
+        - /url: /search
+        - img [ref=e44]
+        - generic [ref=e47]: Search & Monitor
+      - link "Reports" [ref=e48] [cursor=pointer]:
+        - /url: /reports
+        - img [ref=e49]
+        - generic [ref=e51]: Reports
+      - generic [ref=e54]: Admin
+      - link "Projects" [ref=e56] [cursor=pointer]:
+        - /url: /projects
+        - img [ref=e57]
+        - generic [ref=e59]: Projects
+      - link "Users" [ref=e60] [cursor=pointer]:
+        - /url: /users
+        - img [ref=e61]
+        - generic [ref=e66]: Users
+      - link "Departments" [ref=e67] [cursor=pointer]:
+        - /url: /departments
+        - img [ref=e68]
+        - generic [ref=e72]: Departments
+      - link "Settings" [ref=e73] [cursor=pointer]:
+        - /url: /settings
+        - img [ref=e74]
+        - generic [ref=e77]: Settings
+    - generic [ref=e80]:
+      - link "SA System Admin Admin" [ref=e81] [cursor=pointer]:
+        - /url: /profile
+        - img "SA" [ref=e83]
+        - generic [ref=e84]:
+          - paragraph [ref=e85]: System Admin
+          - paragraph [ref=e86]: Admin
+      - button "Sign out" [ref=e87]:
+        - img
+        - text: Sign out
+  - banner [ref=e88]:
+    - generic [ref=e90]:
+      - img [ref=e91]
+      - textbox "Search PRs... (Ctrl+K)" [ref=e94]
+    - button [ref=e96]:
+      - img
+  - main [ref=e97]:
+    - generic [ref=e279]:
+      - generic [ref=e281]:
+        - generic [ref=e282]:
+          - button "Purchase Requests / PR-ADM-2026-00003" [ref=e283]:
+            - img [ref=e284]
+            - generic [ref=e286]: Purchase Requests
+            - generic [ref=e287]: /
+            - generic [ref=e288]: PR-ADM-2026-00003
+          - generic [ref=e289]:
+            - heading "Canva Teams – Annual Subscription" [level=1] [ref=e290]
+            - generic [ref=e291]: Dept Head Review
+            - generic [ref=e292]: Low
+          - generic [ref=e293]:
+            - generic [ref=e294]: ₱45,000.00
+            - generic [ref=e295]: · Needed May 30, 2026
+        - button "Report" [disabled] [ref=e297]:
+          - img
+          - text: Report
+      - generic [ref=e298]:
+        - img [ref=e300]
+        - generic [ref=e303]:
+          - paragraph [ref=e304]: Awaiting Department Head
+          - paragraph [ref=e305]: Waiting for Department Head to review this request.
+      - generic [ref=e306]:
+        - generic [ref=e308]:
+          - generic [ref=e309]:
+            - heading "Line Items" [level=2] [ref=e310]
+            - paragraph [ref=e311]: Procurement-sourced items remain unpriced until canvass is complete.
+          - generic [ref=e312]:
+            - generic [ref=e313]:
+              - generic [ref=e314]:
+                - generic [ref=e315]:
+                  - generic [ref=e316]:
+                    - generic [ref=e317]: Item 1
+                    - generic [ref=e318]: Online
+                  - paragraph [ref=e319]: Canva Teams Plan – 10 seats (annual)
+                - generic [ref=e320]:
+                  - paragraph [ref=e321]:
+                    - text: 1 subscription
+                    - generic [ref=e322]: × ₱45,000.00
+                  - paragraph [ref=e323]: ₱45,000.00
+              - button "Reference photo" [ref=e325]:
+                - img [ref=e326]
+                - text: Reference photo
+              - generic [ref=e329]:
+                - generic [ref=e330]:
+                  - paragraph [ref=e331]: Specifications
+                  - paragraph [ref=e332]: Canva Teams Annual, 10 seats — brand kit, premium templates, one-click resize, 1TB cloud storage
+                - generic [ref=e333]:
+                  - paragraph [ref=e334]: Notes
+                  - paragraph [ref=e335]: Billed annually via canva.com
+            - generic [ref=e337]:
+              - generic [ref=e339]:
+                - generic [ref=e340]: 1 online item
+                - generic [ref=e341]: ₱45,000.00
+              - generic [ref=e342]:
+                - paragraph [ref=e343]: Grand Total
+                - paragraph [ref=e345]: ₱45,000.00
+        - generic [ref=e346]:
+          - generic [ref=e348]:
+            - generic [ref=e349]:
+              - paragraph [ref=e350]: Ownership
+              - generic [ref=e351]:
+                - generic [ref=e352]: I
+                - generic [ref=e353]:
+                  - paragraph [ref=e354]: Isabella Morales
+                  - paragraph [ref=e355]: Administration
+            - generic [ref=e357]:
+              - paragraph [ref=e358]: Request Details
+              - generic [ref=e359]:
+                - generic [ref=e360]:
+                  - generic [ref=e361]: Priority
+                  - generic [ref=e362]: Low
+                - generic [ref=e363]:
+                  - generic [ref=e364]: Type
+                  - generic [ref=e365]: Purchase Request
+                - generic [ref=e366]:
+                  - generic [ref=e367]: Needed By
+                  - generic [ref=e368]: May 30, 2026
+            - generic [ref=e370]:
+              - paragraph [ref=e371]: Purpose
+              - paragraph [ref=e372]: Admin and Operations teams frequently create client-facing materials. Canva Teams provides brand kit, templates, and collaboration features.
+            - generic [ref=e374]:
+              - paragraph [ref=e375]: Audit Dates
+              - generic [ref=e376]:
+                - generic [ref=e377]:
+                  - generic [ref=e378]: Created
+                  - generic [ref=e379]: Apr 30, 2026
+                - generic [ref=e380]:
+                  - generic [ref=e381]: Submitted
+                  - generic [ref=e382]: Apr 30, 2026
+          - generic [ref=e383]:
+            - heading "Approval Timeline" [level=3] [ref=e385]
+            - generic [ref=e388]:
+              - generic [ref=e389]:
+                - img [ref=e391]
+                - generic [ref=e394]:
+                  - generic [ref=e396]: Submitted
+                  - paragraph [ref=e397]: Apr 30, 2026, 9:49 PM
+              - generic [ref=e402]:
+                - img [ref=e403]
+                - generic [ref=e406]: Awaiting the next approval decision.

@@ -66,11 +66,11 @@ export class LineItemDto {
   @MaxLength(20)
   unit: string;
 
-  @ApiPropertyOptional({ example: 'Mesh back, lumbar support, adjustable height, 120kg capacity' })
+  @ApiProperty({ example: 'Mesh back, lumbar support, adjustable height, 120kg capacity' })
   @IsString()
+  @MinLength(1)
   @MaxLength(1000)
-  @IsOptional()
-  specifications?: string;
+  specifications: string;
 
   @ApiProperty({ enum: Object.values(SourcingType), example: SourcingType.PROCUREMENT })
   @IsEnum(SourcingType)
@@ -215,6 +215,72 @@ export class SubmitQuotationDto {
   canvassJustification?: string;
 }
 
+// Draft-friendly variants: allow blank fields so procurement can save
+// in-progress canvasses without satisfying every submit-time constraint.
+export class CanvassDraftItemDto {
+  @ApiProperty()
+  @IsString()
+  itemId: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  unitPrice?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  remarks?: string;
+}
+
+export class CanvassDraftEntryDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  supplierId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  supplierName?: string;
+
+  @ApiPropertyOptional({ type: [CanvassDraftItemDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CanvassDraftItemDto)
+  quotedItems?: CanvassDraftItemDto[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  remarks?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  isSelected?: boolean;
+}
+
+export class SaveCanvassDraftDto {
+  @ApiProperty({ type: [CanvassDraftEntryDto] })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CanvassDraftEntryDto)
+  canvassEntries: CanvassDraftEntryDto[];
+
+  @ApiPropertyOptional()
+  @IsString()
+  @MaxLength(1000)
+  @IsOptional()
+  canvassJustification?: string;
+}
+
 export class ReturnForInfoDto {
   @ApiProperty({ example: 'Please provide exact model number and power specifications.' })
   @IsString()
@@ -234,11 +300,11 @@ export class UpdateItemSpecDto {
   @MaxLength(500)
   description: string;
 
-  @ApiPropertyOptional()
-  @IsOptional()
+  @ApiProperty()
   @IsString()
+  @MinLength(1)
   @MaxLength(1000)
-  specifications?: string;
+  specifications: string;
 }
 
 export class UpdateItemSpecsDto {

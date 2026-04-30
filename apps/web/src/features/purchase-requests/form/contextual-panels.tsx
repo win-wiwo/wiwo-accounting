@@ -145,7 +145,7 @@ function BasicsTips() {
           <li>
             <span className="text-zinc-400">›</span> Pick the right{' '}
             <span className="font-medium text-zinc-800">priority</span> — Urgent
-            requests skip the queue.
+            requests are sorted to the top of approvers' queues.
           </li>
           <li>
             <span className="text-zinc-400">›</span> The{' '}

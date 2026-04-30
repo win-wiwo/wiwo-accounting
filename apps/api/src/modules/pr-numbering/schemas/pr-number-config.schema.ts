@@ -3,22 +3,10 @@ import { Document } from 'mongoose';
 
 @Schema({ timestamps: true })
 export class PrNumberConfig extends Document {
-  @Prop({ default: 'PR' })
-  prefix: string;
-
   @Prop({ default: '-' })
   separator: string;
 
-  @Prop({ default: true })
-  includeYear: boolean;
-
-  @Prop({ default: 'full', enum: ['full', 'short'] })
-  yearFormat: string;
-
-  @Prop({ default: true })
-  includeDepartmentCode: boolean;
-
-  @Prop({ default: 5, min: 3, max: 8 })
+  @Prop({ default: 4, min: 3, max: 8 })
   sequenceDigits: number;
 }
 

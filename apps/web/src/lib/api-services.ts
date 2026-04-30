@@ -16,6 +16,7 @@ import type {
   PaginationMeta,
   AttachmentCategory,
   SubmitQuotationDto,
+  SaveCanvassDraftDto,
 } from '@prams/shared';
 
 // ─── Users ───────────────────────────────────────────────────
@@ -164,6 +165,9 @@ export const purchaseRequestsApi = {
 
   submitQuotation: (id: string, payload: SubmitQuotationDto) =>
     apiClient.post<ApiResponse<PurchaseRequest>>(`/purchase-requests/${id}/quotation`, payload).then((r) => r.data),
+
+  saveCanvassDraft: (id: string, payload: SaveCanvassDraftDto) =>
+    apiClient.post<ApiResponse<PurchaseRequest>>(`/purchase-requests/${id}/canvass-draft`, payload).then((r) => r.data),
 
   returnForInfo: (id: string, note: string) =>
     apiClient.post<ApiResponse<PurchaseRequest>>(`/purchase-requests/${id}/return-for-info`, { note }).then((r) => r.data),

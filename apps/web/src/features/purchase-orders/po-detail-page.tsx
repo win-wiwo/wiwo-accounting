@@ -283,7 +283,7 @@ export function PoDetailPage() {
           po.supplierName,
         ].filter(Boolean).join(' · ') || sourceTypeLabel}
         meta={
-          <StatusBadge tone={PO_STATUS_TONE[po.status] ?? 'gray'}>
+          <StatusBadge tone={PO_STATUS_TONE[po.status] ?? 'gray'} dot>
             {PO_STATUS_LABELS[po.status] || po.status}
           </StatusBadge>
         }

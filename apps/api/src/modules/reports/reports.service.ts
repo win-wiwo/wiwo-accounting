@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, FilterQuery, Types } from 'mongoose';
 import * as ExcelJS from 'exceljs';
@@ -650,6 +650,24 @@ export class ReportsService {
 
     if (!pr) {
       throw new NotFoundException('Purchase request not found');
+    }
+
+    const items = ((pr as unknown as { items?: Array<{ sourcingType?: string }> }).items) ?? [];
+    const hasProcurementItems = items.some((it) => it.sourcingType === 'procurement');
+    const status = (pr as unknown as { status: string }).status;
+
+    // PO/PR form may only be printed once the relevant COO sign-off is on record.
+    // - Online-only PR: COO need approval (Level 2) must be done → status is LEVEL3_REVIEW or later.
+    // - PR with procurement items: COO price sign-off (after QUOTED) must be done → status is APPROVED or later.
+    const onlineOnlyAllowed: string[] = [PrStatus.LEVEL3_REVIEW, PrStatus.APPROVED, PrStatus.COMPLETED];
+    const procurementAllowed: string[] = [PrStatus.APPROVED, PrStatus.COMPLETED];
+    const allowedStatuses = hasProcurementItems ? procurementAllowed : onlineOnlyAllowed;
+    if (!allowedStatuses.includes(status)) {
+      throw new ForbiddenException(
+        hasProcurementItems
+          ? 'PDF can be downloaded only after COO has approved the canvassed price.'
+          : 'PDF can be downloaded only after COO has approved the request.',
+      );
     }
 
     const typedPr = pr as unknown as PopulatedPr & {

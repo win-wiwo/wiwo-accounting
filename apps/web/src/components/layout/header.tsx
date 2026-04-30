@@ -243,7 +243,7 @@ export function Header({ sidebarCollapsed }: HeaderProps) {
             <Button variant="ghost" size="icon" className="relative h-9 w-9 text-sidebar-foreground/50 hover:bg-white/[0.06] hover:text-sidebar-foreground">
               <Bell className="h-4 w-4" />
               {unreadCount > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold leading-none text-destructive-foreground tabular-nums">
                   {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               )}

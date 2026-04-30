@@ -169,6 +169,15 @@ export function StepItems({
                         onBlur={(e) => {
                           if (e.target.value === '') e.target.value = '1';
                         }}
+                        onKeyDown={(e) => {
+                          if (['-', '+', 'e', 'E', '.'].includes(e.key)) {
+                            e.preventDefault();
+                          }
+                        }}
+                        onPaste={(e) => {
+                          const text = e.clipboardData.getData('text');
+                          if (!/^\d+$/.test(text.trim())) e.preventDefault();
+                        }}
                         {...register(`items.${index}.quantity`, {
                           valueAsNumber: true,
                           onChange: (e: React.ChangeEvent<HTMLInputElement>) => {

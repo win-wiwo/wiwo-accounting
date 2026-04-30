@@ -6,7 +6,7 @@ import {
   Loader2, User,
   Paperclip, Download, Camera, ImageIcon, FileText, Upload, Trash2,
   Trophy, AlertTriangle, CheckCircle, XCircle,
-  TrendingDown, Info,
+  TrendingDown, Info, Save,
   FileSpreadsheet, FileImage, Send, MessageSquare,
 } from 'lucide-react';
 import { StickyFooter } from '@/components/ui/sticky-footer';
@@ -238,7 +238,7 @@ export function ProcurementWorkspacePage() {
 
       {/* ── Page Header ───────────────────────────────────────── */}
       <div
-        className="pr-detail-section sticky top-0 z-20 -mx-4 bg-white/95 backdrop-blur-sm border-b border-zinc-100 px-6 py-4 mb-6"
+        className="pr-detail-section sticky top-16 z-20 -mx-4 bg-white/95 backdrop-blur-sm border-b border-zinc-100 px-6 py-4 mb-6"
         style={{ animationDelay: '0s' }}
       >
         <button
@@ -329,50 +329,7 @@ export function ProcurementWorkspacePage() {
       <div className="pr-detail-section grid gap-6 lg:grid-cols-[280px_1fr] items-start" style={{ animationDelay: '0.06s' }}>
 
         {/* ── LEFT SIDEBAR ─────────────────────────────────── */}
-        <div className="lg:sticky lg:top-[128px] lg:max-h-[calc(100vh-148px)] lg:overflow-y-auto rounded-xl border border-zinc-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-
-          {/* Clarification thread */}
-          {hasReturnHistory && (
-            <>
-              <div className="px-5 pt-5 pb-4">
-                <div className="flex items-center gap-2 mb-4">
-                  <MessageSquare className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-zinc-400">Clarification</p>
-                  <span className="ml-auto inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-100 px-1 text-[10px] font-bold text-amber-700 tabular-nums">
-                    {thread.length}
-                  </span>
-                </div>
-
-                <div className="space-y-4">
-                  {thread.map((msg) => {
-                    const isProcurement = msg.side === 'procurement';
-                    return (
-                      <div key={msg.id} className={`flex gap-2.5 ${isProcurement ? '' : 'flex-row-reverse'}`}>
-                        <div className={`h-6 w-6 rounded-full flex items-center justify-center shrink-0 text-[9px] font-bold mt-0.5 ${
-                          isProcurement ? 'bg-amber-100 text-amber-700' : 'bg-zinc-100 text-zinc-600'
-                        }`}>
-                          {initials(msg.author)}
-                        </div>
-                        <div className={`flex-1 min-w-0 ${isProcurement ? '' : 'items-end flex flex-col'}`}>
-                          <p className={`text-[10px] text-zinc-400 mb-1 ${isProcurement ? '' : 'text-right'}`}>
-                            {msg.author} · {msg.displayAt}
-                          </p>
-                          <div className={`rounded-xl px-3 py-2 text-[12px] leading-relaxed ${
-                            isProcurement
-                              ? 'bg-amber-50 border border-amber-100 text-amber-900'
-                              : 'bg-zinc-50 border border-zinc-200 text-zinc-700'
-                          }`}>
-                            {msg.note}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-              <div className="h-px bg-zinc-100 mx-0" />
-            </>
-          )}
+        <div className="rounded-xl border border-zinc-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
 
           {/* Requester */}
           <div className="px-5 py-4">
@@ -595,41 +552,83 @@ export function ProcurementWorkspacePage() {
             />
           )}
 
-          {/* Request Clarification Panel */}
-          {canvass.actionStep === 'return' && (
+          {/* Clarification — thread + composer, sits above Quotation Evidence */}
+          {(hasReturnHistory || canvass.actionStep === 'return') && (
             <div className="rounded-xl border border-zinc-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-              <div className="px-6 pt-5 pb-4 border-b border-zinc-100">
-                <div className="flex items-center gap-2 mb-1">
-                  <MessageSquare className="h-4 w-4 text-zinc-500 shrink-0" />
-                  <h3 className="text-[14px] font-semibold text-zinc-900">Ask for Clarification</h3>
-                </div>
-                <p className="text-[12px] text-zinc-400">Send a question to the requester. They'll be notified and can reply directly.</p>
-              </div>
-              <div className="px-6 py-5">
-                <textarea
-                  rows={3}
-                  className="w-full rounded-xl border border-zinc-200/80 bg-zinc-50/50 px-4 py-3 text-[13px] text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:border-zinc-300 focus:bg-white resize-none transition-all duration-150 leading-relaxed"
-                  placeholder="e.g. Please specify the exact model number or acceptable brand equivalents…"
-                  value={canvass.returnNote}
-                  onChange={(e) => canvass.setReturnNote(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && canvass.returnNote.trim()) canvass.handleReturnForInfo(); }}
-                  autoFocus
-                />
-                <div className="flex items-center justify-between mt-3">
-                  <p className="text-[11px] text-zinc-400">Cmd/Ctrl + Enter to send</p>
-                  <Button
-                    size="sm"
-                    className="h-9 bg-zinc-900 hover:bg-zinc-800 text-white text-[12px] gap-1.5"
-                    onClick={canvass.handleReturnForInfo}
-                    disabled={canvass.isReturning || !canvass.returnNote.trim()}
-                  >
-                    {canvass.isReturning
-                      ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      : <Send className="h-3.5 w-3.5" />}
-                    Send Message
-                  </Button>
-                </div>
-              </div>
+              {hasReturnHistory && (
+                <>
+                  <div className="flex items-center gap-2 px-6 pt-5 pb-4 border-b border-zinc-100">
+                    <MessageSquare className="h-4 w-4 text-amber-500 shrink-0" />
+                    <h3 className="text-[14px] font-semibold text-zinc-900">Clarification</h3>
+                    <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-100 px-1 text-[10px] font-bold text-amber-700 tabular-nums">
+                      {thread.length}
+                    </span>
+                  </div>
+                  <div className="px-6 py-5 space-y-4">
+                    {thread.map((msg) => {
+                      const isProcurement = msg.side === 'procurement';
+                      return (
+                        <div key={msg.id} className={`flex gap-2.5 ${isProcurement ? '' : 'flex-row-reverse'}`}>
+                          <div className={`h-6 w-6 rounded-full flex items-center justify-center shrink-0 text-[9px] font-bold mt-0.5 ${
+                            isProcurement ? 'bg-amber-100 text-amber-700' : 'bg-zinc-100 text-zinc-600'
+                          }`}>
+                            {initials(msg.author)}
+                          </div>
+                          <div className={`flex-1 min-w-0 max-w-[80%] ${isProcurement ? '' : 'items-end flex flex-col'}`}>
+                            <p className={`text-[10px] text-zinc-400 mb-1 ${isProcurement ? '' : 'text-right'}`}>
+                              {msg.author} · {msg.displayAt}
+                            </p>
+                            <div className={`rounded-xl px-3 py-2 text-[12px] leading-relaxed ${
+                              isProcurement
+                                ? 'bg-amber-50 border border-amber-100 text-amber-900'
+                                : 'bg-zinc-50 border border-zinc-200 text-zinc-700'
+                            }`}>
+                              {msg.note}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+              {canvass.actionStep === 'return' && (
+                <>
+                  {hasReturnHistory && <div className="h-px bg-zinc-100" />}
+                  <div className="px-6 pt-5 pb-4 border-b border-zinc-100">
+                    <div className="flex items-center gap-2 mb-1">
+                      <MessageSquare className="h-4 w-4 text-zinc-500 shrink-0" />
+                      <h3 className="text-[14px] font-semibold text-zinc-900">Ask for Clarification</h3>
+                    </div>
+                    <p className="text-[12px] text-zinc-400">Send a question to the requester. They'll be notified and can reply directly.</p>
+                  </div>
+                  <div className="px-6 py-5">
+                    <textarea
+                      rows={3}
+                      className="w-full rounded-xl border border-zinc-200/80 bg-zinc-50/50 px-4 py-3 text-[13px] text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:border-zinc-300 focus:bg-white resize-none transition-all duration-150 leading-relaxed"
+                      placeholder="e.g. Please specify the exact model number or acceptable brand equivalents…"
+                      value={canvass.returnNote}
+                      onChange={(e) => canvass.setReturnNote(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && canvass.returnNote.trim()) canvass.handleReturnForInfo(); }}
+                      autoFocus
+                    />
+                    <div className="flex items-center justify-between mt-3">
+                      <p className="text-[11px] text-zinc-400">Cmd/Ctrl + Enter to send</p>
+                      <Button
+                        size="sm"
+                        className="h-9 bg-zinc-900 hover:bg-zinc-800 text-white text-[12px] gap-1.5"
+                        onClick={canvass.handleReturnForInfo}
+                        disabled={canvass.isReturning || !canvass.returnNote.trim()}
+                      >
+                        {canvass.isReturning
+                          ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          : <Send className="h-3.5 w-3.5" />}
+                        Send Message
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           )}
 
@@ -756,9 +755,18 @@ export function ProcurementWorkspacePage() {
                 </p>
               )}
               <Button
+                variant="outline"
+                className="text-[12px] h-9 gap-1.5"
+                onClick={() => canvass.handleSaveDraft()}
+                disabled={canvass.isSubmitting || canvass.isSavingDraft || suppliersWithIds.length === 0}
+              >
+                {canvass.isSavingDraft ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Save Draft
+              </Button>
+              <Button
                 className="bg-zinc-900 hover:bg-zinc-800 text-white text-[12px] h-9 gap-1.5"
                 onClick={() => setShowSubmitConfirm(true)}
-                disabled={canvass.isSubmitting || !isReady}
+                disabled={canvass.isSubmitting || canvass.isSavingDraft || !isReady}
               >
                 {canvass.isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                 Submit Supplier Decision

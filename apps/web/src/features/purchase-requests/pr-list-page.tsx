@@ -29,27 +29,51 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 
 /* ── Status badge styling ─────────────────────────────── */
+/* Restrained semantic palette: gray=draft, blue=in-progress, amber=attention, green=approved, red=rejected */
 const statusStyle: Record<string, string> = {
-  draft:              'bg-zinc-100 text-zinc-600',
-  submitted:          'bg-blue-50 text-blue-700',
-  level1_review:      'bg-blue-50 text-blue-700',
-  level2_review:      'bg-blue-50 text-blue-700',
-  level3_review:      'bg-indigo-50 text-indigo-700',
-  pending_quotation:  'bg-violet-50 text-violet-700',
-  quoted:             'bg-violet-50 text-violet-700',
-  approved:           'bg-emerald-50 text-emerald-700',
-  completed:          'bg-emerald-50 text-emerald-700',
-  rejected:           'bg-red-50 text-red-600',
-  returned:           'bg-amber-50 text-amber-700',
-  returned_for_info:  'bg-amber-50 text-amber-700',
+  draft:              'bg-zinc-50 text-zinc-700 border-zinc-200',
+  submitted:          'bg-blue-50 text-blue-700 border-blue-200',
+  level1_review:      'bg-blue-50 text-blue-700 border-blue-200',
+  level2_review:      'bg-blue-50 text-blue-700 border-blue-200',
+  level3_review:      'bg-blue-50 text-blue-700 border-blue-200',
+  pending_quotation:  'bg-blue-50 text-blue-700 border-blue-200',
+  quoted:             'bg-blue-50 text-blue-700 border-blue-200',
+  approved:           'bg-emerald-50 text-emerald-700 border-emerald-200',
+  completed:          'bg-emerald-50 text-emerald-700 border-emerald-200',
+  rejected:           'bg-red-50 text-red-700 border-red-200',
+  returned:           'bg-amber-50 text-amber-800 border-amber-200',
+  returned_for_info:  'bg-amber-50 text-amber-800 border-amber-200',
+};
+
+const statusDot: Record<string, string> = {
+  draft:              'bg-zinc-400',
+  submitted:          'bg-blue-500',
+  level1_review:      'bg-blue-500',
+  level2_review:      'bg-blue-500',
+  level3_review:      'bg-blue-500',
+  pending_quotation:  'bg-blue-500',
+  quoted:             'bg-blue-500',
+  approved:           'bg-emerald-500',
+  completed:          'bg-emerald-500',
+  rejected:           'bg-red-500',
+  returned:           'bg-amber-500',
+  returned_for_info:  'bg-amber-500',
 };
 
 /* ── Priority badge styling ───────────────────────────── */
+/* Quieter than status: no border, lighter tint */
 const priorityStyle: Record<string, string> = {
-  low:    'bg-zinc-100 text-zinc-500',
-  medium: 'bg-blue-50 text-blue-600',
-  high:   'bg-amber-50 text-amber-700',
-  urgent: 'bg-red-50 text-red-600',
+  low:    'bg-zinc-50 text-zinc-500',
+  medium: 'bg-zinc-50 text-zinc-700',
+  high:   'bg-amber-50/70 text-amber-800',
+  urgent: 'bg-red-50/70 text-red-700',
+};
+
+const priorityDot: Record<string, string> = {
+  low:    'bg-zinc-300',
+  medium: 'bg-zinc-400',
+  high:   'bg-amber-500',
+  urgent: 'bg-red-500',
 };
 
 function formatCurrency(amount: number) {
@@ -346,14 +370,16 @@ export function PrListPage() {
 
                         {/* Priority */}
                         <td className="px-5 py-4">
-                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition-opacity duration-150 ${priorityStyle[pr.priority] ?? 'bg-zinc-100 text-zinc-500'}`}>
+                          <span className={`inline-flex h-[22px] items-center gap-1.5 rounded-md px-2 text-[11px] font-medium leading-none transition-opacity duration-150 ${priorityStyle[pr.priority] ?? 'bg-zinc-50 text-zinc-500'}`}>
+                            <span className={`h-1.5 w-1.5 rounded-full ${priorityDot[pr.priority] ?? 'bg-zinc-300'}`} />
                             {PR_PRIORITY_LABELS[pr.priority as PrPriorityType]}
                           </span>
                         </td>
 
                         {/* Status */}
                         <td className="px-5 py-4">
-                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition-opacity duration-150 ${statusStyle[pr.status] ?? 'bg-zinc-100 text-zinc-600'}`}>
+                          <span className={`inline-flex h-[22px] items-center gap-1.5 rounded-md border px-2 text-[11px] font-medium leading-none transition-opacity duration-150 ${statusStyle[pr.status] ?? 'bg-zinc-50 text-zinc-700 border-zinc-200'}`}>
+                            <span className={`h-1.5 w-1.5 rounded-full ${statusDot[pr.status] ?? 'bg-zinc-400'}`} />
                             {PR_STATUS_LABELS[pr.status as PrStatusType]}
                           </span>
                         </td>
