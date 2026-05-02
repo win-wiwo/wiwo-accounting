@@ -73,7 +73,8 @@ export function useUpdatePr() {
 export function useSubmitPr() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => purchaseRequestsApi.submit(id),
+    mutationFn: ({ id, resubmissionNote }: { id: string; resubmissionNote?: string }) =>
+      purchaseRequestsApi.submit(id, resubmissionNote),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchase-requests'] });
     },

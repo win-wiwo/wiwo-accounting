@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useImperativeHandle, forwardRef } from 'react';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,22 +35,36 @@ interface CanvassMatrixProps {
   onDownloadAttachment?: (attachmentId: string, name: string) => void;
   isUploadingEvidence?: boolean;
   onViewItemPhoto?: (itemId: string) => void;
+  justificationError?: boolean;
 }
 
-export function CanvassMatrix({
+export interface CanvassMatrixHandle {
+  focusJustification: () => void;
+}
+
+export const CanvassMatrix = forwardRef<CanvassMatrixHandle, CanvassMatrixProps>(function CanvassMatrix({
   procItems, entries, suppliers,
   canvassJustification, onJustificationChange,
   onAddEntry, onRemoveEntry, onUpdateEntry, onSetWinner,
   quotationAttachments = [], onUploadEvidence, onRemoveEvidence,
   onPreviewAttachment, onDownloadAttachment, isUploadingEvidence,
-  onViewItemPhoto,
-}: CanvassMatrixProps) {
+  onViewItemPhoto, justificationError,
+}, ref) {
+  const justificationRef = useRef<HTMLTextAreaElement>(null);
+
+  useImperativeHandle(ref, () => ({
+    focusJustification: () => {
+      justificationRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => justificationRef.current?.focus(), 300);
+    },
+  }));
   const uploadingEntryRef = useRef<string | null>(null);
   const [addSupplierOpen, setAddSupplierOpen] = useState(false);
   const [addSupplierId, setAddSupplierId] = useState('');
   const [addPrices, setAddPrices] = useState<Record<string, string>>({});
   const [addRemarks, setAddRemarks] = useState('');
   const [addFile, setAddFile] = useState<File | null>(null);
+  const [addAttempted, setAddAttempted] = useState(false);
   const usedSupplierIds = new Set(entries.map((e) => e.supplierId).filter(Boolean));
   // Find cheapest and most expensive supplier per item
   const cheapestPerItem: Record<string, string> = {};
@@ -123,7 +137,7 @@ export function CanvassMatrix({
               Quote every item per supplier. <span className="text-emerald-600">Green</span> = lowest price. <span className="text-red-500">Red</span> = highest.
             </p>
           </div>
-          <Button type="button" variant="outline" size="sm" className="text-[12px] h-8" onClick={() => { setAddSupplierId(''); setAddPrices({}); setAddRemarks(''); setAddFile(null); setAddSupplierOpen(true); }}>
+          <Button type="button" variant="outline" size="sm" className="text-[12px] h-8" onClick={() => { setAddSupplierId(''); setAddPrices({}); setAddRemarks(''); setAddFile(null); setAddAttempted(false); setAddSupplierOpen(true); }}>
             <Plus className="h-3.5 w-3.5" /> Add Supplier
           </Button>
         </div>
@@ -400,19 +414,24 @@ export function CanvassMatrix({
             <p className="text-[11px] text-amber-700/70 mt-0.5">Explain why only one or two suppliers could be canvassed</p>
           </div>
           <textarea
+            ref={justificationRef}
             rows={3}
-            className="flex w-full rounded-lg border border-amber-300 bg-white px-3 py-2.5 text-[13px] shadow-sm placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 resize-none transition-shadow duration-150"
+            className={`flex w-full rounded-lg border bg-white px-3 py-2.5 text-[13px] shadow-sm placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 resize-none transition-all duration-150 ${
+              justificationError ? 'border-red-400 focus-visible:ring-red-300' : 'border-amber-300 focus-visible:ring-amber-300'
+            }`}
             placeholder="e.g. Only one authorized dealer in the Philippines for this product, or sole-source OEM requirement..."
             value={canvassJustification}
             onChange={(e) => onJustificationChange(e.target.value)}
           />
-          <p className="text-[10px] text-red-500 font-medium">Required before submission</p>
+          {justificationError && (
+            <p className="text-[10px] text-red-500 font-medium">Required before submission</p>
+          )}
         </div>
       )}
 
       {/* Add Supplier Modal */}
       <Dialog open={addSupplierOpen} onOpenChange={setAddSupplierOpen}>
-        <DialogContent className="sm:max-w-[560px]">
+        <DialogContent className="sm:max-w-[560px]" onPointerDownOutside={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="text-[15px]">Add Supplier</DialogTitle>
           </DialogHeader>
@@ -457,7 +476,7 @@ export function CanvassMatrix({
                           type="text"
                           inputMode="decimal"
                           placeholder="0.00"
-                          className={`h-8 text-[12px] pl-7 tabular-nums ${!addPrices[item._id] || unitPrice <= 0 ? 'border-red-300 focus-visible:ring-red-300' : ''}`}
+                          className={`h-8 text-[12px] pl-7 tabular-nums ${addAttempted && (!addPrices[item._id] || unitPrice <= 0) ? 'border-red-300 focus-visible:ring-red-300' : ''}`}
                           value={addPrices[item._id] ?? ''}
                           onChange={(e) => {
                             let v = e.target.value.replace(/[^\d.]/g, '');
@@ -519,12 +538,14 @@ export function CanvassMatrix({
               </>
             )}
           </div>
-          {addSupplierId && !procItems.every((item: ProcItem) => Number(addPrices[item._id]) > 0) && (
+          {addAttempted && addSupplierId && !procItems.every((item: ProcItem) => Number(addPrices[item._id]) > 0) && (
             <p className="text-[11px] text-red-500">All item prices are required.</p>
           )}
           <DialogFooter>
             <Button variant="outline" size="sm" className="text-[12px]" onClick={() => setAddSupplierOpen(false)}>Cancel</Button>
-            <Button size="sm" className="text-[12px]" disabled={!addSupplierId || !procItems.every((item: ProcItem) => Number(addPrices[item._id]) > 0)} onClick={() => {
+            <Button size="sm" className="text-[12px]" disabled={!addSupplierId} onClick={() => {
+              setAddAttempted(true);
+              if (!procItems.every((item: ProcItem) => Number(addPrices[item._id]) > 0)) return;
               onAddEntry(addSupplierId, addPrices, addRemarks, addFile);
               setAddSupplierOpen(false);
             }}>
@@ -535,4 +556,4 @@ export function CanvassMatrix({
       </Dialog>
     </div>
   );
-}
+});

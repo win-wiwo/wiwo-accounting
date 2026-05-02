@@ -112,7 +112,6 @@ const PR_STATUS_TONE: Record<string, BadgeTone> = {
   completed:          'success',
   rejected:           'danger',
   returned:           'warn',
-  returned_for_info:  'warn',
 };
 
 export const prStatusTone = (status: string): BadgeTone =>

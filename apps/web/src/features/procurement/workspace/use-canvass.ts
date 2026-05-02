@@ -221,7 +221,7 @@ export function useCanvass(prId: string | undefined, procItems: PrItem[], onComp
     }
     try {
       await returnMutation.mutateAsync({ id: prId!, note: returnNote.trim() });
-      toast({ title: 'Clarification requested', description: 'Requester has been notified. PR remains in your queue.', variant: 'success' });
+      toast({ title: 'Returned for clarification', description: 'Requester has been notified. The PR will return to your queue once they reply.', variant: 'success' });
       setReturnNote('');
       setActionStep(null);
     } catch (error) {

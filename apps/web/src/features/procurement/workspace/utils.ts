@@ -32,7 +32,7 @@ export function getErrorMessage(error: unknown, fallback: string) {
 export const statusVariant = (status: string) => {
   switch (status) {
     case 'pending_quotation': return 'warning' as const;
-    case 'returned_for_info': return 'warning' as const;
+    case 'returned': return 'warning' as const;
     default: return 'secondary' as const;
   }
 };

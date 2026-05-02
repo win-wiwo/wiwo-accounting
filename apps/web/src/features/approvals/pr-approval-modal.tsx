@@ -752,13 +752,13 @@ export function PrApprovalModal({
               {previewDialog.name || 'Attachment Preview'}
             </DialogTitle>
           </DialogHeader>
-          <div className="flex min-h-48 items-center justify-center">
+          <div className="flex items-center justify-center h-[70vh] bg-zinc-50 rounded-md photo-reveal">
             {previewDialog.loading ? (
-              <Skeleton className="h-[70vh] w-full rounded-md" />
+              <Skeleton className="h-full w-full rounded-md" />
             ) : previewDialog.url && previewDialog.mimeType === 'application/pdf' ? (
-              <iframe src={previewDialog.url} title={previewDialog.name} className="h-[70vh] w-full rounded-md border" />
+              <iframe src={previewDialog.url} title={previewDialog.name} className="h-full w-full rounded-md border" />
             ) : previewDialog.url ? (
-              <img src={previewDialog.url} alt={previewDialog.name} className="max-h-[70vh] max-w-full rounded-md object-contain" />
+              <img src={previewDialog.url} alt={previewDialog.name} className="max-h-full max-w-full rounded-md object-contain" />
             ) : null}
           </div>
         </DialogContent>
@@ -773,11 +773,11 @@ export function PrApprovalModal({
               Reference Photo
             </DialogTitle>
           </DialogHeader>
-          <div className="flex min-h-48 items-center justify-center">
+          <div className="flex items-center justify-center h-[60vh] bg-zinc-50 rounded-md photo-reveal">
             {itemPhotoDialog.loading ? (
-              <Skeleton className="h-[60vh] w-full rounded-md" />
+              <Skeleton className="h-full w-full rounded-md" />
             ) : itemPhotoDialog.url ? (
-              <img src={itemPhotoDialog.url} alt="Reference photo" className="max-h-[60vh] max-w-full rounded-md object-contain" />
+              <img src={itemPhotoDialog.url} alt="Reference photo" className="max-h-full max-w-full rounded-md object-contain" />
             ) : null}
           </div>
         </DialogContent>

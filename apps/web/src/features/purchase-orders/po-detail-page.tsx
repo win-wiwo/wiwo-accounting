@@ -819,12 +819,12 @@ export function PoDetailPage() {
               <ImageIcon className="h-4 w-4" /> Receiving Proof Photo
             </DialogTitle>
           </DialogHeader>
-          <div className="flex items-center justify-center min-h-48">
+          <div className="flex items-center justify-center h-[60vh] bg-zinc-50 rounded-md photo-reveal">
             {proofPhotoDialog.url ? (
               <img
                 src={proofPhotoDialog.url}
                 alt={proofPhotoDialog.name || 'Proof photo'}
-                className="max-w-full max-h-[60vh] rounded-md object-contain"
+                className="max-w-full max-h-full rounded-md object-contain"
               />
             ) : null}
           </div>

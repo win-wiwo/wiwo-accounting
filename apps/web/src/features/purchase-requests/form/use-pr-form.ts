@@ -163,7 +163,7 @@ export function usePrForm(stagedFiles: ReturnType<typeof useStagedFiles>) {
       }
 
       if (action === 'submit') {
-        await submitMutation.mutateAsync(prId);
+        await submitMutation.mutateAsync({ id: prId, resubmissionNote: resubmissionNote || undefined });
         toast({
           title: 'Submitted for Approval',
           variant: 'success',

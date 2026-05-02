@@ -330,7 +330,7 @@ export class PurchaseRequestsService {
       .exec() as Promise<PurchaseRequest>;
   }
 
-  async submit(id: string, user: RequestUser): Promise<PurchaseRequest> {
+  async submit(id: string, user: RequestUser, resubmissionNote?: string): Promise<PurchaseRequest> {
     const pr = await this.prModel.findById(id).exec();
 
     if (!pr) {
@@ -364,20 +364,27 @@ export class PurchaseRequestsService {
     const now = new Date();
 
     if (wasReturned && returnedAtLevel != null) {
-      const STATUS_BY_LEVEL: Record<number, PrStatus> = {
-        1: PrStatus.LEVEL1_REVIEW,
-        2: PrStatus.LEVEL2_REVIEW,
-        3: PrStatus.LEVEL3_REVIEW,
-      };
-      const target = STATUS_BY_LEVEL[returnedAtLevel];
-      if (target) {
-        pr.status = target;
-        pr.currentApprovalLevel = returnedAtLevel;
+      if (returnedAtLevel === 0) {
+        // Returned by procurement — route back to procurement queue
+        pr.status = PrStatus.PENDING_QUOTATION;
+        pr.currentApprovalLevel = 0;
+        pr.set('returnedAtLevel', null);
       } else {
-        pr.status = isDeptHead ? PrStatus.LEVEL2_REVIEW : PrStatus.LEVEL1_REVIEW;
-        pr.currentApprovalLevel = isDeptHead ? 2 : 1;
+        const STATUS_BY_LEVEL: Record<number, PrStatus> = {
+          1: PrStatus.LEVEL1_REVIEW,
+          2: PrStatus.LEVEL2_REVIEW,
+          3: PrStatus.LEVEL3_REVIEW,
+        };
+        const target = STATUS_BY_LEVEL[returnedAtLevel];
+        if (target) {
+          pr.status = target;
+          pr.currentApprovalLevel = returnedAtLevel;
+        } else {
+          pr.status = isDeptHead ? PrStatus.LEVEL2_REVIEW : PrStatus.LEVEL1_REVIEW;
+          pr.currentApprovalLevel = isDeptHead ? 2 : 1;
+        }
+        pr.set('returnedAtLevel', null);
       }
-      pr.set('returnedAtLevel', null);
     } else if (isDeptHead) {
       pr.status = PrStatus.LEVEL2_REVIEW;
       pr.currentApprovalLevel = 2;
@@ -386,10 +393,15 @@ export class PurchaseRequestsService {
       pr.currentApprovalLevel = 1;
     }
 
+    // If a resubmission note was provided directly on submit, store it
+    if (wasReturned && resubmissionNote?.trim()) {
+      pr.set('resubmissionNote', resubmissionNote.trim());
+    }
+
     // First submission: stamp submittedAt. Resubmits push a new entry to
     // resubmissionHistory and leave submittedAt as the original date.
     if (wasReturned) {
-      const note = (pr as any).resubmissionNote as string | null;
+      const note = resubmissionNote?.trim() || (pr as any).resubmissionNote as string | null;
       pr.resubmissionHistory.push({
         _id: new Types.ObjectId(),
         resubmittedAt: now,
@@ -682,6 +694,8 @@ export class PurchaseRequestsService {
 
     if (!note?.trim()) throw new BadRequestException('A note is required when returning for info');
 
+    pr.status = PrStatus.RETURNED;
+    pr.set('returnedAtLevel', 0); // 0 = returned by procurement (not an approval level)
     pr.set('quotationNote', note.trim());
     pr.quotationReturnHistory.push({
       note: note.trim(),
@@ -733,6 +747,11 @@ export class PurchaseRequestsService {
       repliedAt: new Date(),
     } as any);
 
+    // Move PR back to PENDING_QUOTATION so procurement can continue
+    if (pr.status === PrStatus.RETURNED) {
+      pr.status = PrStatus.PENDING_QUOTATION;
+    }
+
     await pr.save();
 
     this.eventEmitter.emit('pr.clarification_replied', { purchaseRequest: pr.toJSON(), repliedBy: user._id });
@@ -759,8 +778,8 @@ export class PurchaseRequestsService {
       throw new ForbiddenException('Only the requester can update item details');
     }
 
-    if (pr.status !== PrStatus.PENDING_QUOTATION) {
-      throw new BadRequestException('Item details can only be updated while the PR is pending procurement');
+    if (pr.status !== PrStatus.RETURNED || (pr as any).returnedAtLevel !== 0) {
+      throw new BadRequestException('Item details can only be updated when the PR is returned by procurement');
     }
 
     for (const update of items) {
@@ -799,7 +818,7 @@ export class PurchaseRequestsService {
       PrStatus.SUBMITTED,
       PrStatus.LEVEL1_REVIEW,
       PrStatus.LEVEL2_REVIEW,
-      PrStatus.RETURNED_FOR_INFO,
+      PrStatus.RETURNED,
     ];
     if (!recallableStatuses.includes(pr.status)) {
       throw new BadRequestException('Can only recall PRs that are still awaiting quotation or review');
@@ -845,7 +864,7 @@ export class PurchaseRequestsService {
       PrStatus.SUBMITTED,
       PrStatus.LEVEL1_REVIEW,
       PrStatus.LEVEL2_REVIEW,
-      PrStatus.RETURNED_FOR_INFO,
+      PrStatus.RETURNED,
     ];
     if (!cancellableStatuses.includes(pr.status)) {
       throw new BadRequestException('Can only cancel PRs before approval work has started');

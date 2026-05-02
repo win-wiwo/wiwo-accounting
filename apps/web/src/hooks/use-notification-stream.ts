@@ -2,6 +2,33 @@ import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/auth.store';
 
+function requestNotificationPermission() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+}
+
+function showBrowserNotification(title: string, body: string) {
+  if ('Notification' in window && Notification.permission === 'granted') {
+    try {
+      const n = new Notification(title, {
+        body,
+        icon: '/favicon.ico',
+        tag: 'prams-notification',
+      });
+      // Auto-close after 5 seconds
+      setTimeout(() => n.close(), 5000);
+      // Focus the window when clicked
+      n.onclick = () => {
+        window.focus();
+        n.close();
+      };
+    } catch {
+      // Notification constructor may fail in some environments
+    }
+  }
+}
+
 function playChime() {
   try {
     const ctx = new AudioContext();
@@ -54,15 +81,32 @@ export function useNotificationStream() {
   useEffect(() => {
     if (!accessToken) return;
 
+    requestNotificationPermission();
+
     const baseUrl = import.meta.env.VITE_API_URL || '/api';
     const url = `${baseUrl}/notifications/stream?token=${encodeURIComponent(accessToken)}`;
 
     const es = new EventSource(url);
     esRef.current = es;
 
-    es.onmessage = () => {
+    es.onmessage = (event) => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['purchase-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['approvals'] });
+      queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
       playChime();
+
+      // Show browser notification if tab is not focused
+      if (document.hidden) {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.title) {
+            showBrowserNotification(data.title, data.message || '');
+          }
+        } catch {
+          showBrowserNotification('PRAMS', 'You have a new notification.');
+        }
+      }
     };
 
     es.onerror = () => {

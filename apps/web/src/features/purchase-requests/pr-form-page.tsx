@@ -343,12 +343,12 @@ export function PrFormPage() {
               <ImageIcon className="h-4 w-4" /> Reference Photo
             </DialogTitle>
           </DialogHeader>
-          <div className="flex items-center justify-center min-h-48">
+          <div className="flex items-center justify-center h-[60vh] bg-zinc-50 rounded-md photo-reveal">
             {stagedFiles.photoViewDialog.url && (
               <img
                 src={stagedFiles.photoViewDialog.url}
                 alt="Reference photo"
-                className="max-w-full max-h-[60vh] rounded-md object-contain"
+                className="max-w-full max-h-full rounded-md object-contain"
               />
             )}
           </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { usePageTitle } from '@/hooks/use-page-title';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -12,6 +12,8 @@ import {
 import { StickyFooter } from '@/components/ui/sticky-footer';
 import { AttachmentCategory, PR_STATUS_LABELS, PR_PRIORITY_LABELS, SourcingType, type PrPriority, type PrStatus as PrStatusType } from '@prams/shared';
 import { usePurchaseRequest } from '@/hooks/use-purchase-requests';
+import { useApprovalHistory } from '@/hooks/use-approvals';
+import { PurchaseRequestWorkflowTimeline } from '@/components/purchase-request-workflow-timeline';
 import { purchaseRequestsApi } from '@/lib/api-services';
 import apiClient from '@/lib/api-client';
 import { useToast } from '@/components/ui/toast';
@@ -22,7 +24,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { resolvePhotoUrl } from '@/lib/utils';
 import { formatCurrency, formatDate, canPreviewAttachment, getErrorMessage } from './utils';
 import { useCanvass } from './use-canvass';
-import { CanvassMatrix } from './canvass-matrix';
+import { CanvassMatrix, type CanvassMatrixHandle } from './canvass-matrix';
 
 /* ── Helpers ─────────────────────────────────────────────── */
 
@@ -49,6 +51,8 @@ export function ProcurementWorkspacePage() {
 
   const { data, isLoading, refetch } = usePurchaseRequest(id ?? '');
   const pr = data?.data;
+  const { data: approvalHistoryData } = useApprovalHistory(id ?? '');
+  const approvalHistory = approvalHistoryData?.data ?? [];
 
   const procItems = pr?.items.filter((i) => i.sourcingType === SourcingType.PROCUREMENT) ?? [];
   const quotationAttachments = (pr?.attachments ?? []).filter((att) => att.category === AttachmentCategory.CANVASS);
@@ -59,6 +63,8 @@ export function ProcurementWorkspacePage() {
 
   const canvass = useCanvass(id, procItems, () => navigate('/procurement'));
 
+  const canvassMatrixRef = useRef<CanvassMatrixHandle>(null);
+  const [justificationError, setJustificationError] = useState(false);
   const [isUploadingQuoteFile, setIsUploadingQuoteFile] = useState(false);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
@@ -230,7 +236,7 @@ export function ProcurementWorkspacePage() {
               )}
               <span className="h-3.5 w-px bg-zinc-200" />
               <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${
-                pr.status === 'pending_quotation' || pr.status === 'returned_for_info'
+                pr.status === 'pending_quotation' || pr.status === 'returned'
                   ? 'bg-amber-50 text-amber-700 border-amber-100'
                   : 'bg-zinc-100 text-zinc-600 border-zinc-200'
               }`}>
@@ -295,7 +301,7 @@ export function ProcurementWorkspacePage() {
       <div className="pr-detail-section grid gap-6 lg:grid-cols-[340px_1fr] items-start" style={{ animationDelay: '0.06s' }}>
 
         {/* ── LEFT: Request Details ────────────────────── */}
-        <div className="space-y-4 lg:sticky lg:top-4 lg:self-start lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto lg:scrollbar-modern">
+        <div className="space-y-4">
           {/* Request Details */}
           <div className="rounded-xl border border-zinc-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
             <div className="px-5 py-3 border-b border-zinc-100">
@@ -373,6 +379,21 @@ export function ProcurementWorkspacePage() {
               </div>
             </div>
           )}
+
+          {/* Approval Timeline */}
+          <div className="rounded-xl border border-zinc-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+            <div className="px-5 py-3 border-b border-zinc-100">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-zinc-400">Approval Timeline</p>
+            </div>
+            <div className="px-5 py-4">
+              <PurchaseRequestWorkflowTimeline
+                pr={pr}
+                approvalHistory={approvalHistory}
+                compact
+                showCurrentState={false}
+              />
+            </div>
+          </div>
         </div>
 
         {/* ── RIGHT: Main Workspace ─────────────────────────── */}
@@ -561,11 +582,13 @@ export function ProcurementWorkspacePage() {
           {/* Active Canvass Matrix */}
           {canvass.actionStep === 'quotation' && (
             <CanvassMatrix
+              ref={canvassMatrixRef}
               procItems={procItems}
               entries={canvass.canvassEntries}
               suppliers={canvass.suppliers as Array<{ _id: string; companyName: string }>}
               canvassJustification={canvass.canvassJustification}
-              onJustificationChange={canvass.setCanvassJustification}
+              justificationError={justificationError}
+              onJustificationChange={(v) => { canvass.setCanvassJustification(v); if (v.trim()) setJustificationError(false); }}
               onAddEntry={async (supplierId, quotedPrices, remarks, pendingFile) => {
                 canvass.addEntry(supplierId, quotedPrices, remarks);
                 // Auto-save to server immediately (state from addEntry hasn't flushed yet,
@@ -672,7 +695,15 @@ export function ProcurementWorkspacePage() {
               </Button>
               <Button
                 className="bg-zinc-900 hover:bg-zinc-800 text-white text-[12px] h-9 gap-1.5"
-                onClick={() => setShowSubmitConfirm(true)}
+                onClick={() => {
+                  // Validate justification for fewer than 3 suppliers
+                  if (canvass.canvassEntries.length < 3 && !canvass.canvassJustification.trim()) {
+                    setJustificationError(true);
+                    canvassMatrixRef.current?.focusJustification();
+                    return;
+                  }
+                  setShowSubmitConfirm(true);
+                }}
                 disabled={canvass.isSubmitting || canvass.isSavingDraft || !isReady}
               >
                 {canvass.isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
@@ -737,32 +768,73 @@ export function ProcurementWorkspacePage() {
 
       {/* ── Submit Confirmation ─────────────────────────────── */}
       <Dialog open={showSubmitConfirm} onOpenChange={setShowSubmitConfirm}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-[16px]">Confirm Supplier Selection</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-1">
-            <div className="rounded-xl bg-zinc-50 border border-zinc-200 p-5 space-y-3">
-              <div className="flex items-center gap-2.5">
-                <Trophy className="h-4 w-4 text-emerald-500" />
-                <span className="text-[14px] font-semibold text-zinc-900">
-                  {selectedSupplier?.companyName ?? 'No supplier selected'}
-                </span>
+            {/* Winner card */}
+            <div className="rounded-xl bg-emerald-50/50 border border-emerald-200/80 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100">
+                    <Trophy className="h-3.5 w-3.5 text-emerald-600" />
+                  </div>
+                  <div>
+                    <p className="text-[13px] font-semibold text-zinc-900">{selectedSupplier?.companyName ?? '—'}</p>
+                    <p className="text-[10px] text-emerald-600 font-medium">
+                      {canvass.canvassEntries.length === 1 ? 'Only Supplier' : 'Selected Winner'}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-[20px] font-bold text-zinc-900 tabular-nums leading-tight">{formatCurrency(selectedTotal)}</p>
+                  {savings > 0 && (
+                    <p className="text-[11px] text-emerald-600 font-medium flex items-center justify-end gap-0.5 mt-0.5">
+                      <TrendingDown className="h-3 w-3" /> saves {formatCurrency(savings)}
+                    </p>
+                  )}
+                </div>
               </div>
-              <div className="text-[26px] font-bold text-zinc-900 tabular-nums leading-tight">{formatCurrency(selectedTotal)}</div>
-              <div className="flex items-center gap-3 text-[12px] text-zinc-400">
-                <span>{canvass.canvassEntries.length} supplier{canvass.canvassEntries.length !== 1 ? 's' : ''} compared</span>
-                <span className="text-zinc-200">·</span>
-                <span>{quotationAttachments.length} evidence file{quotationAttachments.length !== 1 ? 's' : ''}</span>
-              </div>
-              {savings > 0 && (
-                <div className="flex items-center gap-1.5 text-[12px] text-emerald-600 font-medium">
-                  <TrendingDown className="h-3.5 w-3.5" /> {formatCurrency(savings)} savings vs next best quote
+
+              {/* Line items breakdown */}
+              {selectedEntry && (
+                <div className="border-t border-emerald-200/60 pt-2.5 space-y-1">
+                  {procItems.map((item) => {
+                    const unitPrice = Number(selectedEntry.quotedPrices[item._id]) || 0;
+                    const lineTotal = unitPrice * item.quantity;
+                    return (
+                      <div key={item._id} className="flex items-center justify-between text-[11px]">
+                        <span className="text-zinc-600 truncate max-w-[260px]">
+                          {item.description} <span className="text-zinc-400">× {item.quantity}</span>
+                        </span>
+                        <span className="text-zinc-700 font-medium tabular-nums shrink-0 ml-3">{formatCurrency(lineTotal)}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
-            <p className="text-[13px] text-zinc-500 leading-relaxed">
-              This will send the purchase request to the COO for price review. Make sure all prices and evidence are correct before proceeding.
+
+            {/* Summary chips */}
+            <div className="flex flex-wrap gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-md bg-zinc-100 px-2.5 py-1 text-[11px] font-medium text-zinc-600">
+                {canvass.canvassEntries.length} supplier{canvass.canvassEntries.length !== 1 ? 's' : ''} compared
+              </span>
+              {quotationAttachments.length > 0 && (
+                <span className="inline-flex items-center gap-1.5 rounded-md bg-zinc-100 px-2.5 py-1 text-[11px] font-medium text-zinc-600">
+                  <Paperclip className="h-3 w-3" /> {quotationAttachments.length} evidence file{quotationAttachments.length !== 1 ? 's' : ''}
+                </span>
+              )}
+              {canvass.canvassEntries.length < 3 && canvass.canvassJustification.trim() && (
+                <span className="inline-flex items-center gap-1.5 rounded-md bg-amber-50 border border-amber-100 px-2.5 py-1 text-[11px] font-medium text-amber-700">
+                  <Info className="h-3 w-3" /> Justification provided
+                </span>
+              )}
+            </div>
+
+            <p className="text-[12px] text-zinc-400 leading-relaxed">
+              This will forward the canvass to the COO for price sign-off. Ensure all prices and evidence are correct.
             </p>
           </div>
           <DialogFooter>
@@ -787,13 +859,13 @@ export function ProcurementWorkspacePage() {
               <FileText className="h-4 w-4 text-zinc-400" /> {previewDialog.name || 'Attachment Preview'}
             </DialogTitle>
           </DialogHeader>
-          <div className="flex min-h-48 items-center justify-center">
+          <div className="flex items-center justify-center h-[70vh] bg-zinc-50 rounded-md photo-reveal">
             {previewDialog.loading ? (
               <Loader2 className="h-8 w-8 animate-spin text-zinc-300" />
             ) : previewDialog.url && previewDialog.mimeType === 'application/pdf' ? (
-              <iframe src={previewDialog.url} title={previewDialog.name} className="h-[70vh] w-full rounded-xl border border-zinc-200" />
+              <iframe src={previewDialog.url} title={previewDialog.name} className="h-full w-full rounded-xl border border-zinc-200" />
             ) : previewDialog.url ? (
-              <img src={previewDialog.url} alt={previewDialog.name} className="max-h-[70vh] max-w-full rounded-xl object-contain" />
+              <img src={previewDialog.url} alt={previewDialog.name} className="max-h-full max-w-full rounded-xl object-contain" />
             ) : null}
           </div>
         </DialogContent>
@@ -807,11 +879,11 @@ export function ProcurementWorkspacePage() {
               <ImageIcon className="h-4 w-4 text-zinc-400" /> Reference Photo
             </DialogTitle>
           </DialogHeader>
-          <div className="flex min-h-48 items-center justify-center">
+          <div className="flex items-center justify-center h-[60vh] bg-zinc-50 rounded-md photo-reveal">
             {itemPhotoDialog.loading ? (
               <Loader2 className="h-8 w-8 animate-spin text-zinc-300" />
             ) : itemPhotoDialog.url ? (
-              <img src={itemPhotoDialog.url} alt="Reference photo" className="max-h-[60vh] max-w-full rounded-xl object-contain" />
+              <img src={itemPhotoDialog.url} alt="Reference photo" className="max-h-full max-w-full rounded-xl object-contain" />
             ) : null}
           </div>
         </DialogContent>

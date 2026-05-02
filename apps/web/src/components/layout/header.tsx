@@ -189,6 +189,14 @@ export function Header({ sidebarCollapsed }: HeaderProps) {
   const { data: unreadData } = useUnreadCount();
   const unreadCount = (unreadData as unknown as { data?: { count: number } })?.data?.count ?? 0;
 
+  // Update browser tab title with unread count
+  useEffect(() => {
+    const base = document.title.replace(/^\(\d+\+?\)\s*/, '');
+    document.title = unreadCount > 0
+      ? `(${unreadCount > 99 ? '99+' : unreadCount}) ${base}`
+      : base;
+  }, [unreadCount]);
+
   const [notifOpen, setNotifOpen] = useState(false);
   const { data: notifData } = useNotifications({ page: 1, limit: 15 });
   const notifications = ((notifData as unknown as { data?: NotificationItem[] })?.data ?? []) as NotificationItem[];

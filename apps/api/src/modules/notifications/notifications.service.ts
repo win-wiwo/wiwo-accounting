@@ -102,14 +102,16 @@ export class NotificationsService {
         [ApprovalAction.RETURNED]: `Your PR "${purchaseRequest.prNumber}" was returned for revision by ${levelLabel}.${approval.comments ? ` Reason: ${approval.comments}` : ''}`,
       };
 
+      const nTitle = titleMap[approval.action] || 'PR Update';
+      const nMessage = messageMap[approval.action] || 'Your purchase request has been updated.';
       await this.notificationModel.create({
         recipientId: purchaseRequest.requesterId,
-        title: titleMap[approval.action] || 'PR Update',
-        message: messageMap[approval.action] || 'Your purchase request has been updated.',
+        title: nTitle,
+        message: nMessage,
         type: typeMap[approval.action] || 'system',
         purchaseRequestId: purchaseRequest._id,
       });
-      this.push(purchaseRequest.requesterId, { type: 'notification' });
+      this.push(purchaseRequest.requesterId, { type: 'notification', title: nTitle, message: nMessage });
     }
 
     // If approved and moving to next level (or to procurement), notify the next actor
@@ -145,7 +147,7 @@ export class NotificationsService {
       type: 'pr_needs_action',
       purchaseRequestId: purchaseRequest._id,
     });
-    this.push(purchaseRequest.requesterId, { type: 'notification' });
+    this.push(purchaseRequest.requesterId, { type: 'notification', title: 'More Information Needed', message: `Procurement needs additional information on PR "${purchaseRequest.prNumber}" before it can be canvassed.` });
   }
 
   /**
@@ -169,7 +171,9 @@ export class NotificationsService {
           purchaseRequestId: purchaseRequest._id,
         })),
       );
-      procurementUsers.forEach((u) => this.push(u._id.toString(), { type: 'notification' }));
+      const clarTitle = 'Clarification Received';
+      const clarMessage = `The requester has replied to your clarification request on PR "${purchaseRequest.prNumber}".`;
+      procurementUsers.forEach((u) => this.push(u._id.toString(), { type: 'notification', title: clarTitle, message: clarMessage }));
     }
   }
 
@@ -189,7 +193,7 @@ export class NotificationsService {
       purchaseRequestId: purchaseRequest._id,
     });
 
-    this.push(purchaseRequest.requesterId, { type: 'notification' });
+    this.push(purchaseRequest.requesterId, { type: 'notification', title: 'Quotation Submitted', message: `Procurement has submitted a canvass for PR "${purchaseRequest.prNumber}". It is now pending COO price review.` });
 
     // Notify COO for price sign-off
     await this.notifyNextApprover(purchaseRequest);
@@ -216,7 +220,7 @@ export class NotificationsService {
       purchaseRequestId: new Types.ObjectId(purchaseRequestId),
       purchaseOrderId: new Types.ObjectId(purchaseOrder._id),
     });
-    this.push(requesterId, { type: 'notification' });
+    this.push(requesterId, { type: 'notification', title: 'Order Received', message: `Your purchase order ${purchaseOrder.poNumber}${prNumber ? ` (PR ${prNumber})` : ''} has been received by procurement.` });
   }
 
   private async notifyNextApprover(pr: { _id: string; title: string; prNumber: string; departmentId: string; status: string }) {
@@ -233,7 +237,7 @@ export class NotificationsService {
           type: 'pr_needs_action',
           purchaseRequestId: pr._id,
         });
-        this.push(dept.headId.toString(), { type: 'notification' });
+        this.push(dept.headId.toString(), { type: 'notification', title: 'New PR Awaiting Your Approval', message: `PR "${pr.prNumber}" requires your review as Department Head.` });
       }
       return;
     }
@@ -253,7 +257,9 @@ export class NotificationsService {
             purchaseRequestId: pr._id,
           })),
         );
-        cooUsers.forEach((u) => this.push(u._id.toString(), { type: 'notification' }));
+        const quotedTitle = 'PR Price Review Required';
+        const quotedMessage = `PR "${pr.prNumber}" has been quoted by procurement and requires your price review.`;
+        cooUsers.forEach((u) => this.push(u._id.toString(), { type: 'notification', title: quotedTitle, message: quotedMessage }));
       }
       return;
     }
@@ -274,7 +280,9 @@ export class NotificationsService {
             purchaseRequestId: pr._id,
           })),
         );
-        procurementUsers.forEach((u) => this.push(u._id.toString(), { type: 'notification' }));
+        const pendingTitle = 'PR Awaiting Quotation';
+        const pendingMessage = `PR "${pr.prNumber}" requires procurement quotation.`;
+        procurementUsers.forEach((u) => this.push(u._id.toString(), { type: 'notification', title: pendingTitle, message: pendingMessage }));
       }
       return;
     }
@@ -297,7 +305,9 @@ export class NotificationsService {
             purchaseRequestId: pr._id,
           })),
         );
-        approvers.forEach((u) => this.push(u._id.toString(), { type: 'notification' }));
+        const lvlTitle = `PR Awaiting ${roleLabel} Approval`;
+        const lvlMessage = `PR "${pr.prNumber}" requires your review.`;
+        approvers.forEach((u) => this.push(u._id.toString(), { type: 'notification', title: lvlTitle, message: lvlMessage }));
       }
     }
   }

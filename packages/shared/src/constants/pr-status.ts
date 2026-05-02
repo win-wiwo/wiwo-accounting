@@ -10,7 +10,6 @@ export const PrStatus = {
   COMPLETED: 'completed',
   REJECTED: 'rejected',
   RETURNED: 'returned',
-  RETURNED_FOR_INFO: 'returned_for_info',
   CANCELLED: 'cancelled',
 } as const;
 
@@ -27,7 +26,6 @@ export const PR_ACTIVE_STATUSES = [
   PrStatus.COMPLETED,
   PrStatus.REJECTED,
   PrStatus.RETURNED,
-  PrStatus.RETURNED_FOR_INFO,
   PrStatus.CANCELLED,
 ] as const;
 
@@ -51,7 +49,6 @@ export const PR_STATUS_LABELS: Record<PrStatus, string> = {
   [PrStatus.COMPLETED]: 'Completed',
   [PrStatus.REJECTED]: 'Rejected',
   [PrStatus.RETURNED]: 'Returned',
-  [PrStatus.RETURNED_FOR_INFO]: 'Returned for Info',
   [PrStatus.CANCELLED]: 'Cancelled',
 };
 

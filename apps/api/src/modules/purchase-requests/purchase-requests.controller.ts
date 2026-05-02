@@ -98,9 +98,10 @@ export class PurchaseRequestsController {
   @ApiOperation({ summary: 'Submit a purchase request for approval' })
   async submit(
     @Param('id', ParseObjectIdPipe) id: string,
+    @Body() body: { resubmissionNote?: string },
     @CurrentUser() user: { _id: string; role: string; departmentId: string | null },
   ) {
-    return this.prService.submit(id, user);
+    return this.prService.submit(id, user, body?.resubmissionNote);
   }
 
   @Post(':id/recall')

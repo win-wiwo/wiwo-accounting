@@ -151,8 +151,8 @@ export const purchaseRequestsApi = {
   update: (id: string, data: Partial<CreatePrPayload>) =>
     apiClient.patch<ApiResponse<PurchaseRequest>>(`/purchase-requests/${id}`, data).then((r) => r.data),
 
-  submit: (id: string) =>
-    apiClient.post<ApiResponse<PurchaseRequest>>(`/purchase-requests/${id}/submit`).then((r) => r.data),
+  submit: (id: string, resubmissionNote?: string) =>
+    apiClient.post<ApiResponse<PurchaseRequest>>(`/purchase-requests/${id}/submit`, resubmissionNote ? { resubmissionNote } : {}).then((r) => r.data),
 
   delete: (id: string) =>
     apiClient.delete(`/purchase-requests/${id}`).then((r) => r.data),

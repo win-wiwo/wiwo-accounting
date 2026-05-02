@@ -39,7 +39,6 @@ import {
   useDeletePr,
   useRecallPr,
   useCancelPr,
-  useReplyToClarification,
   useUpdateItemSpecs,
 } from "@/hooks/use-purchase-requests";
 import { purchaseRequestsApi } from "@/lib/api-services";
@@ -302,7 +301,6 @@ const statusStyle: Record<string, string> = {
   completed:          'bg-emerald-50 text-emerald-700',
   rejected:           'bg-red-50 text-red-600',
   returned:           'bg-amber-50 text-amber-700',
-  returned_for_info:  'bg-amber-50 text-amber-700',
   cancelled:          'bg-zinc-100 text-zinc-500',
 };
 
@@ -340,9 +338,6 @@ function validatePrForSubmit(pr: any): string[] {
       }
     }
   }
-  if (pr.status === PrStatus.RETURNED && !pr.resubmissionNote?.trim()) {
-    errors.push("Describe what changed before resubmitting.");
-  }
   return errors;
 }
 
@@ -374,8 +369,7 @@ export function PrDetailPage() {
   const [cancelDialog, setCancelDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
 
-  const [replyNote, setReplyNote] = useState("");
-  const replyMutation = useReplyToClarification();
+  const [resubmitNote, setResubmitNote] = useState("");
 
   const [editSpecsOpen, setEditSpecsOpen] = useState(false);
   const [editSpecsDraft, setEditSpecsDraft] = useState<Array<{ itemId: string; description: string; specifications: string }>>([]);
@@ -405,8 +399,14 @@ export function PrDetailPage() {
     if (!pr) return;
     try {
       if (confirmDialog.type === "submit") {
-        await submitMutation.mutateAsync(pr._id);
-        toast({ title: "PR submitted for approval", variant: "success" });
+        await submitMutation.mutateAsync({ id: pr._id, resubmissionNote: resubmitNote.trim() || undefined });
+        setResubmitNote('');
+        const isBackToProcurement = (pr as any).returnedAtLevel === 0;
+        toast({
+          title: isBackToProcurement ? "Resubmitted to procurement" : "PR submitted for approval",
+          description: isBackToProcurement ? "The PR is back in procurement's queue." : undefined,
+          variant: "success",
+        });
       } else if (confirmDialog.type === "recall") {
         await recallMutation.mutateAsync(pr._id);
         toast({ title: "PR recalled to draft", variant: "success" });
@@ -575,22 +575,21 @@ export function PrDetailPage() {
   const runtimeStatus = normalizePrStatus(pr.status) as PrStatusType;
   const isDraft = runtimeStatus === PrStatus.DRAFT;
   const isReturned = runtimeStatus === PrStatus.RETURNED;
-  const isReturnedForInfo = runtimeStatus === PrStatus.RETURNED_FOR_INFO;
+  const isReturnedByProcurement = isReturned && (pr as any).returnedAtLevel === 0;
   const isCancelled = runtimeStatus === PrStatus.CANCELLED;
   const isOwner = requester?._id === user?._id;
-  const canEdit = isOwner && (isDraft || isReturned || isReturnedForInfo);
-  const canEditSpecs = isOwner && runtimeStatus === PrStatus.PENDING_QUOTATION;
+  const canEdit = isOwner && (isDraft || (isReturned && !isReturnedByProcurement));
+  const canEditSpecs = isOwner && isReturnedByProcurement;
   const canRecall =
     isOwner &&
     (runtimeStatus === PrStatus.LEVEL1_REVIEW ||
-      runtimeStatus === PrStatus.LEVEL2_REVIEW ||
-      isReturnedForInfo);
+      runtimeStatus === PrStatus.LEVEL2_REVIEW);
   const canCancel =
     isOwner &&
     !isDraft &&
     (runtimeStatus === PrStatus.LEVEL1_REVIEW ||
       runtimeStatus === PrStatus.LEVEL2_REVIEW ||
-      isReturnedForInfo);
+      (isReturned && !isReturnedByProcurement));
 
   // Determine if the current user can act on this PR as an approver
   const pendingStatuses: string[] = [
@@ -674,18 +673,12 @@ export function PrDetailPage() {
         tone: "border-blue-200 bg-blue-50/60 text-blue-900",
       };
     }
-    if (runtimeStatus === PrStatus.RETURNED_FOR_INFO) {
-      return {
-        title: "Procurement Has a Question",
-        nextStep: "Procurement needs clarification on this request. See the Clarification History below for details. No resubmission needed.",
-        icon: <RotateCcw className="h-4 w-4" />,
-        tone: "border-amber-200 bg-amber-50/60 text-amber-900",
-      };
-    }
     if (runtimeStatus === PrStatus.RETURNED) {
       return {
-        title: "Returned for Revision",
-        nextStep: "An approver returned this request. Review the timeline for comments, update, and resubmit.",
+        title: isReturnedByProcurement ? "Returned by Procurement" : "Returned for Revision",
+        nextStep: isReturnedByProcurement
+          ? "Procurement needs clarification on this request. Review the timeline, update if needed, and resubmit."
+          : "An approver returned this request. Review the timeline for comments, update, and resubmit.",
         icon: <RotateCcw className="h-4 w-4" />,
         tone: "border-amber-200 bg-amber-50/60 text-amber-900",
       };
@@ -893,7 +886,7 @@ export function PrDetailPage() {
                     setConfirmDialog({ open: true, type: "submit" });
                   }}
                 >
-                  <Send className="h-3.5 w-3.5" /> Submit
+                  <Send className="h-3.5 w-3.5" /> {isReturned ? 'Resubmit' : 'Submit'}
                 </button>
               </>
             )}
@@ -901,6 +894,18 @@ export function PrDetailPage() {
               <Button size="sm" variant="outline" className="rounded-lg text-[13px] h-8" onClick={() => setConfirmDialog({ open: true, type: "recall" })}>
                 <Undo2 className="h-3.5 w-3.5" /> Recall
               </Button>
+            )}
+            {isOwner && isReturnedByProcurement && (
+              <button
+                className="inline-flex items-center gap-1.5 rounded-lg h-8 px-3.5 text-[13px] font-semibold text-white transition-all duration-200 hover:-translate-y-px"
+                style={{ background: 'linear-gradient(155deg, #262626 0%, #0d0d0d 100%)', boxShadow: '0 1px 2px rgba(0,0,0,0.14), 0 3px 8px rgba(0,0,0,0.1)' }}
+                onClick={() => {
+                  setResubmitNote('');
+                  setConfirmDialog({ open: true, type: "submit" });
+                }}
+              >
+                <Send className="h-3.5 w-3.5" /> Resubmit
+              </button>
             )}
             {canCancel && (
               <Button
@@ -1254,51 +1259,6 @@ export function PrDetailPage() {
           )}
 
 
-          {/* Clarification reply form — only shown when procurement has returned the PR for info and the viewer is the owner */}
-          {isOwner && isReturnedForInfo && (() => {
-            const handleReply = async () => {
-              if (!replyNote.trim()) return;
-              try {
-                await replyMutation.mutateAsync({ id: id!, note: replyNote.trim() });
-                setReplyNote('');
-                toast({ title: 'Reply sent', description: 'Procurement has been notified.', variant: 'success' });
-              } catch (err) {
-                toast({ title: 'Failed to send reply', variant: 'error' });
-              }
-            };
-
-            return (
-              <div className="rounded-xl border border-amber-200/70 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-                <div className="px-6 pt-5 pb-2">
-                  <p className="text-[14px] font-semibold text-zinc-900">Reply to procurement</p>
-                  <p className="text-[12px] text-zinc-500 mt-1">Procurement asked for more info — see the request details in the timeline. Once you reply, the PR returns to procurement.</p>
-                </div>
-                <div className="px-6 pt-3 pb-5">
-                  <textarea
-                    rows={3}
-                    placeholder="Provide the requested details…"
-                    className="w-full rounded-xl border border-zinc-200/80 bg-zinc-50/50 px-4 py-3 text-[13px] text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:border-zinc-300 focus:bg-white resize-none transition-all duration-150 leading-relaxed"
-                    value={replyNote}
-                    onChange={(e) => setReplyNote(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleReply(); }}
-                  />
-                  <div className="flex items-center justify-between mt-3">
-                    <p className="text-[11px] text-zinc-400">Cmd/Ctrl + Enter to send</p>
-                    <Button
-                      type="button"
-                      size="sm"
-                      className="h-9 bg-zinc-900 hover:bg-zinc-800 text-white text-[12px] gap-1.5"
-                      disabled={!replyNote.trim() || replyMutation.isPending}
-                      onClick={handleReply}
-                    >
-                      {replyMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-                      Send Reply
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
 
           {/* Resubmission diff — visible to approvers after requester resubmits */}
           {pr.previousSubmissionSnapshot && (
@@ -1407,20 +1367,7 @@ export function PrDetailPage() {
 
               <div className="h-px bg-zinc-100" />
 
-              {/* Audit Dates */}
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400 mb-3">Audit Dates</p>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[12px] text-zinc-500">Created</span>
-                    <span className="text-[12px] font-medium text-zinc-800 tabular-nums">{formatDate(pr.createdAt)}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[12px] text-zinc-500">Submitted</span>
-                    <span className="text-[12px] font-medium text-zinc-800 tabular-nums">{formatDate(pr.submittedAt) || "—"}</span>
-                  </div>
-                </div>
-              </div>
+
 
             </div>
           </div>
@@ -1444,30 +1391,49 @@ export function PrDetailPage() {
       {/* Confirm Dialog (Submit/Delete/Recall) */}
       <Dialog
         open={confirmDialog.open}
-        onOpenChange={(open) => setConfirmDialog({ ...confirmDialog, open })}
+        onOpenChange={(open) => {
+          setConfirmDialog({ ...confirmDialog, open });
+          if (!open) setResubmitNote('');
+        }}
       >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {confirmDialog.type === "submit" && "Submit for Approval"}
+              {confirmDialog.type === "submit" && (isReturned ? "Resubmit" : "Submit for Approval")}
               {confirmDialog.type === "recall" && "Recall Purchase Request"}
               {confirmDialog.type === "delete" && "Delete Purchase Request"}
             </DialogTitle>
             <DialogDescription>
-              {confirmDialog.type === "submit" &&
+              {confirmDialog.type === "submit" && !isReturned &&
                 "This will generate a PR number and route it for approval."}
+              {confirmDialog.type === "submit" && isReturned && isReturnedByProcurement &&
+                "Add a note about the changes you made before resubmitting."}
+              {confirmDialog.type === "submit" && isReturned && !isReturnedByProcurement &&
+                "Describe what you changed or clarified before resubmitting."}
               {confirmDialog.type === "recall" &&
                 "This will move the PR back to Draft status. You can edit and resubmit it later."}
               {confirmDialog.type === "delete" &&
                 "This draft will be permanently deleted. This action cannot be undone."}
             </DialogDescription>
           </DialogHeader>
+          {confirmDialog.type === "submit" && isReturned && (
+            <div className="py-1">
+              <textarea
+                rows={3}
+                placeholder="Describe what changed…"
+                className="w-full rounded-xl border border-zinc-200/80 bg-zinc-50/50 px-4 py-3 text-[13px] text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:border-zinc-300 focus:bg-white resize-none transition-all duration-150 leading-relaxed"
+                value={resubmitNote}
+                onChange={(e) => setResubmitNote(e.target.value)}
+              />
+            </div>
+          )}
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() =>
-                setConfirmDialog({ ...confirmDialog, open: false })
-              }
+              onClick={() => {
+                setConfirmDialog({ ...confirmDialog, open: false });
+                setResubmitNote('');
+              }}
             >
               Cancel
             </Button>
@@ -1475,9 +1441,10 @@ export function PrDetailPage() {
               variant={
                 confirmDialog.type === "delete" ? "destructive" : "default"
               }
+              disabled={confirmDialog.type === "submit" && isReturned && !resubmitNote.trim()}
               onClick={handleConfirm}
             >
-              {confirmDialog.type === "submit" && "Submit"}
+              {confirmDialog.type === "submit" && (isReturned ? "Resubmit" : "Submit")}
               {confirmDialog.type === "recall" && "Recall"}
               {confirmDialog.type === "delete" && "Delete"}
             </Button>
@@ -1686,14 +1653,14 @@ export function PrDetailPage() {
               <ImageIcon className="h-4 w-4" /> Reference Photo
             </DialogTitle>
           </DialogHeader>
-          <div className="flex items-center justify-center min-h-48">
+          <div className="flex items-center justify-center h-[60vh] bg-zinc-50 rounded-md photo-reveal">
             {itemPhotoDialog.loading ? (
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             ) : itemPhotoDialog.url ? (
               <img
                 src={itemPhotoDialog.url}
                 alt="Reference photo"
-                className="max-w-full max-h-[60vh] rounded-md object-contain"
+                className="max-w-full max-h-full rounded-md object-contain"
               />
             ) : null}
           </div>

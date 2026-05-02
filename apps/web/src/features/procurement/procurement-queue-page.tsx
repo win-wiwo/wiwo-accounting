@@ -42,20 +42,19 @@ const priorityDot: Record<string, string> = {
 const procStatusStyle: Record<string, string> = {
   pending_quotation: 'bg-blue-50 text-blue-700 border-blue-200',
   quoted:            'bg-emerald-50 text-emerald-700 border-emerald-200',
-  returned_for_info: 'bg-amber-50 text-amber-800 border-amber-200',
+  returned:          'bg-amber-50 text-amber-800 border-amber-200',
 };
 
 const procStatusDot: Record<string, string> = {
   pending_quotation: 'bg-blue-500',
   quoted:            'bg-emerald-500',
-  returned_for_info: 'bg-amber-500',
+  returned:          'bg-amber-500',
 };
 
 // QUOTED PRs have already left procurement's hands — they're awaiting COO
 // price review and shouldn't appear in this queue.
 const PROC_STATUSES = [
   PrStatus.PENDING_QUOTATION,
-  PrStatus.RETURNED_FOR_INFO,
 ] as const;
 
 function formatCurrency(amount: number) {

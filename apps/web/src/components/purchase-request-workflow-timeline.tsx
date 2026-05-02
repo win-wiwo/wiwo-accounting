@@ -14,7 +14,6 @@ import {
   CheckCircle2,
   ClipboardCheck,
   Clock,
-  MessageSquare,
   RefreshCw,
   RotateCcw,
   Send,
@@ -158,8 +157,10 @@ function buildTimelineEntries(
       title: "Resubmitted",
       note: entry.note,
       levelLabel:
-        APPROVAL_LEVEL_LABELS[entry.resumedAtLevel] ||
-        `Level ${entry.resumedAtLevel}`,
+        entry.resumedAtLevel === 0
+          ? 'Procurement'
+          : APPROVAL_LEVEL_LABELS[entry.resumedAtLevel] ||
+            `Level ${entry.resumedAtLevel}`,
       icon: <RefreshCw className="h-4 w-4 text-blue-600" />,
     });
   }
@@ -169,10 +170,11 @@ function buildTimelineEntries(
     entries.push({
       id: `clarification-return-${entry._id}`,
       date: entry.returnedAt,
-      title: "Returned for Clarification",
+      title: "Returned",
       actor: returnedByName(entry.returnedBy),
       note: entry.note,
-      icon: <MessageSquare className="h-4 w-4 text-amber-600" />,
+      levelLabel: "Procurement",
+      icon: <RotateCcw className="h-4 w-4 text-amber-600" />,
     });
   }
 
@@ -180,7 +182,7 @@ function buildTimelineEntries(
     entries.push({
       id: `clarification-reply-${entry._id}`,
       date: entry.repliedAt,
-      title: "Clarification Replied",
+      title: "Resubmitted",
       actor: repliedByName(entry.repliedBy),
       note: entry.note,
       icon: <RefreshCw className="h-4 w-4 text-blue-600" />,

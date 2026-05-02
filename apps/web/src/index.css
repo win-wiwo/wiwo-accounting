@@ -279,6 +279,14 @@
   box-shadow: inset 3px 0 0 oklch(0.25 0 0);
 }
 
+@keyframes photoReveal {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.photo-reveal {
+  animation: photoReveal 0.35s 0.1s cubic-bezier(0.16,1,0.3,1) both;
+}
+
 /* ── Premium primary button ─────────────────────────────
  * Gradient black CTA used by the reference pages (PR list "+ New PR",
  * dashboard quick actions, etc.). Encapsulated as a class so usage is
@@ -376,23 +384,28 @@
      Sits flush against light surfaces, fades when not needed. */
   .scrollbar-modern {
     scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+  .scrollbar-modern:hover {
     scrollbar-color: rgba(0, 0, 0, 0.18) transparent;
   }
   .scrollbar-modern::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
   .scrollbar-modern::-webkit-scrollbar-track {
     background: transparent;
   }
   .scrollbar-modern::-webkit-scrollbar-thumb {
-    background-color: rgba(0, 0, 0, 0.18);
+    background-color: transparent;
     border-radius: 9999px;
-    border: 2px solid transparent;
-    background-clip: padding-box;
+    transition: background-color 0.2s;
+  }
+  .scrollbar-modern:hover::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.15);
   }
   .scrollbar-modern::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(0, 0, 0, 0.32);
+    background-color: rgba(0, 0, 0, 0.3);
   }
   .scrollbar-modern::-webkit-scrollbar-corner {
     background: transparent;
