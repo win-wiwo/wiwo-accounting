@@ -61,7 +61,7 @@ export class UsersService {
     }
 
     const skip = (page - 1) * limit;
-    const sortObj: Record<string, 1 | -1> = { [sort]: order === 'asc' ? 1 : -1 };
+    const sortObj: Record<string, 1 | -1> = { [sort]: order === 'asc' ? 1 : -1, _id: 1 };
 
     const [users, total] = await Promise.all([
       this.userModel

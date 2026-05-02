@@ -237,8 +237,9 @@ export class PurchaseRequestsController {
     )
     file: Express.Multer.File,
     @CurrentUser() user: { _id: string; role: string; departmentId: string | null },
+    @Body('canvassEntryId') canvassEntryId?: string,
   ) {
-    return this.prService.addQuotationAttachment(id, file, user);
+    return this.prService.addQuotationAttachment(id, file, user, canvassEntryId || null);
   }
 
   @Delete(':id/attachments/:attachmentId')

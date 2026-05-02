@@ -36,6 +36,7 @@ export function usePrForm(stagedFiles: ReturnType<typeof useStagedFiles>) {
       sourcingMode: SourcingType.PROCUREMENT,
       assignmentType: 'project',
       title: '',
+      justification: '',
       items: [defaultItem(SourcingType.PROCUREMENT)],
       priority: 'medium',
       projectId: '',
@@ -112,6 +113,10 @@ export function usePrForm(stagedFiles: ReturnType<typeof useStagedFiles>) {
       form.setError('title', { message: 'Title is required to save a draft' });
       toast({ title: 'Title required', description: 'Enter a title before saving.', variant: 'error' });
       return;
+    }
+    // Ensure priority has a valid value (Select may leave it as '' if never touched)
+    if (!data.priority || !PR_PRIORITIES.includes(data.priority)) {
+      data.priority = PrPriority.MEDIUM;
     }
     await onSubmit(data);
   };

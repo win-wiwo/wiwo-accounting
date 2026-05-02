@@ -17,8 +17,10 @@ import {
   PR_STATUSES,
   PR_PRIORITY_LABELS,
   PR_PRIORITIES,
+  SourcingType,
   type PrStatus as PrStatusType,
   type PrPriority as PrPriorityType,
+  type PurchaseRequest,
 } from '@prams/shared';
 import { usePurchaseRequests } from '@/hooks/use-purchase-requests';
 import { useDepartments } from '@/hooks/use-departments';
@@ -54,6 +56,13 @@ function formatCurrency(amount: number) {
     style: 'currency',
     currency: 'PHP',
   }).format(amount);
+}
+
+/** True when any procurement item still has no quoted price */
+function hasPendingQuote(pr: PurchaseRequest): boolean {
+  return pr.items.some(
+    (item) => item.sourcingType === SourcingType.PROCUREMENT && item.totalPrice === 0,
+  );
 }
 
 const SORT_OPTIONS = [
@@ -635,9 +644,13 @@ export function SearchPage() {
                           {dept ? dept.name : '—'}
                         </td>
                         <td className="px-5 py-4 text-right">
-                          <span className="text-[13px] font-semibold tabular-nums text-zinc-800">
-                            {formatCurrency(pr.totalAmount)}
-                          </span>
+                          {hasPendingQuote(pr) ? (
+                            <span className="text-[13px] font-semibold text-amber-600">TBD</span>
+                          ) : (
+                            <span className="text-[13px] font-semibold tabular-nums text-zinc-800">
+                              {formatCurrency(pr.totalAmount)}
+                            </span>
+                          )}
                         </td>
                         <td className="px-5 py-4">
                           <StatusBadge tone={prPriorityTone(pr.priority)} dot muted>
@@ -695,8 +708,12 @@ export function SearchPage() {
                         {requester ? `${requester.firstName} ${requester.lastName}` : '—'}
                         {dept ? ` · ${dept.name}` : ''}
                       </span>
-                      <span className="font-semibold text-zinc-800 tabular-nums shrink-0">
-                        {formatCurrency(pr.totalAmount)}
+                      <span className="font-semibold tabular-nums shrink-0">
+                        {hasPendingQuote(pr) ? (
+                          <span className="text-amber-600">TBD</span>
+                        ) : (
+                          <span className="text-zinc-800">{formatCurrency(pr.totalAmount)}</span>
+                        )}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">

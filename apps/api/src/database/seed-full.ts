@@ -724,7 +724,9 @@ async function attachQuotations(
   const suppliers = pickSuppliers(prDoc.title);
   const attachments = [];
 
-  for (const sup of suppliers) {
+  const canvassEntries = prDoc.canvassEntries ?? [];
+  for (let i = 0; i < suppliers.length; i++) {
+    const sup = suppliers[i];
     const filename = `${uuidv4()}.pdf`;
     const seedTotal = prDoc.items.reduce((s: number, item: any) => s + (item._seedPrice ?? item.estimatedPrice) * item.quantity, 0);
     const quotedTotal = Math.round(seedTotal * sup.multiplier);
@@ -753,6 +755,7 @@ async function attachQuotations(
       category: prDoc.items.some((item: any) => item.sourcingType === 'procurement') ? 'canvass' : 'supporting_doc',
       uploadedBy: uploaderId,
       uploadedAt: prDoc.createdAt,
+      canvassEntryId: canvassEntries[i]?._id ?? null,
     });
   }
 

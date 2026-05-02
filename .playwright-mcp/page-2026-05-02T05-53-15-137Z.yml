@@ -1,0 +1,112 @@
+- generic [ref=e42]:
+  - complementary [ref=e43]:
+    - generic [ref=e44]:
+      - img "WIWO" [ref=e46]
+      - button [ref=e47]:
+        - img [ref=e48]
+    - navigation [ref=e51]:
+      - link "Dashboard" [ref=e52] [cursor=pointer]:
+        - /url: /dashboard
+        - img [ref=e53]
+        - generic [ref=e58]: Dashboard
+      - link "Purchase Requests" [ref=e59] [cursor=pointer]:
+        - /url: /purchase-requests
+        - img [ref=e60]
+        - generic [ref=e63]: Purchase Requests
+      - link "Procurement Queue" [active] [ref=e64] [cursor=pointer]:
+        - /url: /procurement
+        - img [ref=e65]
+        - generic [ref=e68]: Procurement Queue
+      - link "Suppliers" [ref=e69] [cursor=pointer]:
+        - /url: /suppliers
+        - img [ref=e70]
+        - generic [ref=e75]: Suppliers
+      - link "Purchase Orders" [ref=e76] [cursor=pointer]:
+        - /url: /purchase-orders
+        - img [ref=e77]
+        - generic [ref=e81]: Purchase Orders
+      - link "Search & Monitor" [ref=e82] [cursor=pointer]:
+        - /url: /search
+        - img [ref=e83]
+        - generic [ref=e86]: Search & Monitor
+      - link "Reports" [ref=e87] [cursor=pointer]:
+        - /url: /reports
+        - img [ref=e88]
+        - generic [ref=e90]: Reports
+    - generic [ref=e93]:
+      - link "EV Eduardo Villanueva Procurement Officer" [ref=e94] [cursor=pointer]:
+        - /url: /profile
+        - generic [ref=e96]: EV
+        - generic [ref=e97]:
+          - paragraph [ref=e98]: Eduardo Villanueva
+          - paragraph [ref=e99]: Procurement Officer
+      - button "Sign out" [ref=e100]:
+        - img
+        - text: Sign out
+  - banner [ref=e101]:
+    - generic [ref=e103]:
+      - img [ref=e104]
+      - textbox "Search PRs... (Ctrl+K)" [ref=e107]
+    - button [ref=e109]:
+      - img
+  - main [ref=e110]:
+    - generic [ref=e279]:
+      - generic [ref=e280]:
+        - generic [ref=e281]:
+          - heading "Procurement Queue" [level=1] [ref=e282]
+          - paragraph [ref=e283]: Purchase requests pending quotation and supplier pricing.
+        - generic [ref=e284]:
+          - generic [ref=e285]: 2 Pending
+          - generic [ref=e286]: 1 High Priority
+      - generic [ref=e287]:
+        - table [ref=e289]:
+          - rowgroup [ref=e290]:
+            - row "PR Number Request Requester Amount Status Priority Age" [ref=e291]:
+              - columnheader "PR Number" [ref=e292]
+              - columnheader "Request" [ref=e293]
+              - columnheader "Requester" [ref=e294]
+              - columnheader "Amount" [ref=e295]:
+                - generic [ref=e296] [cursor=pointer]:
+                  - text: Amount
+                  - img [ref=e297]
+              - columnheader "Status" [ref=e300]
+              - columnheader "Priority" [ref=e301]
+              - columnheader "Age" [ref=e302]:
+                - generic [ref=e303] [cursor=pointer]:
+                  - text: Age
+                  - img [ref=e304]
+              - columnheader [ref=e307]
+          - rowgroup [ref=e308]:
+            - row "2026-05-0019 PTZ Speed Dome Cameras – Busway Intersections Mark Ramos Pending Quote Pending Procurement High 2 days ago" [ref=e309] [cursor=pointer]:
+              - cell "2026-05-0019" [ref=e310]
+              - cell "PTZ Speed Dome Cameras – Busway Intersections" [ref=e311]:
+                - paragraph [ref=e312]: PTZ Speed Dome Cameras – Busway Intersections
+              - cell "Mark Ramos" [ref=e313]
+              - cell "Pending Quote" [ref=e314]
+              - cell "Pending Procurement" [ref=e315]:
+                - generic [ref=e316]: Pending Procurement
+              - cell "High" [ref=e318]:
+                - generic [ref=e319]: High
+              - cell "2 days ago" [ref=e321]
+              - cell [ref=e322]:
+                - img [ref=e324]
+            - row "2026-05-0020 Camera Mounting Poles and Hardware – Busway Phase 2 Grace Santos Pending Quote Pending Procurement Medium 1 day ago" [ref=e326] [cursor=pointer]:
+              - cell "2026-05-0020" [ref=e327]
+              - cell "Camera Mounting Poles and Hardware – Busway Phase 2" [ref=e328]:
+                - paragraph [ref=e329]: Camera Mounting Poles and Hardware – Busway Phase 2
+              - cell "Grace Santos" [ref=e330]
+              - cell "Pending Quote" [ref=e331]
+              - cell "Pending Procurement" [ref=e332]:
+                - generic [ref=e333]: Pending Procurement
+              - cell "Medium" [ref=e335]:
+                - generic [ref=e336]: Medium
+              - cell "1 day ago" [ref=e338]
+              - cell [ref=e339]:
+                - img [ref=e341]
+        - generic [ref=e344]:
+          - generic [ref=e345]:
+            - generic [ref=e346]: Rows per page
+            - combobox [ref=e347]:
+              - generic: "10"
+              - img [ref=e348]
+          - paragraph [ref=e350]: 2 total

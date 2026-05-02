@@ -66,6 +66,7 @@ export function StepItems({
   } = form;
   const watchItems = watch('items');
   const sourcingMode = watch('sourcingMode');
+  const [clearedServerPhotos, setClearedServerPhotos] = useState<Set<number>>(new Set());
 
   // Lock the sourcing mode once a real item has been entered. The form may
   // start with a placeholder item; we only lock when the user has actually
@@ -306,10 +307,14 @@ export function StepItems({
                           index={index}
                           staged={stagedFiles.stagedPhotos[index] ?? null}
                           serverPhotoName={
-                            serverItem?.referencePhotoOriginalName ?? null
+                            clearedServerPhotos.has(index)
+                              ? null
+                              : (serverItem?.referencePhotoOriginalName ?? null)
                           }
                           serverPhotoPreviewUrl={
-                            itemId ? (serverPhotoPreviews[itemId] ?? null) : null
+                            clearedServerPhotos.has(index)
+                              ? null
+                              : itemId ? (serverPhotoPreviews[itemId] ?? null) : null
                           }
                           onViewServer={() => {
                             const url = itemId
@@ -320,6 +325,9 @@ export function StepItems({
                           }}
                           onStage={stagedFiles.stagePhoto}
                           onClearStaged={stagedFiles.clearStagedPhoto}
+                          onClearServer={(i) =>
+                            setClearedServerPhotos((prev) => new Set(prev).add(i))
+                          }
                         />
                       );
                     })()}

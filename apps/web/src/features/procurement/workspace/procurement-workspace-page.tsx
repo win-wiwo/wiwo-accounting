@@ -1,13 +1,13 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { usePageTitle } from '@/hooks/use-page-title';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, ShoppingCart, Eye, CheckCircle2,
   Loader2, User,
-  Paperclip, Download, Camera, ImageIcon, FileText, Upload, Trash2,
+  Paperclip, Download, Camera, ImageIcon, FileText, Trash2,
   Trophy, AlertTriangle, CheckCircle, XCircle,
   TrendingDown, Info, Save,
-  FileSpreadsheet, FileImage, Send, MessageSquare,
+  FileSpreadsheet, FileImage, RotateCcw,
 } from 'lucide-react';
 import { StickyFooter } from '@/components/ui/sticky-footer';
 import { AttachmentCategory, PR_STATUS_LABELS, PR_PRIORITY_LABELS, SourcingType, type PrPriority, type PrStatus as PrStatusType } from '@prams/shared';
@@ -18,6 +18,8 @@ import { useToast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { resolvePhotoUrl } from '@/lib/utils';
 import { formatCurrency, formatDate, canPreviewAttachment, getErrorMessage } from './utils';
 import { useCanvass } from './use-canvass';
 import { CanvassMatrix } from './canvass-matrix';
@@ -52,30 +54,47 @@ export function ProcurementWorkspacePage() {
   const quotationAttachments = (pr?.attachments ?? []).filter((att) => att.category === AttachmentCategory.CANVASS);
   const supportingAttachments = (pr?.attachments ?? []).filter((att) => att.category !== AttachmentCategory.CANVASS);
 
-  const requester = pr?.requesterId as unknown as { firstName: string; lastName: string; email: string; employeeId: string } | null;
+  const requester = pr?.requesterId as unknown as { firstName: string; lastName: string; email: string; employeeId: string; photoUrl?: string | null } | null;
   const department = pr?.departmentId as unknown as { name: string; code: string } | null;
 
   const canvass = useCanvass(id, procItems, () => navigate('/procurement'));
 
   const [isUploadingQuoteFile, setIsUploadingQuoteFile] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const [showReturnModal, setShowReturnModal] = useState(false);
   const [previewDialog, setPreviewDialog] = useState<{ open: boolean; url: string | null; mimeType: string; name: string; loading: boolean }>({
     open: false, url: null, mimeType: '', name: '', loading: false,
   });
   const [itemPhotoDialog, setItemPhotoDialog] = useState<{ open: boolean; url: string | null; loading: boolean }>({
     open: false, url: null, loading: false,
   });
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleUploadQuotationEvidence = async (file: File | null) => {
+  const handleViewItemPhoto = async (itemId: string) => {
+    if (!pr) return;
+    setItemPhotoDialog({ open: true, url: null, loading: true });
+    try {
+      const blob = await purchaseRequestsApi.fetchItemPhoto(pr._id, itemId);
+      const url = URL.createObjectURL(blob);
+      setItemPhotoDialog({ open: true, url, loading: false });
+    } catch {
+      setItemPhotoDialog({ open: false, url: null, loading: false });
+      toast({ title: 'Failed to load photo', variant: 'error' });
+    }
+  };
+
+  const closeItemPhotoDialog = () => {
+    if (itemPhotoDialog.url) URL.revokeObjectURL(itemPhotoDialog.url);
+    setItemPhotoDialog({ open: false, url: null, loading: false });
+  };
+
+  const handleUploadQuotationEvidence = async (file: File | null, canvassEntryId?: string) => {
     if (!file || !pr) return;
     try {
       setIsUploadingQuoteFile(true);
-      await purchaseRequestsApi.uploadQuotationAttachment(pr._id, file);
+      await purchaseRequestsApi.uploadQuotationAttachment(pr._id, file, canvassEntryId);
       await refetch();
-      toast({ title: 'Quotation evidence uploaded', variant: 'success' });
+
     } catch (error) {
       toast({ title: 'Failed to upload', description: getErrorMessage(error, 'Try again with a supported file type.'), variant: 'error' });
     } finally {
@@ -110,32 +129,6 @@ export function ProcurementWorkspacePage() {
   const closePreviewDialog = () => {
     if (previewDialog.url) URL.revokeObjectURL(previewDialog.url);
     setPreviewDialog({ open: false, url: null, mimeType: '', name: '', loading: false });
-  };
-
-  const handleViewItemPhoto = async (itemId: string) => {
-    if (!pr) return;
-    setItemPhotoDialog({ open: true, url: null, loading: true });
-    try {
-      const blob = await purchaseRequestsApi.fetchItemPhoto(pr._id, itemId);
-      const url = URL.createObjectURL(blob);
-      setItemPhotoDialog({ open: true, url, loading: false });
-    } catch {
-      setItemPhotoDialog({ open: false, url: null, loading: false });
-      toast({ title: 'Failed to load photo', variant: 'error' });
-    }
-  };
-
-  const closeItemPhotoDialog = () => {
-    if (itemPhotoDialog.url) URL.revokeObjectURL(itemPhotoDialog.url);
-    setItemPhotoDialog({ open: false, url: null, loading: false });
-  };
-
-  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); };
-  const handleDragLeave = () => setIsDragging(false);
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    handleUploadQuotationEvidence(e.dataTransfer.files?.[0] ?? null);
   };
 
   // Derive submit confirmation data
@@ -212,7 +205,7 @@ export function ProcurementWorkspacePage() {
   const requesterName = requester ? `${requester.firstName} ${requester.lastName}` : '—';
 
   return (
-    <div className="space-y-0 pb-28 max-w-screen-2xl">
+    <div className="space-y-0 max-w-screen-2xl pb-16">
 
       {/* ── Page Header ───────────────────────────────────────── */}
       <div
@@ -273,10 +266,10 @@ export function ProcurementWorkspacePage() {
                   size="sm"
                   variant="outline"
                   className="border-zinc-200 text-zinc-600 hover:bg-zinc-50 text-[12px] h-9 gap-1.5"
-                  onClick={() => { canvass.setReturnNote(''); canvass.setActionStep('return'); }}
+                  onClick={() => { canvass.setReturnNote(''); setShowReturnModal(true); }}
                   disabled={canvass.isReturning || canvass.isSubmitting}
                 >
-                  <MessageSquare className="h-3.5 w-3.5" /> Request Clarification
+                  <RotateCcw className="h-3.5 w-3.5" /> Return
                 </Button>
                 <Button
                   size="sm"
@@ -301,60 +294,8 @@ export function ProcurementWorkspacePage() {
       {/* ── Body: Items + Main ──────────────────────────────── */}
       <div className="pr-detail-section grid gap-6 lg:grid-cols-[340px_1fr] items-start" style={{ animationDelay: '0.06s' }}>
 
-        {/* ── LEFT: Items to Source + Details ────────────── */}
-        <div className="space-y-4">
-          {/* Items to Source */}
-          <div className="rounded-xl border border-zinc-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-            <div className="flex items-center gap-2 px-5 py-4 border-b border-zinc-100">
-              <ShoppingCart className="h-4 w-4 text-zinc-400" />
-              <h2 className="text-[14px] font-bold text-zinc-900">Items to Source</h2>
-              <span className="ml-auto inline-flex items-center justify-center h-5 min-w-[20px] rounded-full bg-zinc-900 text-[10px] font-bold text-white tabular-nums px-1.5">{procItems.length}</span>
-            </div>
-            {procItems.length === 0 ? (
-              <div className="px-5 py-8 text-center">
-                <p className="text-[12px] text-zinc-400">All items are online-sourced.</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-zinc-100">
-                {procItems.map((item, i) => (
-                  <div key={item._id} className="px-5 py-4 hover:bg-zinc-50/60 transition-colors duration-150">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-start gap-2.5">
-                          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-[11px] font-bold text-zinc-500 tabular-nums mt-px">{i + 1}</span>
-                          <div className="min-w-0">
-                            <p className="text-[13px] font-semibold leading-snug text-zinc-800">{item.description}</p>
-                            <div className="flex items-center gap-3 mt-1">
-                              <p className="text-[12px] font-medium text-zinc-500">{item.quantity} {item.unit}</p>
-                              {item.estimatedPrice > 0 && (
-                                <span className="text-[11px] text-zinc-400">Est. {formatCurrency(item.estimatedPrice)}/{item.unit}</span>
-                              )}
-                            </div>
-                            {item.specifications && (
-                              <p className="text-[11px] text-zinc-400 leading-relaxed mt-1.5">{item.specifications}</p>
-                            )}
-                            {item.notes && (
-                              <p className="text-[11px] text-zinc-400 italic mt-1">{item.notes}</p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      {item.referencePhotoPath && (
-                        <button
-                          type="button"
-                          onClick={() => handleViewItemPhoto(item._id)}
-                          className="shrink-0 mt-0.5 inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10px] text-zinc-500 hover:bg-zinc-100 transition-colors duration-150"
-                        >
-                          <Camera className="h-2.5 w-2.5" /> Photo
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
+        {/* ── LEFT: Request Details ────────────────────── */}
+        <div className="space-y-4 lg:sticky lg:top-4 lg:self-start lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto lg:scrollbar-modern">
           {/* Request Details */}
           <div className="rounded-xl border border-zinc-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
             <div className="px-5 py-3 border-b border-zinc-100">
@@ -362,9 +303,15 @@ export function ProcurementWorkspacePage() {
             </div>
             <div className="px-5 py-4 space-y-4">
               <div className="flex items-center gap-2.5">
-                <div className="h-8 w-8 rounded-full bg-zinc-100 flex items-center justify-center shrink-0 font-semibold text-[12px] text-zinc-600">
-                  {requester?.firstName?.[0] ?? <User className="h-3.5 w-3.5" />}
-                </div>
+                <Avatar className="h-8 w-8 shrink-0">
+                  <AvatarImage
+                    src={resolvePhotoUrl(requester?.photoUrl)}
+                    alt={requester ? `${requester.firstName} ${requester.lastName}` : undefined}
+                  />
+                  <AvatarFallback className="bg-zinc-100 text-zinc-600 text-[12px] font-semibold">
+                    {requester?.firstName?.[0] ?? <User className="h-3.5 w-3.5" />}
+                  </AvatarFallback>
+                </Avatar>
                 <div className="min-w-0">
                   <p className="text-[13px] font-semibold leading-tight text-zinc-900">{requesterName}</p>
                   <p className="text-[11px] text-zinc-400 mt-0.5">{department?.name ?? '—'}</p>
@@ -526,6 +473,20 @@ export function ProcurementWorkspacePage() {
                               )}
                             </div>
                             {entry.remarks && <p className="text-[11px] text-zinc-400 mt-1 italic">{entry.remarks}</p>}
+                            {(() => {
+                              const entryEvidence = quotationAttachments.filter((att) => att.canvassEntryId === entry._id);
+                              if (entryEvidence.length === 0) return null;
+                              return (
+                                <div className="flex flex-wrap gap-1 mt-1.5">
+                                  {entryEvidence.map((att) => (
+                                    <span key={att._id} className="inline-flex items-center gap-1 rounded-md border border-zinc-100 bg-zinc-50 px-2 py-0.5 text-[10px] text-zinc-500">
+                                      <Paperclip className="h-2.5 w-2.5" />
+                                      <span className="truncate max-w-[120px]">{att.originalName}</span>
+                                    </span>
+                                  ))}
+                                </div>
+                              );
+                            })()}
                           </td>
                           {entry.quotedItems.map((qi) => (
                             <td key={qi.itemId} className={`text-right px-6 py-4 tabular-nums ${isWinner ? 'text-zinc-700' : 'text-zinc-500'}`}>
@@ -551,6 +512,52 @@ export function ProcurementWorkspacePage() {
             </div>
           )}
 
+          {/* Empty state — no canvass started yet */}
+          {!readOnlyMode && canvass.actionStep !== 'quotation' && (
+            <div className="rounded-xl border border-zinc-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+              <div className="px-6 pt-5 pb-4 border-b border-zinc-100">
+                <h2 className="text-[16px] font-bold tracking-[-0.01em] text-zinc-900">Supplier Comparison</h2>
+                <p className="text-[12px] text-zinc-400 mt-1">Quote every item per supplier. <span className="text-emerald-600 font-medium">Green</span> = lowest price. <span className="text-red-500 font-medium">Red</span> = highest.</p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-[13px]">
+                  <thead>
+                    <tr className="bg-zinc-50/60">
+                      <th className="text-left px-6 py-3 text-[10px] font-semibold uppercase tracking-[0.07em] text-zinc-400">Item</th>
+                      <th className="text-right px-6 py-3 text-[10px] font-semibold uppercase tracking-[0.07em] text-zinc-400">Qty</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {procItems.map((item) => (
+                      <tr key={item._id} className="border-t border-zinc-100">
+                        <td className="px-6 py-3">
+                          <div className="flex items-start gap-2">
+                            <div className="min-w-0 flex-1">
+                              <p className="font-medium text-zinc-800">{item.description}</p>
+                              {item.specifications && <p className="text-[11px] text-zinc-400 mt-0.5">{item.specifications}</p>}
+                            </div>
+                            {item.referencePhotoPath && (
+                              <button
+                                type="button"
+                                onClick={() => handleViewItemPhoto(item._id)}
+                                className="shrink-0 mt-0.5 inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10px] text-zinc-500 hover:bg-zinc-100 transition-colors duration-150"
+                              >
+                                <Camera className="h-2.5 w-2.5" /> Photo
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                        <td className="text-right px-6 py-3 text-zinc-500 tabular-nums">{item.quantity} {item.unit}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="px-6 py-3 border-t border-zinc-100 text-[11px] text-zinc-400">No suppliers added yet</div>
+              <div className="px-6 py-3 border-t border-zinc-100 font-semibold text-[11px] uppercase tracking-[0.07em] text-zinc-400">Total</div>
+            </div>
+          )}
+
           {/* Active Canvass Matrix */}
           {canvass.actionStep === 'quotation' && (
             <CanvassMatrix
@@ -559,152 +566,70 @@ export function ProcurementWorkspacePage() {
               suppliers={canvass.suppliers as Array<{ _id: string; companyName: string }>}
               canvassJustification={canvass.canvassJustification}
               onJustificationChange={canvass.setCanvassJustification}
-              onAddEntry={canvass.addEntry}
+              onAddEntry={async (supplierId, quotedPrices, remarks, pendingFile) => {
+                canvass.addEntry(supplierId, quotedPrices, remarks);
+                // Auto-save to server immediately (state from addEntry hasn't flushed yet,
+                // so build the full entries array manually)
+                const newEntry: import('./use-canvass').DraftCanvassEntry = {
+                  localId: `pending-${Date.now()}`,
+                  supplierId: supplierId ?? '',
+                  remarks: remarks ?? '',
+                  isSelected: canvass.canvassEntries.length === 0,
+                  quotedPrices: Object.fromEntries(procItems.map((item) => [item._id, quotedPrices?.[item._id] ?? ''])),
+                };
+                const allEntries = [...canvass.canvassEntries, newEntry];
+                await canvass.handleSaveDraft(allEntries, { silent: true });
+                let updated = (await refetch()).data as unknown as { data?: typeof pr };
+                // Upload attachment if provided
+                if (pendingFile && supplierId) {
+                  const savedEntry = updated?.data?.canvassEntries?.find(
+                    (e: { supplierId: string | { _id: string } }) => {
+                      const sid = typeof e.supplierId === 'string' ? e.supplierId : e.supplierId._id;
+                      return sid === supplierId;
+                    },
+                  );
+                  if (savedEntry?._id) {
+                    await handleUploadQuotationEvidence(pendingFile, savedEntry._id);
+                    updated = (await refetch()).data as unknown as { data?: typeof pr };
+                  }
+                }
+                // Re-sync local canvass state with server IDs
+                if (updated?.data) canvass.startQuotation(updated.data);
+              }}
               onRemoveEntry={canvass.removeEntry}
               onUpdateEntry={canvass.updateEntry}
               onSetWinner={canvass.setWinner}
+              quotationAttachments={quotationAttachments}
+              onUploadEvidence={async (file, entryId) => {
+                let resolvedId = entryId;
+                // Unsaved entry — save draft first to get a server-side ID
+                if (entryId.startsWith('new-')) {
+                  await canvass.handleSaveDraft(undefined, { silent: true });
+                  const updated = (await refetch()).data as unknown as { data?: typeof pr };
+                  const entry = canvass.canvassEntries.find((e) => e.localId === entryId);
+                  if (entry?.supplierId) {
+                    const savedEntry = updated?.data?.canvassEntries?.find(
+                      (e: { supplierId: string | { _id: string } }) => {
+                        const sid = typeof e.supplierId === 'string' ? e.supplierId : e.supplierId._id;
+                        return sid === entry.supplierId;
+                      },
+                    );
+                    if (savedEntry?._id) resolvedId = savedEntry._id;
+                  }
+                  // Re-sync local state with server IDs
+                  if (updated?.data) canvass.startQuotation(updated.data);
+                }
+                await handleUploadQuotationEvidence(file, resolvedId);
+              }}
+              onRemoveEvidence={async (attId) => { await handleRemoveQuotationEvidence(attId); }}
+              onPreviewAttachment={handlePreviewAttachment}
+              onDownloadAttachment={(attId, name) => purchaseRequestsApi.downloadAttachment(pr._id, attId, name)}
+              isUploadingEvidence={isUploadingQuoteFile}
+              onViewItemPhoto={handleViewItemPhoto}
             />
           )}
 
-          {/* Clarification composer — only visible while procurement is asking */}
-          {canvass.actionStep === 'return' && (
-            <div className="rounded-xl border border-amber-200/70 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-              <div className="flex items-center gap-2 px-6 pt-5 pb-4 border-b border-zinc-100">
-                <MessageSquare className="h-4 w-4 text-amber-500 shrink-0" />
-                <h3 className="text-[14px] font-semibold text-zinc-900">Ask for clarification</h3>
-              </div>
-              <div className="px-6 pt-4 pb-5">
-                <p className="text-[11px] text-zinc-400 mb-3">The requester will be notified and the PR returns to them for a reply.</p>
-                <textarea
-                  rows={3}
-                  className="w-full rounded-xl border border-zinc-200/80 bg-zinc-50/50 px-4 py-3 text-[13px] text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:border-zinc-300 focus:bg-white resize-none transition-all duration-150 leading-relaxed"
-                  placeholder="e.g. Please specify the exact model number or acceptable brand equivalents…"
-                  value={canvass.returnNote}
-                  onChange={(e) => canvass.setReturnNote(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && canvass.returnNote.trim()) canvass.handleReturnForInfo(); }}
-                  autoFocus
-                />
-                <div className="flex items-center justify-between mt-3">
-                  <p className="text-[11px] text-zinc-400">Cmd/Ctrl + Enter to send</p>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-9 text-[12px]"
-                      onClick={() => canvass.setActionStep(null)}
-                      disabled={canvass.isReturning}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="h-9 bg-zinc-900 hover:bg-zinc-800 text-white text-[12px] gap-1.5"
-                      onClick={canvass.handleReturnForInfo}
-                      disabled={canvass.isReturning || !canvass.returnNote.trim()}
-                    >
-                    {canvass.isReturning
-                      ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      : <Send className="h-3.5 w-3.5" />}
-                    Send to Requester
-                  </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
 
-          {/* Quotation Evidence */}
-          <div className="rounded-xl border border-zinc-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-            <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-zinc-100">
-              <div>
-                <h2 className="text-[15px] font-semibold text-zinc-900">Quotation Evidence</h2>
-                {quotationAttachments.length === 0 && (
-                  <p className="text-[12px] text-zinc-400 mt-0.5">At least one file required before submitting</p>
-                )}
-              </div>
-              <label>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
-                  className="hidden"
-                  onChange={(e) => { handleUploadQuotationEvidence(e.target.files?.[0] ?? null); e.target.value = ''; }}
-                  disabled={isUploadingQuoteFile || canvass.isSubmitting}
-                />
-                <Button type="button" variant="outline" size="sm" className="cursor-pointer text-[12px] h-8 gap-1.5" asChild>
-                  <span>
-                    {isUploadingQuoteFile ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
-                    Upload File
-                  </span>
-                </Button>
-              </label>
-            </div>
-
-            <div className="px-6 pb-6 pt-4">
-              {quotationAttachments.length === 0 ? (
-                <div
-                  className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed py-12 text-center transition-all duration-200 cursor-pointer ${
-                    isDragging ? 'border-zinc-400 bg-zinc-50' : 'border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50/50'
-                  }`}
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <div className="h-10 w-10 rounded-xl bg-zinc-100 flex items-center justify-center mb-3">
-                    <Paperclip className="h-4.5 w-4.5 text-zinc-400" />
-                  </div>
-                  <p className="text-[13px] font-medium text-zinc-600">Drop files here or click to upload</p>
-                  <p className="text-[11px] text-zinc-400 mt-1">PDF, XLSX, PNG, JPG accepted</p>
-                </div>
-              ) : (
-                <div
-                  className={`space-y-2 transition-all duration-200 ${isDragging ? 'ring-2 ring-zinc-300 ring-offset-2 rounded-xl' : ''}`}
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
-                >
-                  {quotationAttachments.map((att) => (
-                    <div
-                      key={att._id}
-                      className="flex items-center justify-between rounded-xl border border-zinc-100 bg-zinc-50/60 px-4 py-3 hover:bg-zinc-50 transition-colors duration-150 group"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        {fileTypeIcon(att.mimeType)}
-                        <div className="min-w-0">
-                          <span className="block text-[13px] font-medium text-zinc-800 truncate">{att.originalName}</span>
-                          {att.uploadedAt && (
-                            <span className="block text-[10px] text-zinc-400 mt-0.5">{formatDate(att.uploadedAt)}</span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                        {canPreviewAttachment(att.mimeType) && (
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100" title="Preview"
-                            onClick={() => handlePreviewAttachment(att._id, att.mimeType, att.originalName)}>
-                            <Eye className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100" title="Download"
-                          onClick={() => purchaseRequestsApi.downloadAttachment(pr._id, att._id, att.originalName)}>
-                          <Download className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-red-400 hover:text-red-600 hover:bg-red-50" title="Remove"
-                          onClick={() => handleRemoveQuotationEvidence(att._id)}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                  {isDragging && (
-                    <div className="flex items-center justify-center rounded-xl border-2 border-dashed border-zinc-300 py-4">
-                      <p className="text-[12px] text-zinc-500 font-medium">Drop file to upload</p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
 
         </div>
 
@@ -751,12 +676,46 @@ export function ProcurementWorkspacePage() {
                 disabled={canvass.isSubmitting || canvass.isSavingDraft || !isReady}
               >
                 {canvass.isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                Submit Supplier Decision
+                Submit Canvass
               </Button>
             </div>
           </div>
         </StickyFooter>
       )}
+
+      {/* ── Return Modal ─────────────────────────────────────── */}
+      <Dialog open={showReturnModal} onOpenChange={setShowReturnModal}>
+        <DialogContent className="sm:max-w-[440px]">
+          <DialogHeader>
+            <DialogTitle className="text-[15px]">Return to Requester</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-[12px] text-zinc-500">The PR will be returned to the requester. Please provide a reason.</p>
+            <textarea
+              rows={3}
+              className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-[13px] text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-300 resize-none leading-relaxed"
+              placeholder="e.g. Please specify the exact model number or acceptable brand equivalents…"
+              value={canvass.returnNote}
+              onChange={(e) => canvass.setReturnNote(e.target.value)}
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" className="text-[12px]" onClick={() => setShowReturnModal(false)} disabled={canvass.isReturning}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              className="text-[12px] gap-1.5"
+              onClick={async () => { await canvass.handleReturnForInfo(); setShowReturnModal(false); }}
+              disabled={canvass.isReturning || !canvass.returnNote.trim()}
+            >
+              {canvass.isReturning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
+              Return
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* ── Discard Confirmation ────────────────────────────── */}
       <Dialog open={showDiscardConfirm} onOpenChange={setShowDiscardConfirm}>

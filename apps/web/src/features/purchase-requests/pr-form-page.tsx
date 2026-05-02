@@ -141,7 +141,7 @@ export function PrFormPage() {
   const isLastStep = step === STEP_LABELS.length - 1;
 
   return (
-    <div className="flex flex-col gap-6 max-w-screen-2xl min-h-[calc(100vh-8.5rem)] lg:min-h-[calc(100vh-9.5rem)]">
+    <div className="flex flex-col gap-6 max-w-screen-2xl min-h-[calc(100vh-8.5rem)] lg:min-h-[calc(100vh-9.5rem)] pb-24">
       <PageHeader
         title={isEdit ? `Edit ${typeLabel}` : `New ${typeLabel}`}
         description="Create a request for items, services, or project needs."

@@ -1,0 +1,291 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - img "WIWO" [ref=e7]
+      - button [ref=e8]:
+        - img [ref=e9]
+    - navigation [ref=e12]:
+      - link "Dashboard" [ref=e13] [cursor=pointer]:
+        - /url: /dashboard
+        - img [ref=e14]
+        - generic [ref=e19]: Dashboard
+      - link "Purchase Requests" [ref=e20] [cursor=pointer]:
+        - /url: /purchase-requests
+        - img [ref=e21]
+        - generic [ref=e24]: Purchase Requests
+      - link "Procurement Queue" [ref=e25] [cursor=pointer]:
+        - /url: /procurement
+        - img [ref=e26]
+        - generic [ref=e29]: Procurement Queue
+      - link "Suppliers" [ref=e30] [cursor=pointer]:
+        - /url: /suppliers
+        - img [ref=e31]
+        - generic [ref=e36]: Suppliers
+      - link "Purchase Orders" [ref=e37] [cursor=pointer]:
+        - /url: /purchase-orders
+        - img [ref=e38]
+        - generic [ref=e42]: Purchase Orders
+      - link "Search & Monitor" [ref=e43] [cursor=pointer]:
+        - /url: /search
+        - img [ref=e44]
+        - generic [ref=e47]: Search & Monitor
+      - link "Reports" [ref=e48] [cursor=pointer]:
+        - /url: /reports
+        - img [ref=e49]
+        - generic [ref=e51]: Reports
+    - generic [ref=e54]:
+      - link "EV Eduardo Villanueva Procurement Officer" [ref=e55] [cursor=pointer]:
+        - /url: /profile
+        - generic [ref=e57]: EV
+        - generic [ref=e58]:
+          - paragraph [ref=e59]: Eduardo Villanueva
+          - paragraph [ref=e60]: Procurement Officer
+      - button "Sign out" [ref=e61]:
+        - img
+        - text: Sign out
+  - banner [ref=e62]:
+    - generic [ref=e64]:
+      - img [ref=e65]
+      - textbox "Search PRs... (Ctrl+K)" [ref=e68]
+    - button [ref=e70]:
+      - img
+  - main [ref=e71]:
+    - generic [ref=e75]:
+      - generic [ref=e81]:
+        - button "Procurement Queue" [ref=e82]:
+          - img [ref=e83]
+          - text: Procurement Queue
+        - generic [ref=e85]:
+          - generic [ref=e86]:
+            - heading "PTZ Speed Dome Cameras – Busway Intersections" [level=1] [ref=e87]
+            - generic [ref=e88]:
+              - generic [ref=e89]: 2026-05-0019
+              - generic [ref=e91]: Pending Procurement
+              - generic [ref=e92]:
+                - img [ref=e93]
+                - text: High
+              - generic [ref=e96]:
+                - text: Needed May 27, 2026
+                - generic [ref=e97]: (25d left)
+              - generic [ref=e99]: 3 items to source
+          - button "Discard Changes" [ref=e101]
+      - generic [ref=e102]:
+        - generic [ref=e104]:
+          - paragraph [ref=e106]: Request Details
+          - generic [ref=e107]:
+            - generic [ref=e108]:
+              - img "Mark Ramos" [ref=e110]
+              - generic [ref=e111]:
+                - paragraph [ref=e112]: Mark Ramos
+                - paragraph [ref=e113]: Engineering & Technical
+            - generic [ref=e114]:
+              - generic [ref=e115]:
+                - generic [ref=e116]: Submitted
+                - generic [ref=e117]: Apr 29, 2026
+              - generic [ref=e118]:
+                - generic [ref=e119]: Project
+                - generic [ref=e120]: CCTV Installation – Busway Line 1
+            - generic [ref=e121]:
+              - paragraph [ref=e122]: Purpose
+              - paragraph [ref=e123]: Site survey identified 6 critical intersection points requiring PTZ coverage. Included in Phase 2 scope.
+        - generic [ref=e126]:
+          - generic [ref=e127]:
+            - generic [ref=e128]:
+              - heading "Supplier Comparison" [level=3] [ref=e129]
+              - paragraph [ref=e130]: Quote every item per supplier. Green = lowest price. Red = highest.
+            - button "Add Supplier" [ref=e131]:
+              - img
+              - text: Add Supplier
+          - generic [ref=e132]:
+            - generic [ref=e133]: All required items quoted
+            - generic [ref=e134]:
+              - img [ref=e135]
+              - text: Selected is +102.7% above cheapest
+          - table [ref=e138]:
+            - rowgroup [ref=e139]:
+              - row "Item Qty AIVision Systems Philippines Winner Cabletech Solutions Corp. Set Winner NBS Philippines Set Winner" [ref=e140]:
+                - columnheader "Item" [ref=e141]
+                - columnheader "Qty" [ref=e142]
+                - columnheader "AIVision Systems Philippines Winner" [ref=e143]:
+                  - generic [ref=e144]:
+                    - generic [ref=e145]:
+                      - generic [ref=e146]: AIVision Systems Philippines
+                      - generic [ref=e147]:
+                        - img [ref=e148]
+                        - text: Winner
+                    - button "Remove supplier" [ref=e155]:
+                      - img
+                - columnheader "Cabletech Solutions Corp. Set Winner" [ref=e156]:
+                  - generic [ref=e157]:
+                    - generic [ref=e159]: Cabletech Solutions Corp.
+                    - generic [ref=e160]:
+                      - button "Set Winner" [ref=e161]:
+                        - img
+                        - text: Set Winner
+                      - button "Remove supplier" [ref=e162]:
+                        - img
+                - columnheader "NBS Philippines Set Winner" [ref=e163]:
+                  - generic [ref=e164]:
+                    - generic [ref=e166]: NBS Philippines
+                    - generic [ref=e167]:
+                      - button "Set Winner" [ref=e168]:
+                        - img
+                        - text: Set Winner
+                      - button "Remove supplier" [ref=e169]:
+                        - img
+            - rowgroup [ref=e170]:
+              - row "Hikvision DS-2DE4425IWG-E 4MP PTZ Camera (25x zoom) 4MP IR network PTZ, 25× optical zoom (4.8-120mm), AcuSense human/vehicle detection, 100m IR, IP66/IK10 Photo 6 units P 1234 = ₱7,404.00 P 234 = ₱1,404.00 P 34 = ₱204.00" [ref=e171]:
+                - cell "Hikvision DS-2DE4425IWG-E 4MP PTZ Camera (25x zoom) 4MP IR network PTZ, 25× optical zoom (4.8-120mm), AcuSense human/vehicle detection, 100m IR, IP66/IK10 Photo" [ref=e172]:
+                  - generic [ref=e173]:
+                    - generic [ref=e174]:
+                      - paragraph [ref=e175]: Hikvision DS-2DE4425IWG-E 4MP PTZ Camera (25x zoom)
+                      - paragraph [ref=e176]: 4MP IR network PTZ, 25× optical zoom (4.8-120mm), AcuSense human/vehicle detection, 100m IR, IP66/IK10
+                    - button "Photo" [ref=e177]:
+                      - img [ref=e178]
+                      - text: Photo
+                - cell "6 units" [ref=e181]
+                - cell "P 1234 = ₱7,404.00" [ref=e182]:
+                  - generic [ref=e183]:
+                    - generic [ref=e184]:
+                      - generic [ref=e185]: P
+                      - textbox "0.00" [ref=e186]: "1234"
+                    - paragraph [ref=e187]: = ₱7,404.00
+                - cell "P 234 = ₱1,404.00" [ref=e188]:
+                  - generic [ref=e189]:
+                    - generic [ref=e190]:
+                      - generic [ref=e191]: P
+                      - textbox "0.00" [ref=e192]: "234"
+                    - paragraph [ref=e193]: = ₱1,404.00
+                - cell "P 34 = ₱204.00" [ref=e194]:
+                  - generic [ref=e195]:
+                    - generic [ref=e196]:
+                      - generic [ref=e197]: P
+                      - textbox "0.00" [ref=e198]: "34"
+                    - paragraph [ref=e199]: = ₱204.00
+              - row "Heavy-Duty PTZ Wall Mount (Stainless Steel) SS304 stainless wall bracket for PTZ camera, 30kg load capacity, integrated cable management 6 units P 4321 = ₱25,926.00 P 2134 = ₱12,804.00 P 234234 = ₱1,405,404.00" [ref=e200]:
+                - cell "Heavy-Duty PTZ Wall Mount (Stainless Steel) SS304 stainless wall bracket for PTZ camera, 30kg load capacity, integrated cable management" [ref=e201]:
+                  - generic [ref=e203]:
+                    - paragraph [ref=e204]: Heavy-Duty PTZ Wall Mount (Stainless Steel)
+                    - paragraph [ref=e205]: SS304 stainless wall bracket for PTZ camera, 30kg load capacity, integrated cable management
+                - cell "6 units" [ref=e206]
+                - cell "P 4321 = ₱25,926.00" [ref=e207]:
+                  - generic [ref=e208]:
+                    - generic [ref=e209]:
+                      - generic [ref=e210]: P
+                      - textbox "0.00" [ref=e211]: "4321"
+                    - paragraph [ref=e212]: = ₱25,926.00
+                - cell "P 2134 = ₱12,804.00" [ref=e213]:
+                  - generic [ref=e214]:
+                    - generic [ref=e215]:
+                      - generic [ref=e216]: P
+                      - textbox "0.00" [ref=e217]: "2134"
+                    - paragraph [ref=e218]: = ₱12,804.00
+                - cell "P 234234 = ₱1,405,404.00" [ref=e219]:
+                  - generic [ref=e220]:
+                    - generic [ref=e221]:
+                      - generic [ref=e222]: P
+                      - textbox "0.00" [ref=e223]: "234234"
+                    - paragraph [ref=e224]: = ₱1,405,404.00
+              - row "RS-485 Control Cable (300m, shielded) RS-485 multicore control cable, 2-pair 22AWG, foil-shielded, PVC outer jacket, 300m roll Photo 2 rolls P 234 = ₱468.00 P 1234 = ₱2,468.00 P 234 = ₱468.00" [ref=e225]:
+                - cell "RS-485 Control Cable (300m, shielded) RS-485 multicore control cable, 2-pair 22AWG, foil-shielded, PVC outer jacket, 300m roll Photo" [ref=e226]:
+                  - generic [ref=e227]:
+                    - generic [ref=e228]:
+                      - paragraph [ref=e229]: RS-485 Control Cable (300m, shielded)
+                      - paragraph [ref=e230]: RS-485 multicore control cable, 2-pair 22AWG, foil-shielded, PVC outer jacket, 300m roll
+                    - button "Photo" [ref=e231]:
+                      - img [ref=e232]
+                      - text: Photo
+                - cell "2 rolls" [ref=e235]
+                - cell "P 234 = ₱468.00" [ref=e236]:
+                  - generic [ref=e237]:
+                    - generic [ref=e238]:
+                      - generic [ref=e239]: P
+                      - textbox "0.00" [ref=e240]: "234"
+                    - paragraph [ref=e241]: = ₱468.00
+                - cell "P 1234 = ₱2,468.00" [ref=e242]:
+                  - generic [ref=e243]:
+                    - generic [ref=e244]:
+                      - generic [ref=e245]: P
+                      - textbox "0.00" [ref=e246]: "1234"
+                    - paragraph [ref=e247]: = ₱2,468.00
+                - cell "P 234 = ₱468.00" [ref=e248]:
+                  - generic [ref=e249]:
+                    - generic [ref=e250]:
+                      - generic [ref=e251]: P
+                      - textbox "0.00" [ref=e252]: "234"
+                    - paragraph [ref=e253]: = ₱468.00
+              - row "Notes & Evidence One week warranty [Larry_Connors;Connors_Research_LLC]_Buy_the_Fear,(z-lib.org).epub.pdf Attach file No lead time ted_resume.pdf Attach file Attach file" [ref=e254]:
+                - cell "Notes & Evidence" [ref=e255]
+                - cell "One week warranty [Larry_Connors;Connors_Research_LLC]_Buy_the_Fear,(z-lib.org).epub.pdf Attach file" [ref=e256]:
+                  - generic [ref=e257]:
+                    - textbox "Lead time, warranty, payment terms..." [ref=e258]: One week warranty
+                    - generic [ref=e260]:
+                      - img [ref=e261]
+                      - generic [ref=e264]: "[Larry_Connors;Connors_Research_LLC]_Buy_the_Fear,(z-lib.org).epub.pdf"
+                      - generic [ref=e265]:
+                        - button [ref=e266]:
+                          - img [ref=e267]
+                        - button [ref=e270]:
+                          - img [ref=e271]
+                        - button [ref=e274]:
+                          - img [ref=e275]
+                    - generic [ref=e278] [cursor=pointer]:
+                      - img [ref=e279]
+                      - text: Attach file
+                - cell "No lead time ted_resume.pdf Attach file" [ref=e282]:
+                  - generic [ref=e283]:
+                    - textbox "Lead time, warranty, payment terms..." [ref=e284]: No lead time
+                    - generic [ref=e286]:
+                      - img [ref=e287]
+                      - generic [ref=e290]: ted_resume.pdf
+                      - generic [ref=e291]:
+                        - button [ref=e292]:
+                          - img [ref=e293]
+                        - button [ref=e296]:
+                          - img [ref=e297]
+                        - button [ref=e300]:
+                          - img [ref=e301]
+                    - generic [ref=e304] [cursor=pointer]:
+                      - img [ref=e305]
+                      - text: Attach file
+                - cell "Attach file" [ref=e308]:
+                  - generic [ref=e309]:
+                    - textbox "Lead time, warranty, payment terms..." [ref=e310]
+                    - generic [ref=e311] [cursor=pointer]:
+                      - img [ref=e312]
+                      - text: Attach file
+              - row "Total ₱33,798.00 AIVision Systems Philippines ₱16,676.00 Cabletech Solutions Corp. ₱1,406,076.00 NBS Philippines" [ref=e315]:
+                - cell "Total" [ref=e316]
+                - cell "₱33,798.00 AIVision Systems Philippines" [ref=e317]:
+                  - generic [ref=e318]:
+                    - img [ref=e319]
+                    - paragraph [ref=e322]: ₱33,798.00
+                  - paragraph [ref=e323]: AIVision Systems Philippines
+                - cell "₱16,676.00 Cabletech Solutions Corp." [ref=e324]:
+                  - paragraph [ref=e326]: ₱16,676.00
+                  - paragraph [ref=e327]: Cabletech Solutions Corp.
+                - cell "₱1,406,076.00 NBS Philippines" [ref=e328]:
+                  - paragraph [ref=e330]: ₱1,406,076.00
+                  - paragraph [ref=e331]: NBS Philippines
+      - generic [ref=e333]:
+        - generic [ref=e334]:
+          - generic [ref=e335]:
+            - img [ref=e336]
+            - generic [ref=e339]: 3 suppliers
+          - generic [ref=e341]:
+            - img [ref=e342]
+            - generic [ref=e345]: All prices filled
+          - generic [ref=e347]:
+            - img [ref=e348]
+            - generic [ref=e351]: Winner selected
+          - generic [ref=e353]:
+            - img [ref=e354]
+            - generic [ref=e357]: 6 evidence files
+        - generic [ref=e358]:
+          - paragraph [ref=e359]: Sends pricing to COO for review
+          - button "Save Draft" [ref=e360]:
+            - img
+            - text: Save Draft
+          - button "Submit Supplier Decision" [ref=e361]:
+            - img
+            - text: Submit Supplier Decision

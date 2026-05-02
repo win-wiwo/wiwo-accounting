@@ -14,6 +14,7 @@ import {
 import { useAuthStore } from '@/stores/auth.store';
 import { usePrStats, usePurchaseRequests, useProjectSpending, useManagementStats } from '@/hooks/use-purchase-requests';
 import { usePendingApprovals, usePendingCount } from '@/hooks/use-approvals';
+import { usePoStats, usePurchaseOrders } from '@/hooks/use-purchase-orders';
 import type { ProjectSpendingItem } from '@/lib/api-services';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -25,7 +26,7 @@ const STATUS_HEALTH = [
   { key: PrStatus.LEVEL1_REVIEW,       label: 'Dept Head Review',    dot: 'bg-blue-400' },
   { key: PrStatus.LEVEL2_REVIEW,       label: 'COO Review',          dot: 'bg-blue-500' },
   { key: PrStatus.LEVEL3_REVIEW,       label: 'CEO Review',          dot: 'bg-indigo-500' },
-  { key: PrStatus.PENDING_QUOTATION,   label: 'Pending Procurement', dot: 'bg-violet-400' },
+  { key: PrStatus.PENDING_QUOTATION,   label: 'Pending Canvass', dot: 'bg-violet-400' },
   { key: PrStatus.QUOTED,              label: 'Price Review',        dot: 'bg-violet-600' },
   { key: PrStatus.RETURNED,            label: 'Returned',            dot: 'bg-amber-400' },
   { key: PrStatus.REJECTED,            label: 'Rejected',            dot: 'bg-red-400' },
@@ -73,8 +74,9 @@ export function DashboardPage() {
   const isApprover = user ? APPROVER_ROLES.includes(user.role as typeof APPROVER_ROLES[number]) : false;
   const isAdmin = user?.role === UserRole.ADMIN;
 
-  const [queueFilter, setQueueFilter] = useState<'all' | 'urgent' | 'procurement'>('all');
+  const [queueFilter, setQueueFilter] = useState<'all' | 'urgent' | 'procurement' | 'approval' | 'price_review'>('all');
 
+  const isProcurement = user?.role === UserRole.PROCUREMENT;
   const isManagement = user?.role === UserRole.COO || user?.role === UserRole.CEO || user?.role === UserRole.ADMIN;
   const canSeeProjectSpending = user?.role !== UserRole.STAFF;
 
@@ -85,10 +87,18 @@ export function DashboardPage() {
   );
   const { data: mgmtStats, isLoading: mgmtLoading } = useManagementStats();
   const { data: pendingCountData } = usePendingCount();
-  const { data: pendingPrsData, isLoading: queueLoading } = usePendingApprovals({ page: 1, limit: 10 });
+  const { data: pendingPrsData, isLoading: queueLoading } = usePendingApprovals({ page: 1, limit: 50 });
   const { data: myPrsData, isLoading: myPrsLoading } = usePurchaseRequests(
     { limit: 5 },
-    { enabled: !isApprover && !isAdmin },
+    { enabled: !isApprover && !isAdmin && !isProcurement },
+  );
+  const { data: procQueueData, isLoading: procQueueLoading } = usePurchaseRequests(
+    { limit: 10, status: PrStatus.PENDING_QUOTATION },
+    { enabled: isProcurement },
+  );
+  const { data: poStatsData, isLoading: poStatsLoading } = usePoStats();
+  const { data: recentPosData, isLoading: recentPosLoading } = usePurchaseOrders(
+    { limit: 5, sort: 'createdAt', order: 'desc' },
   );
 
   const rawPendingPrs = isApprover ? (pendingPrsData?.data ?? []) : [];
@@ -96,7 +106,10 @@ export function DashboardPage() {
   const pendingCountFromApi = (pendingCountData as unknown as { count?: number })?.count ?? 0;
   const pendingCountFromList = pendingPrsData?.meta?.total ?? rawPendingPrs.length;
   const pendingCount = Math.max(pendingCountFromApi, pendingCountFromList);
-  const myPrs = (!isApprover && !isAdmin) ? (myPrsData?.data ?? []) : [];
+  const myPrs = (!isApprover && !isAdmin && !isProcurement) ? (myPrsData?.data ?? []) : [];
+  const procQueue = isProcurement ? (procQueueData?.data ?? []) : [];
+  const poStats = (poStatsData as unknown as { data?: { total: number; pending: number; ordered: number; received: number; cancelled: number; activeValue: number } })?.data;
+  const recentPos = isProcurement ? (recentPosData?.data ?? []) : [];
 
   const sortedPending = useMemo(() =>
     [...rawPendingPrs].sort((a, b) => {
@@ -104,10 +117,14 @@ export function DashboardPage() {
       return pd !== 0 ? pd : new Date(a.submittedAt ?? 0).getTime() - new Date(b.submittedAt ?? 0).getTime();
     }), [rawPendingPrs]);
 
+  const isCoo = user?.role === UserRole.COO;
+
   const filteredQueue = useMemo(() => {
     if (queueFilter === 'urgent') return sortedPending.filter(p => p.priority === 'urgent');
     if (queueFilter === 'procurement') return sortedPending.filter(p =>
       p.items.some(i => i.sourcingType === SourcingType.PROCUREMENT));
+    if (queueFilter === 'approval') return sortedPending.filter(p => p.status !== PrStatus.QUOTED);
+    if (queueFilter === 'price_review') return sortedPending.filter(p => p.status === PrStatus.QUOTED);
     return sortedPending;
   }, [sortedPending, queueFilter]);
 
@@ -126,18 +143,19 @@ export function DashboardPage() {
   const inProcCount     = (byStatus[PrStatus.PENDING_QUOTATION]?.count ?? 0) +
                           (byStatus[PrStatus.QUOTED]?.count ?? 0);
 
-  const pendingTotalValue = [
-    PrStatus.LEVEL1_REVIEW, PrStatus.LEVEL2_REVIEW, PrStatus.LEVEL3_REVIEW,
-    PrStatus.PENDING_QUOTATION, PrStatus.QUOTED,
-  ].reduce((sum, s) => sum + (byStatus[s]?.totalAmount ?? 0), 0);
-
   const urgentCount = sortedPending.filter(p => p.priority === 'urgent').length;
+  const overdueFromQueue = sortedPending.filter(p => ageDays(p.submittedAt) >= 5).length;
   const oldestAge   = sortedPending.reduce((max, p) => Math.max(max, ageDays(p.submittedAt)), 0);
 
+  const procPendingCount = byStatus[PrStatus.PENDING_QUOTATION]?.count ?? 0;
   const subtitle = isApprover
     ? pendingCount > 0
       ? `${pendingCount} request${pendingCount > 1 ? 's' : ''} need${pendingCount === 1 ? 's' : ''} your approval.`
       : "You're all caught up. No pending approvals."
+    : isProcurement
+      ? procPendingCount > 0
+        ? `${procPendingCount} item${procPendingCount > 1 ? 's' : ''} pending procurement.`
+        : "No items pending procurement. You're all caught up."
     : totalPrs === 0
       ? "No purchase requests yet. Create your first one."
       : `${totalPrs} total request${totalPrs > 1 ? 's' : ''} in the system.`;
@@ -228,31 +246,38 @@ export function DashboardPage() {
                 {urgentCount > 0 && (
                   <KpiCard label="Urgent" value={urgentCount} onClick={() => navigate('/approvals')} variant="danger" />
                 )}
-                {mgmtStats && (
+                {overdueFromQueue > 0 && (
                   <KpiCard
                     label="Overdue"
-                    value={String(mgmtStats.overdueCount)}
-                    variant={mgmtStats.overdueCount > 0 ? 'danger' : 'default'}
+                    value={overdueFromQueue}
+                    variant="danger"
                     onClick={() => navigate('/approvals')}
                   />
                 )}
-                {pendingTotalValue > 0 && (
-                  <KpiCard label="Value Pending" value={compact(pendingTotalValue)} />
-                )}
-                {oldestAge > 0 && (
+{oldestAge > 0 && (
                   <KpiCard label="Oldest Pending" value={`${oldestAge}d`}
                     variant={oldestAge >= 7 ? 'danger' : 'default'} />
                 )}
                 <KpiCard label="Total PRs" value={totalPrs} onClick={() => navigate('/purchase-requests')} />
               </>
+            ) : isProcurement ? (
+              <>
+                <KpiCard label="Pending Canvass" value={procPendingCount} onClick={() => navigate('/procurement')} variant={procPendingCount > 0 ? 'warning' : 'default'} />
+                {(byStatus[PrStatus.QUOTED]?.count ?? 0) > 0 && (
+                  <KpiCard label="Price Review" value={byStatus[PrStatus.QUOTED]?.count ?? 0} onClick={() => navigate('/purchase-requests?status=quoted')} />
+                )}
+                <KpiCard label="Pending POs" value={poStats?.pending ?? 0} onClick={() => navigate('/purchase-orders?status=pending')} variant={(poStats?.pending ?? 0) > 0 ? 'warning' : 'default'} />
+                <KpiCard label="Ordered" value={poStats?.ordered ?? 0} onClick={() => navigate('/purchase-orders?status=ordered')} />
+                <KpiCard label="Received" value={poStats?.received ?? 0} onClick={() => navigate('/purchase-orders?status=received')} variant="success" />
+              </>
             ) : !isAdmin ? (
               <>
                 <KpiCard label="My Requests" value={totalPrs} onClick={() => navigate('/purchase-requests')} />
                 {inReviewCount > 0 && (
-                  <KpiCard label="In Review" value={inReviewCount} onClick={() => navigate('/purchase-requests?status=level1_review')} variant="warning" />
+                  <KpiCard label="In Review" value={inReviewCount} onClick={() => navigate('/purchase-requests?status=level1_review,level2_review,level3_review')} variant="warning" />
                 )}
                 {inProcCount > 0 && (
-                  <KpiCard label="In Procurement" value={inProcCount} onClick={() => navigate('/purchase-requests?status=pending_quotation')} />
+                  <KpiCard label="In Procurement" value={inProcCount} onClick={() => navigate('/purchase-requests?status=pending_quotation,quoted')} />
                 )}
                 <KpiCard label="Approved" value={approvedCount} onClick={() => navigate('/purchase-requests?status=approved')} variant="success" />
                 {returnedCount > 0 && (
@@ -297,17 +322,23 @@ export function DashboardPage() {
 
               {/* Filter tabs */}
               <div className="px-6 pb-4 flex gap-1">
-                {(['all', 'urgent', 'procurement'] as const).map(f => (
+                {([
+                  { key: 'all' as const, label: 'All' },
+                  ...(isCoo ? [
+                    { key: 'approval' as const, label: 'Approval' },
+                    { key: 'price_review' as const, label: 'Price Review' },
+                  ] : []),
+                ]).map(f => (
                   <button
-                    key={f}
-                    onClick={() => setQueueFilter(f)}
+                    key={f.key}
+                    onClick={() => setQueueFilter(f.key)}
                     className={`px-3 py-1 rounded-full text-[11px] font-semibold tracking-wide transition-all duration-200 active:scale-[0.96] ${
-                      queueFilter === f
+                      queueFilter === f.key
                         ? 'bg-zinc-900 text-white shadow-sm'
                         : 'text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100'
                     }`}
                   >
-                    {f === 'all' ? 'All' : f === 'urgent' ? 'Urgent' : 'Procurement'}
+                    {f.label}
                   </button>
                 ))}
               </div>
@@ -321,7 +352,9 @@ export function DashboardPage() {
                   <div className="py-10 text-center">
                     <CheckCircle2 className="h-7 w-7 text-zinc-200 mx-auto mb-2.5" />
                     <p className="text-[13px] text-zinc-400">
-                      {queueFilter === 'all' ? 'No pending approvals.' : `No ${queueFilter} items.`}
+                      {queueFilter === 'all' ? 'No pending approvals.'
+                        : queueFilter === 'price_review' ? 'No price review items.'
+                        : `No ${queueFilter} items.`}
                     </p>
                   </div>
                 ) : (
@@ -369,8 +402,130 @@ export function DashboardPage() {
             </Card>
           )}
 
+          {/* Procurement Queue (procurement officer) */}
+          {isProcurement && (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-3 px-6 pt-6">
+                <CardTitle className="text-[15px] font-semibold text-zinc-900">Pending Canvass</CardTitle>
+                <button
+                  className="inline-flex items-center gap-1 text-[12px] font-medium text-zinc-400 hover:text-zinc-700 transition-colors duration-150"
+                  onClick={() => navigate('/procurement')}
+                >
+                  View all <ArrowRight className="h-3 w-3" />
+                </button>
+              </CardHeader>
+              <CardContent className="pt-0 px-6">
+                {procQueueLoading ? (
+                  <div className="space-y-2">
+                    {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}
+                  </div>
+                ) : procQueue.length === 0 ? (
+                  <div className="py-10 text-center">
+                    <CheckCircle2 className="h-7 w-7 text-zinc-200 mx-auto mb-2.5" />
+                    <p className="text-[13px] text-zinc-400">No items pending procurement.</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-zinc-100">
+                    {procQueue.map(pr => {
+                      const requester = pr.requesterId && typeof pr.requesterId === 'object'
+                        ? (pr.requesterId as unknown as { firstName: string; lastName: string })
+                        : null;
+                      const itemCount = pr.items.filter(i => i.sourcingType === SourcingType.PROCUREMENT).length;
+                      return (
+                        <div
+                          key={pr._id}
+                          className="flex items-center gap-3 py-3.5 cursor-pointer hover:bg-zinc-50 -mx-6 px-6 transition-colors duration-150 group"
+                          onClick={() => navigate(`/procurement/${pr._id}`)}
+                        >
+                          <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${priorityDot[pr.priority] ?? 'bg-zinc-300'}`} />
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-[13px] text-zinc-800 leading-snug line-clamp-1">{pr.title}</p>
+                            <p className="text-[12px] text-zinc-400 mt-0.5">
+                              {requester ? `${requester.firstName} ${requester.lastName}` : '—'}
+                              {' · '}
+                              {itemCount} item{itemCount !== 1 ? 's' : ''} to source
+                              {' · '}
+                              {ageLabel(pr.submittedAt)}
+                            </p>
+                          </div>
+                          <span className={`text-[12px] font-semibold shrink-0 ${PR_PRIORITY_LABELS[pr.priority as PrPriorityType] === 'Urgent' ? 'text-red-600' : 'text-zinc-500'}`}>
+                            {PR_PRIORITY_LABELS[pr.priority as PrPriorityType]}
+                          </span>
+                          <ChevronRight className="h-3.5 w-3.5 text-zinc-200 group-hover:text-zinc-400 shrink-0 transition-colors duration-150" />
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Recent Purchase Orders (procurement) */}
+          {isProcurement && (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-3 px-6 pt-6">
+                <CardTitle className="text-[15px] font-semibold text-zinc-900">Recent Purchase Orders</CardTitle>
+                <button
+                  className="inline-flex items-center gap-1 text-[12px] font-medium text-zinc-400 hover:text-zinc-700 transition-colors duration-150"
+                  onClick={() => navigate('/purchase-orders')}
+                >
+                  View all <ArrowRight className="h-3 w-3" />
+                </button>
+              </CardHeader>
+              <CardContent className="pt-0 px-6">
+                {recentPosLoading ? (
+                  <div className="space-y-2">
+                    {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}
+                  </div>
+                ) : recentPos.length === 0 ? (
+                  <div className="py-10 text-center">
+                    <FileText className="h-7 w-7 text-zinc-200 mx-auto mb-2.5" />
+                    <p className="text-[13px] text-zinc-400">No purchase orders yet.</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-zinc-100">
+                    {recentPos.map((po: { _id: string; poNumber?: string; title?: string; supplierName?: string; totalAmount?: number; status?: string; createdAt?: string }) => {
+                      const statusColors: Record<string, string> = {
+                        pending: 'text-amber-600 bg-amber-50',
+                        ordered: 'text-blue-600 bg-blue-50',
+                        received: 'text-emerald-600 bg-emerald-50',
+                        cancelled: 'text-red-600 bg-red-50',
+                      };
+                      return (
+                        <div
+                          key={po._id}
+                          className="flex items-center gap-3 py-3.5 cursor-pointer hover:bg-zinc-50 -mx-6 px-6 transition-colors duration-150 group"
+                          onClick={() => navigate(`/purchase-orders/${po._id}`)}
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-[13px] text-zinc-800 leading-snug line-clamp-1">
+                              {po.poNumber ? `${po.poNumber} — ` : ''}{po.title ?? 'Purchase Order'}
+                            </p>
+                            <p className="text-[12px] text-zinc-400 mt-0.5">
+                              {po.supplierName ?? '—'}
+                              {' · '}
+                              {ageLabel(po.createdAt)}
+                            </p>
+                          </div>
+                          <span className="text-[13px] font-semibold shrink-0 tabular-nums text-zinc-700">
+                            {compact(po.totalAmount ?? 0)}
+                          </span>
+                          <span className={`text-[10px] font-semibold rounded-full px-2 py-0.5 capitalize shrink-0 ${statusColors[po.status ?? ''] ?? 'text-zinc-500 bg-zinc-50'}`}>
+                            {po.status ?? '—'}
+                          </span>
+                          <ChevronRight className="h-3.5 w-3.5 text-zinc-200 group-hover:text-zinc-400 shrink-0 transition-colors duration-150" />
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {/* My Recent PRs (staff) */}
-          {!isApprover && !isAdmin && (
+          {!isApprover && !isAdmin && !isProcurement && (
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-3 px-6 pt-6">
                 <CardTitle className="text-[15px] font-semibold text-zinc-900">My Recent Requests</CardTitle>
@@ -484,7 +639,35 @@ export function DashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0 px-6 pb-5 space-y-0.5">
-                {!isApprover && (
+                {isProcurement && (
+                  <>
+                    <button
+                      className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium text-zinc-700 hover:bg-zinc-50 transition-colors duration-150"
+                      onClick={() => navigate('/procurement')}
+                    >
+                      <Clock className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
+                      Procurement Queue
+                      {procPendingCount > 0 && (
+                        <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-zinc-900 px-1.5 text-[10px] font-bold text-white">
+                          {procPendingCount}
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium text-zinc-700 hover:bg-zinc-50 transition-colors duration-150"
+                      onClick={() => navigate('/purchase-orders')}
+                    >
+                      <FileText className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
+                      Purchase Orders
+                      {(poStats?.pending ?? 0) > 0 && (
+                        <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500 px-1.5 text-[10px] font-bold text-white">
+                          {poStats?.pending}
+                        </span>
+                      )}
+                    </button>
+                  </>
+                )}
+                {!isApprover && !isProcurement && (
                   <button
                     className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium text-zinc-700 hover:bg-zinc-50 transition-colors duration-150"
                     onClick={() => navigate('/purchase-requests/new')}

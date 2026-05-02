@@ -1,17 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
   Crown,
+  Loader2,
   Pencil,
   Plus,
+  Save,
   Search,
   Trash2,
   UserMinus,
   UserPlus,
   Users,
 } from 'lucide-react';
-import { ROLE_LABELS, type UserRole } from '@prams/shared';
+import { ROLE_LABELS, type UserRole, type UpdateDepartmentDto } from '@prams/shared';
 import {
   useDepartment,
   useDepartmentMembers,
@@ -19,10 +21,12 @@ import {
   useRemoveDepartmentMember,
   useSetDepartmentHead,
   useDeleteDepartment,
+  useUpdateDepartment,
 } from '@/hooks/use-departments';
 import { useUsers } from '@/hooks/use-users';
 import { useToast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { resolvePhotoUrl } from '@/lib/utils';
@@ -41,6 +45,8 @@ import {
   EmptyState,
   GhostButton,
   PrimaryButton,
+  FormField,
+  premiumTextareaClass,
 } from '@/components/premium';
 
 export function DepartmentDetailPage() {
@@ -63,6 +69,7 @@ export function DepartmentDetailPage() {
     name: string;
   }>({ open: false, userId: '', name: '' });
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   const { data: searchUsersData } = useUsers({
     search: memberSearch || undefined,
@@ -194,7 +201,7 @@ export function DepartmentDetailPage() {
             <GhostButton onClick={() => navigate('/departments')}>
               <ArrowLeft className="h-3.5 w-3.5" /> Back
             </GhostButton>
-            <GhostButton onClick={() => navigate(`/departments/${id}/edit`)}>
+            <GhostButton onClick={() => setEditOpen(true)}>
               <Pencil className="h-3.5 w-3.5" /> Edit
             </GhostButton>
             <GhostButton
@@ -276,7 +283,7 @@ export function DepartmentDetailPage() {
             }
           />
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto overflow-y-hidden">
             <table className="w-full">
               <thead className="bg-white/95 border-b border-zinc-100">
                 <tr>
@@ -335,9 +342,10 @@ export function DepartmentDetailPage() {
                           {!isHead && (
                             <button
                               onClick={() => handleSetHead(member._id)}
-                              className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[12px] font-medium text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 transition-colors"
+                              className="h-7 w-7 flex items-center justify-center rounded-lg text-amber-400 hover:bg-amber-50 hover:text-amber-600 transition-colors"
+                              aria-label="Make Head"
                             >
-                              <Crown className="h-3 w-3" /> Make Head
+                              <Crown className="h-3.5 w-3.5" />
                             </button>
                           )}
                           <button
@@ -479,7 +487,110 @@ export function DepartmentDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Department Modal */}
+      <EditDepartmentModal
+        key={dept._id}
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        dept={{ _id: dept._id, name: dept.name, code: dept.code, description: dept.description || '' }}
+      />
     </div>
+  );
+}
+
+interface EditDepartmentModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  dept: { _id: string; name: string; code: string; description: string };
+}
+
+function EditDepartmentModal({ open, onOpenChange, dept }: EditDepartmentModalProps) {
+  const { toast } = useToast();
+  const updateMutation = useUpdateDepartment();
+
+  const [name, setName] = useState(dept.name);
+  const [code, setCode] = useState(dept.code);
+  const [description, setDescription] = useState(dept.description);
+
+  useEffect(() => {
+    setName(dept.name);
+    setCode(dept.code);
+    setDescription(dept.description);
+  }, [dept]);
+
+  const handleSave = async () => {
+    const data: UpdateDepartmentDto = {
+      name: name.trim(),
+      code: code.trim().toUpperCase(),
+      description: description.trim(),
+    };
+    try {
+      await updateMutation.mutateAsync({ id: dept._id, data });
+      toast({ title: 'Department updated', variant: 'success' });
+      onOpenChange(false);
+    } catch (err: unknown) {
+      const message =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : 'Failed to update department.';
+      toast({ title: 'Error', description: message || 'Failed to update department.', variant: 'error' });
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[480px]">
+        <DialogHeader>
+          <DialogTitle>Edit Department</DialogTitle>
+          <DialogDescription>Update details for {dept.name}.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormField label="Department Name" htmlFor="edit-dept-name" required>
+              <Input
+                id="edit-dept-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </FormField>
+            <FormField label="Code" htmlFor="edit-dept-code" required help="2–10 chars, used in PR numbering.">
+              <Input
+                id="edit-dept-code"
+                value={code}
+                className="uppercase"
+                onChange={(e) => setCode(e.target.value)}
+              />
+            </FormField>
+          </div>
+          <FormField label="Description" htmlFor="edit-dept-desc">
+            <textarea
+              id="edit-dept-desc"
+              rows={3}
+              className={premiumTextareaClass}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </FormField>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <PrimaryButton
+            onClick={handleSave}
+            disabled={updateMutation.isPending || !name.trim() || !code.trim()}
+          >
+            {updateMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            Save Changes
+          </PrimaryButton>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

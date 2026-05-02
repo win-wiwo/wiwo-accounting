@@ -9,6 +9,7 @@ export interface ItemPhotoWidgetProps {
   onViewServer: () => void;
   onStage: (index: number, file: File) => void;
   onClearStaged: (index: number) => void;
+  onClearServer?: (index: number) => void;
 }
 
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -21,6 +22,7 @@ export function ItemPhotoWidget({
   onViewServer,
   onStage,
   onClearStaged,
+  onClearServer,
 }: ItemPhotoWidgetProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -88,36 +90,33 @@ export function ItemPhotoWidget({
         <div className="flex items-center gap-2 rounded-lg border border-zinc-100 bg-zinc-50/60 px-3 py-2">
           <Camera className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
           {serverPhotoPreviewUrl && (
-            <img
-              src={serverPhotoPreviewUrl}
-              alt="ref"
-              className="h-8 w-8 rounded-md object-cover border border-zinc-200"
-            />
+            <button
+              type="button"
+              onClick={onViewServer}
+              className="shrink-0 rounded-md focus:outline-none focus:ring-2 focus:ring-zinc-400/30"
+            >
+              <img
+                src={serverPhotoPreviewUrl}
+                alt="ref"
+                className="h-8 w-8 rounded-md object-cover border border-zinc-200 cursor-pointer hover:opacity-80 transition-opacity"
+              />
+            </button>
           )}
-          <span className="text-[12px] text-zinc-700 truncate max-w-[140px]">
-            {serverPhotoName}
-          </span>
           <button
             type="button"
             onClick={onViewServer}
-            className="ml-auto inline-flex items-center rounded-md px-2 py-1 text-[11px] font-medium text-zinc-600 hover:bg-zinc-100 hover:text-zinc-800 transition-colors"
+            className="text-[12px] text-zinc-700 truncate max-w-[140px] hover:text-zinc-900 transition-colors cursor-pointer"
           >
-            View
+            {serverPhotoName}
           </button>
           <button
             type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="inline-flex items-center rounded-md px-2 py-1 text-[11px] font-medium text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 transition-colors"
+            onClick={() => onClearServer?.(index)}
+            className="h-6 w-6 flex items-center justify-center rounded-md text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors ml-auto"
+            aria-label="Remove photo"
           >
-            Replace
+            <X className="h-3 w-3" />
           </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            className="hidden"
-            onChange={handleFileChange}
-          />
         </div>
       </div>
     );

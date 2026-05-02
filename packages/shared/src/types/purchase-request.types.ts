@@ -58,6 +58,7 @@ export interface PrAttachment {
   size: number;
   uploadedBy: string;
   uploadedAt: string;
+  canvassEntryId?: string | null;
 }
 
 export interface QuotationReturn {

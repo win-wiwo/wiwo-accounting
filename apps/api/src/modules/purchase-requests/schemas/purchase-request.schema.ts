@@ -100,6 +100,9 @@ export class Attachment {
 
   @Prop({ default: () => new Date() })
   uploadedAt: Date;
+
+  @Prop({ type: Types.ObjectId, default: null })
+  canvassEntryId: Types.ObjectId | null;
 }
 
 export const AttachmentSchema = SchemaFactory.createForClass(Attachment);

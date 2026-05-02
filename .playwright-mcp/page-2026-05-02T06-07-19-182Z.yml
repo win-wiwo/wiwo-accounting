@@ -1,0 +1,52 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - img "WIWO" [ref=e7]
+      - button [ref=e8]:
+        - img [ref=e9]
+    - navigation [ref=e12]:
+      - link "Dashboard" [ref=e13] [cursor=pointer]:
+        - /url: /dashboard
+        - img [ref=e14]
+        - generic [ref=e19]: Dashboard
+      - link "Purchase Requests" [ref=e20] [cursor=pointer]:
+        - /url: /purchase-requests
+        - img [ref=e21]
+        - generic [ref=e24]: Purchase Requests
+      - link "Procurement Queue" [ref=e25] [cursor=pointer]:
+        - /url: /procurement
+        - img [ref=e26]
+        - generic [ref=e29]: Procurement Queue
+      - link "Suppliers" [ref=e30] [cursor=pointer]:
+        - /url: /suppliers
+        - img [ref=e31]
+        - generic [ref=e36]: Suppliers
+      - link "Purchase Orders" [ref=e37] [cursor=pointer]:
+        - /url: /purchase-orders
+        - img [ref=e38]
+        - generic [ref=e42]: Purchase Orders
+      - link "Search & Monitor" [ref=e43] [cursor=pointer]:
+        - /url: /search
+        - img [ref=e44]
+        - generic [ref=e47]: Search & Monitor
+      - link "Reports" [ref=e48] [cursor=pointer]:
+        - /url: /reports
+        - img [ref=e49]
+        - generic [ref=e51]: Reports
+    - generic [ref=e54]:
+      - link "EV Eduardo Villanueva Procurement Officer" [ref=e55] [cursor=pointer]:
+        - /url: /profile
+        - generic [ref=e57]: EV
+        - generic [ref=e58]:
+          - paragraph [ref=e59]: Eduardo Villanueva
+          - paragraph [ref=e60]: Procurement Officer
+      - button "Sign out" [ref=e61]:
+        - img
+        - text: Sign out
+  - banner [ref=e62]:
+    - generic [ref=e64]:
+      - img [ref=e65]
+      - textbox "Search PRs... (Ctrl+K)" [ref=e68]
+    - button [ref=e70]:
+      - img
+  - main [ref=e71]

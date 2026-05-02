@@ -189,9 +189,10 @@ export const purchaseRequestsApi = {
       .then((r) => r.data);
   },
 
-  uploadQuotationAttachment: (id: string, file: File) => {
+  uploadQuotationAttachment: (id: string, file: File, canvassEntryId?: string) => {
     const formData = new FormData();
     formData.append('file', file);
+    if (canvassEntryId) formData.append('canvassEntryId', canvassEntryId);
     return apiClient
       .post<ApiResponse<PurchaseRequest>>(`/purchase-requests/${id}/quotation-attachments`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },

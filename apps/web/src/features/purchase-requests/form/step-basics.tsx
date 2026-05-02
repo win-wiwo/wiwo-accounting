@@ -186,13 +186,14 @@ export function StepBasics({ form, isEdit, projectOptions }: StepBasicsProps) {
         <div className="px-6 pb-6">
           <div className="grid gap-5 sm:grid-cols-2">
             <FormField label="Priority" error={errors.priority?.message}>
+              <Controller
+                control={control}
+                name="priority"
+                render={({ field }) => (
               <Select
-                value={watch('priority')}
-                onValueChange={(v) =>
-                  setValue('priority', v as PrPriority, {
-                    shouldValidate: true,
-                  })
-                }
+                key={field.value}
+                value={field.value}
+                onValueChange={field.onChange}
               >
                 <SelectTrigger className={premiumSelectTriggerClass}>
                   <SelectValue placeholder="Select priority" />
@@ -205,6 +206,8 @@ export function StepBasics({ form, isEdit, projectOptions }: StepBasicsProps) {
                   ))}
                 </SelectContent>
               </Select>
+                )}
+              />
             </FormField>
 
             <FormField label="Required Date" htmlFor="neededByDate">

@@ -54,6 +54,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { resolvePhotoUrl } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import {
   Dialog,
@@ -563,6 +565,7 @@ export function PrDetailPage() {
     lastName: string;
     email: string;
     employeeId: string;
+    photoUrl?: string | null;
   } | null;
   const department = pr.departmentId as unknown as {
     _id: string;
@@ -1335,9 +1338,15 @@ export function PrDetailPage() {
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400 mb-3">Ownership</p>
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-zinc-100 flex items-center justify-center shrink-0 text-zinc-500 font-semibold text-[13px]">
-                    {requester ? requester.firstName[0] : <User className="h-4 w-4" />}
-                  </div>
+                  <Avatar className="h-10 w-10 shrink-0">
+                    <AvatarImage
+                      src={resolvePhotoUrl(requester?.photoUrl)}
+                      alt={requester ? `${requester.firstName} ${requester.lastName}` : undefined}
+                    />
+                    <AvatarFallback className="bg-zinc-100 text-zinc-500 text-[13px] font-semibold">
+                      {requester ? requester.firstName[0] : <User className="h-4 w-4" />}
+                    </AvatarFallback>
+                  </Avatar>
                   <div className="min-w-0">
                     <p className="text-[13px] font-semibold text-zinc-900 leading-tight truncate">
                       {requester ? `${requester.firstName} ${requester.lastName}` : "—"}

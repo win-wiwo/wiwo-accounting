@@ -214,7 +214,7 @@ export class PurchaseRequestsService {
     const [prs, total] = await Promise.all([
       this.prModel
         .find(filter)
-        .populate('requesterId', 'firstName lastName email employeeId')
+        .populate('requesterId', 'firstName lastName email employeeId photoUrl')
         .populate('departmentId', 'name code')
         .populate('projectId', 'name code')
         .sort(sortObj)
@@ -238,7 +238,7 @@ export class PurchaseRequestsService {
   async findById(id: string, user: RequestUser): Promise<PurchaseRequest> {
     const pr = await this.prModel
       .findById(id)
-      .populate('requesterId', 'firstName lastName email employeeId')
+      .populate('requesterId', 'firstName lastName email employeeId photoUrl')
       .populate('departmentId', 'name code')
       .populate('projectId', 'name code')
       .populate('items.selectedSupplierId', 'companyName')
@@ -325,7 +325,7 @@ export class PurchaseRequestsService {
 
     return this.prModel
       .findById(id)
-      .populate('requesterId', 'firstName lastName email employeeId')
+      .populate('requesterId', 'firstName lastName email employeeId photoUrl')
       .populate('departmentId', 'name code')
       .exec() as Promise<PurchaseRequest>;
   }
@@ -409,7 +409,7 @@ export class PurchaseRequestsService {
 
     return this.prModel
       .findById(id)
-      .populate('requesterId', 'firstName lastName email employeeId')
+      .populate('requesterId', 'firstName lastName email employeeId photoUrl')
       .populate('departmentId', 'name code')
       .exec() as Promise<PurchaseRequest>;
   }
@@ -554,7 +554,7 @@ export class PurchaseRequestsService {
 
     return this.prModel
       .findById(id)
-      .populate('requesterId', 'firstName lastName email employeeId')
+      .populate('requesterId', 'firstName lastName email employeeId photoUrl')
       .populate('departmentId', 'name code')
       .exec() as Promise<PurchaseRequest>;
   }
@@ -612,6 +612,12 @@ export class PurchaseRequestsService {
       supplierMap = new Map(suppliers.map((sup) => [sup._id.toString(), sup.companyName]));
     }
 
+    // Build a map of existing entries by supplierId to preserve _ids
+    // (attachments reference canvassEntry._id, so we must not regenerate them)
+    const existingBySupplier = new Map(
+      (pr.canvassEntries ?? []).map((e) => [e.supplierId.toString(), e]),
+    );
+
     const normalizedEntries = liveEntries.map((entry) => {
       const seenItems = new Set<string>();
       const quotedItems = (entry.quotedItems ?? [])
@@ -633,7 +639,9 @@ export class PurchaseRequestsService {
           };
         });
 
+      const existing = existingBySupplier.get(entry.supplierId!);
       return {
+        ...(existing?._id ? { _id: existing._id } : {}),
         supplierId: new Types.ObjectId(entry.supplierId!),
         supplierName: supplierMap.get(entry.supplierId!) ?? entry.supplierName ?? '',
         quotedItems,
@@ -650,7 +658,7 @@ export class PurchaseRequestsService {
 
     return this.prModel
       .findById(id)
-      .populate('requesterId', 'firstName lastName email employeeId')
+      .populate('requesterId', 'firstName lastName email employeeId photoUrl')
       .populate('departmentId', 'name code')
       .exec() as Promise<PurchaseRequest>;
   }
@@ -688,7 +696,7 @@ export class PurchaseRequestsService {
 
     return this.prModel
       .findById(id)
-      .populate('requesterId', 'firstName lastName email employeeId')
+      .populate('requesterId', 'firstName lastName email employeeId photoUrl')
       .populate('departmentId', 'name code')
       .exec() as Promise<PurchaseRequest>;
   }
@@ -731,7 +739,7 @@ export class PurchaseRequestsService {
 
     return this.prModel
       .findById(id)
-      .populate('requesterId', 'firstName lastName email employeeId')
+      .populate('requesterId', 'firstName lastName email employeeId photoUrl')
       .populate('departmentId', 'name code')
       .populate('quotationReturnHistory.returnedBy', 'firstName lastName')
       .populate('clarificationReplies.repliedBy', 'firstName lastName')
@@ -771,7 +779,7 @@ export class PurchaseRequestsService {
 
     return this.prModel
       .findById(id)
-      .populate('requesterId', 'firstName lastName email employeeId')
+      .populate('requesterId', 'firstName lastName email employeeId photoUrl')
       .populate('departmentId', 'name code')
       .exec() as Promise<PurchaseRequest>;
   }
@@ -812,7 +820,7 @@ export class PurchaseRequestsService {
 
     return this.prModel
       .findById(id)
-      .populate('requesterId', 'firstName lastName email employeeId')
+      .populate('requesterId', 'firstName lastName email employeeId photoUrl')
       .populate('departmentId', 'name code')
       .populate('projectId', 'name code')
       .populate('quotationReturnHistory.returnedBy', 'firstName lastName')
@@ -854,7 +862,7 @@ export class PurchaseRequestsService {
 
     return this.prModel
       .findById(id)
-      .populate('requesterId', 'firstName lastName email employeeId')
+      .populate('requesterId', 'firstName lastName email employeeId photoUrl')
       .populate('departmentId', 'name code')
       .exec() as Promise<PurchaseRequest>;
   }
@@ -894,7 +902,7 @@ export class PurchaseRequestsService {
 
     return this.prModel
       .findById(id)
-      .populate('requesterId', 'firstName lastName email employeeId')
+      .populate('requesterId', 'firstName lastName email employeeId photoUrl')
       .populate('departmentId', 'name code')
       .exec() as Promise<PurchaseRequest>;
   }
@@ -903,6 +911,7 @@ export class PurchaseRequestsService {
     id: string,
     file: Express.Multer.File,
     user: RequestUser,
+    canvassEntryId: string | null = null,
   ): Promise<PurchaseRequest> {
     const pr = await this.prModel.findById(id).exec();
 
@@ -926,13 +935,14 @@ export class PurchaseRequestsService {
       size: file.size,
       uploadedBy: user._id as unknown as import('mongoose').Types.ObjectId,
       uploadedAt: new Date(),
+      canvassEntryId: canvassEntryId ? new Types.ObjectId(canvassEntryId) : null,
     } as unknown as import('./schemas/purchase-request.schema').Attachment);
 
     await pr.save();
 
     return this.prModel
       .findById(id)
-      .populate('requesterId', 'firstName lastName email employeeId')
+      .populate('requesterId', 'firstName lastName email employeeId photoUrl')
       .populate('departmentId', 'name code')
       .exec() as Promise<PurchaseRequest>;
   }
@@ -965,7 +975,7 @@ export class PurchaseRequestsService {
 
     return this.prModel
       .findById(id)
-      .populate('requesterId', 'firstName lastName email employeeId')
+      .populate('requesterId', 'firstName lastName email employeeId photoUrl')
       .populate('departmentId', 'name code')
       .exec() as Promise<PurchaseRequest>;
   }
@@ -999,7 +1009,7 @@ export class PurchaseRequestsService {
 
     return this.prModel
       .findById(id)
-      .populate('requesterId', 'firstName lastName email employeeId')
+      .populate('requesterId', 'firstName lastName email employeeId photoUrl')
       .populate('departmentId', 'name code')
       .exec() as Promise<PurchaseRequest>;
   }
@@ -1041,7 +1051,7 @@ export class PurchaseRequestsService {
 
     return this.prModel
       .findById(id)
-      .populate('requesterId', 'firstName lastName email employeeId')
+      .populate('requesterId', 'firstName lastName email employeeId photoUrl')
       .populate('departmentId', 'name code')
       .exec() as Promise<PurchaseRequest>;
   }
@@ -1076,7 +1086,7 @@ export class PurchaseRequestsService {
 
     return this.prModel
       .findById(id)
-      .populate('requesterId', 'firstName lastName email employeeId')
+      .populate('requesterId', 'firstName lastName email employeeId photoUrl')
       .populate('departmentId', 'name code')
       .exec() as Promise<PurchaseRequest>;
   }
@@ -1175,10 +1185,16 @@ export class PurchaseRequestsService {
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const overdueCutoff = new Date(Date.now() - 5 * 86_400_000);
 
-    const reviewStatuses = [
+    // Only count statuses this role can actually see
+    const allReviewStatuses = [
       PrStatus.LEVEL1_REVIEW, PrStatus.LEVEL2_REVIEW, PrStatus.LEVEL3_REVIEW,
       PrStatus.PENDING_QUOTATION, PrStatus.QUOTED,
     ];
+    const reviewStatuses = allReviewStatuses.filter((s) => {
+      if (user.role === UserRole.COO) return s !== PrStatus.LEVEL1_REVIEW;
+      if (user.role === UserRole.CEO) return s !== PrStatus.LEVEL1_REVIEW && s !== PrStatus.LEVEL2_REVIEW;
+      return true;
+    });
 
     const [
       approvalTimeResult,

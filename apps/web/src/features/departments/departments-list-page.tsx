@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { usePageTitle } from '@/hooks/use-page-title';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Users, Crown, Trash2, Pencil } from 'lucide-react';
-import { useDepartments, useDeleteDepartment } from '@/hooks/use-departments';
+import { Plus, Users, Crown, Trash2, Pencil, Loader2, Save } from 'lucide-react';
+import { type UpdateDepartmentDto } from '@prams/shared';
+import { useDepartments, useDeleteDepartment, useUpdateDepartment } from '@/hooks/use-departments';
 import { useToast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Dialog,
   DialogContent,
@@ -19,6 +21,8 @@ import {
   Surface,
   FilterBar,
   SearchInput,
+  FormField,
+  premiumTextareaClass,
   StatusBadge,
   Pagination,
   EmptyState,
@@ -36,6 +40,13 @@ export function DepartmentsListPage() {
     id: string;
     name: string;
   }>({ open: false, id: '', name: '' });
+  const [editDept, setEditDept] = useState<{
+    open: boolean;
+    _id: string;
+    name: string;
+    code: string;
+    description: string;
+  } | null>(null);
 
   const { data, isLoading } = useDepartments({
     page,
@@ -160,7 +171,15 @@ export function DepartmentsListPage() {
                         <td className="px-3 py-4" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
                             <button
-                              onClick={() => navigate(`/departments/${dept._id}/edit`)}
+                              onClick={() =>
+                                setEditDept({
+                                  open: true,
+                                  _id: dept._id,
+                                  name: dept.name,
+                                  code: dept.code,
+                                  description: dept.description || '',
+                                })
+                              }
                               className="h-7 w-7 flex items-center justify-center rounded-lg text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 transition-colors"
                               aria-label="Edit"
                             >
@@ -229,7 +248,113 @@ export function DepartmentsListPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {editDept && (
+        <EditDepartmentModal
+          key={editDept._id}
+          open={editDept.open}
+          onOpenChange={(open) => {
+            if (!open) setEditDept(null);
+          }}
+          dept={editDept}
+        />
+      )}
     </div>
+  );
+}
+
+interface EditDepartmentModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  dept: { _id: string; name: string; code: string; description: string };
+}
+
+function EditDepartmentModal({ open, onOpenChange, dept }: EditDepartmentModalProps) {
+  const { toast } = useToast();
+  const updateMutation = useUpdateDepartment();
+
+  const [name, setName] = useState(dept.name);
+  const [code, setCode] = useState(dept.code);
+  const [description, setDescription] = useState(dept.description);
+
+  useEffect(() => {
+    setName(dept.name);
+    setCode(dept.code);
+    setDescription(dept.description);
+  }, [dept]);
+
+  const handleSave = async () => {
+    const data: UpdateDepartmentDto = {
+      name: name.trim(),
+      code: code.trim().toUpperCase(),
+      description: description.trim(),
+    };
+    try {
+      await updateMutation.mutateAsync({ id: dept._id, data });
+      toast({ title: 'Department updated', variant: 'success' });
+      onOpenChange(false);
+    } catch (err: unknown) {
+      const message =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : 'Failed to update department.';
+      toast({ title: 'Error', description: message || 'Failed to update department.', variant: 'error' });
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[480px]">
+        <DialogHeader>
+          <DialogTitle>Edit Department</DialogTitle>
+          <DialogDescription>Update details for {dept.name}.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormField label="Department Name" htmlFor="edit-dept-name" required>
+              <Input
+                id="edit-dept-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </FormField>
+            <FormField label="Code" htmlFor="edit-dept-code" required help="2–10 chars, used in PR numbering.">
+              <Input
+                id="edit-dept-code"
+                value={code}
+                className="uppercase"
+                onChange={(e) => setCode(e.target.value)}
+              />
+            </FormField>
+          </div>
+          <FormField label="Description" htmlFor="edit-dept-desc">
+            <textarea
+              id="edit-dept-desc"
+              rows={3}
+              className={premiumTextareaClass}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </FormField>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <PrimaryButton
+            onClick={handleSave}
+            disabled={updateMutation.isPending || !name.trim() || !code.trim()}
+          >
+            {updateMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            Save Changes
+          </PrimaryButton>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

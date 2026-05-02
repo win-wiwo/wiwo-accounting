@@ -1,13 +1,22 @@
+import { useRef, useState } from 'react';
+import * as Tooltip from '@radix-ui/react-tooltip';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, Trophy, TrendingDown, AlertTriangle, Info, CheckCircle } from 'lucide-react';
-import { formatCurrency } from './utils';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Plus, Trash2, Trophy, TrendingDown, AlertTriangle, Info, CheckCircle, Upload, Paperclip, Eye, Download, Loader2, Camera } from 'lucide-react';
+import { formatCurrency, canPreviewAttachment } from './utils';
 import type { DraftCanvassEntry } from './use-canvass';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ProcItem = any;
+
+interface AttachmentItem {
+  _id: string;
+  originalName: string;
+  mimeType: string;
+  canvassEntryId?: string | null;
+}
 
 interface CanvassMatrixProps {
   procItems: ProcItem[];
@@ -15,17 +24,34 @@ interface CanvassMatrixProps {
   suppliers: Array<{ _id: string; companyName: string }>;
   canvassJustification: string;
   onJustificationChange: (v: string) => void;
-  onAddEntry: () => void;
+  onAddEntry: (supplierId?: string, quotedPrices?: Record<string, string>, remarks?: string, pendingFile?: File | null) => void;
   onRemoveEntry: (localId: string) => void;
   onUpdateEntry: (localId: string, patch: Partial<DraftCanvassEntry>) => void;
   onSetWinner: (localId: string) => void;
+  quotationAttachments?: AttachmentItem[];
+  onUploadEvidence?: (file: File, canvassEntryId: string) => Promise<void>;
+  onRemoveEvidence?: (attachmentId: string) => Promise<void>;
+  onPreviewAttachment?: (id: string, mimeType: string, name: string) => void;
+  onDownloadAttachment?: (attachmentId: string, name: string) => void;
+  isUploadingEvidence?: boolean;
+  onViewItemPhoto?: (itemId: string) => void;
 }
 
 export function CanvassMatrix({
   procItems, entries, suppliers,
   canvassJustification, onJustificationChange,
   onAddEntry, onRemoveEntry, onUpdateEntry, onSetWinner,
+  quotationAttachments = [], onUploadEvidence, onRemoveEvidence,
+  onPreviewAttachment, onDownloadAttachment, isUploadingEvidence,
+  onViewItemPhoto,
 }: CanvassMatrixProps) {
+  const uploadingEntryRef = useRef<string | null>(null);
+  const [addSupplierOpen, setAddSupplierOpen] = useState(false);
+  const [addSupplierId, setAddSupplierId] = useState('');
+  const [addPrices, setAddPrices] = useState<Record<string, string>>({});
+  const [addRemarks, setAddRemarks] = useState('');
+  const [addFile, setAddFile] = useState<File | null>(null);
+  const usedSupplierIds = new Set(entries.map((e) => e.supplierId).filter(Boolean));
   // Find cheapest and most expensive supplier per item
   const cheapestPerItem: Record<string, string> = {};
   const highestPerItem: Record<string, string> = {};
@@ -97,7 +123,7 @@ export function CanvassMatrix({
               Quote every item per supplier. <span className="text-emerald-600">Green</span> = lowest price. <span className="text-red-500">Red</span> = highest.
             </p>
           </div>
-          <Button type="button" variant="outline" size="sm" className="text-[12px] h-8" onClick={onAddEntry}>
+          <Button type="button" variant="outline" size="sm" className="text-[12px] h-8" onClick={() => { setAddSupplierId(''); setAddPrices({}); setAddRemarks(''); setAddFile(null); setAddSupplierOpen(true); }}>
             <Plus className="h-3.5 w-3.5" /> Add Supplier
           </Button>
         </div>
@@ -138,40 +164,25 @@ export function CanvassMatrix({
           <table className="w-full text-[13px]">
             <thead>
               <tr className="border-t border-b border-zinc-100 bg-zinc-50/50">
-                <th className="text-left px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400 w-[200px]">Item</th>
+                <th className="text-left px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400 w-[280px] min-w-[280px]">Item</th>
                 <th className="text-left px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400 w-[60px]">Qty</th>
                 {entries.map((entry, i) => {
+                  const supplierName = suppliers.find((s) => s._id === entry.supplierId)?.companyName || `Supplier ${i + 1}`;
                   return (
                     <th key={entry.localId} className={`text-left px-4 py-2.5 min-w-[190px] ${entry.isSelected ? 'bg-emerald-50/40' : ''}`}>
-                      <div className="space-y-1.5">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">Supplier {i + 1}</span>
+                      <div className="space-y-1">
+                        <span className="text-[12px] font-semibold text-zinc-800 truncate block">{supplierName}</span>
+                        <div className="flex items-center gap-1">
                           {entry.isSelected && entry.supplierId && !isOnlySupplier && (
-                            <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-100 px-1.5 py-0 text-[9px] font-semibold text-emerald-700 border border-emerald-200">
+                            <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-100 px-1.5 py-0 text-[9px] font-semibold text-emerald-700 border border-emerald-200 shrink-0">
                               <Trophy className="h-2.5 w-2.5" /> Winner
                             </span>
                           )}
                           {entry.isSelected && entry.supplierId && isOnlySupplier && (
-                            <span className="inline-flex items-center gap-0.5 rounded-full bg-blue-50 px-1.5 py-0 text-[9px] font-semibold text-blue-600 border border-blue-100">
+                            <span className="inline-flex items-center gap-0.5 rounded-full bg-blue-50 px-1.5 py-0 text-[9px] font-semibold text-blue-600 border border-blue-100 shrink-0">
                               Only Supplier
                             </span>
                           )}
-                        </div>
-                        <Select
-                          value={entry.supplierId || 'none'}
-                          onValueChange={(v) => onUpdateEntry(entry.localId, { supplierId: v === 'none' ? '' : v })}
-                        >
-                          <SelectTrigger className="h-8 text-[12px] bg-white">
-                            <SelectValue placeholder="Select supplier" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">Select supplier</SelectItem>
-                            {suppliers.map((s) => (
-                              <SelectItem key={s._id} value={s._id}>{s.companyName}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <div className="flex items-center gap-1">
                           {!entry.isSelected && (
                             <Button
                               type="button" size="sm" variant="ghost"
@@ -202,10 +213,39 @@ export function CanvassMatrix({
               {procItems.map((item: ProcItem) => (
                 <tr key={item._id} className="border-b border-zinc-100/60 last:border-0 hover:bg-zinc-50/40 transition-colors duration-150">
                   <td className="px-5 py-2.5">
-                    <p className="font-medium text-[12px] text-zinc-800">{item.description}</p>
-                    {item.specifications && (
-                      <p className="text-[11px] text-zinc-400 mt-0.5 line-clamp-1">{item.specifications}</p>
-                    )}
+                    <div className="flex items-start gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-[12px] text-zinc-800">{item.description}</p>
+                        {item.specifications && (
+                          <Tooltip.Provider delayDuration={200}>
+                            <Tooltip.Root>
+                              <Tooltip.Trigger asChild>
+                                <p className="text-[11px] text-zinc-400 mt-0.5 line-clamp-1 cursor-default">{item.specifications}</p>
+                              </Tooltip.Trigger>
+                              <Tooltip.Portal>
+                                <Tooltip.Content
+                                  side="bottom"
+                                  sideOffset={4}
+                                  className="z-50 max-w-[320px] rounded-lg border border-zinc-800/60 bg-zinc-900 px-3 py-1.5 text-[12px] font-medium text-white shadow-[0_8px_24px_rgba(0,0,0,0.18)] animate-in fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-1 data-[side=top]:slide-in-from-bottom-1"
+                                >
+                                  {item.specifications}
+                                  <Tooltip.Arrow className="fill-zinc-900" />
+                                </Tooltip.Content>
+                              </Tooltip.Portal>
+                            </Tooltip.Root>
+                          </Tooltip.Provider>
+                        )}
+                      </div>
+                      {item.referencePhotoPath && onViewItemPhoto && (
+                        <button
+                          type="button"
+                          onClick={() => onViewItemPhoto(item._id)}
+                          className="shrink-0 mt-0.5 inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10px] text-zinc-500 hover:bg-zinc-100 transition-colors duration-150"
+                        >
+                          <Camera className="h-2.5 w-2.5" /> Photo
+                        </button>
+                      )}
+                    </div>
                   </td>
                   <td className="px-5 py-2.5 text-[12px] text-zinc-400 tabular-nums">
                     {item.quantity} {item.unit}
@@ -253,6 +293,80 @@ export function CanvassMatrix({
                   })}
                 </tr>
               ))}
+              {/* Notes & evidence row */}
+              <tr className="border-t border-zinc-100 bg-zinc-50/30">
+                <td className="px-5 py-2.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-zinc-400 align-top pt-3" colSpan={2}>Notes & Evidence</td>
+                {entries.map((entry) => {
+                  const entryId = entry.localId;
+                  const entryAttachments = quotationAttachments.filter((att) => att.canvassEntryId === entryId);
+                  return (
+                    <td key={entry.localId} className={`px-4 py-2.5 align-top max-w-[1px] ${entry.isSelected ? 'bg-emerald-50/30' : ''}`}>
+                      <div className="space-y-1.5">
+                        <textarea
+                          rows={2}
+                          className="flex w-full rounded-md border border-zinc-200 bg-white px-2.5 py-1.5 text-[11px] shadow-sm placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-300 resize-none transition-shadow duration-150"
+                          placeholder="Lead time, warranty, payment terms..."
+                          value={entry.remarks}
+                          onChange={(e) => onUpdateEntry(entry.localId, { remarks: e.target.value })}
+                        />
+                        {entryAttachments.length > 0 && (
+                          <div className="space-y-1">
+                            {entryAttachments.map((att) => (
+                              <div key={att._id} className="flex items-center gap-1.5 rounded-md border border-zinc-100 bg-zinc-50/60 px-2 py-1 text-[10px] text-zinc-600 group overflow-hidden">
+                                <Paperclip className="h-2.5 w-2.5 shrink-0 text-zinc-300" />
+                                <span className="truncate flex-1 min-w-0">{att.originalName}</span>
+                                <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  {onPreviewAttachment && canPreviewAttachment(att.mimeType) && (
+                                    <button onClick={() => onPreviewAttachment(att._id, att.mimeType, att.originalName)}
+                                      className="h-4 w-4 rounded flex items-center justify-center text-zinc-400 hover:text-zinc-600">
+                                      <Eye className="h-2.5 w-2.5" />
+                                    </button>
+                                  )}
+                                  {onDownloadAttachment && (
+                                    <button onClick={() => onDownloadAttachment(att._id, att.originalName)}
+                                      className="h-4 w-4 rounded flex items-center justify-center text-zinc-400 hover:text-zinc-600">
+                                      <Download className="h-2.5 w-2.5" />
+                                    </button>
+                                  )}
+                                  {onRemoveEvidence && (
+                                    <button onClick={() => onRemoveEvidence(att._id)}
+                                      className="h-4 w-4 rounded flex items-center justify-center text-red-400 hover:text-red-600">
+                                      <Trash2 className="h-2.5 w-2.5" />
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {onUploadEvidence && (
+                          <label className="inline-flex items-center gap-1 text-[10px] text-zinc-400 hover:text-zinc-600 cursor-pointer transition-colors">
+                            <input
+                              type="file"
+                              accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
+                              className="hidden"
+                              disabled={isUploadingEvidence}
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                e.target.value = '';
+                                if (file) {
+                                  uploadingEntryRef.current = entryId;
+                                  await onUploadEvidence(file, entryId);
+                                  uploadingEntryRef.current = null;
+                                }
+                              }}
+                            />
+                            {isUploadingEvidence && uploadingEntryRef.current === entryId
+                              ? <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                              : <Upload className="h-2.5 w-2.5" />}
+                            Attach file
+                          </label>
+                        )}
+                      </div>
+                    </td>
+                  );
+                })}
+              </tr>
               {/* Totals row */}
               <tr className="border-t-2 border-zinc-200 bg-zinc-50/80">
                 <td className="px-5 py-3 font-semibold text-[12px] uppercase tracking-[0.06em] text-zinc-400" colSpan={2}>Total</td>
@@ -278,30 +392,6 @@ export function CanvassMatrix({
         </div>
       </div>
 
-      {/* Per-supplier remarks */}
-      <div className="rounded-xl border border-zinc-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5">
-        <h4 className="text-[13px] font-semibold text-zinc-900 mb-3">Supplier Terms & Notes</h4>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {entries.map((entry, i) => {
-            const supplier = suppliers.find((s) => s._id === entry.supplierId);
-            return (
-              <div key={entry.localId} className="space-y-1.5">
-                <Label className="text-[12px] text-zinc-500">
-                  {supplier?.companyName || `Supplier ${i + 1}`}
-                </Label>
-                <textarea
-                  rows={2}
-                  className="flex w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[12px] shadow-sm placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-300 resize-none transition-shadow duration-150"
-                  placeholder="Lead time, warranty, payment terms..."
-                  value={entry.remarks}
-                  onChange={(e) => onUpdateEntry(entry.localId, { remarks: e.target.value })}
-                />
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
       {/* Justification for fewer than 3 */}
       {entries.length < 3 && (
         <div className="rounded-xl border border-amber-200/80 bg-amber-50/30 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5 space-y-2">
@@ -319,6 +409,130 @@ export function CanvassMatrix({
           <p className="text-[10px] text-red-500 font-medium">Required before submission</p>
         </div>
       )}
+
+      {/* Add Supplier Modal */}
+      <Dialog open={addSupplierOpen} onOpenChange={setAddSupplierOpen}>
+        <DialogContent className="sm:max-w-[560px]">
+          <DialogHeader>
+            <DialogTitle className="text-[15px]">Add Supplier</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <p className="text-[12px] text-zinc-500 mb-2">Select a supplier and enter quoted prices.</p>
+              <Select value={addSupplierId || 'none'} onValueChange={(v) => setAddSupplierId(v === 'none' ? '' : v)}>
+                <SelectTrigger className="h-9 text-[13px]">
+                  <SelectValue placeholder="Select supplier" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Select supplier</SelectItem>
+                  {suppliers.filter((s) => !usedSupplierIds.has(s._id)).map((s) => (
+                    <SelectItem key={s._id} value={s._id}>{s.companyName}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {addSupplierId && (
+              <div className="space-y-1">
+                <div className="grid grid-cols-[1fr_120px_80px] gap-2 px-1 pb-1">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-zinc-400">Item</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-zinc-400 text-right">Price / Unit</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-zinc-400 text-right">Line Total</p>
+                </div>
+                {procItems.map((item: ProcItem) => {
+                  const unitPrice = Number(addPrices[item._id]) || 0;
+                  const lineTotal = unitPrice * item.quantity;
+                  return (
+                    <div key={item._id} className="grid grid-cols-[1fr_120px_80px] gap-2 items-center rounded-lg px-1 py-1.5 hover:bg-zinc-50/60">
+                      <div className="min-w-0">
+                        <p className="text-[12px] font-medium text-zinc-700 truncate">{item.description}</p>
+                        <p className="text-[10px] text-zinc-400">
+                          {item.quantity} {item.unit}
+                          {item.estimatedPrice > 0 && <span className="ml-1">· Est. {formatCurrency(item.estimatedPrice)}/{item.unit}</span>}
+                        </p>
+                      </div>
+                      <div className="relative">
+                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-zinc-400 font-medium">₱</span>
+                        <Input
+                          type="text"
+                          inputMode="decimal"
+                          placeholder="0.00"
+                          className={`h-8 text-[12px] pl-7 tabular-nums ${!addPrices[item._id] || unitPrice <= 0 ? 'border-red-300 focus-visible:ring-red-300' : ''}`}
+                          value={addPrices[item._id] ?? ''}
+                          onChange={(e) => {
+                            let v = e.target.value.replace(/[^\d.]/g, '');
+                            const dot = v.indexOf('.');
+                            if (dot !== -1) v = v.slice(0, dot + 1) + v.slice(dot + 1).replace(/\./g, '');
+                            v = v.replace(/^0+([1-9])/, '$1');
+                            setAddPrices((prev) => ({ ...prev, [item._id]: v }));
+                          }}
+                        />
+                      </div>
+                      <p className={`text-[12px] tabular-nums text-right ${lineTotal > 0 ? 'text-zinc-700 font-medium' : 'text-zinc-300'}`}>
+                        {lineTotal > 0 ? formatCurrency(lineTotal) : '—'}
+                      </p>
+                    </div>
+                  );
+                })}
+                {(() => {
+                  const grandTotal = procItems.reduce((sum: number, item: ProcItem) => sum + (Number(addPrices[item._id]) || 0) * item.quantity, 0);
+                  return grandTotal > 0 ? (
+                    <div className="grid grid-cols-[1fr_120px_80px] gap-2 items-center border-t border-zinc-200 mt-1 pt-2 px-1">
+                      <p className="text-[11px] font-semibold text-zinc-500">Grand Total</p>
+                      <div />
+                      <p className="text-[13px] font-bold tabular-nums text-zinc-900 text-right">{formatCurrency(grandTotal)}</p>
+                    </div>
+                  ) : null;
+                })()}
+              </div>
+            )}
+
+            {addSupplierId && (
+              <>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-zinc-400 mb-1.5">Remarks</p>
+                  <textarea
+                    rows={2}
+                    className="flex w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-[12px] shadow-sm placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-300 resize-none"
+                    placeholder="Lead time, warranty, payment terms..."
+                    value={addRemarks}
+                    onChange={(e) => setAddRemarks(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-zinc-400 mb-1.5">Quotation Evidence</p>
+                  {addFile ? (
+                    <div className="flex items-center gap-2 rounded-md border border-zinc-200 bg-zinc-50/60 px-3 py-2">
+                      <Paperclip className="h-3 w-3 text-zinc-400 shrink-0" />
+                      <span className="text-[12px] text-zinc-700 truncate flex-1">{addFile.name}</span>
+                      <button onClick={() => setAddFile(null)} className="text-[10px] text-red-500 hover:text-red-700 shrink-0">Remove</button>
+                    </div>
+                  ) : (
+                    <label className="flex items-center gap-2 rounded-md border border-dashed border-zinc-300 bg-zinc-50/30 px-3 py-2.5 cursor-pointer hover:bg-zinc-50 transition-colors">
+                      <input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" className="hidden"
+                        onChange={(e) => { setAddFile(e.target.files?.[0] ?? null); e.target.value = ''; }} />
+                      <Upload className="h-3.5 w-3.5 text-zinc-400" />
+                      <span className="text-[12px] text-zinc-500">Attach PDF or image</span>
+                    </label>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+          {addSupplierId && !procItems.every((item: ProcItem) => Number(addPrices[item._id]) > 0) && (
+            <p className="text-[11px] text-red-500">All item prices are required.</p>
+          )}
+          <DialogFooter>
+            <Button variant="outline" size="sm" className="text-[12px]" onClick={() => setAddSupplierOpen(false)}>Cancel</Button>
+            <Button size="sm" className="text-[12px]" disabled={!addSupplierId || !procItems.every((item: ProcItem) => Number(addPrices[item._id]) > 0)} onClick={() => {
+              onAddEntry(addSupplierId, addPrices, addRemarks, addFile);
+              setAddSupplierOpen(false);
+            }}>
+              <Plus className="h-3.5 w-3.5" /> Add Supplier
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -51,9 +51,7 @@ export function useCanvass(prId: string | undefined, procItems: PrItem[], onComp
         }),
       ),
     }));
-    const initialEntries = existing.length > 0
-      ? existing
-      : Array.from({ length: 3 }, (_, index) => buildEmptyEntry(index));
+    const initialEntries = existing.length > 0 ? existing : [];
     const hasSelected = initialEntries.some((entry: DraftCanvassEntry) => entry.isSelected);
     setCanvassEntries(
       initialEntries.map((entry: DraftCanvassEntry, index: number) => ({
@@ -65,8 +63,15 @@ export function useCanvass(prId: string | undefined, procItems: PrItem[], onComp
     setActionStep('quotation');
   }, [procItems, buildEmptyEntry]);
 
-  const addEntry = () => {
-    setCanvassEntries((current) => [...current, buildEmptyEntry(current.length)]);
+  const addEntry = (supplierId?: string, quotedPrices?: Record<string, string>, remarks?: string) => {
+    setCanvassEntries((current) => {
+      const entry = buildEmptyEntry(current.length);
+      if (supplierId) entry.supplierId = supplierId;
+      if (quotedPrices) entry.quotedPrices = { ...entry.quotedPrices, ...quotedPrices };
+      if (remarks) entry.remarks = remarks;
+      if (current.length === 0) entry.isSelected = true;
+      return [...current, entry];
+    });
   };
 
   const removeEntry = (localId: string) => {
@@ -161,17 +166,18 @@ export function useCanvass(prId: string | undefined, procItems: PrItem[], onComp
     }
   };
 
-  const handleSaveDraft = async () => {
+  const handleSaveDraft = async (overrideEntries?: DraftCanvassEntry[], { silent }: { silent?: boolean } = {}) => {
     if (!prId) return;
     // Persist whatever the user has so far. Empty rows (no supplier) are
     // dropped server-side; rows with prices but no supplier stay client-side
     // until the user picks one.
-    const supplierIds = canvassEntries.map((entry) => entry.supplierId).filter(Boolean);
+    const entriesToSave = overrideEntries ?? canvassEntries;
+    const supplierIds = entriesToSave.map((entry) => entry.supplierId).filter(Boolean);
     if (new Set(supplierIds).size !== supplierIds.length) {
       toast({ title: 'Duplicate suppliers', description: 'Each canvass entry must use a different supplier.', variant: 'error' });
       return;
     }
-    const payloadEntries: SaveCanvassDraftDto['canvassEntries'] = canvassEntries
+    const payloadEntries: SaveCanvassDraftDto['canvassEntries'] = entriesToSave
       .filter((entry) => entry.supplierId)
       .map((entry) => {
         const quotedItems: NonNullable<SaveCanvassDraftDto['canvassEntries'][number]['quotedItems']> = [];
@@ -202,7 +208,7 @@ export function useCanvass(prId: string | undefined, procItems: PrItem[], onComp
           canvassJustification: canvassJustification.trim() || undefined,
         },
       });
-      toast({ title: 'Draft saved', description: 'Your canvass progress has been saved. The PR stays in your queue.', variant: 'success' });
+      if (!silent) toast({ title: 'Draft saved', description: 'Your canvass progress has been saved. The PR stays in your queue.', variant: 'success' });
     } catch (error) {
       toast({ title: 'Failed to save draft', description: getErrorMessage(error, 'Check supplier selection and try again.'), variant: 'error' });
     }

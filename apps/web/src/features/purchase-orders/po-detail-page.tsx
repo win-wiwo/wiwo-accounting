@@ -11,6 +11,8 @@ import {
   Package,
   ImageIcon,
   Calendar,
+  CheckCircle2,
+  FilePlus,
 } from 'lucide-react';
 import { UserRole } from '@prams/shared';
 import {
@@ -516,46 +518,96 @@ export function PoDetailPage() {
 
           {/* Fulfillment Timeline */}
           <Surface elevation="subtle">
-            <div className="p-6 space-y-5">
-              <div>
-                <SidebarLabel>Created By</SidebarLabel>
-                <p className="mt-2 text-[13px] font-medium text-zinc-900">
-                  {creator ? `${creator.firstName} ${creator.lastName}` : '—'}
-                </p>
-                <p className="text-[12px] text-zinc-400 mt-0.5 tabular-nums">{formatDate(po.createdAt)}</p>
-              </div>
+            <div className="p-6">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400 mb-4">Fulfillment Timeline</p>
+              {(() => {
+                const nodes: { id: string; icon: React.ReactNode; title: string; actor?: string; date: string; pulse?: boolean }[] = [];
 
-              {po.estimatedArrivalDate && (
-                <>
-                  <Divider />
-                  <div>
-                    <SidebarLabel>Estimated Arrival</SidebarLabel>
-                    <p className="mt-2 text-[13px] font-medium text-blue-700 tabular-nums">{formatDate(po.estimatedArrivalDate)}</p>
-                  </div>
-                </>
-              )}
+                nodes.push({
+                  id: 'created',
+                  icon: <FilePlus className="h-4 w-4 text-blue-600" />,
+                  title: 'PO Created',
+                  actor: creator ? `${creator.firstName} ${creator.lastName}` : undefined,
+                  date: po.createdAt,
+                });
 
-              {orderer && (
-                <>
-                  <Divider />
-                  <div>
-                    <SidebarLabel>Ordered By</SidebarLabel>
-                    <p className="mt-2 text-[13px] font-medium text-zinc-900">{orderer.firstName} {orderer.lastName}</p>
-                    <p className="text-[12px] text-zinc-400 mt-0.5 tabular-nums">{formatDateTime(po.orderedAt)}</p>
-                  </div>
-                </>
-              )}
+                if (orderer) {
+                  nodes.push({
+                    id: 'ordered',
+                    icon: <ShoppingCart className="h-4 w-4 text-violet-600" />,
+                    title: 'Ordered',
+                    actor: `${orderer.firstName} ${orderer.lastName}`,
+                    date: po.orderedAt!,
+                  });
+                }
 
-              {receiver && (
-                <>
-                  <Divider />
-                  <div>
-                    <SidebarLabel>Received By</SidebarLabel>
-                    <p className="mt-2 text-[13px] font-medium text-emerald-700">{receiver.firstName} {receiver.lastName}</p>
-                    <p className="text-[12px] text-zinc-400 mt-0.5 tabular-nums">{formatDateTime(po.receivedAt)}</p>
+                if (po.estimatedArrivalDate) {
+                  nodes.push({
+                    id: 'eta',
+                    icon: <Calendar className="h-4 w-4 text-blue-500" />,
+                    title: 'Estimated Arrival',
+                    date: po.estimatedArrivalDate,
+                  });
+                }
+
+                if (receiver) {
+                  nodes.push({
+                    id: 'received',
+                    icon: <CheckCircle2 className="h-4 w-4 text-emerald-600" />,
+                    title: 'Received',
+                    actor: `${receiver.firstName} ${receiver.lastName}`,
+                    date: po.receivedAt!,
+                  });
+                }
+
+                if (isCancelled) {
+                  nodes.push({
+                    id: 'cancelled',
+                    icon: <XCircle className="h-4 w-4 text-red-500" />,
+                    title: 'Cancelled',
+                    date: po.updatedAt ?? po.createdAt,
+                  });
+                }
+
+                // Show awaiting pulse for non-terminal states
+                const showPulse = !isReceived && !isCancelled;
+
+                return (
+                  <div className="relative">
+                    {(nodes.length > 1 || showPulse) && (
+                      <div className="absolute left-[11px] top-[22px] bottom-8 w-px bg-zinc-200" />
+                    )}
+                    <div className="space-y-5">
+                      {nodes.map((node) => (
+                        <div key={node.id} className="flex gap-3 relative">
+                          <div className="mt-0.5 shrink-0 z-[1] rounded-full bg-white p-[3px]">
+                            {node.icon}
+                          </div>
+                          <div className="flex-1 min-w-0 pb-0.5">
+                            <span className="text-[13px] font-semibold text-zinc-800">{node.title}</span>
+                            {node.actor && <p className="text-[12px] text-zinc-500 mt-0.5">by {node.actor}</p>}
+                            <p className="mt-1 text-[11px] tabular-nums text-zinc-400">
+                              {node.id === 'eta' ? formatDate(node.date) : formatDateTime(node.date)}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                      {showPulse && (
+                        <div className="flex gap-3 relative">
+                          <div className="mt-1 shrink-0 z-[1] flex items-center justify-center w-[22px]">
+                            <span className="block h-2 w-2 rounded-full bg-zinc-300 animate-pulse" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[12px] text-zinc-400">
+                              {isPending ? 'Awaiting order placement' : 'Awaiting delivery'}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </>
-              )}
+                );
+              })()}
             </div>
           </Surface>
         </div>

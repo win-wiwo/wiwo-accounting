@@ -1,12 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { usePageTitle } from '@/hooks/use-page-title';
 import { useNavigate } from 'react-router-dom';
-import { Plus, MoreHorizontal, UserCheck, UserX, Pencil, Users } from 'lucide-react';
-import { ROLE_LABELS, USER_ROLES, type UserRole } from '@prams/shared';
-import { useUsers, useDeactivateUser, useActivateUser } from '@/hooks/use-users';
+import { Plus, UserCheck, UserX, Pencil, Users, Loader2, Save } from 'lucide-react';
+import { ROLE_LABELS, USER_ROLES, type UserRole, type UpdateUserDto } from '@prams/shared';
+import { useUsers, useDeactivateUser, useActivateUser, useUpdateUser } from '@/hooks/use-users';
 import { useDepartments } from '@/hooks/use-departments';
 import { useToast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Select,
@@ -30,6 +31,7 @@ import {
   FilterBar,
   SearchInput,
   FilterControls,
+  FormField,
   premiumSelectTriggerClass,
   StatusBadge,
   Pagination,
@@ -38,7 +40,6 @@ import {
   type BadgeTone,
 } from '@/components/premium';
 import { resolvePhotoUrl } from '@/lib/utils';
-import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 
 const ROLE_TONE: Record<string, BadgeTone> = {
   admin:       'neutral',
@@ -67,6 +68,15 @@ export function UsersListPage() {
     userId: string;
     userName: string;
   }>({ open: false, action: 'deactivate', userId: '', userName: '' });
+  const [editUser, setEditUser] = useState<{
+    open: boolean;
+    _id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    role: string;
+    departmentId?: string;
+  } | null>(null);
 
   const { data, isLoading } = useUsers({
     page,
@@ -217,7 +227,7 @@ export function UsersListPage() {
                     <Th>Role</Th>
                     <Th>Department</Th>
                     <Th>Status</Th>
-                    <th className="h-11 w-12" />
+                    <th className="h-11 w-24" />
                   </tr>
                 </thead>
                 <tbody>
@@ -264,57 +274,56 @@ export function UsersListPage() {
                         </StatusBadge>
                       </td>
                       <td className="px-3 py-4" onClick={(e) => e.stopPropagation()}>
-                        <DropdownMenu.Root>
-                          <DropdownMenu.Trigger asChild>
-                            <button className="h-7 w-7 flex items-center justify-center rounded-lg text-zinc-300 hover:bg-zinc-100 hover:text-zinc-700 opacity-0 group-hover:opacity-100 transition-all duration-150 focus:opacity-100">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </button>
-                          </DropdownMenu.Trigger>
-                          <DropdownMenu.Portal>
-                            <DropdownMenu.Content
-                              className="z-50 min-w-[160px] overflow-hidden rounded-xl border border-zinc-200 bg-white p-1 shadow-[0_4px_24px_rgba(0,0,0,0.10)] animate-in fade-in-0 zoom-in-95"
-                              align="end"
-                              sideOffset={4}
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                          <button
+                            onClick={() =>
+                              setEditUser({
+                                open: true,
+                                _id: user._id,
+                                firstName: user.firstName,
+                                lastName: user.lastName,
+                                email: user.email,
+                                role: user.role,
+                                departmentId: user.departmentId ?? undefined,
+                              })
+                            }
+                            className="h-7 w-7 flex items-center justify-center rounded-lg text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 transition-colors"
+                            aria-label="Edit"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          {user.isActive ? (
+                            <button
+                              onClick={() =>
+                                setConfirmDialog({
+                                  open: true,
+                                  action: 'deactivate',
+                                  userId: user._id,
+                                  userName: `${user.firstName} ${user.lastName}`,
+                                })
+                              }
+                              className="h-7 w-7 flex items-center justify-center rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+                              aria-label="Deactivate"
                             >
-                              <DropdownMenu.Item
-                                className="flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] text-zinc-700 outline-none hover:bg-zinc-50 transition-colors"
-                                onSelect={() => navigate(`/users/${user._id}/edit`)}
-                              >
-                                <Pencil className="h-3.5 w-3.5 text-zinc-400" /> Edit
-                              </DropdownMenu.Item>
-                              <DropdownMenu.Separator className="my-1 h-px bg-zinc-100" />
-                              {user.isActive ? (
-                                <DropdownMenu.Item
-                                  className="flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] text-red-600 outline-none hover:bg-red-50 transition-colors"
-                                  onSelect={() =>
-                                    setConfirmDialog({
-                                      open: true,
-                                      action: 'deactivate',
-                                      userId: user._id,
-                                      userName: `${user.firstName} ${user.lastName}`,
-                                    })
-                                  }
-                                >
-                                  <UserX className="h-3.5 w-3.5" /> Deactivate
-                                </DropdownMenu.Item>
-                              ) : (
-                                <DropdownMenu.Item
-                                  className="flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] text-emerald-700 outline-none hover:bg-emerald-50 transition-colors"
-                                  onSelect={() =>
-                                    setConfirmDialog({
-                                      open: true,
-                                      action: 'activate',
-                                      userId: user._id,
-                                      userName: `${user.firstName} ${user.lastName}`,
-                                    })
-                                  }
-                                >
-                                  <UserCheck className="h-3.5 w-3.5" /> Activate
-                                </DropdownMenu.Item>
-                              )}
-                            </DropdownMenu.Content>
-                          </DropdownMenu.Portal>
-                        </DropdownMenu.Root>
+                              <UserX className="h-3.5 w-3.5" />
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() =>
+                                setConfirmDialog({
+                                  open: true,
+                                  action: 'activate',
+                                  userId: user._id,
+                                  userName: `${user.firstName} ${user.lastName}`,
+                                })
+                              }
+                              className="h-7 w-7 flex items-center justify-center rounded-lg text-emerald-400 hover:bg-emerald-50 hover:text-emerald-600 transition-colors"
+                              aria-label="Activate"
+                            >
+                              <UserCheck className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -367,7 +376,157 @@ export function UsersListPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {editUser && (
+        <EditUserModal
+          key={editUser._id}
+          open={editUser.open}
+          onOpenChange={(open) => {
+            if (!open) setEditUser(null);
+          }}
+          user={editUser}
+          departments={departments}
+        />
+      )}
     </div>
+  );
+}
+
+interface EditUserModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  user: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    role: string;
+    departmentId?: string;
+  };
+  departments: { _id: string; name: string }[];
+}
+
+function EditUserModal({ open, onOpenChange, user, departments }: EditUserModalProps) {
+  const { toast } = useToast();
+  const updateMutation = useUpdateUser();
+
+  const [firstName, setFirstName] = useState(user.firstName);
+  const [lastName, setLastName] = useState(user.lastName);
+  const [email, setEmail] = useState(user.email);
+  const [role, setRole] = useState(user.role);
+  const [departmentId, setDepartmentId] = useState(user.departmentId ?? 'none');
+
+  useEffect(() => {
+    setFirstName(user.firstName);
+    setLastName(user.lastName);
+    setEmail(user.email);
+    setRole(user.role);
+    setDepartmentId(user.departmentId ?? 'none');
+  }, [user]);
+
+  const handleSave = async () => {
+    const data: UpdateUserDto = {
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      email: email.trim(),
+      role: role as UserRole,
+      departmentId: departmentId === 'none' ? null : departmentId,
+    };
+    try {
+      await updateMutation.mutateAsync({ id: user._id, data });
+      toast({ title: 'User updated', variant: 'success' });
+      onOpenChange(false);
+    } catch (err: unknown) {
+      const message =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : 'Failed to update user.';
+      toast({ title: 'Error', description: message || 'Failed to update user.', variant: 'error' });
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[480px]">
+        <DialogHeader>
+          <DialogTitle>Edit User</DialogTitle>
+          <DialogDescription>
+            Update details for {user.firstName} {user.lastName}.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormField label="First Name" htmlFor="edit-firstName" required>
+              <Input
+                id="edit-firstName"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+              />
+            </FormField>
+            <FormField label="Last Name" htmlFor="edit-lastName" required>
+              <Input
+                id="edit-lastName"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+              />
+            </FormField>
+          </div>
+          <FormField label="Email" htmlFor="edit-email" required>
+            <Input
+              id="edit-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </FormField>
+          <FormField label="Role" required>
+            <Select value={role} onValueChange={setRole}>
+              <SelectTrigger className={premiumSelectTriggerClass}>
+                <SelectValue placeholder="Select a role" />
+              </SelectTrigger>
+              <SelectContent>
+                {USER_ROLES.map((r) => (
+                  <SelectItem key={r} value={r}>
+                    {ROLE_LABELS[r as UserRole]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FormField>
+          <FormField label="Department">
+            <Select value={departmentId} onValueChange={setDepartmentId}>
+              <SelectTrigger className={premiumSelectTriggerClass}>
+                <SelectValue placeholder="Select department" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">No Department</SelectItem>
+                {departments.map((dept) => (
+                  <SelectItem key={dept._id} value={dept._id}>
+                    {dept.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FormField>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <PrimaryButton
+            onClick={handleSave}
+            disabled={updateMutation.isPending || !firstName.trim() || !lastName.trim() || !email.trim() || !role}
+          >
+            {updateMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            Save Changes
+          </PrimaryButton>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

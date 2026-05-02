@@ -1,0 +1,154 @@
+- generic [ref=e42]:
+  - complementary [ref=e43]:
+    - generic [ref=e44]:
+      - img "WIWO" [ref=e46]
+      - button [ref=e47]:
+        - img [ref=e48]
+    - navigation [ref=e51]:
+      - link "Dashboard" [ref=e52] [cursor=pointer]:
+        - /url: /dashboard
+        - img [ref=e53]
+        - generic [ref=e58]: Dashboard
+      - link "Purchase Requests" [ref=e59] [cursor=pointer]:
+        - /url: /purchase-requests
+        - img [ref=e60]
+        - generic [ref=e63]: Purchase Requests
+      - link "Procurement Queue" [ref=e64] [cursor=pointer]:
+        - /url: /procurement
+        - img [ref=e65]
+        - generic [ref=e68]: Procurement Queue
+      - link "Suppliers" [ref=e69] [cursor=pointer]:
+        - /url: /suppliers
+        - img [ref=e70]
+        - generic [ref=e75]: Suppliers
+      - link "Purchase Orders" [ref=e76] [cursor=pointer]:
+        - /url: /purchase-orders
+        - img [ref=e77]
+        - generic [ref=e81]: Purchase Orders
+      - link "Search & Monitor" [ref=e82] [cursor=pointer]:
+        - /url: /search
+        - img [ref=e83]
+        - generic [ref=e86]: Search & Monitor
+      - link "Reports" [ref=e87] [cursor=pointer]:
+        - /url: /reports
+        - img [ref=e88]
+        - generic [ref=e90]: Reports
+    - generic [ref=e93]:
+      - link "EV Eduardo Villanueva Procurement Officer" [ref=e94] [cursor=pointer]:
+        - /url: /profile
+        - generic [ref=e96]: EV
+        - generic [ref=e97]:
+          - paragraph [ref=e98]: Eduardo Villanueva
+          - paragraph [ref=e99]: Procurement Officer
+      - button "Sign out" [ref=e100]:
+        - img
+        - text: Sign out
+  - banner [ref=e101]:
+    - generic [ref=e103]:
+      - img [ref=e104]
+      - textbox "Search PRs... (Ctrl+K)" [ref=e107]
+    - button [ref=e109]:
+      - img
+  - main [ref=e110]:
+    - generic [ref=e351]:
+      - generic [ref=e352]:
+        - button "Procurement Queue" [ref=e353]:
+          - img [ref=e354]
+          - text: Procurement Queue
+        - generic [ref=e356]:
+          - generic [ref=e357]:
+            - heading "PTZ Speed Dome Cameras – Busway Intersections" [level=1] [ref=e358]
+            - generic [ref=e359]:
+              - generic [ref=e360]: 2026-05-0019
+              - generic [ref=e362]: Pending Procurement
+              - generic [ref=e363]:
+                - img [ref=e364]
+                - text: High
+              - generic [ref=e367]:
+                - text: Needed May 27, 2026
+                - generic [ref=e368]: (25d left)
+              - generic [ref=e370]: 3 items to source
+          - generic [ref=e371]:
+            - button "Return" [ref=e372]:
+              - img
+              - text: Return
+            - button "Continue Canvass" [ref=e373]:
+              - img
+              - text: Continue Canvass
+      - generic [ref=e374]:
+        - generic [ref=e376]:
+          - paragraph [ref=e378]: Request Details
+          - generic [ref=e379]:
+            - generic [ref=e380]:
+              - img "Mark Ramos" [ref=e382]
+              - generic [ref=e383]:
+                - paragraph [ref=e384]: Mark Ramos
+                - paragraph [ref=e385]: Engineering & Technical
+            - generic [ref=e386]:
+              - generic [ref=e387]:
+                - generic [ref=e388]: Submitted
+                - generic [ref=e389]: Apr 29, 2026
+              - generic [ref=e390]:
+                - generic [ref=e391]: Project
+                - generic [ref=e392]: CCTV Installation – Busway Line 1
+            - generic [ref=e393]:
+              - paragraph [ref=e394]: Purpose
+              - paragraph [ref=e395]: Site survey identified 6 critical intersection points requiring PTZ coverage. Included in Phase 2 scope.
+        - generic [ref=e397]:
+          - generic [ref=e398]:
+            - generic [ref=e399]:
+              - heading "Supplier Comparison" [level=2] [ref=e400]
+              - paragraph [ref=e401]:
+                - generic [ref=e402]: 3 Suppliers Compared · Ready for Review
+            - generic [ref=e403]:
+              - paragraph [ref=e404]: Selected Total
+              - paragraph [ref=e405]: ₱33,798.00
+          - generic [ref=e407]:
+            - img [ref=e408]
+            - text: Selected is +1740.8% above cheapest
+          - table [ref=e411]:
+            - rowgroup [ref=e412]:
+              - row "Supplier Hikvision DS-2DE4425IWG-E 4MP PTZ Camera (25x zoom) Heavy-Duty PTZ Wall Mount (Stainless Steel) RS-485 Control Cable (300m, shielded) Total" [ref=e413]:
+                - columnheader "Supplier" [ref=e414]
+                - columnheader "Hikvision DS-2DE4425IWG-E 4MP PTZ Camera (25x zoom)" [ref=e415]:
+                  - generic [ref=e416]: Hikvision DS-2DE4425IWG-E 4MP PTZ Camera (25x zoom)
+                - columnheader "Heavy-Duty PTZ Wall Mount (Stainless Steel)" [ref=e417]:
+                  - generic [ref=e418]: Heavy-Duty PTZ Wall Mount (Stainless Steel)
+                - columnheader "RS-485 Control Cable (300m, shielded)" [ref=e419]:
+                  - generic [ref=e420]: RS-485 Control Cable (300m, shielded)
+                - columnheader "Total" [ref=e421]
+            - rowgroup [ref=e422]:
+              - row "AIVision Systems Philippines Winner One week warranty ₱1,234.00 ₱4,321.00 ₱234.00 ₱33,798.00" [ref=e423]:
+                - cell "AIVision Systems Philippines Winner One week warranty" [ref=e424]:
+                  - generic [ref=e425]:
+                    - img [ref=e426]
+                    - generic [ref=e429]: AIVision Systems Philippines
+                    - generic [ref=e430]:
+                      - img [ref=e431]
+                      - text: Winner
+                  - paragraph [ref=e437]: One week warranty
+                - cell "₱1,234.00" [ref=e438]
+                - cell "₱4,321.00" [ref=e439]
+                - cell "₱234.00" [ref=e440]
+                - cell "₱33,798.00" [ref=e441]
+              - row "Cabletech Solutions Corp. Lowest Bid No lead time ₱234.00 ₱31.00 ₱123.00 ₱1,836.00" [ref=e442]:
+                - cell "Cabletech Solutions Corp. Lowest Bid No lead time" [ref=e443]:
+                  - generic [ref=e444]:
+                    - generic [ref=e445]: Cabletech Solutions Corp.
+                    - generic [ref=e446]: Lowest Bid
+                  - paragraph [ref=e447]: No lead time
+                - cell "₱234.00" [ref=e448]
+                - cell "₱31.00" [ref=e449]
+                - cell "₱123.00" [ref=e450]
+                - cell "₱1,836.00" [ref=e451]
+              - row "NBS Philippines No lead time CV.pdf ₱234.00 ₱234.00 ₱234.00 ₱3,276.00" [ref=e452]:
+                - cell "NBS Philippines No lead time CV.pdf" [ref=e453]:
+                  - generic [ref=e455]: NBS Philippines
+                  - paragraph [ref=e456]: No lead time
+                  - generic [ref=e458]:
+                    - img [ref=e459]
+                    - generic [ref=e462]: CV.pdf
+                - cell "₱234.00" [ref=e463]
+                - cell "₱234.00" [ref=e464]
+                - cell "₱234.00" [ref=e465]
+                - cell "₱3,276.00" [ref=e466]

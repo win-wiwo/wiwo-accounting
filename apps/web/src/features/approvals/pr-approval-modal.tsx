@@ -32,6 +32,8 @@ import apiClient from '@/lib/api-client';
 import { useToast } from '@/components/ui/toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { resolvePhotoUrl } from '@/lib/utils';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 
 function formatCurrency(n: number) {
@@ -97,7 +99,7 @@ export function PrApprovalModal({
   const [expandedSellers, setExpandedSellers] = useState<Record<number, boolean>>({});
 
   const requester = pr?.requesterId as unknown as {
-    firstName: string; lastName: string; email: string; employeeId: string;
+    firstName: string; lastName: string; email: string; employeeId: string; photoUrl?: string | null;
   } | null;
   const department = pr?.departmentId as unknown as { name: string; code: string } | null;
   const quotationAttachments = (pr?.attachments ?? []).filter((att) => att.category === AttachmentCategory.CANVASS);
@@ -528,6 +530,32 @@ export function PrApprovalModal({
                                     {entry.remarks && (
                                       <p className="text-[10px] text-zinc-400 italic mt-0.5 line-clamp-1">{entry.remarks}</p>
                                     )}
+                                    {(() => {
+                                      const entryEvidence = quotationAttachments.filter((att) => att.canvassEntryId === entry._id);
+                                      if (entryEvidence.length === 0) return null;
+                                      return (
+                                        <div className="flex flex-wrap gap-1 mt-1">
+                                          {entryEvidence.map((att) => (
+                                            <div key={att._id} className="inline-flex items-center gap-1 rounded-md border border-zinc-100 bg-zinc-50/80 px-1.5 py-0.5 text-[10px] text-zinc-500">
+                                              <Paperclip className="h-2.5 w-2.5 text-zinc-300" />
+                                              <span className="truncate max-w-[100px]">{att.originalName}</span>
+                                              <div className="flex items-center gap-0.5 shrink-0">
+                                                {canPreviewAttachment(att.mimeType) && (
+                                                  <button onClick={() => handlePreviewAttachment(att._id, att.mimeType, att.originalName)}
+                                                    className="h-4 w-4 rounded flex items-center justify-center text-zinc-400 hover:text-zinc-600">
+                                                    <Eye className="h-2.5 w-2.5" />
+                                                  </button>
+                                                )}
+                                                <button onClick={() => purchaseRequestsApi.downloadAttachment(pr._id, att._id, att.originalName)}
+                                                  className="h-4 w-4 rounded flex items-center justify-center text-zinc-400 hover:text-zinc-600">
+                                                  <Download className="h-2.5 w-2.5" />
+                                                </button>
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      );
+                                    })()}
                                   </td>
                                   {entry.quotedItems.map((qi) => (
                                     <td key={qi.itemId} className="px-3 py-2.5 text-right text-[12px] tabular-nums text-zinc-600">
@@ -555,20 +583,6 @@ export function PrApprovalModal({
                       </div>
                     )}
 
-                    {/* ── Attachments ───────────────────────────── */}
-                    {quotationAttachments.length > 0 && (
-                      <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400 mb-3">
-                          Quotation Evidence ({quotationAttachments.length})
-                        </p>
-                        <div className="grid gap-2 sm:grid-cols-2">
-                          {quotationAttachments.map((att) => (
-                            <AttachmentRow key={att._id} att={att} prId={pr._id} onPreview={handlePreviewAttachment} />
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
                     {supportingAttachments.length > 0 && (
                       <div>
                         <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400 mb-3">
@@ -592,9 +606,15 @@ export function PrApprovalModal({
                       <div>
                         <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400 mb-2">Requester</p>
                         <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 rounded-full bg-white border border-zinc-200/80 flex items-center justify-center shrink-0 text-zinc-500 font-semibold text-[12px]">
-                            {requester ? requester.firstName[0] : <User className="h-3.5 w-3.5" />}
-                          </div>
+                          <Avatar className="h-8 w-8 shrink-0">
+                            <AvatarImage
+                              src={resolvePhotoUrl(requester?.photoUrl)}
+                              alt={requester ? `${requester.firstName} ${requester.lastName}` : undefined}
+                            />
+                            <AvatarFallback className="bg-white border border-zinc-200/80 text-zinc-500 text-[12px] font-semibold">
+                              {requester ? requester.firstName[0] : <User className="h-3.5 w-3.5" />}
+                            </AvatarFallback>
+                          </Avatar>
                           <div className="min-w-0">
                             <p className="text-[13px] font-semibold text-zinc-900 leading-tight truncate">
                               {requester ? `${requester.firstName} ${requester.lastName}` : '\u2014'}

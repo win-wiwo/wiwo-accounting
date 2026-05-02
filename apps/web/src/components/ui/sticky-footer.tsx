@@ -6,25 +6,24 @@ interface StickyFooterProps {
 }
 
 /**
- * Full-width sticky footer bar.
+ * Fixed footer bar pinned to viewport bottom.
  *
- * Width is computed as: 100vw − sidebar width (CSS var set by AppLayout) − 2×p-3 outer padding.
- * This is the only reliable approach for "bleed to card edges" inside a deeply nested flex tree.
- *
- * Shift: -ml-6 (lg:-ml-8) moves the bar left to cancel the p-6/p-8 inner padding.
+ * Uses fixed positioning to sit flush at the very bottom of the screen.
+ * Left offset and width account for the sidebar.
  */
 export function StickyFooter({ children, className }: StickyFooterProps) {
   return (
     <div
       className={cn(
-        'sticky bottom-0 z-20 -ml-6 lg:-ml-8',
-        'border-t border-zinc-200 bg-white/95 px-6 lg:px-8 py-4 backdrop-blur-md',
+        'fixed bottom-0 z-20',
+        'border-t border-zinc-200 bg-[#F6F7F9] px-6 lg:px-8 py-4 rounded-b-2xl',
         'shadow-[0_-4px_24px_rgba(0,0,0,0.06)]',
         className,
       )}
       style={{
-        // card width = 100vw - sidebar - 2×p-3(0.75rem each side)
-        width: 'calc(100vw - var(--sidebar-w, 16rem) - 2.5rem)',
+        left: 'calc(var(--sidebar-w, 16rem) + 0.75rem)',
+        right: '0.75rem',
+        bottom: 0,
       }}
     >
       {children}

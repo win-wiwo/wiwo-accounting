@@ -259,7 +259,7 @@ export class ApprovalsService {
     const [prs, total] = await Promise.all([
       this.prModel
         .find(filter)
-        .populate('requesterId', 'firstName lastName email employeeId')
+        .populate('requesterId', 'firstName lastName email employeeId photoUrl')
         .populate('departmentId', 'name code')
         .sort({ submittedAt: 1 }) // FIFO — oldest first
         .skip(skip)

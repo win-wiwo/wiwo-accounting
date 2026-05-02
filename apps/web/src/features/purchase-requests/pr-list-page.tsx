@@ -217,6 +217,8 @@ export function PrListPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value={`${PrStatus.LEVEL1_REVIEW},${PrStatus.LEVEL2_REVIEW},${PrStatus.LEVEL3_REVIEW}`}>In Review (All Levels)</SelectItem>
+                <SelectItem value={`${PrStatus.PENDING_QUOTATION},${PrStatus.QUOTED}`}>In Procurement</SelectItem>
                 {PR_STATUSES.map((s) => (
                   <SelectItem key={s} value={s}>
                     {PR_STATUS_LABELS[s as PrStatusType]}

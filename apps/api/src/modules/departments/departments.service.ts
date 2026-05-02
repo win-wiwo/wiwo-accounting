@@ -54,7 +54,7 @@ export class DepartmentsService {
     const [departments, total] = await Promise.all([
       this.departmentModel
         .find(filter)
-        .populate('headId', 'firstName lastName email employeeId')
+        .populate('headId', 'firstName lastName email employeeId photoUrl')
         .sort({ name: 1 })
         .skip(skip)
         .limit(limit)
@@ -76,7 +76,7 @@ export class DepartmentsService {
   async findById(id: string): Promise<Department> {
     const department = await this.departmentModel
       .findById(id)
-      .populate('headId', 'firstName lastName email employeeId')
+      .populate('headId', 'firstName lastName email employeeId photoUrl')
       .exec();
 
     if (!department) {
@@ -107,7 +107,7 @@ export class DepartmentsService {
 
     const department = await this.departmentModel
       .findByIdAndUpdate(id, { $set: dto }, { new: true })
-      .populate('headId', 'firstName lastName email employeeId')
+      .populate('headId', 'firstName lastName email employeeId photoUrl')
       .exec();
 
     if (!department) {
@@ -166,7 +166,7 @@ export class DepartmentsService {
     await department.save();
     return this.departmentModel
       .findById(department._id)
-      .populate('headId', 'firstName lastName email employeeId')
+      .populate('headId', 'firstName lastName email employeeId photoUrl')
       .exec() as Promise<Department>;
   }
 

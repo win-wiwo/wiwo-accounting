@@ -14,6 +14,15 @@ import {
   SelectItem,
 } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import {
   PageHeader,
   Surface,
@@ -89,6 +98,7 @@ export function SettingsPage() {
 
   const [formState, setFormState] = useState<Partial<PrNumberConfig>>({});
   const [initialized, setInitialized] = useState(false);
+  const [confirmSaveConfig, setConfirmSaveConfig] = useState(false);
 
   useEffect(() => {
     if (config && !initialized) {
@@ -135,6 +145,7 @@ export function SettingsPage() {
   const handleSave = () => {
     const { _id, ...dto } = formState as PrNumberConfig;
     updateMutation.mutate(dto);
+    setConfirmSaveConfig(false);
   };
 
   const updateField = <K extends keyof PrNumberConfig>(key: K, value: PrNumberConfig[K]) => {
@@ -228,7 +239,7 @@ export function SettingsPage() {
               <Divider />
 
               <div className="flex justify-end">
-                <PrimaryButton onClick={handleSave} disabled={updateMutation.isPending}>
+                <PrimaryButton onClick={() => setConfirmSaveConfig(true)} disabled={updateMutation.isPending}>
                   <Save className="h-4 w-4" />
                   {updateMutation.isPending ? 'Saving...' : 'Save Configuration'}
                 </PrimaryButton>
@@ -313,6 +324,28 @@ export function SettingsPage() {
           ) : null}
         </div>
       </Surface>
+
+      {/* Confirm Save Configuration */}
+      <Dialog open={confirmSaveConfig} onOpenChange={setConfirmSaveConfig}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Save Configuration</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to update the PR number format? This will affect all future PR
+              numbers.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmSaveConfig(false)}>
+              Cancel
+            </Button>
+            <PrimaryButton onClick={handleSave} disabled={updateMutation.isPending}>
+              <Save className="h-4 w-4" />
+              Confirm
+            </PrimaryButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -356,12 +389,15 @@ function SetSeriesForm({
     },
   });
 
+  const [confirmApply, setConfirmApply] = useState(false);
+
   const parsed = Number(lastNumber);
   const isValid = Number.isFinite(parsed) && parsed >= 0 && Number.isInteger(parsed);
 
   const handleSubmit = () => {
     if (!isValid) return;
     setSeriesMutation.mutate({ year, lastNumber: parsed });
+    setConfirmApply(false);
   };
 
   return (
@@ -376,8 +412,9 @@ function SetSeriesForm({
         <span className="font-mono font-semibold text-zinc-700">lastNumber + 1</span>.
       </p>
 
-      <div className="grid gap-4 sm:grid-cols-[160px_1fr_auto] sm:items-end">
-        <ConfigField label="Year" description="">
+      <div className="grid gap-4 sm:grid-cols-[160px_1fr]">
+        <div className="space-y-1.5">
+          <Label className="text-[12px] font-semibold text-zinc-700">Year</Label>
           <Input
             type="number"
             value={year}
@@ -385,26 +422,54 @@ function SetSeriesForm({
             max={2100}
             onChange={(e) => setYear(Number(e.target.value))}
           />
-        </ConfigField>
-        <ConfigField
-          label="Last Assigned Number"
-          description="Highest series number already issued for this year."
-        >
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-[12px] font-semibold text-zinc-700">Last Assigned Number</Label>
           <Input
             type="number"
             value={lastNumber}
             min={0}
             onChange={(e) => setLastNumber(e.target.value)}
           />
-        </ConfigField>
+          <p className="text-[11px] text-zinc-400 leading-relaxed">
+            Highest series number already issued for this year.
+          </p>
+        </div>
+      </div>
+      <div className="mt-4 h-px bg-zinc-200/80" />
+      <div className="mt-4 flex justify-end">
         <PrimaryButton
-          onClick={handleSubmit}
+          onClick={() => setConfirmApply(true)}
           disabled={!isValid || setSeriesMutation.isPending}
         >
           <Save className="h-4 w-4" />
           {setSeriesMutation.isPending ? 'Saving...' : 'Apply'}
         </PrimaryButton>
       </div>
+
+      {/* Confirm Apply Series */}
+      <Dialog open={confirmApply} onOpenChange={setConfirmApply}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Apply Series</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to set the last assigned number to{' '}
+              <span className="font-mono font-semibold text-foreground">{lastNumber}</span> for
+              year <span className="font-semibold text-foreground">{year}</span>? The next PR
+              number will start from {parsed + 1}.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmApply(false)}>
+              Cancel
+            </Button>
+            <PrimaryButton onClick={handleSubmit} disabled={setSeriesMutation.isPending}>
+              <Save className="h-4 w-4" />
+              Confirm
+            </PrimaryButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
