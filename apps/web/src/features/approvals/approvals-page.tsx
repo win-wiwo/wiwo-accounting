@@ -14,6 +14,7 @@ import {
 import {
   PR_PRIORITY_LABELS,
   APPROVAL_LEVEL_LABELS,
+  PrStatus,
   SourcingType,
   type PrPriority as PrPriorityType,
 } from '@prams/shared';
@@ -65,6 +66,9 @@ export function ApprovalsPage() {
 
   const [sortCol, setSortCol] = useState<'priority' | 'amount' | 'age'>('priority');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'approval' | 'price_review'>('all');
+
+  const isCoo = user?.role === 'coo';
 
   function toggleSort(col: 'amount' | 'age') {
     if (sortCol === col) {
@@ -79,7 +83,13 @@ export function ApprovalsPage() {
   const meta = data?.meta;
 
   const prs = useMemo(() => {
-    return [...rawPrs].sort((a, b) => {
+    const filtered = typeFilter === 'all'
+      ? rawPrs
+      : typeFilter === 'price_review'
+        ? rawPrs.filter((pr) => pr.status === PrStatus.QUOTED)
+        : rawPrs.filter((pr) => pr.status !== PrStatus.QUOTED);
+
+    return [...filtered].sort((a, b) => {
       if (sortCol === 'amount') {
         return sortDir === 'asc'
           ? a.totalAmount - b.totalAmount
@@ -95,7 +105,11 @@ export function ApprovalsPage() {
       if (pDiff !== 0) return pDiff;
       return new Date(a.submittedAt ?? 0).getTime() - new Date(b.submittedAt ?? 0).getTime();
     });
-  }, [rawPrs, sortCol, sortDir]);
+  }, [rawPrs, sortCol, sortDir, typeFilter]);
+
+  // Counts for COO type tabs
+  const approvalCount = rawPrs.filter((pr) => pr.status !== PrStatus.QUOTED).length;
+  const priceReviewCount = rawPrs.filter((pr) => pr.status === PrStatus.QUOTED).length;
 
   // Auto-open modal when navigated from a notification with ?pr=<id>
   useEffect(() => {
@@ -163,6 +177,36 @@ export function ApprovalsPage() {
         )}
       </div>
 
+      {/* ── COO Type Tabs ─────────────────────────────────────── */}
+      {isCoo && !isLoading && rawPrs.length > 0 && (
+        <div className="pr-list-section flex items-center gap-1 rounded-lg bg-zinc-100/60 p-1 w-fit" style={{ animationDelay: '0.03s' }}>
+          {([
+            { key: 'all' as const, label: 'All', count: rawPrs.length },
+            { key: 'approval' as const, label: 'Approval', count: approvalCount },
+            { key: 'price_review' as const, label: 'Price Review', count: priceReviewCount },
+          ]).map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setTypeFilter(tab.key)}
+              className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-medium transition-all duration-150 ${
+                typeFilter === tab.key
+                  ? 'bg-white text-zinc-900 shadow-sm'
+                  : 'text-zinc-500 hover:text-zinc-700'
+              }`}
+            >
+              {tab.label}
+              <span className={`tabular-nums text-[11px] rounded-full px-1.5 py-px ${
+                typeFilter === tab.key
+                  ? 'bg-zinc-100 text-zinc-600'
+                  : 'bg-zinc-200/60 text-zinc-400'
+              }`}>
+                {tab.count}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* ── Table Container ──────────────────────────────────── */}
       <div
         className="pr-list-section rounded-xl border border-zinc-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_16px_rgba(0,0,0,0.03)] overflow-hidden"
@@ -195,6 +239,11 @@ export function ApprovalsPage() {
                     <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
                       PR Number
                     </th>
+                    {isCoo && (
+                      <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+                        Type
+                      </th>
+                    )}
                     <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
                       Request
                     </th>
@@ -257,6 +306,21 @@ export function ApprovalsPage() {
                             {pr.prNumber}
                           </span>
                         </td>
+
+                        {/* Type (COO only) */}
+                        {isCoo && (
+                          <td className="px-5 py-4">
+                            {pr.status === PrStatus.QUOTED ? (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-full px-2 py-0.5">
+                                Price Review
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-violet-700 bg-violet-50 border border-violet-100 rounded-full px-2 py-0.5">
+                                Approval
+                              </span>
+                            )}
+                          </td>
+                        )}
 
                         {/* Request */}
                         <td className="px-5 py-4">

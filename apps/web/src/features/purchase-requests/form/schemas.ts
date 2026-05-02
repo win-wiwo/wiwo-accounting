@@ -23,10 +23,23 @@ export const lineItemSchema = z.object({
 }).superRefine((item, ctx) => {
   if (item.sourcingType === SourcingType.ONLINE) {
     if (!item.estimatedPrice || item.estimatedPrice <= 0) {
-      ctx.addIssue({ code: 'custom', path: ['estimatedPrice'], message: 'Price required for online-sourced items' });
+      const hasSellers = (item.sellerReferences ?? []).length > 0;
+      ctx.addIssue({
+        code: 'custom',
+        path: ['estimatedPrice'],
+        message: hasSellers
+          ? 'Select a seller to use as the unit price'
+          : 'Price required for online-sourced items',
+      });
     }
     const refs = item.sellerReferences ?? [];
-    if (refs.length < 3 && !item.sellerReferencesJustification?.trim()) {
+    if (refs.length === 0) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['sellerReferences'],
+        message: 'At least 1 seller reference is required',
+      });
+    } else if (refs.length < 3 && !item.sellerReferencesJustification?.trim()) {
       ctx.addIssue({
         code: 'custom',
         path: ['sellerReferencesJustification'],

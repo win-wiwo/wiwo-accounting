@@ -69,9 +69,6 @@ export function ItemPhotoWidget({
           <span className="text-[12px] text-zinc-700 truncate max-w-[140px]">
             {staged.file.name}
           </span>
-          <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-blue-600">
-            Pending save
-          </span>
           <button
             type="button"
             onClick={() => onClearStaged(index)}

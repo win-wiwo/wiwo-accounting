@@ -41,6 +41,8 @@ interface StepItemsProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   prData: { data?: any } | undefined;
   serverPhotoPreviews: Record<string, string>;
+  selectedSellerIndexes: Record<number, number>;
+  onSelectedSellerIndexesChange: React.Dispatch<React.SetStateAction<Record<number, number>>>;
 }
 
 export function StepItems({
@@ -52,6 +54,8 @@ export function StepItems({
   stagedFiles,
   prData,
   serverPhotoPreviews,
+  selectedSellerIndexes,
+  onSelectedSellerIndexesChange,
 }: StepItemsProps) {
   const {
     register,
@@ -85,11 +89,8 @@ export function StepItems({
     });
   }, [sourcingMode, watchItems, setValue]);
 
-  // UI-only: which seller index is "selected" per item (not persisted to schema)
-  const [selectedSellerIndexes, setSelectedSellerIndexes] = useState<Record<number, number>>({});
-
   const handleSelectSeller = (itemIndex: number, sellerIndex: number) => {
-    setSelectedSellerIndexes((prev) => ({ ...prev, [itemIndex]: sellerIndex }));
+    onSelectedSellerIndexesChange((prev) => ({ ...prev, [itemIndex]: sellerIndex }));
     const price = watchItems?.[itemIndex]?.sellerReferences?.[sellerIndex]?.price ?? 0;
     setValue(`items.${itemIndex}.estimatedPrice`, price, { shouldValidate: true });
   };
@@ -97,14 +98,14 @@ export function StepItems({
   const handleRemoveSeller = (itemIndex: number, sellerIndex: number) => {
     const current = selectedSellerIndexes[itemIndex];
     if (current === sellerIndex) {
-      setSelectedSellerIndexes((prev) => {
+      onSelectedSellerIndexesChange((prev) => {
         const next = { ...prev };
         delete next[itemIndex];
         return next;
       });
       setValue(`items.${itemIndex}.estimatedPrice`, 0, { shouldValidate: true });
     } else if (current !== undefined && sellerIndex < current) {
-      setSelectedSellerIndexes((prev) => ({ ...prev, [itemIndex]: current - 1 }));
+      onSelectedSellerIndexesChange((prev) => ({ ...prev, [itemIndex]: current - 1 }));
     }
   };
 

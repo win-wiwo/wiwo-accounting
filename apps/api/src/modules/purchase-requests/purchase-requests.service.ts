@@ -137,21 +137,12 @@ export class PurchaseRequestsService {
     const andConditions: FilterQuery<PurchaseRequest>[] = [];
 
     // Role-based visibility
-    if (user.role === UserRole.STAFF) {
-      filter.requesterId = new Types.ObjectId(user._id);
-    } else if (user.role === UserRole.DEPT_HEAD) {
-      if (user.departmentId) {
-        andConditions.push({
-          $or: [
-            { requesterId: new Types.ObjectId(user._id) },
-            { departmentId: new Types.ObjectId(user.departmentId) },
-          ],
-        });
-      } else {
-        filter.requesterId = new Types.ObjectId(user._id);
-      }
+    const visibilityFilter = this.buildVisibilityFilter(user);
+    if (visibilityFilter.$or) {
+      andConditions.push({ $or: visibilityFilter.$or });
+    } else if (visibilityFilter.requesterId) {
+      filter.requesterId = visibilityFilter.requesterId;
     }
-    // COO, CEO, Admin can see all
 
     if (search) {
       andConditions.push({
@@ -261,13 +252,19 @@ export class PurchaseRequestsService {
       throw new NotFoundException('Purchase request not found');
     }
 
+    const isOwn = pr.requesterId._id.toString() === user._id;
+
+    // Draft PRs are only visible to their creator
+    if (pr.status === PrStatus.DRAFT && !isOwn) {
+      throw new ForbiddenException('Draft purchase requests are only visible to their creator');
+    }
+
     if (user.role === UserRole.STAFF) {
-      if (pr.requesterId._id.toString() !== user._id) {
+      if (!isOwn) {
         throw new ForbiddenException('You can only view your own purchase requests');
       }
     } else if (user.role === UserRole.DEPT_HEAD && user.departmentId) {
       const deptId = (pr.departmentId as unknown as { _id: Types.ObjectId })._id.toString();
-      const isOwn = pr.requesterId._id.toString() === user._id;
       const isDeptPr = deptId === user.departmentId;
       if (!isOwn && !isDeptPr) {
         throw new ForbiddenException('You can only view purchase requests from your department');
@@ -1102,17 +1099,45 @@ export class PurchaseRequestsService {
     await this.prModel.findByIdAndDelete(id).exec();
   }
 
-  async getStats(user: RequestUser) {
-    const matchStage: FilterQuery<PurchaseRequest> = {};
+  private buildVisibilityFilter(user: RequestUser): FilterQuery<PurchaseRequest> {
+    const userId = new Types.ObjectId(user._id);
 
     if (user.role === UserRole.STAFF) {
-      matchStage.requesterId = new Types.ObjectId(user._id);
+      return { requesterId: userId };
     } else if (user.role === UserRole.DEPT_HEAD && user.departmentId) {
-      matchStage.$or = [
-        { requesterId: new Types.ObjectId(user._id) },
-        { departmentId: new Types.ObjectId(user.departmentId) },
-      ];
+      return {
+        $or: [
+          { requesterId: userId },
+          { departmentId: new Types.ObjectId(user.departmentId), status: { $ne: PrStatus.DRAFT } },
+        ],
+      };
+    } else if (user.role === UserRole.COO) {
+      return {
+        $or: [
+          { requesterId: userId },
+          { status: { $nin: [PrStatus.DRAFT, PrStatus.LEVEL1_REVIEW] } },
+        ],
+      };
+    } else if (user.role === UserRole.CEO) {
+      return {
+        $or: [
+          { requesterId: userId },
+          { status: { $nin: [PrStatus.DRAFT, PrStatus.LEVEL1_REVIEW, PrStatus.LEVEL2_REVIEW] } },
+        ],
+      };
+    } else {
+      // Admin, Procurement
+      return {
+        $or: [
+          { requesterId: userId },
+          { status: { $ne: PrStatus.DRAFT } },
+        ],
+      };
     }
+  }
+
+  async getStats(user: RequestUser) {
+    const matchStage: FilterQuery<PurchaseRequest> = this.buildVisibilityFilter(user);
 
     const stats = await this.prModel.aggregate([
       { $match: matchStage },
@@ -1144,16 +1169,7 @@ export class PurchaseRequestsService {
   }
 
   async getManagementStats(user: RequestUser) {
-    const baseMatch: FilterQuery<PurchaseRequest> = {};
-
-    if (user.role === UserRole.STAFF) {
-      baseMatch.requesterId = new Types.ObjectId(user._id);
-    } else if (user.role === UserRole.DEPT_HEAD && user.departmentId) {
-      baseMatch.$or = [
-        { requesterId: new Types.ObjectId(user._id) },
-        { departmentId: new Types.ObjectId(user.departmentId) },
-      ];
-    }
+    const baseMatch: FilterQuery<PurchaseRequest> = this.buildVisibilityFilter(user);
 
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);

@@ -311,6 +311,39 @@ const priorityStyle: Record<string, string> = {
   urgent: 'bg-red-50 text-red-600',
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function validatePrForSubmit(pr: any): string[] {
+  const errors: string[] = [];
+  if (!pr.title?.trim()) errors.push("Title is required.");
+  if (!pr.justification?.trim()) errors.push("Purpose / justification is required.");
+  if (!pr.items || pr.items.length === 0) {
+    errors.push("At least one line item is required.");
+    return errors;
+  }
+  for (let i = 0; i < pr.items.length; i++) {
+    const item = pr.items[i];
+    const label = item.description?.trim() ? `"${item.description}"` : `Item ${i + 1}`;
+    if (!item.description?.trim()) errors.push(`${label}: Description is required.`);
+    if (!item.specifications?.trim()) errors.push(`${label}: Specifications are required.`);
+    if (!item.quantity || item.quantity < 1) errors.push(`${label}: Quantity must be at least 1.`);
+    if (!item.unit?.trim()) errors.push(`${label}: Unit is required.`);
+    if (item.sourcingType === SourcingType.ONLINE) {
+      const refs = item.sellerReferences ?? [];
+      if (refs.length === 0) errors.push(`${label}: At least 1 seller reference is required.`);
+      if (!item.estimatedPrice || item.estimatedPrice <= 0) {
+        errors.push(`${label}: Select a seller to use as the unit price.`);
+      }
+      if (refs.length < 3 && !item.sellerReferencesJustification?.trim()) {
+        errors.push(`${label}: Justify why fewer than 3 sellers are provided.`);
+      }
+    }
+  }
+  if (pr.status === PrStatus.RETURNED && !pr.resubmissionNote?.trim()) {
+    errors.push("Describe what changed before resubmitting.");
+  }
+  return errors;
+}
+
 export function PrDetailPage() {
   usePageTitle('Purchase Request');
   const { id } = useParams();
@@ -551,8 +584,8 @@ export function PrDetailPage() {
       isReturnedForInfo);
   const canCancel =
     isOwner &&
-    (isDraft ||
-      runtimeStatus === PrStatus.LEVEL1_REVIEW ||
+    !isDraft &&
+    (runtimeStatus === PrStatus.LEVEL1_REVIEW ||
       runtimeStatus === PrStatus.LEVEL2_REVIEW ||
       isReturnedForInfo);
 
@@ -752,7 +785,11 @@ export function PrDetailPage() {
                 <span className="text-amber-600 font-semibold">Pending Quote</span>
               ) : (
                 <span className="font-semibold tabular-nums text-zinc-800">
-                  {formatCurrency(pr.items.reduce((s, i) => s + (i.totalPrice ?? 0), 0))}
+                  {formatCurrency(
+                    hasProcurementItems
+                      ? pr.items.reduce((s, i) => s + (i.totalPrice ?? 0), 0)
+                      : pr.items.reduce((s, i) => s + (i.quantity ?? 0) * (i.estimatedPrice ?? 0), 0)
+                  )}
                 </span>
               )}
               {pr.neededByDate && (
@@ -844,7 +881,14 @@ export function PrDetailPage() {
                 <button
                   className="inline-flex items-center gap-1.5 rounded-lg h-8 px-3.5 text-[13px] font-semibold text-white transition-all duration-200 hover:-translate-y-px"
                   style={{ background: 'linear-gradient(155deg, #262626 0%, #0d0d0d 100%)', boxShadow: '0 1px 2px rgba(0,0,0,0.14), 0 3px 8px rgba(0,0,0,0.1)' }}
-                  onClick={() => setConfirmDialog({ open: true, type: "submit" })}
+                  onClick={() => {
+                    const errors = validatePrForSubmit(pr);
+                    if (errors.length > 0) {
+                      toast({ title: "Cannot submit", description: errors[0], variant: "error" });
+                      return;
+                    }
+                    setConfirmDialog({ open: true, type: "submit" });
+                  }}
                 >
                   <Send className="h-3.5 w-3.5" /> Submit
                 </button>
@@ -910,7 +954,9 @@ export function PrDetailPage() {
             <div className="px-6 pt-6 pb-4">
               <h2 className="text-[15px] font-semibold text-zinc-900">Line Items</h2>
               <p className="mt-1 text-[12px] text-zinc-400 leading-relaxed">
-                Procurement-sourced items remain unpriced until canvass is complete.
+                {hasProcurementItems
+                  ? 'Procurement-sourced items remain unpriced until canvass is complete.'
+                  : 'Online-sourced items with seller references and pricing.'}
               </p>
             </div>
             <div className="space-y-3 px-5 pb-5">
@@ -923,9 +969,18 @@ export function PrDetailPage() {
                 const unitPriceLabel =
                   isProcurement && !item.quotedUnitPrice
                     ? "Pending quotation"
-                    : formatCurrency(displayPrice);
+                    : displayPrice > 0
+                      ? formatCurrency(displayPrice)
+                      : "No price yet";
+                const lineTotal = isProcurement
+                  ? (item.totalPrice > 0 ? item.totalPrice : 0)
+                  : (item.quantity ?? 0) * (item.estimatedPrice ?? 0);
                 const totalLabel =
-                  item.totalPrice > 0 ? formatCurrency(item.totalPrice) : "TBQ";
+                  isProcurement && !item.quotedUnitPrice
+                    ? "TBQ"
+                    : lineTotal > 0
+                      ? formatCurrency(lineTotal)
+                      : "—";
 
                 return (
                   <div
@@ -938,16 +993,6 @@ export function PrDetailPage() {
                           <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
                             Item {i + 1}
                           </span>
-                          {isProcurement ? (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-700">
-                              <ShoppingCart className="h-2.5 w-2.5" />
-                              Procurement
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-600">
-                              Online
-                            </span>
-                          )}
                         </div>
                         <p className="text-[14px] font-semibold leading-snug text-zinc-900">
                           {item.description}
@@ -960,10 +1005,10 @@ export function PrDetailPage() {
                             <span className="ml-1">× {unitPriceLabel}</span>
                           )}
                         </p>
-                        <p className={`text-[15px] font-bold tabular-nums ${totalLabel === "TBQ" ? "text-amber-600" : "text-zinc-900"}`}>
+                        <p className={`text-[15px] font-bold tabular-nums ${totalLabel === "TBQ" || totalLabel === "—" ? "text-amber-600" : "text-zinc-900"}`}>
                           {totalLabel === "TBQ" ? "Pending Quote" : totalLabel}
                         </p>
-                        {unitPriceLabel === "Pending quotation" && (
+                        {isProcurement && unitPriceLabel === "Pending quotation" && (
                           <p className="text-[11px] text-amber-500">Awaiting canvass</p>
                         )}
                       </div>
@@ -1068,54 +1113,63 @@ export function PrDetailPage() {
               {/* ── Financial Summary ────────────────────────── */}
               <div className="border-t border-zinc-100 mx-5 pt-5 pb-2">
                 {(() => {
-                  const onlineItems = pr.items.filter((i) => i.sourcingType !== SourcingType.PROCUREMENT);
-                  const procurementItems = pr.items.filter((i) => i.sourcingType === SourcingType.PROCUREMENT);
-                  const quotedProcItems = procurementItems.filter((i) => i.quotedUnitPrice);
-                  const unquoted = procurementItems.filter((i) => !i.quotedUnitPrice);
-                  const onlineTotal = onlineItems.reduce((s, i) => s + (i.totalPrice ?? 0), 0);
-                  const quotedTotal = quotedProcItems.reduce((s, i) => s + (i.totalPrice ?? 0), 0);
-                  const knownTotal = onlineTotal + quotedTotal;
-                  const allUnquoted = procurementItems.length > 0 && unquoted.length === procurementItems.length;
+                  const isProcurementPr = pr.sourcingMode === SourcingType.PROCUREMENT;
 
+                  if (isProcurementPr) {
+                    const quoted = pr.items.filter((i) => i.quotedUnitPrice);
+                    const unquoted = pr.items.filter((i) => !i.quotedUnitPrice);
+                    const quotedTotal = quoted.reduce((s, i) => s + (i.totalPrice ?? 0), 0);
+                    const allUnquoted = unquoted.length === pr.items.length;
+
+                    return (
+                      <div className="space-y-2.5">
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between text-[12px]">
+                            <span className="text-zinc-500">{pr.items.length} item{pr.items.length > 1 ? 's' : ''}</span>
+                            {quoted.length > 0 ? (
+                              <span className="font-medium tabular-nums text-zinc-700">{formatCurrency(quotedTotal)}</span>
+                            ) : (
+                              <span className="font-medium text-amber-600">Pending Quote</span>
+                            )}
+                          </div>
+                          {unquoted.length > 0 && quoted.length > 0 && (
+                            <div className="flex items-center justify-between text-[12px]">
+                              <span className="text-amber-600">{unquoted.length} item{unquoted.length > 1 ? 's' : ''} pending quote</span>
+                              <span className="font-medium text-amber-600">TBD</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex items-end justify-between pt-2.5 border-t border-zinc-100">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">Grand Total</p>
+                          {allUnquoted ? (
+                            <p className="text-[22px] font-bold text-amber-600 leading-none">Pending Quote</p>
+                          ) : (
+                            <div className="text-right">
+                              <p className="text-[22px] font-bold tabular-nums text-zinc-900 leading-none">{formatCurrency(quotedTotal)}</p>
+                              {unquoted.length > 0 && (
+                                <p className="text-[11px] text-amber-600 mt-1">+ pending procurement pricing</p>
+                              )}
+                              {unquoted.length === 0 && (
+                                <p className="text-[11px] text-emerald-600 mt-1">Final amount after canvass</p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // Online PR
+                  const total = pr.items.reduce((s, i) => s + (i.quantity ?? 0) * (i.estimatedPrice ?? 0), 0);
                   return (
                     <div className="space-y-2.5">
-                      {/* Line breakdown */}
-                      <div className="space-y-1.5">
-                        {onlineItems.length > 0 && (
-                          <div className="flex items-center justify-between text-[12px]">
-                            <span className="text-zinc-500">{onlineItems.length} online item{onlineItems.length > 1 ? 's' : ''}</span>
-                            <span className="font-medium tabular-nums text-zinc-700">{formatCurrency(onlineTotal)}</span>
-                          </div>
-                        )}
-                        {quotedProcItems.length > 0 && (
-                          <div className="flex items-center justify-between text-[12px]">
-                            <span className="text-zinc-500">{quotedProcItems.length} quoted procurement item{quotedProcItems.length > 1 ? 's' : ''}</span>
-                            <span className="font-medium tabular-nums text-zinc-700">{formatCurrency(quotedTotal)}</span>
-                          </div>
-                        )}
-                        {unquoted.length > 0 && (
-                          <div className="flex items-center justify-between text-[12px]">
-                            <span className="text-amber-600">{unquoted.length} item{unquoted.length > 1 ? 's' : ''} pending quote</span>
-                            <span className="font-medium text-amber-600">TBD</span>
-                          </div>
-                        )}
+                      <div className="flex items-center justify-between text-[12px]">
+                        <span className="text-zinc-500">{pr.items.length} item{pr.items.length > 1 ? 's' : ''}</span>
+                        <span className="font-medium tabular-nums text-zinc-700">{formatCurrency(total)}</span>
                       </div>
-                      {/* Grand total */}
                       <div className="flex items-end justify-between pt-2.5 border-t border-zinc-100">
                         <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">Grand Total</p>
-                        {allUnquoted ? (
-                          <p className="text-[22px] font-bold text-amber-600 leading-none">Pending Quote</p>
-                        ) : (
-                          <div className="text-right">
-                            <p className="text-[22px] font-bold tabular-nums text-zinc-900 leading-none">{allUnquoted ? 'Pending Quote' : formatCurrency(knownTotal)}</p>
-                            {unquoted.length > 0 && (
-                              <p className="text-[11px] text-amber-600 mt-1">+ pending procurement pricing</p>
-                            )}
-                            {procurementItems.length > 0 && unquoted.length === 0 && (
-                              <p className="text-[11px] text-emerald-600 mt-1">Final amount after canvass</p>
-                            )}
-                          </div>
-                        )}
+                        <p className="text-[22px] font-bold tabular-nums text-zinc-900 leading-none">{formatCurrency(total)}</p>
                       </div>
                     </div>
                   );

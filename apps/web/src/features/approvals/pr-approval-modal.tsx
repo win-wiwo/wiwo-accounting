@@ -229,7 +229,7 @@ export function PrApprovalModal({
       }}>
         <DialogPrimitive.Portal>
           <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
-          <DialogPrimitive.Content className="fixed left-[50%] top-[50%] z-50 translate-x-[-50%] translate-y-[-50%] w-[94vw] max-w-[1200px] h-[90vh] flex flex-col rounded-2xl border border-zinc-200/80 bg-white shadow-[0_24px_80px_rgba(0,0,0,0.12),0_4px_16px_rgba(0,0,0,0.06)] duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-[0.97] data-[state=open]:zoom-in-[0.97] data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] overflow-hidden">
+          <DialogPrimitive.Content onOpenAutoFocus={(e) => e.preventDefault()} className="fixed left-[50%] top-[50%] z-50 translate-x-[-50%] translate-y-[-50%] w-[94vw] max-w-[1200px] h-[90vh] flex flex-col rounded-2xl border border-zinc-200/80 bg-white shadow-[0_24px_80px_rgba(0,0,0,0.12),0_4px_16px_rgba(0,0,0,0.06)] duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-[0.97] data-[state=open]:zoom-in-[0.97] data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] overflow-hidden">
             <DialogPrimitive.Title className="sr-only">Review Purchase Request</DialogPrimitive.Title>
             <DialogPrimitive.Description className="sr-only">Review and take action on this purchase request</DialogPrimitive.Description>
 
@@ -271,11 +271,11 @@ export function PrApprovalModal({
 
             {/* ── Body: Split workspace ─────────────────────── */}
             <div className="flex-1 overflow-hidden flex">
-              {isLoading ? (
+              {isLoading || !pr ? (
                 <div className="flex-1 p-8 space-y-5">
                   {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-14 w-full rounded-lg" />)}
                 </div>
-              ) : pr ? (
+              ) : (
                 <>
                   {/* ── Main content (~70%) ──────────────────── */}
                   <div className="flex-1 overflow-y-auto scrollbar-modern px-7 py-5 space-y-4">
@@ -717,7 +717,7 @@ export function PrApprovalModal({
                     </div>
                   </div>
                 </>
-              ) : null}
+              )}
             </div>
           </DialogPrimitive.Content>
         </DialogPrimitive.Portal>
@@ -725,7 +725,7 @@ export function PrApprovalModal({
 
       {/* Attachment preview dialog */}
       <Dialog open={previewDialog.open} onOpenChange={(v) => { if (!v) closePreviewDialog(); }}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-4xl" onOpenAutoFocus={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="h-4 w-4" />

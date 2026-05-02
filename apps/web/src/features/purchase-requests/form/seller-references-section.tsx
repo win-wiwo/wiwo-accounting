@@ -100,7 +100,12 @@ export function SellerReferencesSection({
 
       {/* ── Empty state ─────────────────────────────────── */}
       {fields.length === 0 && (
-        <div className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50/40 px-5 py-5 text-center">
+        <div className={cn(
+          'rounded-xl border border-dashed px-5 py-5 text-center',
+          itemErrors?.sellerReferences?.message
+            ? 'border-red-300 bg-red-50/40'
+            : 'border-zinc-200 bg-zinc-50/40',
+        )}>
           <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-full bg-white border border-zinc-200">
             <Users className="h-4 w-4 text-zinc-400" />
           </div>
@@ -117,6 +122,11 @@ export function SellerReferencesSection({
           >
             <Plus className="h-3 w-3" /> Add First Seller
           </GhostButton>
+          {itemErrors?.sellerReferences?.message && (
+            <p className="mt-2 text-[12px] text-red-600">
+              {itemErrors.sellerReferences.message as string}
+            </p>
+          )}
         </div>
       )}
 

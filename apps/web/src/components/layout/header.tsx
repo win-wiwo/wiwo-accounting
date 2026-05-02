@@ -278,7 +278,7 @@ export function Header({ sidebarCollapsed }: HeaderProps) {
               </div>
 
               {/* Notification list */}
-              <div className="max-h-[400px] overflow-y-auto overscroll-contain py-1">
+              <div className="max-h-[400px] overflow-y-auto overscroll-contain scrollbar-modern py-1">
                 {notifications.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-50 mb-3">

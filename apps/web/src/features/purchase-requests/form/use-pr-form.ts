@@ -86,6 +86,7 @@ export function usePrForm(stagedFiles: ReturnType<typeof useStagedFiles>) {
           sellerReferences: item.sellerReferences?.map((r) => ({
             sellerName: r.sellerName,
             price: r.price,
+            url: r.url || '',
             notes: r.notes || '',
           })) ?? [],
           sellerReferencesJustification: item.sellerReferencesJustification || '',
@@ -103,6 +104,16 @@ export function usePrForm(stagedFiles: ReturnType<typeof useStagedFiles>) {
 
   const onInvalid = () => {
     toast({ title: 'Form has errors', description: 'Please fill in all required fields before submitting.', variant: 'error' });
+  };
+
+  const saveDraft = async () => {
+    const data = form.getValues();
+    if (!data.title?.trim()) {
+      form.setError('title', { message: 'Title is required to save a draft' });
+      toast({ title: 'Title required', description: 'Enter a title before saving.', variant: 'error' });
+      return;
+    }
+    await onSubmit(data);
   };
 
   const onSubmit = async (data: FormData) => {
@@ -194,6 +205,7 @@ export function usePrForm(stagedFiles: ReturnType<typeof useStagedFiles>) {
     submitActionRef,
     onSubmit,
     onInvalid,
+    saveDraft,
     navigate,
     toast,
   };

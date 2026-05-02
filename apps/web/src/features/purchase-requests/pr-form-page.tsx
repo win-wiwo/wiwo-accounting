@@ -32,9 +32,32 @@ export function PrFormPage() {
   const { form, isEdit, id, prData, prLoading, navigate } = pr;
 
   const [step, setStep] = useState(0);
+  const [selectedSellerIndexes, setSelectedSellerIndexes] = useState<Record<number, number>>({});
   const [serverPhotoPreviews, setServerPhotoPreviews] = useState<
     Record<string, string>
   >({});
+
+  // Reconstruct selected seller indexes from saved draft data
+  useEffect(() => {
+    if (!isEdit || !prData?.data?.items) return;
+    const indexes: Record<number, number> = {};
+    prData.data.items.forEach((item: { estimatedPrice?: number; sellerReferences?: Array<{ price: number }> }, i: number) => {
+      const price = item.estimatedPrice;
+      const refs = item.sellerReferences ?? [];
+      if (price && price > 0 && refs.length > 0) {
+        const matchIdx = refs.findIndex((r) => r.price === price);
+        if (matchIdx !== -1) indexes[i] = matchIdx;
+      }
+    });
+    if (Object.keys(indexes).length > 0) {
+      setSelectedSellerIndexes((prev) => {
+        // Don't overwrite if user already made selections this session
+        const merged = { ...indexes };
+        for (const key of Object.keys(prev)) merged[Number(key)] = prev[Number(key)];
+        return merged;
+      });
+    }
+  }, [isEdit, prData?.data?.items]);
 
   useEffect(() => {
     if (!isEdit || !prData?.data?.items || !id) return;
@@ -91,7 +114,7 @@ export function PrFormPage() {
 
   const handleDraftSave = () => {
     pr.submitActionRef.current = 'draft';
-    form.handleSubmit(pr.onSubmit, pr.onInvalid)();
+    pr.saveDraft();
   };
 
   const handleSubmit = () => {
@@ -135,7 +158,7 @@ export function PrFormPage() {
         onStepClick={goToStep}
       />
 
-      <form onSubmit={(e) => e.preventDefault()} className="flex-1 space-y-6">
+      <form onSubmit={(e) => e.preventDefault()} autoComplete="off" className="flex-1 space-y-6">
         <div className="grid gap-6 xl:grid-cols-[1fr_340px]">
           {/* Main column */}
           <div className="min-w-0 space-y-6">
@@ -157,6 +180,8 @@ export function PrFormPage() {
                 stagedFiles={stagedFiles}
                 prData={prData}
                 serverPhotoPreviews={serverPhotoPreviews}
+                selectedSellerIndexes={selectedSellerIndexes}
+                onSelectedSellerIndexesChange={setSelectedSellerIndexes}
               />
             )}
 
@@ -165,7 +190,10 @@ export function PrFormPage() {
                 form={form}
                 projectOptions={pr.projectOptions}
                 totalAmount={pr.totalAmount}
-                stagedPhotosCount={Object.keys(stagedFiles.stagedPhotos).length}
+                stagedPhotos={stagedFiles.stagedPhotos}
+                prData={prData}
+                serverPhotoPreviews={serverPhotoPreviews}
+                selectedSellerIndexes={selectedSellerIndexes}
                 onGoToStep={goToStep}
               />
             )}

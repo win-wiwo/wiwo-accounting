@@ -50,6 +50,7 @@ export function ProcurementWorkspacePage() {
 
   const procItems = pr?.items.filter((i) => i.sourcingType === SourcingType.PROCUREMENT) ?? [];
   const quotationAttachments = (pr?.attachments ?? []).filter((att) => att.category === AttachmentCategory.CANVASS);
+  const supportingAttachments = (pr?.attachments ?? []).filter((att) => att.category !== AttachmentCategory.CANVASS);
 
   const requester = pr?.requesterId as unknown as { firstName: string; lastName: string; email: string; employeeId: string } | null;
   const department = pr?.departmentId as unknown as { name: string; code: string } | null;
@@ -162,7 +163,7 @@ export function ProcurementWorkspacePage() {
       <div className="space-y-6 max-w-screen-2xl">
         <Skeleton className="h-12 w-80 rounded-xl" />
         <Skeleton className="h-20 w-full rounded-xl" />
-        <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
+        <div className="grid gap-6 lg:grid-cols-[340px_1fr]">
           <Skeleton className="h-96 rounded-xl" />
           <Skeleton className="h-96 rounded-xl" />
         </div>
@@ -288,11 +289,6 @@ export function ProcurementWorkspacePage() {
                 </Button>
               </>
             )}
-            {canvass.actionStep === 'return' && (
-              <Button size="sm" variant="outline" className="text-[12px] h-9" onClick={() => canvass.setActionStep(null)} disabled={canvass.isReturning}>
-                Cancel
-              </Button>
-            )}
             {canvass.actionStep === 'quotation' && (
               <Button size="sm" variant="outline" className="text-[12px] h-9" onClick={() => setShowDiscardConfirm(true)} disabled={canvass.isSubmitting}>
                 Discard Changes
@@ -302,76 +298,45 @@ export function ProcurementWorkspacePage() {
         </div>
       </div>
 
-      {/* ── Body: Sidebar + Main ─────────────────────────────── */}
-      <div className="pr-detail-section grid gap-6 lg:grid-cols-[280px_1fr] items-start" style={{ animationDelay: '0.06s' }}>
+      {/* ── Body: Items + Main ──────────────────────────────── */}
+      <div className="pr-detail-section grid gap-6 lg:grid-cols-[340px_1fr] items-start" style={{ animationDelay: '0.06s' }}>
 
-        {/* ── LEFT SIDEBAR ─────────────────────────────────── */}
-        <div className="rounded-xl border border-zinc-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-
-          {/* Requester */}
-          <div className="px-5 py-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-zinc-400 mb-3">Requester</p>
-            <div className="flex items-center gap-2.5 mb-4">
-              <div className="h-8 w-8 rounded-full bg-zinc-100 flex items-center justify-center shrink-0 font-semibold text-[12px] text-zinc-600">
-                {requester?.firstName?.[0] ?? <User className="h-3.5 w-3.5" />}
-              </div>
-              <div className="min-w-0">
-                <p className="text-[13px] font-semibold leading-tight text-zinc-900">{requesterName}</p>
-                <p className="text-[11px] text-zinc-400 mt-0.5">{department?.name ?? '—'}</p>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[11px] text-zinc-400">Submitted</span>
-                <span className="text-[12px] font-medium text-zinc-700">{formatDate(pr.submittedAt) || '—'}</span>
-              </div>
-              {pr.projectId && (
-                <div className="flex items-start justify-between gap-2">
-                  <span className="text-[11px] text-zinc-400 shrink-0">Project</span>
-                  <span className="text-[12px] font-medium text-zinc-700 text-right truncate">
-                    {(pr.projectId as unknown as { name: string }).name}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="h-px bg-zinc-100" />
-
-          {/* Purpose */}
-          <div className="px-5 py-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-zinc-400 mb-2">Purpose</p>
-            <p className="text-[12.5px] leading-relaxed text-zinc-600">{pr.justification}</p>
-          </div>
-
-          <div className="h-px bg-zinc-100" />
-
+        {/* ── LEFT: Items to Source + Details ────────────── */}
+        <div className="space-y-4">
           {/* Items to Source */}
-          <div className="px-5 py-4">
-            <div className="flex items-center gap-2 mb-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-zinc-400">Items to Source</p>
-              <span className="ml-auto text-[11px] font-semibold text-zinc-400 tabular-nums">{procItems.length}</span>
+          <div className="rounded-xl border border-zinc-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+            <div className="flex items-center gap-2 px-5 py-4 border-b border-zinc-100">
+              <ShoppingCart className="h-4 w-4 text-zinc-400" />
+              <h2 className="text-[14px] font-bold text-zinc-900">Items to Source</h2>
+              <span className="ml-auto inline-flex items-center justify-center h-5 min-w-[20px] rounded-full bg-zinc-900 text-[10px] font-bold text-white tabular-nums px-1.5">{procItems.length}</span>
             </div>
             {procItems.length === 0 ? (
-              <p className="text-[12px] text-zinc-400">All items are online-sourced.</p>
+              <div className="px-5 py-8 text-center">
+                <p className="text-[12px] text-zinc-400">All items are online-sourced.</p>
+              </div>
             ) : (
-              <div className="space-y-0.5">
+              <div className="divide-y divide-zinc-100">
                 {procItems.map((item, i) => (
-                  <div key={item._id} className="rounded-lg px-3 py-3 hover:bg-zinc-50/80 transition-colors duration-150">
+                  <div key={item._id} className="px-5 py-4 hover:bg-zinc-50/60 transition-colors duration-150">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-zinc-100 text-[10px] font-bold text-zinc-500 tabular-nums">{i + 1}</span>
-                          <p className="text-[12.5px] font-semibold leading-snug text-zinc-800">{item.description}</p>
-                        </div>
-                        <div className="ml-7 mt-1.5 space-y-1">
-                          <p className="text-[11px] font-medium text-zinc-500">{item.quantity} {item.unit}</p>
-                          {item.specifications && (
-                            <p className="text-[11px] text-zinc-400 leading-relaxed">{item.specifications}</p>
-                          )}
-                          {item.notes && (
-                            <p className="text-[11px] text-zinc-400 italic">{item.notes}</p>
-                          )}
+                        <div className="flex items-start gap-2.5">
+                          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-[11px] font-bold text-zinc-500 tabular-nums mt-px">{i + 1}</span>
+                          <div className="min-w-0">
+                            <p className="text-[13px] font-semibold leading-snug text-zinc-800">{item.description}</p>
+                            <div className="flex items-center gap-3 mt-1">
+                              <p className="text-[12px] font-medium text-zinc-500">{item.quantity} {item.unit}</p>
+                              {item.estimatedPrice > 0 && (
+                                <span className="text-[11px] text-zinc-400">Est. {formatCurrency(item.estimatedPrice)}/{item.unit}</span>
+                              )}
+                            </div>
+                            {item.specifications && (
+                              <p className="text-[11px] text-zinc-400 leading-relaxed mt-1.5">{item.specifications}</p>
+                            )}
+                            {item.notes && (
+                              <p className="text-[11px] text-zinc-400 italic mt-1">{item.notes}</p>
+                            )}
+                          </div>
                         </div>
                       </div>
                       {item.referencePhotoPath && (
@@ -389,6 +354,78 @@ export function ProcurementWorkspacePage() {
               </div>
             )}
           </div>
+
+          {/* Request Details */}
+          <div className="rounded-xl border border-zinc-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+            <div className="px-5 py-3 border-b border-zinc-100">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-zinc-400">Request Details</p>
+            </div>
+            <div className="px-5 py-4 space-y-4">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-full bg-zinc-100 flex items-center justify-center shrink-0 font-semibold text-[12px] text-zinc-600">
+                  {requester?.firstName?.[0] ?? <User className="h-3.5 w-3.5" />}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[13px] font-semibold leading-tight text-zinc-900">{requesterName}</p>
+                  <p className="text-[11px] text-zinc-400 mt-0.5">{department?.name ?? '—'}</p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] text-zinc-400">Submitted</span>
+                  <span className="text-[12px] font-medium text-zinc-700">{formatDate(pr.submittedAt) || '—'}</span>
+                </div>
+                {pr.projectId && (
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-[11px] text-zinc-400 shrink-0">Project</span>
+                    <span className="text-[12px] font-medium text-zinc-700 text-right truncate">
+                      {(pr.projectId as unknown as { name: string }).name}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-zinc-400 mb-1.5">Purpose</p>
+                <p className="text-[12.5px] leading-relaxed text-zinc-600">{pr.justification}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Supporting Attachments */}
+          {supportingAttachments.length > 0 && (
+            <div className="rounded-xl border border-zinc-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+              <div className="flex items-center gap-2 px-5 py-3 border-b border-zinc-100">
+                <Paperclip className="h-3.5 w-3.5 text-zinc-400" />
+                <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-zinc-400">Attachments</p>
+                <span className="ml-auto text-[11px] font-medium text-zinc-400 tabular-nums">{supportingAttachments.length}</span>
+              </div>
+              <div className="px-4 py-3 space-y-1">
+                {supportingAttachments.map((att) => (
+                  <div
+                    key={att._id}
+                    className="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-zinc-50 transition-colors duration-150 group"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      {fileTypeIcon(att.mimeType)}
+                      <span className="text-[12px] font-medium text-zinc-700 truncate">{att.originalName}</span>
+                    </div>
+                    <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                      {canPreviewAttachment(att.mimeType) && (
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100" title="Preview"
+                          onClick={() => handlePreviewAttachment(att._id, att.mimeType, att.originalName)}>
+                          <Eye className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100" title="Download"
+                        onClick={() => purchaseRequestsApi.downloadAttachment(pr._id, att._id, att.originalName)}>
+                        <Download className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── RIGHT: Main Workspace ─────────────────────────── */}
@@ -549,17 +586,28 @@ export function ProcurementWorkspacePage() {
                 />
                 <div className="flex items-center justify-between mt-3">
                   <p className="text-[11px] text-zinc-400">Cmd/Ctrl + Enter to send</p>
-                  <Button
-                    size="sm"
-                    className="h-9 bg-zinc-900 hover:bg-zinc-800 text-white text-[12px] gap-1.5"
-                    onClick={canvass.handleReturnForInfo}
-                    disabled={canvass.isReturning || !canvass.returnNote.trim()}
-                  >
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-9 text-[12px]"
+                      onClick={() => canvass.setActionStep(null)}
+                      disabled={canvass.isReturning}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="h-9 bg-zinc-900 hover:bg-zinc-800 text-white text-[12px] gap-1.5"
+                      onClick={canvass.handleReturnForInfo}
+                      disabled={canvass.isReturning || !canvass.returnNote.trim()}
+                    >
                     {canvass.isReturning
                       ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
                       : <Send className="h-3.5 w-3.5" />}
                     Send to Requester
                   </Button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -659,6 +707,7 @@ export function ProcurementWorkspacePage() {
           </div>
 
         </div>
+
       </div>
 
       {/* ── Sticky Footer: Quotation Mode ─────────────────── */}
@@ -773,7 +822,7 @@ export function ProcurementWorkspacePage() {
 
       {/* ── Attachment Preview ────────────────────────────────── */}
       <Dialog open={previewDialog.open} onOpenChange={(o) => { if (!o) closePreviewDialog(); }}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-4xl" onOpenAutoFocus={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-[14px]">
               <FileText className="h-4 w-4 text-zinc-400" /> {previewDialog.name || 'Attachment Preview'}

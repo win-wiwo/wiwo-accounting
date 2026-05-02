@@ -1,5 +1,5 @@
 import { type UseFormReturn } from 'react-hook-form';
-import { AlertCircle, Pencil } from 'lucide-react';
+import { AlertCircle, Camera, Pencil, Tag } from 'lucide-react';
 import {
   SourcingType,
   PR_PRIORITY_LABELS,
@@ -18,7 +18,11 @@ interface StepReviewProps {
   form: UseFormReturn<FormData>;
   projectOptions: ProjectOption[];
   totalAmount: number;
-  stagedPhotosCount: number;
+  stagedPhotos: Record<number, { file: File; url: string }>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  prData: { data?: any } | undefined;
+  serverPhotoPreviews: Record<string, string>;
+  selectedSellerIndexes: Record<number, number>;
   onGoToStep: (step: number) => void;
 }
 
@@ -26,7 +30,10 @@ export function StepReview({
   form,
   projectOptions,
   totalAmount,
-  stagedPhotosCount,
+  stagedPhotos,
+  prData,
+  serverPhotoPreviews,
+  selectedSellerIndexes,
   onGoToStep,
 }: StepReviewProps) {
   const sourcingMode = form.watch('sourcingMode');
@@ -115,29 +122,68 @@ export function StepReview({
               const lineTotal = isOnline
                 ? (Number(item.quantity) || 0) * (Number(item.estimatedPrice) || 0)
                 : 0;
+              const staged = stagedPhotos[i];
+              const serverItem = item._id
+                ? prData?.data?.items?.find(
+                    (si: { _id: string }) => si._id === item._id,
+                  )
+                : null;
+              const photoUrl = staged?.url ?? (item._id ? serverPhotoPreviews[item._id] : null);
+              const photoName = staged?.file.name ?? serverItem?.referencePhotoOriginalName ?? null;
               return (
                 <div
                   key={i}
-                  className="flex items-center justify-between gap-4 rounded-lg border border-zinc-100 px-4 py-3 text-[13px]"
+                  className="rounded-lg border border-zinc-100 px-4 py-3 text-[13px]"
                 >
-                  <div className="min-w-0 flex-1">
-                    <span className="font-medium text-zinc-800">
-                      {item.description || `Item ${i + 1}`}
-                    </span>
-                    <span className="ml-2 text-zinc-400 tabular-nums">
-                      ×{item.quantity} {item.unit}
-                    </span>
-                    {isOnline && (
-                      <span className="ml-2 text-[11px] font-medium text-blue-600">
-                        Online
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <span className="font-medium text-zinc-800">
+                        {item.description || `Item ${i + 1}`}
                       </span>
-                    )}
+                      <span className="ml-2 text-zinc-400 tabular-nums">
+                        ×{item.quantity} {item.unit}
+                      </span>
+                      {isOnline && (
+                        <span className="ml-2 text-[11px] font-medium text-blue-600">
+                          Online
+                        </span>
+                      )}
+                    </div>
+                    <span
+                      className={`shrink-0 font-semibold tabular-nums ${isOnline ? 'text-zinc-800' : 'text-amber-600'}`}
+                    >
+                      {isOnline ? formatCurrency(lineTotal) : 'TBD'}
+                    </span>
                   </div>
-                  <span
-                    className={`shrink-0 font-semibold tabular-nums ${isOnline ? 'text-zinc-800' : 'text-amber-600'}`}
-                  >
-                    {isOnline ? formatCurrency(lineTotal) : 'TBD'}
-                  </span>
+                  {isOnline && (() => {
+                    const sellerIdx = selectedSellerIndexes[i];
+                    const seller = sellerIdx !== undefined ? item.sellerReferences?.[sellerIdx] : undefined;
+                    return seller ? (
+                      <p className="mt-1.5 flex items-center gap-1.5 text-[12px] text-zinc-500">
+                        <Tag className="h-3 w-3 shrink-0" />
+                        Seller: <span className="font-medium text-zinc-700">{seller.sellerName}</span>
+                        <span className="tabular-nums">— {formatCurrency(seller.price)}/unit</span>
+                      </p>
+                    ) : null;
+                  })()}
+                  {item.specifications && (
+                    <p className="mt-1.5 text-[12px] text-zinc-500 whitespace-pre-wrap leading-relaxed">
+                      {item.specifications}
+                    </p>
+                  )}
+                  {photoUrl && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <img
+                        src={photoUrl}
+                        alt="ref"
+                        className="h-8 w-8 rounded-md object-cover border border-zinc-200"
+                      />
+                      <Camera className="h-3 w-3 text-zinc-400" />
+                      <span className="text-[11px] text-zinc-500 truncate max-w-[180px]">
+                        {photoName}
+                      </span>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -156,11 +202,6 @@ export function StepReview({
               )}
             </div>
           </div>
-          {stagedPhotosCount > 0 && (
-            <p className="mt-2 text-[12px] text-zinc-400">
-              {stagedPhotosCount} item photo(s) pending upload
-            </p>
-          )}
         </div>
       </Surface>
 

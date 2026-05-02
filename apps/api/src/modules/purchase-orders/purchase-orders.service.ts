@@ -168,9 +168,23 @@ export class PurchaseOrdersService {
     const filter: FilterQuery<PurchaseOrder> = {};
     const andConditions: FilterQuery<PurchaseOrder>[] = [];
 
-    // Staff and dept heads can only see their own POs
+    // Staff: only see POs they created or POs linked to their own PRs.
+    // Dept heads: also see POs for PRs in their department.
     if (user && ([UserRole.STAFF, UserRole.DEPT_HEAD] as string[]).includes(user.role)) {
-      filter.createdBy = new Types.ObjectId(user._id);
+      const userId = new Types.ObjectId(user._id);
+      // Find PR IDs this user owns
+      const ownPrIds = await this.prModel.find({ requesterId: userId }).distinct('_id');
+      const orConditions: FilterQuery<PurchaseOrder>[] = [
+        { createdBy: userId },
+        { purchaseRequestId: { $in: ownPrIds } },
+      ];
+      if (user.role === UserRole.DEPT_HEAD && user.departmentId) {
+        const deptPrIds = await this.prModel
+          .find({ departmentId: new Types.ObjectId(user.departmentId) })
+          .distinct('_id');
+        orConditions.push({ purchaseRequestId: { $in: deptPrIds } });
+      }
+      andConditions.push({ $or: orConditions });
     }
 
     if (search) {
@@ -248,10 +262,20 @@ export class PurchaseOrdersService {
       throw new NotFoundException('Purchase order not found');
     }
 
-    // Staff and dept heads can only view their own POs
+    // Staff and dept heads: can view POs they created, POs for their own PRs,
+    // or (dept heads only) POs for PRs in their department.
     if (user && ([UserRole.STAFF, UserRole.DEPT_HEAD] as string[]).includes(user.role)) {
-      if (po.createdBy?.toString() !== user._id && (po.createdBy as any)?._id?.toString() !== user._id) {
-        throw new ForbiddenException('You can only view your own purchase orders');
+      const creatorId = (po.createdBy as any)?._id?.toString() ?? po.createdBy?.toString();
+      const isCreator = creatorId === user._id;
+
+      const linkedPr = po.purchaseRequestId as any;
+      const isRequester = linkedPr?.requesterId?.toString() === user._id;
+      const isSameDept = user.role === UserRole.DEPT_HEAD
+        && user.departmentId
+        && linkedPr?.departmentId?.toString() === user.departmentId;
+
+      if (!isCreator && !isRequester && !isSameDept) {
+        throw new ForbiddenException('You do not have access to this purchase order');
       }
     }
 
