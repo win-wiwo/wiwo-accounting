@@ -1,0 +1,205 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - img "WIWO" [ref=e7]
+      - button [ref=e8]:
+        - img [ref=e9]
+    - navigation [ref=e12]:
+      - link "Dashboard" [ref=e13] [cursor=pointer]:
+        - /url: /dashboard
+        - img [ref=e14]
+        - generic [ref=e19]: Dashboard
+      - link "Purchase Requests" [ref=e20] [cursor=pointer]:
+        - /url: /purchase-requests
+        - img [ref=e21]
+        - generic [ref=e24]: Purchase Requests
+      - link "Procurement Queue" [ref=e25] [cursor=pointer]:
+        - /url: /procurement
+        - img [ref=e26]
+        - generic [ref=e29]: Procurement Queue
+      - link "Suppliers" [ref=e30] [cursor=pointer]:
+        - /url: /suppliers
+        - img [ref=e31]
+        - generic [ref=e36]: Suppliers
+      - link "Purchase Orders" [ref=e37] [cursor=pointer]:
+        - /url: /purchase-orders
+        - img [ref=e38]
+        - generic [ref=e42]: Purchase Orders
+      - link "Search & Monitor" [ref=e43] [cursor=pointer]:
+        - /url: /search
+        - img [ref=e44]
+        - generic [ref=e47]: Search & Monitor
+      - link "Reports" [ref=e48] [cursor=pointer]:
+        - /url: /reports
+        - img [ref=e49]
+        - generic [ref=e51]: Reports
+      - generic [ref=e54]: Admin
+      - link "Projects" [ref=e56] [cursor=pointer]:
+        - /url: /projects
+        - img [ref=e57]
+        - generic [ref=e59]: Projects
+      - link "Users" [ref=e60] [cursor=pointer]:
+        - /url: /users
+        - img [ref=e61]
+        - generic [ref=e66]: Users
+      - link "Departments" [ref=e67] [cursor=pointer]:
+        - /url: /departments
+        - img [ref=e68]
+        - generic [ref=e72]: Departments
+      - link "Settings" [ref=e73] [cursor=pointer]:
+        - /url: /settings
+        - img [ref=e74]
+        - generic [ref=e77]: Settings
+    - generic [ref=e80]:
+      - link "SA System Admin Admin" [ref=e81] [cursor=pointer]:
+        - /url: /profile
+        - img "SA" [ref=e83]
+        - generic [ref=e84]:
+          - paragraph [ref=e85]: System Admin
+          - paragraph [ref=e86]: Admin
+      - button "Sign out" [ref=e87]:
+        - img
+        - text: Sign out
+  - banner [ref=e88]:
+    - generic [ref=e90]:
+      - img [ref=e91]
+      - textbox "Search PRs... (Ctrl+K)" [ref=e94]
+    - button [ref=e96]:
+      - img
+  - main [ref=e97]:
+    - generic [ref=e199]:
+      - generic [ref=e200]:
+        - button "Procurement Queue" [ref=e201]:
+          - img [ref=e202]
+          - text: Procurement Queue
+        - generic [ref=e204]:
+          - generic [ref=e205]:
+            - heading "Network Video Recorder – AI Backup Recording" [level=1] [ref=e206]
+            - generic [ref=e207]:
+              - generic [ref=e208]: 2026-05-0021
+              - generic [ref=e210]: Pending Procurement
+              - generic [ref=e211]:
+                - img [ref=e212]
+                - text: High
+              - generic [ref=e215]:
+                - text: Needed May 20, 2026
+                - generic [ref=e216]: (18d left)
+              - generic [ref=e218]: 3 items to source
+          - generic [ref=e219]:
+            - button "Return" [ref=e220]:
+              - img
+              - text: Return
+            - button "Continue Canvass" [ref=e221]:
+              - img
+              - text: Continue Canvass
+      - generic [ref=e222]:
+        - generic [ref=e223]:
+          - generic [ref=e224]:
+            - paragraph [ref=e226]: Request Details
+            - generic [ref=e227]:
+              - generic [ref=e228]:
+                - img "Diana Fernandez" [ref=e230]
+                - generic [ref=e231]:
+                  - paragraph [ref=e232]: Diana Fernandez
+                  - paragraph [ref=e233]: IT & Systems
+              - generic [ref=e234]:
+                - generic [ref=e235]:
+                  - generic [ref=e236]: Submitted
+                  - generic [ref=e237]: Apr 28, 2026
+                - generic [ref=e238]:
+                  - generic [ref=e239]: Project
+                  - generic [ref=e240]: AI Camera System – Phase 1
+              - generic [ref=e241]:
+                - paragraph [ref=e242]: Purpose
+                - paragraph [ref=e243]: Project specs require redundant recording. Primary edge servers do not provide sufficient storage redundancy.
+          - generic [ref=e244]:
+            - paragraph [ref=e246]: Approval Timeline
+            - generic [ref=e250]:
+              - generic [ref=e251]:
+                - img [ref=e253]
+                - generic [ref=e256]:
+                  - generic [ref=e258]: Submitted
+                  - paragraph [ref=e259]: Apr 28, 2026, 6:27 PM
+              - generic [ref=e260]:
+                - img [ref=e262]
+                - generic [ref=e265]:
+                  - generic [ref=e266]:
+                    - generic [ref=e267]: Approved
+                    - generic [ref=e268]: Department Head
+                  - paragraph [ref=e269]: by Jerome Aquino
+                  - paragraph [ref=e270]: “Approved.”
+                  - paragraph [ref=e271]: Apr 28, 2026, 10:27 PM
+              - generic [ref=e272]:
+                - img [ref=e274]
+                - generic [ref=e277]:
+                  - generic [ref=e278]:
+                    - generic [ref=e279]: Approved
+                    - generic [ref=e280]: COO
+                  - paragraph [ref=e281]: by Maria Reyes
+                  - paragraph [ref=e282]: “Approved.”
+                  - paragraph [ref=e283]: Apr 29, 2026, 10:27 AM
+              - generic [ref=e284]:
+                - img [ref=e286]
+                - generic [ref=e289]:
+                  - generic [ref=e290]:
+                    - generic [ref=e291]: Approved
+                    - generic [ref=e292]: CEO
+                  - paragraph [ref=e293]: by Roberto Santos
+                  - paragraph [ref=e294]: “Approved. Proceed to procurement.”
+                  - paragraph [ref=e295]: Apr 30, 2026, 10:27 AM
+        - generic [ref=e297]:
+          - generic [ref=e298]:
+            - generic [ref=e299]:
+              - heading "Supplier Comparison" [level=2] [ref=e300]
+              - paragraph [ref=e301]:
+                - generic [ref=e302]: 2 Suppliers Compared · Ready for Review
+            - generic [ref=e303]:
+              - paragraph [ref=e304]: Selected Total
+              - paragraph [ref=e305]: ₱38,920.00
+          - generic [ref=e307]:
+            - img [ref=e308]
+            - text: Selected is +1088.0% above cheapest
+          - table [ref=e311]:
+            - rowgroup [ref=e312]:
+              - row "Supplier Hikvision DS-96128NI-I24 128-Channel NVR Seagate SkyHawk AI 10TB HDD (Surveillance) 2U Rackmount Server Case with Rails Total" [ref=e313]:
+                - columnheader "Supplier" [ref=e314]
+                - columnheader "Hikvision DS-96128NI-I24 128-Channel NVR" [ref=e315]:
+                  - generic [ref=e316]: Hikvision DS-96128NI-I24 128-Channel NVR
+                - columnheader "Seagate SkyHawk AI 10TB HDD (Surveillance)" [ref=e317]:
+                  - generic [ref=e318]: Seagate SkyHawk AI 10TB HDD (Surveillance)
+                - columnheader "2U Rackmount Server Case with Rails" [ref=e319]:
+                  - generic [ref=e320]: 2U Rackmount Server Case with Rails
+                - columnheader "Total" [ref=e321]
+            - rowgroup [ref=e322]:
+              - row "AIVision Systems Philippines Winner No lead time Civic%20Type-R-onlinebrochure-allnew-hires.pdf ₱1,234.00 ₱3,121.00 ₱234.00 ₱38,920.00" [ref=e323]:
+                - cell "AIVision Systems Philippines Winner No lead time Civic%20Type-R-onlinebrochure-allnew-hires.pdf" [ref=e324]:
+                  - generic [ref=e325]:
+                    - img [ref=e326]
+                    - generic [ref=e329]: AIVision Systems Philippines
+                    - generic [ref=e330]:
+                      - img [ref=e331]
+                      - text: Winner
+                  - paragraph [ref=e337]: No lead time
+                  - generic [ref=e339]:
+                    - img [ref=e340]
+                    - generic [ref=e343]: Civic%20Type-R-onlinebrochure-allnew-hires.pdf
+                - cell "₱1,234.00" [ref=e344]
+                - cell "₱3,121.00" [ref=e345]
+                - cell "₱234.00" [ref=e346]
+                - cell "₱38,920.00" [ref=e347]
+              - row "Cabletech Solutions Corp. Lowest Bid sdf Prasoon_Mahawar.pdf ₱234.00 ₱234.00 ₱234.00 ₱3,276.00" [ref=e348]:
+                - cell "Cabletech Solutions Corp. Lowest Bid sdf Prasoon_Mahawar.pdf" [ref=e349]:
+                  - generic [ref=e350]:
+                    - generic [ref=e351]: Cabletech Solutions Corp.
+                    - generic [ref=e352]: Lowest Bid
+                  - paragraph [ref=e353]: sdf
+                  - generic [ref=e355]:
+                    - img [ref=e356]
+                    - generic [ref=e359]: Prasoon_Mahawar.pdf
+                - cell "₱234.00" [ref=e360]
+                - cell "₱234.00" [ref=e361]
+                - cell "₱234.00" [ref=e362]
+                - cell "₱3,276.00" [ref=e363]
+          - generic [ref=e364]:
+            - paragraph [ref=e365]: Fewer than 3 suppliers — justification
+            - paragraph [ref=e366]: Only seller

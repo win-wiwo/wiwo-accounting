@@ -1,0 +1,160 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - img "WIWO" [ref=e7]
+      - button [ref=e8]:
+        - img [ref=e9]
+    - navigation [ref=e12]:
+      - link "Dashboard" [ref=e13] [cursor=pointer]:
+        - /url: /dashboard
+        - img [ref=e14]
+        - generic [ref=e19]: Dashboard
+      - link "Purchase Requests" [ref=e20] [cursor=pointer]:
+        - /url: /purchase-requests
+        - img [ref=e21]
+        - generic [ref=e24]: Purchase Requests
+      - link "Procurement Queue" [ref=e25] [cursor=pointer]:
+        - /url: /procurement
+        - img [ref=e26]
+        - generic [ref=e29]: Procurement Queue
+      - link "Suppliers" [ref=e30] [cursor=pointer]:
+        - /url: /suppliers
+        - img [ref=e31]
+        - generic [ref=e36]: Suppliers
+      - link "Purchase Orders" [ref=e37] [cursor=pointer]:
+        - /url: /purchase-orders
+        - img [ref=e38]
+        - generic [ref=e42]: Purchase Orders
+      - link "Search & Monitor" [ref=e43] [cursor=pointer]:
+        - /url: /search
+        - img [ref=e44]
+        - generic [ref=e47]: Search & Monitor
+      - link "Reports" [ref=e48] [cursor=pointer]:
+        - /url: /reports
+        - img [ref=e49]
+        - generic [ref=e51]: Reports
+      - generic [ref=e54]: Admin
+      - link "Projects" [ref=e56] [cursor=pointer]:
+        - /url: /projects
+        - img [ref=e57]
+        - generic [ref=e59]: Projects
+      - link "Users" [ref=e60] [cursor=pointer]:
+        - /url: /users
+        - img [ref=e61]
+        - generic [ref=e66]: Users
+      - link "Departments" [ref=e67] [cursor=pointer]:
+        - /url: /departments
+        - img [ref=e69]
+        - generic [ref=e73]: Departments
+      - link "Settings" [ref=e74] [cursor=pointer]:
+        - /url: /settings
+        - img [ref=e75]
+        - generic [ref=e78]: Settings
+    - generic [ref=e81]:
+      - link "SA System Admin Admin" [ref=e82] [cursor=pointer]:
+        - /url: /profile
+        - img "SA" [ref=e122]
+        - generic [ref=e85]:
+          - paragraph [ref=e86]: System Admin
+          - paragraph [ref=e87]: Admin
+      - button "Sign out" [ref=e88]:
+        - img
+        - text: Sign out
+  - banner [ref=e89]:
+    - generic [ref=e91]:
+      - img [ref=e92]
+      - textbox "Search PRs... (Ctrl+K)" [ref=e95]
+    - button [ref=e97]:
+      - img
+  - main [ref=e98]:
+    - generic [ref=e271]:
+      - generic [ref=e272]:
+        - generic [ref=e273]:
+          - heading "Administration" [level=1] [ref=e274]
+          - paragraph [ref=e275]: HR, compliance, and office administration
+        - generic [ref=e276]:
+          - generic [ref=e278]: Active
+          - generic [ref=e279]:
+            - button "Back" [ref=e280] [cursor=pointer]:
+              - img [ref=e281]
+              - text: Back
+            - button "Edit" [ref=e283] [cursor=pointer]:
+              - img [ref=e284]
+              - text: Edit
+            - button "Delete" [ref=e287] [cursor=pointer]:
+              - img [ref=e288]
+              - text: Delete
+      - generic [ref=e291]:
+        - generic [ref=e293]:
+          - paragraph [ref=e294]: Code
+          - paragraph [ref=e295]: ADM
+        - generic [ref=e297]:
+          - paragraph [ref=e298]: Members
+          - paragraph [ref=e299]: "3"
+        - generic [ref=e301]:
+          - paragraph [ref=e302]: Department Head
+          - paragraph [ref=e303]:
+            - generic [ref=e304]:
+              - img [ref=e305]
+              - text: Patricia Lim
+      - generic [ref=e307]:
+        - generic [ref=e308]:
+          - heading "Members" [level=2] [ref=e309]
+          - button "Add Member" [ref=e310] [cursor=pointer]:
+            - img [ref=e311]
+            - text: Add Member
+        - table [ref=e313]:
+          - rowgroup [ref=e314]:
+            - row "Employee Employee ID Role" [ref=e315]:
+              - columnheader "Employee" [ref=e316]
+              - columnheader "Employee ID" [ref=e317]
+              - columnheader "Role" [ref=e318]
+              - columnheader [ref=e319]
+          - rowgroup [ref=e320]:
+            - row "Patricia Lim Patricia Lim adm.head@wilsonworksph.com EMP-0015 Department Head Remove member" [ref=e321]:
+              - cell "Patricia Lim Patricia Lim adm.head@wilsonworksph.com" [ref=e322]:
+                - generic [ref=e323]:
+                  - img "Patricia Lim" [ref=e325]
+                  - generic [ref=e326]:
+                    - generic [ref=e327]:
+                      - generic [ref=e328]: Patricia Lim
+                      - img [ref=e329]
+                    - paragraph [ref=e331]: adm.head@wilsonworksph.com
+              - cell "EMP-0015" [ref=e332]
+              - cell "Department Head" [ref=e333]:
+                - generic [ref=e334]: Department Head
+              - cell "Remove member" [ref=e335]:
+                - button "Remove member" [ref=e337]:
+                  - img [ref=e338]
+            - row "RA Ramon Aguilar ramon.aguilar@wilsonworksph.com EMP-0150 Staff Make Head Remove member" [ref=e341]:
+              - cell "RA Ramon Aguilar ramon.aguilar@wilsonworksph.com" [ref=e342]:
+                - generic [ref=e343]:
+                  - generic [ref=e345]: RA
+                  - generic [ref=e346]:
+                    - generic [ref=e348]: Ramon Aguilar
+                    - paragraph [ref=e349]: ramon.aguilar@wilsonworksph.com
+              - cell "EMP-0150" [ref=e350]
+              - cell "Staff" [ref=e351]:
+                - generic [ref=e352]: Staff
+              - cell "Make Head Remove member" [ref=e353]:
+                - generic [ref=e354]:
+                  - button "Make Head" [ref=e355]:
+                    - img [ref=e356]
+                  - button "Remove member" [ref=e358]:
+                    - img [ref=e359]
+            - row "IM Isabella Morales isabella.morales@wilsonworksph.com EMP-0151 Staff Make Head Remove member" [ref=e362]:
+              - cell "IM Isabella Morales isabella.morales@wilsonworksph.com" [ref=e363]:
+                - generic [ref=e364]:
+                  - generic [ref=e366]: IM
+                  - generic [ref=e367]:
+                    - generic [ref=e369]: Isabella Morales
+                    - paragraph [ref=e370]: isabella.morales@wilsonworksph.com
+              - cell "EMP-0151" [ref=e371]
+              - cell "Staff" [ref=e372]:
+                - generic [ref=e373]: Staff
+              - cell "Make Head Remove member" [ref=e374]:
+                - generic [ref=e375]:
+                  - button "Make Head" [ref=e376]:
+                    - img [ref=e377]
+                  - button "Remove member" [ref=e379]:
+                    - img [ref=e380]

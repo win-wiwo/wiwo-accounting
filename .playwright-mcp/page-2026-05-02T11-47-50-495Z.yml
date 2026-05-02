@@ -1,0 +1,85 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - img "WIWO" [ref=e7]
+      - button [ref=e8]:
+        - img [ref=e9]
+    - navigation [ref=e12]:
+      - link "Dashboard" [ref=e13] [cursor=pointer]:
+        - /url: /dashboard
+        - img [ref=e14]
+        - generic [ref=e19]: Dashboard
+      - link "Purchase Requests" [ref=e20] [cursor=pointer]:
+        - /url: /purchase-requests
+        - img [ref=e21]
+        - generic [ref=e24]: Purchase Requests
+      - link "Procurement Queue" [ref=e25] [cursor=pointer]:
+        - /url: /procurement
+        - img [ref=e26]
+        - generic [ref=e29]: Procurement Queue
+      - link "Suppliers" [ref=e30] [cursor=pointer]:
+        - /url: /suppliers
+        - img [ref=e31]
+        - generic [ref=e36]: Suppliers
+      - link "Purchase Orders" [ref=e37] [cursor=pointer]:
+        - /url: /purchase-orders
+        - img [ref=e38]
+        - generic [ref=e42]: Purchase Orders
+      - link "Search & Monitor" [ref=e43] [cursor=pointer]:
+        - /url: /search
+        - img [ref=e44]
+        - generic [ref=e47]: Search & Monitor
+      - link "Reports" [ref=e48] [cursor=pointer]:
+        - /url: /reports
+        - img [ref=e49]
+        - generic [ref=e51]: Reports
+    - generic [ref=e54]:
+      - link "EV Eduardo Villanueva Procurement Officer" [ref=e55] [cursor=pointer]:
+        - /url: /profile
+        - generic [ref=e57]: EV
+        - generic [ref=e58]:
+          - paragraph [ref=e59]: Eduardo Villanueva
+          - paragraph [ref=e60]: Procurement Officer
+      - button "Sign out" [ref=e61]:
+        - img
+        - text: Sign out
+  - banner [ref=e62]:
+    - generic [ref=e64]:
+      - img [ref=e65]
+      - textbox "Search PRs... (Ctrl+K)" [ref=e68]
+    - button [ref=e70]:
+      - img
+  - main [ref=e71]:
+    - generic [ref=e75]:
+      - generic [ref=e77]:
+        - generic [ref=e78]:
+          - heading "Good evening, Eduardo." [level=1] [ref=e79]
+          - paragraph [ref=e80]: No items pending procurement. You're all caught up.
+        - paragraph [ref=e81]: Saturday, May 2, 2026
+      - generic [ref=e88]:
+        - generic [ref=e89]:
+          - generic [ref=e91]:
+            - generic [ref=e92]: Pending Canvass
+            - button "View all" [ref=e93]:
+              - text: View all
+              - img [ref=e94]
+          - generic [ref=e102]:
+            - generic [ref=e103]: Recent Purchase Orders
+            - button "View all" [ref=e104]:
+              - text: View all
+              - img [ref=e105]
+        - generic [ref=e112]:
+          - generic [ref=e113]:
+            - generic [ref=e115]: Quick Actions
+            - generic [ref=e116]:
+              - button "Procurement Queue" [ref=e117]:
+                - img [ref=e118]
+                - text: Procurement Queue
+              - button "Purchase Orders" [ref=e121]:
+                - img [ref=e122]
+                - text: Purchase Orders
+              - button "All Purchase Requests" [ref=e125]:
+                - img [ref=e126]
+                - text: All Purchase Requests
+          - generic [ref=e131]: System Status
+          - generic [ref=e141]: Project Spending

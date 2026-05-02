@@ -14,7 +14,7 @@ export class Notification extends Document {
 
   @Prop({
     required: true,
-    enum: ['approval_approved', 'approval_rejected', 'approval_returned', 'pr_submitted', 'pr_needs_action', 'po_received', 'system'],
+    enum: ['approval_approved', 'approval_rejected', 'approval_returned', 'pr_submitted', 'pr_needs_action', 'po_ordered', 'po_received', 'po_cancelled', 'system'],
   })
   type: string;
 

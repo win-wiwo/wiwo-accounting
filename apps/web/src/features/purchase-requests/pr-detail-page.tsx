@@ -44,7 +44,7 @@ import {
 import { purchaseRequestsApi } from "@/lib/api-services";
 import apiClient from "@/lib/api-client";
 import { useApprovalHistory, useProcessApproval } from "@/hooks/use-approvals";
-import { usePurchaseOrderByPr, useIssuePoFromPr } from "@/hooks/use-purchase-orders";
+import { usePurchaseOrderByPr, useAllPurchaseOrdersByPr } from "@/hooks/use-purchase-orders";
 import { useAuthStore } from "@/stores/auth.store";
 import { useToast } from "@/components/ui/toast";
 import { PurchaseRequestWorkflowTimeline } from "@/components/purchase-request-workflow-timeline";
@@ -354,12 +354,13 @@ export function PrDetailPage() {
   const recallMutation = useRecallPr();
   const cancelMutation = useCancelPr();
   const processApproval = useProcessApproval();
-  const issuePoMutation = useIssuePoFromPr();
-
   const pr = data?.data;
   const { data: approvalHistoryData } = useApprovalHistory(id!);
   const approvalHistory = approvalHistoryData?.data ?? [];
   const { data: linkedPo } = usePurchaseOrderByPr(id!);
+  const { data: allPosData } = useAllPurchaseOrdersByPr(id!);
+  const allPos = (allPosData as any)?.data ?? [];
+  const cancelledPos = allPos.filter((po: any) => po.status === 'cancelled');
 
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
@@ -795,33 +796,11 @@ export function PrDetailPage() {
           </div>
           {/* Actions */}
           <div className="flex items-center gap-2 flex-wrap">
-            {pr.purchaseOrderId && (
-              <Button size="sm" variant="outline" className="rounded-lg text-[13px] h-8 border-blue-200 text-blue-700 hover:bg-blue-50" onClick={() => navigate(`/purchase-orders/${pr.purchaseOrderId}`)}>
+            {linkedPo && linkedPo.status !== 'cancelled' && (
+              <Button size="sm" variant="outline" className="rounded-lg text-[13px] h-8 border-blue-200 text-blue-700 hover:bg-blue-50" onClick={() => navigate(`/purchase-orders/${linkedPo._id}`)}>
                 <ShoppingCart className="h-3.5 w-3.5" /> View Purchase Order
               </Button>
             )}
-            {runtimeStatus === PrStatus.APPROVED &&
-              (linkedPo?.status === 'cancelled' || !linkedPo) &&
-              (user?.role === UserRole.PROCUREMENT || user?.role === UserRole.ADMIN) && (
-                <Button
-                  size="sm"
-                  className="rounded-lg text-[13px] h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
-                  disabled={issuePoMutation.isPending}
-                  onClick={async () => {
-                    try {
-                      const res = await issuePoMutation.mutateAsync(pr._id);
-                      const newPoId = res?.data?._id;
-                      toast({ title: 'New PO issued', description: 'A new purchase order has been created from this PR.', variant: 'success' });
-                      if (newPoId) navigate(`/purchase-orders/${newPoId}`);
-                    } catch {
-                      toast({ title: 'Failed to issue new PO', variant: 'error' });
-                    }
-                  }}
-                >
-                  {issuePoMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ShoppingCart className="h-3.5 w-3.5" />}
-                  Issue New PO
-                </Button>
-              )}
             {!isDraft && (
               <Tooltip.Provider delayDuration={150}>
                 <Tooltip.Root>
@@ -1382,6 +1361,7 @@ export function PrDetailPage() {
                 pr={pr}
                 approvalHistory={approvalHistory}
                 po={linkedPo ?? null}
+                cancelledPos={cancelledPos}
               />
             </div>
           </div>

@@ -283,11 +283,29 @@ export class PurchaseOrdersService {
   }
 
   async findByPurchaseRequest(prId: string): Promise<PurchaseOrder | null> {
-    return this.poModel
-      .findOne({ purchaseRequestId: new Types.ObjectId(prId) })
+    // Prefer the active (non-cancelled) PO; fall back to the most recent cancelled one.
+    const activePo = await this.poModel
+      .findOne({ purchaseRequestId: new Types.ObjectId(prId), status: { $ne: 'cancelled' } })
       .populate('createdBy', 'firstName lastName email')
       .populate('orderedBy', 'firstName lastName email')
       .populate('receivedBy', 'firstName lastName email')
+      .exec();
+    if (activePo) return activePo;
+
+    return this.poModel
+      .findOne({ purchaseRequestId: new Types.ObjectId(prId) })
+      .sort({ createdAt: -1 })
+      .populate('createdBy', 'firstName lastName email')
+      .populate('orderedBy', 'firstName lastName email')
+      .populate('receivedBy', 'firstName lastName email')
+      .exec();
+  }
+
+  async findAllByPurchaseRequest(prId: string): Promise<PurchaseOrder[]> {
+    return this.poModel
+      .find({ purchaseRequestId: new Types.ObjectId(prId) })
+      .sort({ createdAt: -1 })
+      .select('poNumber status cancellationReason createdAt updatedAt')
       .exec();
   }
 
@@ -342,8 +360,14 @@ export class PurchaseOrdersService {
 
     const saved = await po.save();
 
+    // Fetch linked PR for notification context
+    const pr = await this.prModel.findById(po.purchaseRequestId).select('prNumber requesterId').exec();
+
     this.eventEmitter.emit('purchase-order.ordered', {
       purchaseOrder: saved.toJSON(),
+      purchaseRequestId: po.purchaseRequestId.toString(),
+      prNumber: pr?.prNumber || null,
+      requesterId: pr?.requesterId?.toString() || null,
     });
 
     return saved;
@@ -467,19 +491,33 @@ export class PurchaseOrdersService {
     const saved = await po.save();
 
     // Apply the chosen side-effect on the parent PR.
-    if (prAction !== 'keep_approved' && po.purchaseRequestId) {
+    if (po.purchaseRequestId) {
       const pr = await this.prModel.findById(po.purchaseRequestId);
       if (pr) {
         const isProcurementMode = pr.sourcingMode === 'procurement';
 
-        if (prAction === 'cancel_pr') {
+        if (prAction === 'keep_approved') {
+          // Clear the stale PO link and auto-create a replacement PO from the same canvass.
+          pr.purchaseOrderId = null;
+          await pr.save();
+
+          try {
+            const newPo = await this.createFromApprovedPR(pr._id.toString(), user._id);
+            this.logger.log(`Auto-created replacement PO ${newPo.poNumber} after cancelling ${po.poNumber}`);
+          } catch (err: any) {
+            this.logger.error(`Failed to auto-create replacement PO for PR ${pr._id}: ${err?.message}`);
+          }
+        } else if (prAction === 'cancel_pr') {
           pr.status = PrStatus.CANCELLED;
           pr.cancellationReason = `PO ${po.poNumber ?? ''} cancelled: ${trimmedReason}`.trim();
           pr.completedAt = null;
+          pr.purchaseOrderId = null;
+          await pr.save();
         } else if (prAction === 'requeue_canvass' && !isProcurementMode) {
           // Online PR has no canvass to redo — keep PR approved so the
           // canceller can issue a fresh PO with a different seller.
           pr.purchaseOrderId = null;
+          await pr.save();
         } else if (prAction === 'requeue_canvass') {
           pr.status = PrStatus.PENDING_QUOTATION;
           pr.canvassEntries = [] as typeof pr.canvassEntries;
@@ -495,8 +533,8 @@ export class PurchaseOrdersService {
           }
           pr.totalAmount = pr.items.reduce((sum, item) => sum + item.totalPrice, 0);
           pr.purchaseOrderId = null;
+          await pr.save();
         }
-        await pr.save();
       }
     }
 

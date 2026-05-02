@@ -1,0 +1,202 @@
+- generic [ref=e137]:
+  - complementary [ref=e138]:
+    - generic [ref=e139]:
+      - img "WIWO" [ref=e141]
+      - button [ref=e142]:
+        - img [ref=e143]
+    - navigation [ref=e146]:
+      - link "Dashboard" [ref=e147] [cursor=pointer]:
+        - /url: /dashboard
+        - img [ref=e148]
+        - generic [ref=e153]: Dashboard
+      - link "Purchase Requests" [ref=e154] [cursor=pointer]:
+        - /url: /purchase-requests
+        - img [ref=e155]
+        - generic [ref=e158]: Purchase Requests
+      - link "Procurement Queue" [ref=e159] [cursor=pointer]:
+        - /url: /procurement
+        - img [ref=e160]
+        - generic [ref=e163]: Procurement Queue
+      - link "Suppliers" [ref=e164] [cursor=pointer]:
+        - /url: /suppliers
+        - img [ref=e165]
+        - generic [ref=e170]: Suppliers
+      - link "Purchase Orders" [ref=e171] [cursor=pointer]:
+        - /url: /purchase-orders
+        - img [ref=e172]
+        - generic [ref=e176]: Purchase Orders
+      - link "Search & Monitor" [ref=e177] [cursor=pointer]:
+        - /url: /search
+        - img [ref=e178]
+        - generic [ref=e181]: Search & Monitor
+      - link "Reports" [ref=e182] [cursor=pointer]:
+        - /url: /reports
+        - img [ref=e183]
+        - generic [ref=e185]: Reports
+    - generic [ref=e188]:
+      - link "EV Eduardo Villanueva Procurement Officer" [ref=e189] [cursor=pointer]:
+        - /url: /profile
+        - generic [ref=e191]: EV
+        - generic [ref=e192]:
+          - paragraph [ref=e193]: Eduardo Villanueva
+          - paragraph [ref=e194]: Procurement Officer
+      - button "Sign out" [ref=e195]:
+        - img
+        - text: Sign out
+  - banner [ref=e196]:
+    - generic [ref=e198]:
+      - img [ref=e199]
+      - textbox "Search PRs... (Ctrl+K)" [ref=e202]
+    - button [ref=e204]:
+      - img
+  - main [ref=e205]:
+    - generic [ref=e209]:
+      - generic [ref=e211]:
+        - generic [ref=e212]:
+          - heading "Good evening, Eduardo." [level=1] [ref=e213]
+          - paragraph [ref=e214]: 3 items pending procurement.
+        - paragraph [ref=e215]: Saturday, May 2, 2026
+      - generic [ref=e217]:
+        - generic [ref=e218] [cursor=pointer]:
+          - paragraph [ref=e220]: Pending Canvass
+          - paragraph [ref=e222]: "3"
+        - generic [ref=e223] [cursor=pointer]:
+          - paragraph [ref=e225]: Price Review
+          - paragraph [ref=e227]: "2"
+        - generic [ref=e228] [cursor=pointer]:
+          - paragraph [ref=e230]: Pending POs
+          - paragraph [ref=e232]: "15"
+        - generic [ref=e233] [cursor=pointer]:
+          - paragraph [ref=e235]: Ordered
+          - paragraph [ref=e237]: "2"
+        - generic [ref=e238] [cursor=pointer]:
+          - paragraph [ref=e240]: Received
+          - paragraph [ref=e242]: "3"
+      - generic [ref=e243]:
+        - generic [ref=e244]:
+          - generic [ref=e245]:
+            - generic [ref=e246]:
+              - generic [ref=e247]: Pending Canvass
+              - button "View all" [ref=e248]:
+                - text: View all
+                - img [ref=e249]
+            - generic [ref=e252]:
+              - generic [ref=e253] [cursor=pointer]:
+                - generic [ref=e255]:
+                  - paragraph [ref=e256]: Camera Mounting Poles and Hardware – Busway Phase 2
+                  - paragraph [ref=e257]: Grace Santos · 4 items to source · 1d ago
+                - generic [ref=e258]: Medium
+                - img [ref=e259]
+              - generic [ref=e261] [cursor=pointer]:
+                - generic [ref=e263]:
+                  - paragraph [ref=e264]: PTZ Speed Dome Cameras – Busway Intersections
+                  - paragraph [ref=e265]: Mark Ramos · 3 items to source · 2d ago
+                - generic [ref=e266]: High
+                - img [ref=e267]
+              - generic [ref=e269] [cursor=pointer]:
+                - generic [ref=e271]:
+                  - paragraph [ref=e272]: Network Video Recorder – AI Backup Recording
+                  - paragraph [ref=e273]: Diana Fernandez · 3 items to source · 4d ago
+                - generic [ref=e274]: High
+                - img [ref=e275]
+          - generic [ref=e277]:
+            - generic [ref=e278]:
+              - generic [ref=e279]: Recent Purchase Orders
+              - button "View all" [ref=e280]:
+                - text: View all
+                - img [ref=e281]
+            - generic [ref=e284]:
+              - generic [ref=e285] [cursor=pointer]:
+                - generic [ref=e286]:
+                  - paragraph [ref=e287]: PO-2026-00015 — Purchase Order
+                  - paragraph [ref=e288]: — · Today
+                - generic [ref=e289]: ₱160K
+                - generic [ref=e290]: pending
+                - img [ref=e291]
+              - generic [ref=e293] [cursor=pointer]:
+                - generic [ref=e294]:
+                  - paragraph [ref=e295]: PO-2026-00014 — Purchase Order
+                  - paragraph [ref=e296]: — · Today
+                - generic [ref=e297]: ₱254K
+                - generic [ref=e298]: pending
+                - img [ref=e299]
+              - generic [ref=e301] [cursor=pointer]:
+                - generic [ref=e302]:
+                  - paragraph [ref=e303]: PO-2026-00017 — Purchase Order
+                  - paragraph [ref=e304]: — · Today
+                - generic [ref=e305]: ₱20K
+                - generic [ref=e306]: received
+                - img [ref=e307]
+              - generic [ref=e309] [cursor=pointer]:
+                - generic [ref=e310]:
+                  - paragraph [ref=e311]: PO-2026-00016 — Purchase Order
+                  - paragraph [ref=e312]: — · Today
+                - generic [ref=e313]: ₱60K
+                - generic [ref=e314]: pending
+                - img [ref=e315]
+              - generic [ref=e317] [cursor=pointer]:
+                - generic [ref=e318]:
+                  - paragraph [ref=e319]: PO-2026-00013 — Purchase Order
+                  - paragraph [ref=e320]: Office Depot Manila Corp. · Today
+                - generic [ref=e321]: ₱516K
+                - generic [ref=e322]: ordered
+                - img [ref=e323]
+        - generic [ref=e325]:
+          - generic [ref=e326]:
+            - generic [ref=e328]: Quick Actions
+            - generic [ref=e329]:
+              - button "Procurement Queue 3" [ref=e330]:
+                - img [ref=e331]
+                - text: Procurement Queue
+                - generic [ref=e334]: "3"
+              - button "Purchase Orders 15" [ref=e335]:
+                - img [ref=e336]
+                - text: Purchase Orders
+                - generic [ref=e339]: "15"
+              - button "All Purchase Requests" [ref=e340]:
+                - img [ref=e341]
+                - text: All Purchase Requests
+          - generic [ref=e344]:
+            - generic [ref=e346]: System Status
+            - generic [ref=e348]:
+              - generic [ref=e349]:
+                - generic [ref=e352]: Dept Head Review
+                - generic [ref=e353]: "3"
+              - generic [ref=e354]:
+                - generic [ref=e357]: COO Review
+                - generic [ref=e358]: "1"
+              - generic [ref=e359]:
+                - generic [ref=e362]: CEO Review
+                - generic [ref=e363]: "1"
+              - generic [ref=e364]:
+                - generic [ref=e367]: Pending Canvass
+                - generic [ref=e368]: "3"
+              - generic [ref=e369]:
+                - generic [ref=e372]: Price Review
+                - generic [ref=e373]: "2"
+              - generic [ref=e374]:
+                - generic [ref=e377]: Returned
+                - generic [ref=e378]: "2"
+              - generic [ref=e379]:
+                - generic [ref=e382]: Rejected
+                - generic [ref=e383]: "1"
+              - generic [ref=e384]:
+                - generic [ref=e387]: Approved
+                - generic [ref=e388]: "17"
+          - generic [ref=e389]:
+            - generic [ref=e391]: Project Spending
+            - generic [ref=e393]:
+              - generic [ref=e395]:
+                - generic [ref=e396]:
+                  - paragraph [ref=e397]: CCTV Installation – Busway Line 1
+                  - paragraph [ref=e398]: BUSWAY-1
+                - generic [ref=e399]:
+                  - paragraph [ref=e400]: ₱4.8M
+                  - paragraph [ref=e401]: +₱284K pending
+              - generic [ref=e405]:
+                - generic [ref=e406]:
+                  - paragraph [ref=e407]: AI Camera System – Phase 1
+                  - paragraph [ref=e408]: AI-PH1
+                - generic [ref=e409]:
+                  - paragraph [ref=e410]: ₱5.4M
+                  - paragraph [ref=e411]: +₱152K pending

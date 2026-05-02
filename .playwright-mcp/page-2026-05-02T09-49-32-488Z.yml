@@ -1,0 +1,51 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - img "WIWO" [ref=e7]
+      - button [ref=e8]:
+        - img [ref=e9]
+    - navigation [ref=e12]:
+      - link "Dashboard" [ref=e13] [cursor=pointer]:
+        - /url: /dashboard
+        - img [ref=e14]
+        - generic [ref=e19]: Dashboard
+      - link "Purchase Requests" [ref=e20] [cursor=pointer]:
+        - /url: /purchase-requests
+        - img [ref=e21]
+        - generic [ref=e24]: Purchase Requests
+      - link "Approvals" [ref=e25] [cursor=pointer]:
+        - /url: /approvals
+        - img [ref=e26]
+        - generic [ref=e29]: Approvals
+      - link "Purchase Orders" [ref=e30] [cursor=pointer]:
+        - /url: /purchase-orders
+        - img [ref=e31]
+        - generic [ref=e35]: Purchase Orders
+      - link "Search & Monitor" [ref=e36] [cursor=pointer]:
+        - /url: /search
+        - img [ref=e37]
+        - generic [ref=e40]: Search & Monitor
+      - link "Reports" [ref=e41] [cursor=pointer]:
+        - /url: /reports
+        - img [ref=e42]
+        - generic [ref=e44]: Reports
+    - generic [ref=e47]:
+      - link "CG Carlos Garcia Department Head" [ref=e48] [cursor=pointer]:
+        - /url: /profile
+        - generic [ref=e50]: CG
+        - generic [ref=e51]:
+          - paragraph [ref=e52]: Carlos Garcia
+          - paragraph [ref=e53]: Department Head
+      - button "Sign out" [ref=e54]:
+        - img
+        - text: Sign out
+  - banner [ref=e55]:
+    - generic [ref=e57]:
+      - img [ref=e58]
+      - textbox "Search PRs... (Ctrl+K)" [ref=e61]
+    - button [ref=e63]:
+      - img
+  - main [ref=e64]:
+    - generic [ref=e70]:
+      - heading "Approval Queue" [level=1] [ref=e71]
+      - paragraph [ref=e72]: Pending your review as Department Head

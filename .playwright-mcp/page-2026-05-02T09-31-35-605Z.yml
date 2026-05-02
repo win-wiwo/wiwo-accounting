@@ -1,0 +1,98 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - img "WIWO" [ref=e7]
+      - button [ref=e8]:
+        - img [ref=e9]
+    - navigation [ref=e12]:
+      - link "Dashboard" [ref=e13] [cursor=pointer]:
+        - /url: /dashboard
+        - img [ref=e14]
+        - generic [ref=e19]: Dashboard
+      - link "Purchase Requests" [ref=e20] [cursor=pointer]:
+        - /url: /purchase-requests
+        - img [ref=e21]
+        - generic [ref=e24]: Purchase Requests
+      - link "Procurement Queue" [ref=e25] [cursor=pointer]:
+        - /url: /procurement
+        - img [ref=e26]
+        - generic [ref=e29]: Procurement Queue
+      - link "Suppliers" [ref=e30] [cursor=pointer]:
+        - /url: /suppliers
+        - img [ref=e31]
+        - generic [ref=e36]: Suppliers
+      - link "Purchase Orders" [ref=e37] [cursor=pointer]:
+        - /url: /purchase-orders
+        - img [ref=e38]
+        - generic [ref=e42]: Purchase Orders
+      - link "Search & Monitor" [ref=e43] [cursor=pointer]:
+        - /url: /search
+        - img [ref=e44]
+        - generic [ref=e47]: Search & Monitor
+      - link "Reports" [ref=e48] [cursor=pointer]:
+        - /url: /reports
+        - img [ref=e49]
+        - generic [ref=e51]: Reports
+      - generic [ref=e54]: Admin
+      - link "Projects" [ref=e56] [cursor=pointer]:
+        - /url: /projects
+        - img [ref=e57]
+        - generic [ref=e59]: Projects
+      - link "Users" [ref=e60] [cursor=pointer]:
+        - /url: /users
+        - img [ref=e61]
+        - generic [ref=e66]: Users
+      - link "Departments" [ref=e67] [cursor=pointer]:
+        - /url: /departments
+        - img [ref=e69]
+        - generic [ref=e73]: Departments
+      - link "Settings" [ref=e74] [cursor=pointer]:
+        - /url: /settings
+        - img [ref=e75]
+        - generic [ref=e78]: Settings
+    - generic [ref=e81]:
+      - link "SA System Admin Admin" [ref=e82] [cursor=pointer]:
+        - /url: /profile
+        - img "SA" [ref=e84]
+        - generic [ref=e85]:
+          - paragraph [ref=e86]: System Admin
+          - paragraph [ref=e87]: Admin
+      - button "Sign out" [ref=e88]:
+        - img
+        - text: Sign out
+  - banner [ref=e89]:
+    - generic [ref=e91]:
+      - img [ref=e92]
+      - textbox "Search PRs... (Ctrl+K)" [ref=e95]
+    - button [ref=e97]:
+      - img
+  - main [ref=e98]:
+    - generic [ref=e102]:
+      - generic [ref=e103]:
+        - heading "Create Department" [level=1] [ref=e105]
+        - button "Back" [ref=e107] [cursor=pointer]:
+          - img [ref=e108]
+          - text: Back
+      - generic [ref=e110]:
+        - generic [ref=e111]:
+          - heading "Department Details" [level=2] [ref=e113]
+          - generic [ref=e114]:
+            - generic [ref=e115]:
+              - generic [ref=e116]:
+                - generic [ref=e117]: Department Name*
+                - textbox "Department Name*" [ref=e118]:
+                  - /placeholder: e.g. Engineering
+              - generic [ref=e119]:
+                - generic [ref=e120]: Code*
+                - textbox "Code*" [ref=e121]:
+                  - /placeholder: e.g. ENG
+                - paragraph [ref=e122]: 2–10 chars, used in PR numbering.
+            - generic [ref=e123]:
+              - text: Description
+              - textbox "Description" [ref=e124]:
+                - /placeholder: Brief description of this department...
+        - generic [ref=e125]:
+          - button "Cancel" [ref=e126] [cursor=pointer]
+          - button "Create Department" [ref=e127] [cursor=pointer]:
+            - img [ref=e128]
+            - text: Create Department

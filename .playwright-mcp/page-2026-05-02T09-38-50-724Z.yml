@@ -1,0 +1,195 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - img "WIWO" [ref=e7]
+      - button [ref=e8]:
+        - img [ref=e9]
+    - navigation [ref=e12]:
+      - link "Dashboard" [ref=e13] [cursor=pointer]:
+        - /url: /dashboard
+        - img [ref=e14]
+        - generic [ref=e19]: Dashboard
+      - link "Purchase Requests" [ref=e20] [cursor=pointer]:
+        - /url: /purchase-requests
+        - img [ref=e21]
+        - generic [ref=e24]: Purchase Requests
+      - link "Purchase Orders" [ref=e25] [cursor=pointer]:
+        - /url: /purchase-orders
+        - img [ref=e26]
+        - generic [ref=e30]: Purchase Orders
+      - link "Reports" [ref=e31] [cursor=pointer]:
+        - /url: /reports
+        - img [ref=e32]
+        - generic [ref=e34]: Reports
+    - generic [ref=e37]:
+      - link "JD Juan Dela Cruz Staff" [ref=e38] [cursor=pointer]:
+        - /url: /profile
+        - img "JD" [ref=e40]
+        - generic [ref=e41]:
+          - paragraph [ref=e42]: Juan Dela Cruz
+          - paragraph [ref=e43]: Staff
+      - button "Sign out" [ref=e44]:
+        - img
+        - text: Sign out
+  - banner [ref=e45]:
+    - generic [ref=e47]:
+      - img [ref=e48]
+      - textbox "Search PRs... (Ctrl+K)" [ref=e51]
+    - button "4" [ref=e53]:
+      - img
+      - generic [ref=e54]: "4"
+  - main [ref=e55]:
+    - generic [ref=e59]:
+      - generic [ref=e60]:
+        - generic [ref=e61]:
+          - heading "New Purchase Request" [level=1] [ref=e62]
+          - paragraph [ref=e63]: Create a request for items, services, or project needs.
+        - button "Back" [ref=e65] [cursor=pointer]:
+          - img [ref=e66]
+          - text: Back
+      - list [ref=e69]:
+        - listitem [ref=e70]:
+          - button "1 Step 1 Basics" [disabled] [ref=e71]:
+            - generic [ref=e72]: "1"
+            - generic [ref=e73]:
+              - paragraph [ref=e74]: Step 1
+              - paragraph [ref=e75]: Basics
+        - listitem [ref=e77]:
+          - button "2 Step 2 Items" [disabled] [ref=e78]:
+            - generic [ref=e79]: "2"
+            - generic [ref=e80]:
+              - paragraph [ref=e81]: Step 2
+              - paragraph [ref=e82]: Items
+        - listitem [ref=e84]:
+          - button "3 Step 3 Review" [disabled] [ref=e85]:
+            - generic [ref=e86]: "3"
+            - generic [ref=e87]:
+              - paragraph [ref=e88]: Step 3
+              - paragraph [ref=e89]: Review
+      - generic [ref=e91]:
+        - generic [ref=e93]:
+          - generic [ref=e94]:
+            - generic [ref=e95]:
+              - heading "Request Basics" [level=2] [ref=e96]:
+                - img [ref=e97]
+                - text: Request Basics
+              - paragraph [ref=e100]: What you're requesting and what to call it.
+            - generic [ref=e101]:
+              - generic [ref=e102]:
+                - text: Request Type
+                - generic [ref=e103]:
+                  - button "Purchase Request Buy goods, services, or procurement needs." [pressed] [ref=e104]:
+                    - img [ref=e106]
+                    - generic [ref=e110]:
+                      - paragraph [ref=e111]: Purchase Request
+                      - paragraph [ref=e112]: Buy goods, services, or procurement needs.
+                  - button "Job Request Request internal work or service tasks." [ref=e115]:
+                    - img [ref=e117]
+                    - generic [ref=e119]:
+                      - paragraph [ref=e120]: Job Request
+                      - paragraph [ref=e121]: Request internal work or service tasks.
+              - generic [ref=e123]:
+                - generic [ref=e124]: Title*
+                - textbox "Title*" [ref=e125]:
+                  - /placeholder: e.g. Busway Phase 2 Pole Hardware
+                - paragraph [ref=e126]: Short, scannable name. e.g. "Busway Phase 2 Pole Hardware".
+          - generic [ref=e127]:
+            - generic [ref=e128]:
+              - heading "Assignment" [level=2] [ref=e129]:
+                - img [ref=e130]
+                - text: Assignment
+              - paragraph [ref=e133]: Tie this request to a specific project, or treat it as office overhead.
+            - generic [ref=e134]:
+              - generic [ref=e135]:
+                - button "Project Attach to a specific project, budget, or initiative." [pressed] [ref=e136]:
+                  - img [ref=e138]
+                  - generic [ref=e141]:
+                    - paragraph [ref=e142]: Project
+                    - paragraph [ref=e143]: Attach to a specific project, budget, or initiative.
+                - button "Office / General Overhead, shared resources, or non-project requests." [ref=e146]:
+                  - img [ref=e148]
+                  - generic [ref=e152]:
+                    - paragraph [ref=e153]: Office / General
+                    - paragraph [ref=e154]: Overhead, shared resources, or non-project requests.
+              - generic [ref=e156]:
+                - combobox [ref=e157]:
+                  - generic: Select a project...
+                  - img [ref=e158]
+                - combobox [ref=e160]
+          - generic [ref=e161]:
+            - generic [ref=e162]:
+              - heading "Priority & Required Date" [level=2] [ref=e163]:
+                - img [ref=e164]
+                - text: Priority & Required Date
+              - paragraph [ref=e166]: How urgent it is, and when it's needed by.
+            - generic [ref=e168]:
+              - generic [ref=e169]:
+                - text: Priority
+                - combobox [ref=e170]:
+                  - generic: Medium
+                  - img [ref=e171]
+                - combobox [ref=e173]
+              - generic [ref=e174]:
+                - text: Required Date
+                - button "Required Date" [ref=e175]:
+                  - img [ref=e176]
+                  - generic [ref=e178]: Select date...
+          - generic [ref=e179]:
+            - generic [ref=e180]:
+              - heading "Purpose" [level=2] [ref=e181]:
+                - img [ref=e182]
+                - text: Purpose
+              - paragraph [ref=e185]: Approvers read this to decide. Be specific about what operation or project work this supports.
+            - textbox "Explain what this PR supports — system, project phase, deadline, downtime risk, etc." [ref=e188]
+        - complementary [ref=e189]:
+          - generic [ref=e191]:
+            - generic [ref=e193]:
+              - paragraph [ref=e194]: Approval flow
+              - list [ref=e195]:
+                - listitem [ref=e196]:
+                  - generic [ref=e197]: "1"
+                  - generic [ref=e198]: Submit request
+                - listitem [ref=e199]:
+                  - generic [ref=e200]: "2"
+                  - generic [ref=e201]: Department review
+                - listitem [ref=e202]:
+                  - generic [ref=e203]: "3"
+                  - generic [ref=e204]: Procurement if needed
+                - listitem [ref=e205]:
+                  - generic [ref=e206]: "4"
+                  - generic [ref=e207]: Final approval
+            - generic [ref=e209]:
+              - generic [ref=e210]:
+                - paragraph [ref=e211]: Completion
+                - generic [ref=e212]: 1 / 4
+              - list [ref=e213]:
+                - listitem [ref=e214]:
+                  - img [ref=e215]
+                  - generic [ref=e217]: Title
+                - listitem [ref=e218]:
+                  - img [ref=e219]
+                  - generic [ref=e221]: Assignment
+                - listitem [ref=e222]:
+                  - img [ref=e223]
+                  - generic [ref=e226]: Priority
+                - listitem [ref=e227]:
+                  - img [ref=e228]
+                  - generic [ref=e230]: Purpose
+            - generic [ref=e232]:
+              - generic [ref=e233]:
+                - img [ref=e234]
+                - paragraph [ref=e236]: Tips
+              - list [ref=e237]:
+                - listitem [ref=e238]: › Pick the right priority — Urgent requests are sorted to the top of approvers' queues.
+                - listitem [ref=e239]: › The purpose is read by approvers — be specific about what work this supports.
+                - listitem [ref=e240]: › If unsure about a project, choose Office / General.
+      - generic [ref=e242]:
+        - generic [ref=e243]:
+          - paragraph [ref=e244]: Step 1 of 3
+          - paragraph [ref=e245]: Basics
+        - generic [ref=e246]:
+          - button "Cancel" [ref=e247] [cursor=pointer]
+          - button "Save Draft" [ref=e248] [cursor=pointer]:
+            - img [ref=e249]
+            - text: Save Draft
+          - button "Continue" [ref=e253] [cursor=pointer]

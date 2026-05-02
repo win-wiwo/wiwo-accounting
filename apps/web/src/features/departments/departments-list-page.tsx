@@ -3,7 +3,7 @@ import { usePageTitle } from '@/hooks/use-page-title';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Users, Crown, Trash2, Pencil, Loader2, Save } from 'lucide-react';
 import { type UpdateDepartmentDto } from '@prams/shared';
-import { useDepartments, useDeleteDepartment, useUpdateDepartment } from '@/hooks/use-departments';
+import { useDepartments, useDeleteDepartment, useUpdateDepartment, useCreateDepartment } from '@/hooks/use-departments';
 import { useToast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,6 +40,7 @@ export function DepartmentsListPage() {
     id: string;
     name: string;
   }>({ open: false, id: '', name: '' });
+  const [createOpen, setCreateOpen] = useState(false);
   const [editDept, setEditDept] = useState<{
     open: boolean;
     _id: string;
@@ -81,7 +82,7 @@ export function DepartmentsListPage() {
         title="Departments"
         description="Manage organizational departments."
         actions={
-          <PrimaryButton onClick={() => navigate('/departments/new')}>
+          <PrimaryButton onClick={() => setCreateOpen(true)}>
             <Plus className="h-4 w-4" />
             Add Department
           </PrimaryButton>
@@ -108,7 +109,7 @@ export function DepartmentsListPage() {
             title="No departments found"
             description="Create your first department to start organizing your team."
             action={
-              <PrimaryButton onClick={() => navigate('/departments/new')}>
+              <PrimaryButton onClick={() => setCreateOpen(true)}>
                 <Plus className="h-4 w-4" /> Add Department
               </PrimaryButton>
             }
@@ -259,6 +260,8 @@ export function DepartmentsListPage() {
           dept={editDept}
         />
       )}
+
+      <CreateDepartmentModal open={createOpen} onOpenChange={setCreateOpen} />
     </div>
   );
 }
@@ -351,6 +354,110 @@ function EditDepartmentModal({ open, onOpenChange, dept }: EditDepartmentModalPr
               <Save className="h-4 w-4" />
             )}
             Save Changes
+          </PrimaryButton>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+interface CreateDepartmentModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+function CreateDepartmentModal({ open, onOpenChange }: CreateDepartmentModalProps) {
+  const { toast } = useToast();
+  const createMutation = useCreateDepartment();
+
+  const [name, setName] = useState('');
+  const [code, setCode] = useState('');
+  const [description, setDescription] = useState('');
+
+  const resetForm = () => {
+    setName('');
+    setCode('');
+    setDescription('');
+  };
+
+  const handleCreate = async () => {
+    const data = {
+      name: name.trim(),
+      code: code.trim().toUpperCase(),
+      description: description.trim(),
+    };
+    try {
+      await createMutation.mutateAsync(data);
+      toast({ title: 'Department created', variant: 'success' });
+      resetForm();
+      onOpenChange(false);
+    } catch (err: unknown) {
+      const message =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : 'Failed to create department.';
+      toast({ title: 'Error', description: message || 'Failed to create department.', variant: 'error' });
+    }
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) resetForm();
+        onOpenChange(o);
+      }}
+    >
+      <DialogContent className="sm:max-w-[480px]">
+        <DialogHeader>
+          <DialogTitle>Create Department</DialogTitle>
+          <DialogDescription>Add a new department to your organization.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormField label="Department Name" htmlFor="create-dept-name" required>
+              <Input
+                id="create-dept-name"
+                placeholder="e.g. Engineering"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </FormField>
+            <FormField label="Code" htmlFor="create-dept-code" required help="2–10 chars, used in PR numbering.">
+              <Input
+                id="create-dept-code"
+                placeholder="e.g. ENG"
+                className="uppercase"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+              />
+            </FormField>
+          </div>
+          <FormField label="Description" htmlFor="create-dept-desc">
+            <textarea
+              id="create-dept-desc"
+              rows={3}
+              className={premiumTextareaClass}
+              placeholder="Brief description of this department..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </FormField>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => { resetForm(); onOpenChange(false); }}>
+            Cancel
+          </Button>
+          <PrimaryButton
+            onClick={handleCreate}
+            disabled={createMutation.isPending || !name.trim() || !code.trim()}
+          >
+            {createMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            Create Department
           </PrimaryButton>
         </DialogFooter>
       </DialogContent>

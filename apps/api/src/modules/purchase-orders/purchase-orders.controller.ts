@@ -63,10 +63,16 @@ export class PurchaseOrdersController {
   }
 
   @Get('by-pr/:prId')
-  @ApiOperation({ summary: 'Get purchase order linked to a purchase request' })
+  @ApiOperation({ summary: 'Get active purchase order linked to a purchase request' })
   async findByPr(@Param('prId', ParseObjectIdPipe) prId: string) {
     const po = await this.poService.findByPurchaseRequest(prId);
     return po;
+  }
+
+  @Get('all-by-pr/:prId')
+  @ApiOperation({ summary: 'Get all purchase orders (including cancelled) for a purchase request' })
+  async findAllByPr(@Param('prId', ParseObjectIdPipe) prId: string) {
+    return this.poService.findAllByPurchaseRequest(prId);
   }
 
   @Get(':id')

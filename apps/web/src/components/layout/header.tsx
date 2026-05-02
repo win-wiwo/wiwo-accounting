@@ -214,7 +214,7 @@ export function Header({ sidebarCollapsed }: HeaderProps) {
     if (!notif.isRead) {
       markAsRead.mutate(notif._id);
     }
-    if (notif.type === 'po_received' && notif.purchaseOrderId) {
+    if ((notif.type === 'po_ordered' || notif.type === 'po_received' || notif.type === 'po_cancelled') && notif.purchaseOrderId) {
       navigate(`/purchase-orders/${notif.purchaseOrderId}`);
       setNotifOpen(false);
       return;

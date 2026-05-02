@@ -1,0 +1,158 @@
+- generic [ref=e132]:
+  - complementary [ref=e133]:
+    - generic [ref=e134]:
+      - img "WIWO" [ref=e136]
+      - button [ref=e137]:
+        - img [ref=e138]
+    - navigation [ref=e141]:
+      - link "Dashboard" [ref=e142] [cursor=pointer]:
+        - /url: /dashboard
+        - img [ref=e143]
+        - generic [ref=e148]: Dashboard
+      - link "Purchase Requests" [ref=e149] [cursor=pointer]:
+        - /url: /purchase-requests
+        - img [ref=e150]
+        - generic [ref=e153]: Purchase Requests
+      - link "Suppliers" [ref=e154] [cursor=pointer]:
+        - /url: /suppliers
+        - img [ref=e155]
+        - generic [ref=e160]: Suppliers
+      - link "Search & Monitor" [ref=e161] [cursor=pointer]:
+        - /url: /search
+        - img [ref=e162]
+        - generic [ref=e165]: Search & Monitor
+      - link "Reports" [ref=e166] [cursor=pointer]:
+        - /url: /reports
+        - img [ref=e167]
+        - generic [ref=e169]: Reports
+    - generic [ref=e172]:
+      - link "MD Maricel Dimaculangan Accounting Officer" [ref=e173] [cursor=pointer]:
+        - /url: /profile
+        - img "MD" [ref=e175]
+        - generic [ref=e176]:
+          - paragraph [ref=e177]: Maricel Dimaculangan
+          - paragraph [ref=e178]: Accounting Officer
+      - button "Sign out" [ref=e179]:
+        - img
+        - text: Sign out
+  - banner [ref=e180]:
+    - generic [ref=e182]:
+      - img [ref=e183]
+      - textbox "Search PRs... (Ctrl+K)" [ref=e186]
+    - button [ref=e188]:
+      - img
+  - main [ref=e189]:
+    - generic [ref=e193]:
+      - generic [ref=e195]:
+        - generic [ref=e196]:
+          - heading "Good evening, Maricel." [level=1] [ref=e197]
+          - paragraph [ref=e198]: 34 total requests in the system.
+        - paragraph [ref=e199]: Saturday, May 2, 2026
+      - generic [ref=e201]:
+        - generic [ref=e202] [cursor=pointer]:
+          - paragraph [ref=e204]: My Requests
+          - paragraph [ref=e206]: "34"
+        - generic [ref=e207] [cursor=pointer]:
+          - paragraph [ref=e209]: In Review
+          - paragraph [ref=e211]: "5"
+        - generic [ref=e212] [cursor=pointer]:
+          - paragraph [ref=e214]: In Procurement
+          - paragraph [ref=e216]: "5"
+        - generic [ref=e217] [cursor=pointer]:
+          - paragraph [ref=e219]: Approved
+          - paragraph [ref=e221]: "18"
+        - generic [ref=e222] [cursor=pointer]:
+          - paragraph [ref=e224]: Returned
+          - paragraph [ref=e226]: "2"
+      - generic [ref=e227]:
+        - generic [ref=e229]:
+          - generic [ref=e230]:
+            - generic [ref=e231]: My Recent Requests
+            - button "View all" [ref=e232]:
+              - text: View all
+              - img [ref=e233]
+          - generic [ref=e236]:
+            - generic [ref=e237] [cursor=pointer]:
+              - generic [ref=e239]:
+                - paragraph [ref=e240]: Canva Teams – Annual Subscription
+                - paragraph [ref=e241]: Dept Head Review · -1d ago
+              - generic [ref=e242]: ₱45K
+              - img [ref=e243]
+            - generic [ref=e245] [cursor=pointer]:
+              - generic [ref=e247]:
+                - paragraph [ref=e248]: Ergonomic Office Chairs – Engineering Team
+                - paragraph [ref=e249]: Dept Head Review · Today
+              - generic [ref=e250]: Pending Quote
+              - img [ref=e251]
+            - generic [ref=e253] [cursor=pointer]:
+              - generic [ref=e255]:
+                - paragraph [ref=e256]: IT Equipment Refresh – Finance Department
+                - paragraph [ref=e257]: Dept Head Review · 1d ago
+              - generic [ref=e258]: Pending Quote
+              - img [ref=e259]
+            - generic [ref=e261] [cursor=pointer]:
+              - generic [ref=e263]:
+                - paragraph [ref=e264]: Camera Mounting Poles and Hardware – Busway Phase 2
+                - paragraph [ref=e265]: Pending Procurement · 1d ago
+              - generic [ref=e266]: Pending Quote
+              - img [ref=e267]
+            - generic [ref=e269] [cursor=pointer]:
+              - generic [ref=e271]:
+                - paragraph [ref=e272]: Cable Pulling and Termination Tools
+                - paragraph [ref=e273]: Returned · 2d ago
+              - generic [ref=e274]: Pending Quote
+              - img [ref=e275]
+        - generic [ref=e277]:
+          - generic [ref=e278]:
+            - generic [ref=e280]: Quick Actions
+            - generic [ref=e281]:
+              - button "New Purchase Request" [ref=e282]:
+                - img [ref=e283]
+                - text: New Purchase Request
+              - button "All Purchase Requests" [ref=e284]:
+                - img [ref=e285]
+                - text: All Purchase Requests
+          - generic [ref=e288]:
+            - generic [ref=e290]: System Status
+            - generic [ref=e292]:
+              - generic [ref=e293]:
+                - generic [ref=e296]: Dept Head Review
+                - generic [ref=e297]: "3"
+              - generic [ref=e298]:
+                - generic [ref=e301]: COO Review
+                - generic [ref=e302]: "1"
+              - generic [ref=e303]:
+                - generic [ref=e306]: CEO Review
+                - generic [ref=e307]: "1"
+              - generic [ref=e308]:
+                - generic [ref=e311]: Pending Canvass
+                - generic [ref=e312]: "3"
+              - generic [ref=e313]:
+                - generic [ref=e316]: Price Review
+                - generic [ref=e317]: "2"
+              - generic [ref=e318]:
+                - generic [ref=e321]: Returned
+                - generic [ref=e322]: "2"
+              - generic [ref=e323]:
+                - generic [ref=e326]: Rejected
+                - generic [ref=e327]: "1"
+              - generic [ref=e328]:
+                - generic [ref=e331]: Approved
+                - generic [ref=e332]: "18"
+          - generic [ref=e333]:
+            - generic [ref=e335]: Project Spending
+            - generic [ref=e337]:
+              - generic [ref=e339]:
+                - generic [ref=e340]:
+                  - paragraph [ref=e341]: CCTV Installation – Busway Line 1
+                  - paragraph [ref=e342]: BUSWAY-1
+                - generic [ref=e343]:
+                  - paragraph [ref=e344]: ₱4.8M
+                  - paragraph [ref=e345]: +₱284K pending
+              - generic [ref=e349]:
+                - generic [ref=e350]:
+                  - paragraph [ref=e351]: AI Camera System – Phase 1
+                  - paragraph [ref=e352]: AI-PH1
+                - generic [ref=e353]:
+                  - paragraph [ref=e354]: ₱5.4M
+                  - paragraph [ref=e355]: +₱152K pending

@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react';
 import { usePageTitle } from '@/hooks/use-page-title';
-import { useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import {
   KeyRound,
   Mail,
@@ -12,18 +14,34 @@ import {
   PenLine,
   Trash2,
   Upload,
+  Eye,
+  EyeOff,
+  CheckCircle2,
+  Save,
 } from 'lucide-react';
 import { ROLE_LABELS, type UserRole, type User } from '@prams/shared';
 import { useAuthStore } from '@/stores/auth.store';
-import { usersApi } from '@/lib/api-services';
+import { usersApi, authApi } from '@/lib/api-services';
 import { useToast } from '@/components/ui/toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { resolvePhotoUrl } from '@/lib/utils';
 import {
   PageHeader,
   Surface,
   StatusBadge,
   GhostButton,
+  PrimaryButton,
   type BadgeTone,
 } from '@/components/premium';
 
@@ -39,7 +57,6 @@ const ROLE_TONE: Record<string, BadgeTone> = {
 
 export function ProfilePage() {
   usePageTitle('Profile');
-  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
   const { toast } = useToast();
@@ -48,6 +65,7 @@ export function ProfilePage() {
   const [isUploading, setIsUploading] = useState(false);
   const [isUploadingSignature, setIsUploadingSignature] = useState(false);
   const [isRemovingSignature, setIsRemovingSignature] = useState(false);
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
   if (!user) return null;
 
@@ -155,7 +173,7 @@ export function ProfilePage() {
             <div className="my-6 h-px w-full bg-zinc-100" />
             <GhostButton
               className="w-full"
-              onClick={() => navigate('/change-password')}
+              onClick={() => setChangePasswordOpen(true)}
             >
               <KeyRound className="h-3.5 w-3.5" /> Change Password
             </GhostButton>
@@ -269,7 +287,186 @@ export function ProfilePage() {
           </div>
         </Surface>
       </div>
+
+      <ChangePasswordModal open={changePasswordOpen} onOpenChange={setChangePasswordOpen} />
     </div>
+  );
+}
+
+const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Required'),
+    newPassword: z
+      .string()
+      .min(8, 'Min 8 characters')
+      .regex(/[A-Z]/, 'Need an uppercase letter')
+      .regex(/[a-z]/, 'Need a lowercase letter')
+      .regex(/[0-9]/, 'Need a digit')
+      .regex(/[^A-Za-z0-9]/, 'Need a special character'),
+    confirmPassword: z.string().min(1, 'Required'),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  });
+
+type ChangePasswordFormData = z.infer<typeof changePasswordSchema>;
+
+function ChangePasswordModal({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const { toast } = useToast();
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    watch,
+    formState: { errors, isSubmitting },
+  } = useForm<ChangePasswordFormData>({
+    resolver: zodResolver(changePasswordSchema),
+  });
+
+  const newPassword = watch('newPassword', '');
+
+  const requirements = [
+    { label: 'At least 8 characters', met: newPassword.length >= 8 },
+    { label: 'Uppercase letter',      met: /[A-Z]/.test(newPassword) },
+    { label: 'Lowercase letter',      met: /[a-z]/.test(newPassword) },
+    { label: 'A digit',               met: /[0-9]/.test(newPassword) },
+    { label: 'Special character',     met: /[^A-Za-z0-9]/.test(newPassword) },
+  ];
+
+  const handleClose = (o: boolean) => {
+    if (!o) {
+      reset();
+      setShowCurrent(false);
+      setShowNew(false);
+    }
+    onOpenChange(o);
+  };
+
+  const onSubmit = async (data: ChangePasswordFormData) => {
+    try {
+      await authApi.changePassword(data.currentPassword, data.newPassword);
+      toast({
+        title: 'Password changed',
+        description: 'Your password has been updated.',
+        variant: 'success',
+      });
+      reset();
+      onOpenChange(false);
+    } catch (err: unknown) {
+      const message =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : 'Something went wrong';
+      toast({
+        title: 'Error',
+        description: message || 'Failed to change password.',
+        variant: 'error',
+      });
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-[440px]">
+        <DialogHeader>
+          <DialogTitle>Change Password</DialogTitle>
+          <DialogDescription>Pick something memorable but unguessable.</DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="cp-current">Current Password</Label>
+            <div className="relative">
+              <Input
+                id="cp-current"
+                type={showCurrent ? 'text' : 'password'}
+                className="pr-10"
+                {...register('currentPassword')}
+              />
+              <button
+                type="button"
+                onClick={() => setShowCurrent(!showCurrent)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700"
+                tabIndex={-1}
+              >
+                {showCurrent ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            {errors.currentPassword && (
+              <p className="text-[12px] text-red-600">{errors.currentPassword.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="cp-new">New Password</Label>
+            <div className="relative">
+              <Input
+                id="cp-new"
+                type={showNew ? 'text' : 'password'}
+                className="pr-10"
+                {...register('newPassword')}
+              />
+              <button
+                type="button"
+                onClick={() => setShowNew(!showNew)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700"
+                tabIndex={-1}
+              >
+                {showNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            {errors.newPassword && (
+              <p className="text-[12px] text-red-600">{errors.newPassword.message}</p>
+            )}
+            {newPassword && (
+              <div className="mt-2.5 space-y-1.5">
+                {requirements.map((req) => (
+                  <div key={req.label} className="flex items-center gap-2 text-[12px]">
+                    <CheckCircle2
+                      className={`h-3.5 w-3.5 ${req.met ? 'text-emerald-500' : 'text-zinc-300'}`}
+                    />
+                    <span className={req.met ? 'text-emerald-700 font-medium' : 'text-zinc-500'}>
+                      {req.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="cp-confirm">Confirm New Password</Label>
+            <Input id="cp-confirm" type="password" {...register('confirmPassword')} />
+            {errors.confirmPassword && (
+              <p className="text-[12px] text-red-600">{errors.confirmPassword.message}</p>
+            )}
+          </div>
+
+          <DialogFooter className="pt-2">
+            <Button type="button" variant="outline" onClick={() => handleClose(false)}>
+              Cancel
+            </Button>
+            <PrimaryButton type="submit" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              Change Password
+            </PrimaryButton>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 

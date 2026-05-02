@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { usePageTitle } from '@/hooks/use-page-title';
-import { useNavigate } from 'react-router-dom';
 import { Plus, UserCheck, UserX, Pencil, Users, Loader2, Save } from 'lucide-react';
-import { ROLE_LABELS, USER_ROLES, type UserRole, type UpdateUserDto } from '@prams/shared';
-import { useUsers, useDeactivateUser, useActivateUser, useUpdateUser } from '@/hooks/use-users';
+import { ROLE_LABELS, USER_ROLES, type UserRole, type CreateUserDto, type UpdateUserDto } from '@prams/shared';
+import { useUsers, useCreateUser, useDeactivateUser, useActivateUser, useUpdateUser } from '@/hooks/use-users';
 import { useDepartments } from '@/hooks/use-departments';
 import { useToast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
@@ -53,7 +52,6 @@ const ROLE_TONE: Record<string, BadgeTone> = {
 
 export function UsersListPage() {
   usePageTitle('Users');
-  const navigate = useNavigate();
   const { toast } = useToast();
 
   const [page, setPage] = useState(1);
@@ -68,6 +66,7 @@ export function UsersListPage() {
     userId: string;
     userName: string;
   }>({ open: false, action: 'deactivate', userId: '', userName: '' });
+  const [createOpen, setCreateOpen] = useState(false);
   const [editUser, setEditUser] = useState<{
     open: boolean;
     _id: string;
@@ -129,7 +128,7 @@ export function UsersListPage() {
         title="Users"
         description="Manage user accounts and permissions."
         actions={
-          <PrimaryButton onClick={() => navigate('/users/new')}>
+          <PrimaryButton onClick={() => setCreateOpen(true)}>
             <Plus className="h-4 w-4" />
             Add User
           </PrimaryButton>
@@ -211,7 +210,7 @@ export function UsersListPage() {
             title="No users found"
             description="Try adjusting your filters or add a new user."
             action={
-              <PrimaryButton onClick={() => navigate('/users/new')}>
+              <PrimaryButton onClick={() => setCreateOpen(true)}>
                 <Plus className="h-4 w-4" /> Add User
               </PrimaryButton>
             }
@@ -388,6 +387,12 @@ export function UsersListPage() {
           departments={departments}
         />
       )}
+
+      <CreateUserModal
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        departments={departments}
+      />
     </div>
   );
 }
@@ -523,6 +528,184 @@ function EditUserModal({ open, onOpenChange, user, departments }: EditUserModalP
               <Save className="h-4 w-4" />
             )}
             Save Changes
+          </PrimaryButton>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+interface CreateUserModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  departments: { _id: string; name: string }[];
+}
+
+function CreateUserModal({ open, onOpenChange, departments }: CreateUserModalProps) {
+  const { toast } = useToast();
+  const createMutation = useCreateUser();
+
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [employeeId, setEmployeeId] = useState('');
+  const [password, setPassword] = useState('');
+  const [role, setRole] = useState('');
+  const [departmentId, setDepartmentId] = useState('none');
+
+  const resetForm = () => {
+    setFirstName('');
+    setLastName('');
+    setEmail('');
+    setEmployeeId('');
+    setPassword('');
+    setRole('');
+    setDepartmentId('none');
+  };
+
+  const handleCreate = async () => {
+    const data: CreateUserDto = {
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      email: email.trim(),
+      employeeId: employeeId.trim(),
+      password,
+      role: role as UserRole,
+      departmentId: departmentId === 'none' ? undefined : departmentId,
+    };
+    try {
+      await createMutation.mutateAsync(data);
+      toast({
+        title: 'User created',
+        description: 'The new user can now log in.',
+        variant: 'success',
+      });
+      resetForm();
+      onOpenChange(false);
+    } catch (err: unknown) {
+      const message =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : 'Failed to create user.';
+      toast({ title: 'Error', description: message || 'Failed to create user.', variant: 'error' });
+    }
+  };
+
+  const canSubmit =
+    firstName.trim() &&
+    lastName.trim() &&
+    email.trim() &&
+    employeeId.trim() &&
+    password.length >= 8 &&
+    role;
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) resetForm();
+        onOpenChange(o);
+      }}
+    >
+      <DialogContent className="sm:max-w-[520px]">
+        <DialogHeader>
+          <DialogTitle>Create User</DialogTitle>
+          <DialogDescription>Add a new user to the system.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormField label="First Name" htmlFor="create-firstName" required>
+              <Input
+                id="create-firstName"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+              />
+            </FormField>
+            <FormField label="Last Name" htmlFor="create-lastName" required>
+              <Input
+                id="create-lastName"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+              />
+            </FormField>
+          </div>
+          <FormField label="Email" htmlFor="create-email" required>
+            <Input
+              id="create-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </FormField>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormField label="Employee ID" htmlFor="create-employeeId" required>
+              <Input
+                id="create-employeeId"
+                placeholder="e.g. EMP-0042"
+                value={employeeId}
+                onChange={(e) => setEmployeeId(e.target.value)}
+              />
+            </FormField>
+            <FormField
+              label="Temporary Password"
+              htmlFor="create-password"
+              required
+              help="8+ chars, upper, lower, digit, special."
+            >
+              <Input
+                id="create-password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </FormField>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormField label="Role" required>
+              <Select value={role} onValueChange={setRole}>
+                <SelectTrigger className={premiumSelectTriggerClass}>
+                  <SelectValue placeholder="Select a role" />
+                </SelectTrigger>
+                <SelectContent>
+                  {USER_ROLES.map((r) => (
+                    <SelectItem key={r} value={r}>
+                      {ROLE_LABELS[r as UserRole]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormField>
+            <FormField label="Department">
+              <Select value={departmentId} onValueChange={setDepartmentId}>
+                <SelectTrigger className={premiumSelectTriggerClass}>
+                  <SelectValue placeholder="Select department" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No Department</SelectItem>
+                  {departments.map((dept) => (
+                    <SelectItem key={dept._id} value={dept._id}>
+                      {dept.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormField>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => { resetForm(); onOpenChange(false); }}>
+            Cancel
+          </Button>
+          <PrimaryButton
+            onClick={handleCreate}
+            disabled={createMutation.isPending || !canSubmit}
+          >
+            {createMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            Create User
           </PrimaryButton>
         </DialogFooter>
       </DialogContent>

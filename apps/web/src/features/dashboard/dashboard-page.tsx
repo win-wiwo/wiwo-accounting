@@ -269,6 +269,9 @@ export function DashboardPage() {
                 <KpiCard label="Pending POs" value={poStats?.pending ?? 0} onClick={() => navigate('/purchase-orders?status=pending')} variant={(poStats?.pending ?? 0) > 0 ? 'warning' : 'default'} />
                 <KpiCard label="Ordered" value={poStats?.ordered ?? 0} onClick={() => navigate('/purchase-orders?status=ordered')} />
                 <KpiCard label="Received" value={poStats?.received ?? 0} onClick={() => navigate('/purchase-orders?status=received')} variant="success" />
+                {(poStats?.cancelled ?? 0) > 0 && (
+                  <KpiCard label="Cancelled" value={poStats?.cancelled ?? 0} onClick={() => navigate('/purchase-orders?status=cancelled')} variant="danger" />
+                )}
               </>
             ) : !isAdmin ? (
               <>
@@ -503,7 +506,7 @@ export function DashboardPage() {
                               {po.poNumber ? `${po.poNumber} — ` : ''}{po.title ?? 'Purchase Order'}
                             </p>
                             <p className="text-[12px] text-zinc-400 mt-0.5">
-                              {po.supplierName ?? '—'}
+                              {po.supplierName || 'Online'}
                               {' · '}
                               {ageLabel(po.createdAt)}
                             </p>

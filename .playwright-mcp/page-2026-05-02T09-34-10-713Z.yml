@@ -1,0 +1,87 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - img "WIWO" [ref=e7]
+      - button [ref=e8]:
+        - img [ref=e9]
+    - navigation [ref=e12]:
+      - link "Dashboard" [ref=e13] [cursor=pointer]:
+        - /url: /dashboard
+        - img [ref=e14]
+        - generic [ref=e19]: Dashboard
+      - link "Purchase Requests" [ref=e20] [cursor=pointer]:
+        - /url: /purchase-requests
+        - img [ref=e21]
+        - generic [ref=e24]: Purchase Requests
+      - link "Procurement Queue" [ref=e25] [cursor=pointer]:
+        - /url: /procurement
+        - img [ref=e26]
+        - generic [ref=e29]: Procurement Queue
+      - link "Suppliers" [ref=e30] [cursor=pointer]:
+        - /url: /suppliers
+        - img [ref=e31]
+        - generic [ref=e36]: Suppliers
+      - link "Purchase Orders" [ref=e37] [cursor=pointer]:
+        - /url: /purchase-orders
+        - img [ref=e38]
+        - generic [ref=e42]: Purchase Orders
+      - link "Search & Monitor" [ref=e43] [cursor=pointer]:
+        - /url: /search
+        - img [ref=e44]
+        - generic [ref=e47]: Search & Monitor
+      - link "Reports" [ref=e48] [cursor=pointer]:
+        - /url: /reports
+        - img [ref=e49]
+        - generic [ref=e51]: Reports
+      - generic [ref=e54]: Admin
+      - link "Projects" [ref=e56] [cursor=pointer]:
+        - /url: /projects
+        - img [ref=e57]
+        - generic [ref=e59]: Projects
+      - link "Users" [ref=e60] [cursor=pointer]:
+        - /url: /users
+        - img [ref=e61]
+        - generic [ref=e66]: Users
+      - link "Departments" [ref=e67] [cursor=pointer]:
+        - /url: /departments
+        - img [ref=e68]
+        - generic [ref=e72]: Departments
+      - link "Settings" [ref=e73] [cursor=pointer]:
+        - /url: /settings
+        - img [ref=e74]
+        - generic [ref=e77]: Settings
+    - generic [ref=e80]:
+      - link "SA System Admin Admin" [ref=e81] [cursor=pointer]:
+        - /url: /profile
+        - img "SA" [ref=e83]
+        - generic [ref=e84]:
+          - paragraph [ref=e85]: System Admin
+          - paragraph [ref=e86]: Admin
+      - button "Sign out" [ref=e87]:
+        - img
+        - text: Sign out
+  - banner [ref=e88]:
+    - generic [ref=e90]:
+      - img [ref=e91]
+      - textbox "Search PRs... (Ctrl+K)" [ref=e94]
+    - button [ref=e96]:
+      - img
+  - main [ref=e97]:
+    - generic [ref=e101]:
+      - generic [ref=e103]:
+        - heading "Purchase Orders" [level=1] [ref=e104]
+        - paragraph [ref=e105]: Track and manage purchase orders.
+      - generic [ref=e107]:
+        - generic [ref=e108]:
+          - img
+          - textbox "Search by PO number, source, or project..." [ref=e109]
+        - generic [ref=e110]:
+          - combobox [ref=e111]:
+            - generic: All Statuses
+            - img [ref=e112]
+          - combobox [ref=e114]:
+            - generic: All Sources
+            - img [ref=e115]
+          - combobox [ref=e117]:
+            - generic: Newest First
+            - img [ref=e118]

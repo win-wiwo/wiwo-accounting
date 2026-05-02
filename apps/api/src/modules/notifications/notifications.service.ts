@@ -200,6 +200,33 @@ export class NotificationsService {
   }
 
   /**
+   * Notify the PR creator when their purchase order has been placed with the supplier.
+   */
+  @OnEvent('purchase-order.ordered')
+  async handlePoOrdered(payload: {
+    purchaseOrder: { _id: string; poNumber: string };
+    purchaseRequestId: string;
+    prNumber: string | null;
+    requesterId: string | null;
+  }) {
+    const { purchaseOrder, purchaseRequestId, prNumber, requesterId } = payload;
+    if (!requesterId) return;
+
+    const title = 'Order Placed';
+    const message = `Your purchase order ${purchaseOrder.poNumber}${prNumber ? ` (PR ${prNumber})` : ''} has been placed with the supplier.`;
+
+    await this.notificationModel.create({
+      recipientId: new Types.ObjectId(requesterId),
+      title,
+      message,
+      type: 'po_ordered',
+      purchaseRequestId: new Types.ObjectId(purchaseRequestId),
+      purchaseOrderId: new Types.ObjectId(purchaseOrder._id),
+    });
+    this.push(requesterId, { type: 'notification', title, message });
+  }
+
+  /**
    * Notify the PR creator when their purchase order has been received.
    */
   @OnEvent('purchase-order.received')
@@ -221,6 +248,73 @@ export class NotificationsService {
       purchaseOrderId: new Types.ObjectId(purchaseOrder._id),
     });
     this.push(requesterId, { type: 'notification', title: 'Order Received', message: `Your purchase order ${purchaseOrder.poNumber}${prNumber ? ` (PR ${prNumber})` : ''} has been received by procurement.` });
+  }
+
+  /**
+   * Notify the PR creator when their purchase order has been cancelled.
+   */
+  @OnEvent('purchase-order.cancelled')
+  async handlePoCancelled(payload: {
+    purchaseOrderId: string;
+    poNumber: string;
+    cancelledBy: string;
+    reason: string;
+    prAction: string;
+    purchaseRequestId: string | null;
+  }) {
+    const { purchaseOrderId, poNumber, reason, purchaseRequestId } = payload;
+    if (!purchaseRequestId) return;
+
+    const pr = await this.prModel.findById(purchaseRequestId).select('requesterId prNumber').exec();
+    if (!pr) return;
+
+    const prActionLabels: Record<string, string> = {
+      keep_approved: 'A replacement PO has been automatically created.',
+      requeue_canvass: 'The PR has been returned to procurement for re-canvassing.',
+      cancel_pr: 'The parent PR has also been cancelled.',
+    };
+    const followUp = prActionLabels[payload.prAction] || '';
+
+    const title = 'Purchase Order Cancelled';
+    const message = `PO ${poNumber}${pr.prNumber ? ` (PR ${pr.prNumber})` : ''} has been cancelled. Reason: ${reason}${followUp ? ` ${followUp}` : ''}`;
+
+    // Notify the requester
+    await this.notificationModel.create({
+      recipientId: pr.requesterId,
+      title,
+      message,
+      type: 'po_cancelled',
+      purchaseRequestId: new Types.ObjectId(purchaseRequestId),
+      purchaseOrderId: new Types.ObjectId(purchaseOrderId),
+    });
+    this.push(pr.requesterId.toString(), { type: 'notification', title, message });
+
+    // Notify all procurement officers (except the one who cancelled) so they can issue a new PO
+    const procurementUsers = await this.userModel
+      .find({ role: UserRole.PROCUREMENT, isActive: true, _id: { $ne: new Types.ObjectId(payload.cancelledBy) } })
+      .select('_id')
+      .exec();
+
+    if (procurementUsers.length > 0) {
+      const procTitle = 'PO Cancelled — Action May Be Needed';
+      const procMessage = `PO ${poNumber}${pr.prNumber ? ` (PR ${pr.prNumber})` : ''} was cancelled. Reason: ${reason}${
+        followUp ? ` ${followUp}` : ''
+      }`;
+
+      await this.notificationModel.insertMany(
+        procurementUsers.map((u) => ({
+          recipientId: u._id,
+          title: procTitle,
+          message: procMessage,
+          type: 'po_cancelled',
+          purchaseRequestId: new Types.ObjectId(purchaseRequestId),
+          purchaseOrderId: new Types.ObjectId(purchaseOrderId),
+        })),
+      );
+      procurementUsers.forEach((u) =>
+        this.push(u._id.toString(), { type: 'notification', title: procTitle, message: procMessage }),
+      );
+    }
   }
 
   private async notifyNextApprover(pr: { _id: string; title: string; prNumber: string; departmentId: string; status: string }) {

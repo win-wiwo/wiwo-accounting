@@ -7,12 +7,9 @@ import { authApi } from '@/lib/api-services';
 import { ToastProvider } from '@/components/ui/toast';
 import { AppLayout } from '@/components/layout/app-layout';
 import { LoginPage } from '@/features/auth/login-page';
-import { ChangePasswordPage } from '@/features/auth/change-password-page';
 import { DashboardPage } from '@/features/dashboard/dashboard-page';
 import { UsersListPage } from '@/features/users/users-list-page';
-import { UserFormPage } from '@/features/users/user-form-page';
 import { DepartmentsListPage } from '@/features/departments/departments-list-page';
-import { DepartmentFormPage } from '@/features/departments/department-form-page';
 import { DepartmentDetailPage } from '@/features/departments/department-detail-page';
 import { ProtectedRoute } from '@/routes/protected-route';
 import { PrListPage } from '@/features/purchase-requests/pr-list-page';
@@ -77,7 +74,6 @@ export default function App() {
               }
             >
               <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/change-password" element={<ChangePasswordPage />} />
 
               {/* User Management (Admin) */}
               <Route
@@ -85,22 +81,6 @@ export default function App() {
                 element={
                   <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
                     <UsersListPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/users/new"
-                element={
-                  <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
-                    <UserFormPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/users/:id/edit"
-                element={
-                  <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
-                    <UserFormPage />
                   </ProtectedRoute>
                 }
               />
@@ -115,26 +95,10 @@ export default function App() {
                 }
               />
               <Route
-                path="/departments/new"
-                element={
-                  <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
-                    <DepartmentFormPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
                 path="/departments/:id"
                 element={
                   <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
                     <DepartmentDetailPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/departments/:id/edit"
-                element={
-                  <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
-                    <DepartmentFormPage />
                   </ProtectedRoute>
                 }
               />

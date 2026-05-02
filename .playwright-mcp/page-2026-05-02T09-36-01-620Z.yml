@@ -1,0 +1,129 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - img "WIWO" [ref=e7]
+      - button [ref=e8]:
+        - img [ref=e9]
+    - navigation [ref=e12]:
+      - link "Dashboard" [ref=e13] [cursor=pointer]:
+        - /url: /dashboard
+        - img [ref=e14]
+        - generic [ref=e19]: Dashboard
+      - link "Purchase Requests" [ref=e20] [cursor=pointer]:
+        - /url: /purchase-requests
+        - img [ref=e21]
+        - generic [ref=e24]: Purchase Requests
+      - link "Procurement Queue" [ref=e25] [cursor=pointer]:
+        - /url: /procurement
+        - img [ref=e26]
+        - generic [ref=e29]: Procurement Queue
+      - link "Suppliers" [ref=e30] [cursor=pointer]:
+        - /url: /suppliers
+        - img [ref=e31]
+        - generic [ref=e36]: Suppliers
+      - link "Purchase Orders" [ref=e37] [cursor=pointer]:
+        - /url: /purchase-orders
+        - img [ref=e38]
+        - generic [ref=e42]: Purchase Orders
+      - link "Search & Monitor" [ref=e43] [cursor=pointer]:
+        - /url: /search
+        - img [ref=e44]
+        - generic [ref=e47]: Search & Monitor
+      - link "Reports" [ref=e48] [cursor=pointer]:
+        - /url: /reports
+        - img [ref=e49]
+        - generic [ref=e51]: Reports
+      - generic [ref=e54]: Admin
+      - link "Projects" [ref=e56] [cursor=pointer]:
+        - /url: /projects
+        - img [ref=e57]
+        - generic [ref=e59]: Projects
+      - link "Users" [ref=e60] [cursor=pointer]:
+        - /url: /users
+        - img [ref=e61]
+        - generic [ref=e66]: Users
+      - link "Departments" [ref=e67] [cursor=pointer]:
+        - /url: /departments
+        - img [ref=e68]
+        - generic [ref=e72]: Departments
+      - link "Settings" [ref=e73] [cursor=pointer]:
+        - /url: /settings
+        - img [ref=e74]
+        - generic [ref=e77]: Settings
+    - generic [ref=e80]:
+      - link "SA System Admin Admin" [ref=e81] [cursor=pointer]:
+        - /url: /profile
+        - img "SA" [ref=e83]
+        - generic [ref=e84]:
+          - paragraph [ref=e85]: System Admin
+          - paragraph [ref=e86]: Admin
+      - button "Sign out" [ref=e87]:
+        - img
+        - text: Sign out
+  - banner [ref=e88]:
+    - generic [ref=e90]:
+      - img [ref=e91]
+      - textbox "Search PRs... (Ctrl+K)" [ref=e94]
+    - button [ref=e96]:
+      - img
+  - main [ref=e97]:
+    - generic [ref=e101]:
+      - generic [ref=e103]:
+        - heading "Reports" [level=1] [ref=e104]
+        - paragraph [ref=e105]: Generate and download procurement reports.
+      - generic [ref=e106]:
+        - generic [ref=e107]:
+          - heading "Report Filters" [level=2] [ref=e108]
+          - paragraph [ref=e109]: Configure filters that apply to all reports below.
+        - generic [ref=e111]:
+          - generic [ref=e112]:
+            - paragraph [ref=e113]: Start Date
+            - button "Start date..." [ref=e114]:
+              - img [ref=e115]
+              - generic [ref=e117]: Start date...
+          - generic [ref=e118]:
+            - paragraph [ref=e119]: End Date
+            - button "End date..." [ref=e120]:
+              - img [ref=e121]
+              - generic [ref=e123]: End date...
+          - generic [ref=e124]:
+            - paragraph [ref=e125]: Status
+            - combobox [ref=e126]:
+              - generic: All Statuses
+              - img [ref=e127]
+      - generic [ref=e129]:
+        - generic [ref=e130]:
+          - generic [ref=e132]:
+            - img [ref=e134]
+            - generic [ref=e136]:
+              - heading "PR Summary Report" [level=3] [ref=e137]
+              - paragraph [ref=e138]: Overview of all PRs with status breakdown and amounts.
+          - generic [ref=e140]:
+            - button "Excel" [ref=e141] [cursor=pointer]:
+              - img [ref=e142]
+              - text: Excel
+            - button "PDF" [ref=e145] [cursor=pointer]:
+              - img [ref=e146]
+              - text: PDF
+        - generic [ref=e149]:
+          - generic [ref=e151]:
+            - img [ref=e153]
+            - generic [ref=e157]:
+              - heading "Department Spending" [level=3] [ref=e158]
+              - paragraph [ref=e159]: Approved spending breakdown by department.
+          - button "Download Excel" [ref=e161] [cursor=pointer]:
+            - img [ref=e162]
+            - text: Download Excel
+        - generic [ref=e165]:
+          - generic [ref=e167]:
+            - img [ref=e169]
+            - generic [ref=e172]:
+              - heading "Approval Turnaround" [level=3] [ref=e173]
+              - paragraph [ref=e174]: Average approval turnaround time per level and department.
+          - generic [ref=e176]:
+            - button "Excel" [ref=e177] [cursor=pointer]:
+              - img [ref=e178]
+              - text: Excel
+            - button "PDF" [ref=e181] [cursor=pointer]:
+              - img [ref=e182]
+              - text: PDF

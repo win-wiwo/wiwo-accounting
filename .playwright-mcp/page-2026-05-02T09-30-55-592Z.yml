@@ -1,0 +1,164 @@
+- generic [ref=e136]:
+  - complementary [ref=e137]:
+    - generic [ref=e138]:
+      - img "WIWO" [ref=e140]
+      - button [ref=e141]:
+        - img [ref=e142]
+    - navigation [ref=e145]:
+      - link "Dashboard" [ref=e146] [cursor=pointer]:
+        - /url: /dashboard
+        - img [ref=e147]
+        - generic [ref=e152]: Dashboard
+      - link "Purchase Requests" [ref=e153] [cursor=pointer]:
+        - /url: /purchase-requests
+        - img [ref=e154]
+        - generic [ref=e157]: Purchase Requests
+      - link "Procurement Queue" [ref=e158] [cursor=pointer]:
+        - /url: /procurement
+        - img [ref=e159]
+        - generic [ref=e162]: Procurement Queue
+      - link "Suppliers" [ref=e163] [cursor=pointer]:
+        - /url: /suppliers
+        - img [ref=e164]
+        - generic [ref=e169]: Suppliers
+      - link "Purchase Orders" [ref=e170] [cursor=pointer]:
+        - /url: /purchase-orders
+        - img [ref=e171]
+        - generic [ref=e175]: Purchase Orders
+      - link "Search & Monitor" [ref=e176] [cursor=pointer]:
+        - /url: /search
+        - img [ref=e177]
+        - generic [ref=e180]: Search & Monitor
+      - link "Reports" [ref=e181] [cursor=pointer]:
+        - /url: /reports
+        - img [ref=e182]
+        - generic [ref=e184]: Reports
+      - generic [ref=e187]: Admin
+      - link "Projects" [ref=e189] [cursor=pointer]:
+        - /url: /projects
+        - img [ref=e190]
+        - generic [ref=e192]: Projects
+      - link "Users" [ref=e193] [cursor=pointer]:
+        - /url: /users
+        - img [ref=e194]
+        - generic [ref=e199]: Users
+      - link "Departments" [ref=e200] [cursor=pointer]:
+        - /url: /departments
+        - img [ref=e201]
+        - generic [ref=e205]: Departments
+      - link "Settings" [ref=e206] [cursor=pointer]:
+        - /url: /settings
+        - img [ref=e207]
+        - generic [ref=e210]: Settings
+    - generic [ref=e213]:
+      - link "SA System Admin Admin" [ref=e214] [cursor=pointer]:
+        - /url: /profile
+        - img "SA" [ref=e216]
+        - generic [ref=e217]:
+          - paragraph [ref=e218]: System Admin
+          - paragraph [ref=e219]: Admin
+      - button "Sign out" [ref=e220]:
+        - img
+        - text: Sign out
+  - banner [ref=e221]:
+    - generic [ref=e223]:
+      - img [ref=e224]
+      - textbox "Search PRs... (Ctrl+K)" [ref=e227]
+    - button [ref=e229]:
+      - img
+  - main [ref=e230]:
+    - generic [ref=e234]:
+      - generic [ref=e236]:
+        - generic [ref=e237]:
+          - heading "Good evening, System." [level=1] [ref=e238]
+          - paragraph [ref=e239]: 34 total requests in the system.
+        - paragraph [ref=e240]: Saturday, May 2, 2026
+      - generic [ref=e242]:
+        - generic [ref=e243]:
+          - paragraph [ref=e245]: Total PRs
+          - paragraph [ref=e247]: "34"
+        - generic [ref=e248]:
+          - paragraph [ref=e250]: In Review
+          - paragraph [ref=e252]: "5"
+        - generic [ref=e253]:
+          - paragraph [ref=e255]: Approved
+          - paragraph [ref=e257]: "18"
+        - generic [ref=e258]:
+          - paragraph [ref=e260]: Rejected
+          - paragraph [ref=e262]: "1"
+      - generic [ref=e263]:
+        - generic [ref=e265]:
+          - generic [ref=e266]:
+            - generic [ref=e267]: Spend by Department
+            - generic [ref=e268]: Approved only
+          - generic [ref=e270]:
+            - generic [ref=e272]:
+              - generic [ref=e273]: IT & Systems
+              - generic [ref=e274]:
+                - text: ₱6.2M
+                - generic [ref=e275]: 9 PRs
+            - generic [ref=e279]:
+              - generic [ref=e280]: Operations
+              - generic [ref=e281]:
+                - text: ₱3.2M
+                - generic [ref=e282]: 2 PRs
+            - generic [ref=e286]:
+              - generic [ref=e287]: Engineering & Technical
+              - generic [ref=e288]:
+                - text: ₱2.1M
+                - generic [ref=e289]: 4 PRs
+            - generic [ref=e293]:
+              - generic [ref=e294]: Administration
+              - generic [ref=e295]:
+                - text: ₱180K
+                - generic [ref=e296]: 2 PRs
+            - generic [ref=e300]:
+              - generic [ref=e301]: Procurement
+              - generic [ref=e302]:
+                - text: ₱48K
+                - generic [ref=e303]: 1 PR
+        - generic [ref=e306]:
+          - generic [ref=e307]:
+            - generic [ref=e309]: System Status
+            - generic [ref=e311]:
+              - generic [ref=e312]:
+                - generic [ref=e315]: Dept Head Review
+                - generic [ref=e316]: "3"
+              - generic [ref=e317]:
+                - generic [ref=e320]: COO Review
+                - generic [ref=e321]: "1"
+              - generic [ref=e322]:
+                - generic [ref=e325]: CEO Review
+                - generic [ref=e326]: "1"
+              - generic [ref=e327]:
+                - generic [ref=e330]: Pending Canvass
+                - generic [ref=e331]: "3"
+              - generic [ref=e332]:
+                - generic [ref=e335]: Price Review
+                - generic [ref=e336]: "2"
+              - generic [ref=e337]:
+                - generic [ref=e340]: Returned
+                - generic [ref=e341]: "2"
+              - generic [ref=e342]:
+                - generic [ref=e345]: Rejected
+                - generic [ref=e346]: "1"
+              - generic [ref=e347]:
+                - generic [ref=e350]: Approved
+                - generic [ref=e351]: "18"
+          - generic [ref=e352]:
+            - generic [ref=e354]: Project Spending
+            - generic [ref=e356]:
+              - generic [ref=e358]:
+                - generic [ref=e359]:
+                  - paragraph [ref=e360]: CCTV Installation – Busway Line 1
+                  - paragraph [ref=e361]: BUSWAY-1
+                - generic [ref=e362]:
+                  - paragraph [ref=e363]: ₱4.8M
+                  - paragraph [ref=e364]: +₱284K pending
+              - generic [ref=e368]:
+                - generic [ref=e369]:
+                  - paragraph [ref=e370]: AI Camera System – Phase 1
+                  - paragraph [ref=e371]: AI-PH1
+                - generic [ref=e372]:
+                  - paragraph [ref=e373]: ₱5.4M
+                  - paragraph [ref=e374]: +₱152K pending

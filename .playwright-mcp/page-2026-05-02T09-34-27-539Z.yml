@@ -1,0 +1,173 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - img "WIWO" [ref=e7]
+      - button [ref=e8]:
+        - img [ref=e9]
+    - navigation [ref=e12]:
+      - link "Dashboard" [ref=e13] [cursor=pointer]:
+        - /url: /dashboard
+        - img [ref=e14]
+        - generic [ref=e19]: Dashboard
+      - link "Purchase Requests" [ref=e20] [cursor=pointer]:
+        - /url: /purchase-requests
+        - img [ref=e21]
+        - generic [ref=e24]: Purchase Requests
+      - link "Procurement Queue" [ref=e25] [cursor=pointer]:
+        - /url: /procurement
+        - img [ref=e26]
+        - generic [ref=e29]: Procurement Queue
+      - link "Suppliers" [ref=e30] [cursor=pointer]:
+        - /url: /suppliers
+        - img [ref=e31]
+        - generic [ref=e36]: Suppliers
+      - link "Purchase Orders" [ref=e37] [cursor=pointer]:
+        - /url: /purchase-orders
+        - img [ref=e38]
+        - generic [ref=e42]: Purchase Orders
+      - link "Search & Monitor" [ref=e43] [cursor=pointer]:
+        - /url: /search
+        - img [ref=e44]
+        - generic [ref=e47]: Search & Monitor
+      - link "Reports" [ref=e48] [cursor=pointer]:
+        - /url: /reports
+        - img [ref=e49]
+        - generic [ref=e51]: Reports
+      - generic [ref=e54]: Admin
+      - link "Projects" [ref=e56] [cursor=pointer]:
+        - /url: /projects
+        - img [ref=e57]
+        - generic [ref=e59]: Projects
+      - link "Users" [ref=e60] [cursor=pointer]:
+        - /url: /users
+        - img [ref=e61]
+        - generic [ref=e66]: Users
+      - link "Departments" [ref=e67] [cursor=pointer]:
+        - /url: /departments
+        - img [ref=e68]
+        - generic [ref=e72]: Departments
+      - link "Settings" [ref=e73] [cursor=pointer]:
+        - /url: /settings
+        - img [ref=e74]
+        - generic [ref=e77]: Settings
+    - generic [ref=e80]:
+      - link "SA System Admin Admin" [ref=e81] [cursor=pointer]:
+        - /url: /profile
+        - img "SA" [ref=e83]
+        - generic [ref=e84]:
+          - paragraph [ref=e85]: System Admin
+          - paragraph [ref=e86]: Admin
+      - button "Sign out" [ref=e87]:
+        - img
+        - text: Sign out
+  - banner [ref=e88]:
+    - generic [ref=e90]:
+      - img [ref=e91]
+      - textbox "Search PRs... (Ctrl+K)" [ref=e94]
+    - button [ref=e96]:
+      - img
+  - main [ref=e97]:
+    - generic [ref=e303]:
+      - generic [ref=e304]:
+        - generic [ref=e305]:
+          - heading "PO-2026-00017" [level=1] [ref=e306]
+          - paragraph [ref=e307]: 2026-05-0017
+        - generic [ref=e308]:
+          - generic [ref=e310]: Pending
+          - generic [ref=e312]:
+            - button "Back" [ref=e313] [cursor=pointer]:
+              - img [ref=e314]
+              - text: Back
+            - button "View Purchase Request" [ref=e316]:
+              - img
+              - text: View Purchase Request
+            - button "Cancel" [ref=e317] [cursor=pointer]:
+              - img [ref=e318]
+              - text: Cancel
+            - button "Mark as Ordered" [ref=e322] [cursor=pointer]:
+              - img [ref=e323]
+              - text: Mark as Ordered
+      - generic [ref=e328]:
+        - generic [ref=e329]:
+          - generic [ref=e330]:
+            - heading "Source Request" [level=2] [ref=e332]:
+              - img [ref=e333]
+              - text: Source Request
+            - generic [ref=e337]:
+              - generic [ref=e338]:
+                - paragraph [ref=e339]: Request Number
+                - paragraph [ref=e340]: 2026-05-0017
+              - generic [ref=e341]:
+                - paragraph [ref=e342]: Source Type
+                - paragraph [ref=e343]: Purchase Request
+              - generic [ref=e345]:
+                - paragraph [ref=e346]: Title
+                - paragraph [ref=e347]: Office Pantry Supplies – Monthly Q2
+          - generic [ref=e348]:
+            - heading "Line Items" [level=2] [ref=e350]
+            - table [ref=e352]:
+              - rowgroup [ref=e353]:
+                - row "# Description Qty Unit Unit Price Total" [ref=e354]:
+                  - columnheader "#" [ref=e355]
+                  - columnheader "Description" [ref=e356]
+                  - columnheader "Qty" [ref=e357]
+                  - columnheader "Unit" [ref=e358]
+                  - columnheader "Unit Price" [ref=e359]
+                  - columnheader "Total" [ref=e360]
+              - rowgroup [ref=e361]:
+                - row "1 Coffee Beans – Arabica Blend (1kg bags) 8 bags ₱850.00 ₱6,800.00" [ref=e362]:
+                  - cell "1" [ref=e363]
+                  - cell "Coffee Beans – Arabica Blend (1kg bags)" [ref=e364]:
+                    - paragraph [ref=e365]: Coffee Beans – Arabica Blend (1kg bags)
+                  - cell "8" [ref=e366]
+                  - cell "bags" [ref=e367]
+                  - cell "₱850.00" [ref=e368]
+                  - cell "₱6,800.00" [ref=e369]
+                - row "2 Bottled Water – 5-gallon refill 20 gallons ₱55.00 ₱1,100.00" [ref=e370]:
+                  - cell "2" [ref=e371]
+                  - cell "Bottled Water – 5-gallon refill" [ref=e372]:
+                    - paragraph [ref=e373]: Bottled Water – 5-gallon refill
+                  - cell "20" [ref=e374]
+                  - cell "gallons" [ref=e375]
+                  - cell "₱55.00" [ref=e376]
+                  - cell "₱1,100.00" [ref=e377]
+                - row "3 Assorted Snacks and Biscuits (weekly packs) 4 packs ₱2,500.00 ₱10,000.00" [ref=e378]:
+                  - cell "3" [ref=e379]
+                  - cell "Assorted Snacks and Biscuits (weekly packs)" [ref=e380]:
+                    - paragraph [ref=e381]: Assorted Snacks and Biscuits (weekly packs)
+                  - cell "4" [ref=e382]
+                  - cell "packs" [ref=e383]
+                  - cell "₱2,500.00" [ref=e384]
+                  - cell "₱10,000.00" [ref=e385]
+                - row "4 Disposable Cups, Stirrers, Sugar, Creamer 1 lot ₱1,800.00 ₱1,800.00" [ref=e386]:
+                  - cell "4" [ref=e387]
+                  - cell "Disposable Cups, Stirrers, Sugar, Creamer" [ref=e388]:
+                    - paragraph [ref=e389]: Disposable Cups, Stirrers, Sugar, Creamer
+                  - cell "1" [ref=e390]
+                  - cell "lot" [ref=e391]
+                  - cell "₱1,800.00" [ref=e392]
+                  - cell "₱1,800.00" [ref=e393]
+            - generic [ref=e395]:
+              - paragraph [ref=e396]: Total Amount
+              - paragraph [ref=e397]: ₱19,700.00
+        - generic [ref=e398]:
+          - generic [ref=e401]:
+            - paragraph [ref=e402]: Total Amount
+            - paragraph [ref=e403]: ₱19,700.00
+            - paragraph [ref=e404]: PHP
+          - generic [ref=e406]:
+            - paragraph [ref=e407]:
+              - generic [ref=e408]:
+                - img [ref=e409]
+                - text: Supplier
+            - paragraph [ref=e413]: Online
+          - generic [ref=e415]:
+            - paragraph [ref=e416]: Fulfillment Timeline
+            - generic [ref=e419]:
+              - generic [ref=e420]:
+                - img [ref=e422]
+                - generic [ref=e425]:
+                  - text: PO Created
+                  - paragraph [ref=e426]: by Isabella Morales
+                  - paragraph [ref=e427]: May 2, 2026, 4:43 PM
+              - paragraph [ref=e432]: Awaiting order placement

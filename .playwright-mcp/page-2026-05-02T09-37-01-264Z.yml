@@ -1,0 +1,6 @@
+- generic [ref=e3]:
+  - img [ref=e4]
+  - heading "403" [level=1] [ref=e8]
+  - paragraph [ref=e9]: You don't have permission to access this page.
+  - link "Back to Dashboard" [ref=e10] [cursor=pointer]:
+    - /url: /dashboard

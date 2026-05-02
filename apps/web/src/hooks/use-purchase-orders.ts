@@ -101,6 +101,14 @@ export function useCancelPurchaseOrder() {
   });
 }
 
+export function useAllPurchaseOrdersByPr(prId: string) {
+  return useQuery({
+    queryKey: ['purchase-orders', 'all-by-pr', prId],
+    queryFn: () => purchaseOrdersApi.getAllByPurchaseRequest(prId),
+    enabled: !!prId,
+  });
+}
+
 export function useIssuePoFromPr() {
   const queryClient = useQueryClient();
   return useMutation({

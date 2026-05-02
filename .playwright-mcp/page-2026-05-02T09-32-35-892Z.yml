@@ -1,0 +1,142 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - img "WIWO" [ref=e7]
+      - button [ref=e8]:
+        - img [ref=e9]
+    - navigation [ref=e12]:
+      - link "Dashboard" [ref=e13] [cursor=pointer]:
+        - /url: /dashboard
+        - img [ref=e14]
+        - generic [ref=e19]: Dashboard
+      - link "Purchase Requests" [ref=e20] [cursor=pointer]:
+        - /url: /purchase-requests
+        - img [ref=e21]
+        - generic [ref=e24]: Purchase Requests
+      - link "Procurement Queue" [ref=e25] [cursor=pointer]:
+        - /url: /procurement
+        - img [ref=e26]
+        - generic [ref=e29]: Procurement Queue
+      - link "Suppliers" [ref=e30] [cursor=pointer]:
+        - /url: /suppliers
+        - img [ref=e31]
+        - generic [ref=e36]: Suppliers
+      - link "Purchase Orders" [ref=e37] [cursor=pointer]:
+        - /url: /purchase-orders
+        - img [ref=e38]
+        - generic [ref=e42]: Purchase Orders
+      - link "Search & Monitor" [ref=e43] [cursor=pointer]:
+        - /url: /search
+        - img [ref=e44]
+        - generic [ref=e47]: Search & Monitor
+      - link "Reports" [ref=e48] [cursor=pointer]:
+        - /url: /reports
+        - img [ref=e49]
+        - generic [ref=e51]: Reports
+      - generic [ref=e54]: Admin
+      - link "Projects" [ref=e56] [cursor=pointer]:
+        - /url: /projects
+        - img [ref=e57]
+        - generic [ref=e59]: Projects
+      - link "Users" [ref=e60] [cursor=pointer]:
+        - /url: /users
+        - img [ref=e61]
+        - generic [ref=e66]: Users
+      - link "Departments" [ref=e67] [cursor=pointer]:
+        - /url: /departments
+        - img [ref=e68]
+        - generic [ref=e72]: Departments
+      - link "Settings" [ref=e73] [cursor=pointer]:
+        - /url: /settings
+        - img [ref=e74]
+        - generic [ref=e77]: Settings
+    - generic [ref=e80]:
+      - link "SA System Admin Admin" [ref=e81] [cursor=pointer]:
+        - /url: /profile
+        - img "SA" [ref=e83]
+        - generic [ref=e84]:
+          - paragraph [ref=e85]: System Admin
+          - paragraph [ref=e86]: Admin
+      - button "Sign out" [ref=e87]:
+        - img
+        - text: Sign out
+  - banner [ref=e88]:
+    - generic [ref=e90]:
+      - img [ref=e91]
+      - textbox "Search PRs... (Ctrl+K)" [ref=e94]
+    - button [ref=e96]:
+      - img
+  - main [ref=e97]:
+    - generic [ref=e101]:
+      - generic [ref=e102]:
+        - heading "New Supplier" [level=1] [ref=e104]
+        - button "Back" [ref=e106] [cursor=pointer]:
+          - img [ref=e107]
+          - text: Back
+      - generic [ref=e109]:
+        - generic [ref=e110]:
+          - heading "Company Information" [level=2] [ref=e112]
+          - generic [ref=e114]:
+            - generic [ref=e115]:
+              - generic [ref=e116]: Company Name*
+              - textbox "Company Name*" [ref=e117]:
+                - /placeholder: Enter company name
+            - generic [ref=e118]:
+              - generic [ref=e119]: Address*
+              - textbox "Address*" [ref=e120]:
+                - /placeholder: Enter company address
+            - generic [ref=e121]:
+              - generic [ref=e122]: Tax Type*
+              - combobox [ref=e123]:
+                - generic: Select tax type
+                - img [ref=e124]
+              - combobox [ref=e126]
+            - generic [ref=e127]:
+              - generic [ref=e128]: TIN*
+              - textbox "TIN*" [ref=e129]:
+                - /placeholder: Tax Identification Number
+        - generic [ref=e130]:
+          - heading "Contact Information" [level=2] [ref=e132]
+          - generic [ref=e134]:
+            - generic [ref=e135]:
+              - text: Contact Person
+              - textbox "Contact Person" [ref=e136]:
+                - /placeholder: Full name
+            - generic [ref=e137]:
+              - text: Contact Number
+              - textbox "Contact Number" [ref=e138]:
+                - /placeholder: Phone number
+            - generic [ref=e139]:
+              - text: Email
+              - textbox "Email" [ref=e140]:
+                - /placeholder: email@company.com
+        - generic [ref=e141]:
+          - heading "Banking Information" [level=2] [ref=e143]
+          - generic [ref=e145]:
+            - generic [ref=e146]:
+              - text: Bank Account Name
+              - textbox "Bank Account Name" [ref=e147]:
+                - /placeholder: Account holder name
+            - generic [ref=e148]:
+              - text: Bank Account Number
+              - textbox "Bank Account Number" [ref=e149]:
+                - /placeholder: Account number
+            - generic [ref=e150]:
+              - text: Bank Name
+              - textbox "Bank Name" [ref=e151]:
+                - /placeholder: Name of the bank
+            - generic [ref=e152]:
+              - text: Payment Terms
+              - textbox "Payment Terms" [ref=e153]:
+                - /placeholder: e.g. Net 30, COD
+        - generic [ref=e154]:
+          - heading "Additional" [level=2] [ref=e156]
+          - generic [ref=e159]:
+            - text: Notes
+            - textbox "Notes" [ref=e160]:
+              - /placeholder: Additional notes about this supplier...
+        - generic [ref=e161]:
+          - button "Cancel" [ref=e162] [cursor=pointer]
+          - button "Create Supplier" [ref=e163] [cursor=pointer]:
+            - img [ref=e164]
+            - text: Create Supplier

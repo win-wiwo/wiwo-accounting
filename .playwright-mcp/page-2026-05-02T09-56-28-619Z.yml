@@ -1,0 +1,181 @@
+- generic [ref=e132]:
+  - complementary [ref=e133]:
+    - generic [ref=e134]:
+      - img "WIWO" [ref=e136]
+      - button [ref=e137]:
+        - img [ref=e138]
+    - navigation [ref=e141]:
+      - link "Dashboard" [ref=e142] [cursor=pointer]:
+        - /url: /dashboard
+        - img [ref=e143]
+        - generic [ref=e148]: Dashboard
+      - link "Purchase Requests" [ref=e149] [cursor=pointer]:
+        - /url: /purchase-requests
+        - img [ref=e150]
+        - generic [ref=e153]: Purchase Requests
+      - link "Approvals" [ref=e154] [cursor=pointer]:
+        - /url: /approvals
+        - img [ref=e155]
+        - generic [ref=e158]: Approvals
+      - link "Purchase Orders" [ref=e159] [cursor=pointer]:
+        - /url: /purchase-orders
+        - img [ref=e160]
+        - generic [ref=e164]: Purchase Orders
+      - link "Search & Monitor" [ref=e165] [cursor=pointer]:
+        - /url: /search
+        - img [ref=e166]
+        - generic [ref=e169]: Search & Monitor
+      - link "Reports" [ref=e170] [cursor=pointer]:
+        - /url: /reports
+        - img [ref=e171]
+        - generic [ref=e173]: Reports
+      - generic [ref=e176]: Admin
+      - link "Projects" [ref=e178] [cursor=pointer]:
+        - /url: /projects
+        - img [ref=e179]
+        - generic [ref=e181]: Projects
+    - generic [ref=e184]:
+      - link "RS Roberto Santos CEO" [ref=e185] [cursor=pointer]:
+        - /url: /profile
+        - img "RS" [ref=e187]
+        - generic [ref=e188]:
+          - paragraph [ref=e189]: Roberto Santos
+          - paragraph [ref=e190]: CEO
+      - button "Sign out" [ref=e191]:
+        - img
+        - text: Sign out
+  - banner [ref=e192]:
+    - generic [ref=e194]:
+      - img [ref=e195]
+      - textbox "Search PRs... (Ctrl+K)" [ref=e198]
+    - button "1" [ref=e200]:
+      - img
+      - generic [ref=e201]: "1"
+  - main [ref=e202]:
+    - generic [ref=e206]:
+      - generic [ref=e208]:
+        - generic [ref=e209]:
+          - heading "Good evening, Roberto." [level=1] [ref=e210]
+          - paragraph [ref=e211]: 1 request needs your approval.
+        - paragraph [ref=e212]: Saturday, May 2, 2026
+      - generic [ref=e214] [cursor=pointer]:
+        - generic [ref=e215]:
+          - generic [ref=e218]: 1 request awaiting your review
+          - paragraph [ref=e219]: AI Control Room Workstations and Video Wall
+          - paragraph [ref=e220]: Miguel Aquino · Urgent · 8d ago
+        - button "Review" [ref=e221]:
+          - text: Review
+          - img [ref=e222]
+      - generic [ref=e225]:
+        - generic [ref=e226] [cursor=pointer]:
+          - paragraph [ref=e228]: Pending Approval
+          - paragraph [ref=e230]: "1"
+        - generic [ref=e231] [cursor=pointer]:
+          - paragraph [ref=e233]: Urgent
+          - paragraph [ref=e235]: "1"
+        - generic [ref=e236] [cursor=pointer]:
+          - paragraph [ref=e238]: Overdue
+          - paragraph [ref=e240]: "1"
+        - generic [ref=e241]:
+          - paragraph [ref=e243]: Oldest Pending
+          - paragraph [ref=e245]: 8d
+        - generic [ref=e246] [cursor=pointer]:
+          - paragraph [ref=e248]: Total PRs
+          - paragraph [ref=e250]: "30"
+      - generic [ref=e251]:
+        - generic [ref=e252]:
+          - generic [ref=e253]:
+            - generic [ref=e254]:
+              - generic [ref=e255]: Approval Queue
+              - button "View all" [ref=e256]:
+                - text: View all
+                - img [ref=e257]
+            - button "All" [ref=e260]
+            - generic [ref=e263] [cursor=pointer]:
+              - generic [ref=e265]:
+                - paragraph [ref=e266]: AI Control Room Workstations and Video Wall
+                - generic [ref=e267]:
+                  - generic [ref=e268]: Miguel Aquino
+                  - generic [ref=e269]: Procurement
+              - generic [ref=e270]: Pending Quote
+              - generic [ref=e271]: 8d ago
+              - img [ref=e272]
+          - generic [ref=e274]:
+            - generic [ref=e275]:
+              - generic [ref=e276]: Spend by Department
+              - generic [ref=e277]: Approved only
+            - generic [ref=e279]:
+              - generic [ref=e281]:
+                - generic [ref=e282]: IT & Systems
+                - generic [ref=e283]:
+                  - text: ₱6.2M
+                  - generic [ref=e284]: 9 PRs
+              - generic [ref=e288]:
+                - generic [ref=e289]: Operations
+                - generic [ref=e290]:
+                  - text: ₱3.2M
+                  - generic [ref=e291]: 2 PRs
+              - generic [ref=e295]:
+                - generic [ref=e296]: Engineering & Technical
+                - generic [ref=e297]:
+                  - text: ₱2.1M
+                  - generic [ref=e298]: 4 PRs
+              - generic [ref=e302]:
+                - generic [ref=e303]: Administration
+                - generic [ref=e304]:
+                  - text: ₱180K
+                  - generic [ref=e305]: 2 PRs
+              - generic [ref=e309]:
+                - generic [ref=e310]: Procurement
+                - generic [ref=e311]:
+                  - text: ₱48K
+                  - generic [ref=e312]: 1 PR
+        - generic [ref=e315]:
+          - generic [ref=e316]:
+            - generic [ref=e318]: Quick Actions
+            - generic [ref=e319]:
+              - button "Approval Queue 1" [ref=e320]:
+                - img [ref=e321]
+                - text: Approval Queue
+                - generic [ref=e324]: "1"
+              - button "All Purchase Requests" [ref=e325]:
+                - img [ref=e326]
+                - text: All Purchase Requests
+          - generic [ref=e329]:
+            - generic [ref=e331]: System Status
+            - generic [ref=e333]:
+              - generic [ref=e334]:
+                - generic [ref=e337]: CEO Review
+                - generic [ref=e338]: "1"
+              - generic [ref=e339]:
+                - generic [ref=e342]: Pending Canvass
+                - generic [ref=e343]: "3"
+              - generic [ref=e344]:
+                - generic [ref=e347]: Price Review
+                - generic [ref=e348]: "2"
+              - generic [ref=e349]:
+                - generic [ref=e352]: Returned
+                - generic [ref=e353]: "2"
+              - generic [ref=e354]:
+                - generic [ref=e357]: Rejected
+                - generic [ref=e358]: "1"
+              - generic [ref=e359]:
+                - generic [ref=e362]: Approved
+                - generic [ref=e363]: "18"
+          - generic [ref=e364]:
+            - generic [ref=e366]: Project Spending
+            - generic [ref=e368]:
+              - generic [ref=e370]:
+                - generic [ref=e371]:
+                  - paragraph [ref=e372]: CCTV Installation – Busway Line 1
+                  - paragraph [ref=e373]: BUSWAY-1
+                - generic [ref=e374]:
+                  - paragraph [ref=e375]: ₱4.8M
+                  - paragraph [ref=e376]: +₱284K pending
+              - generic [ref=e380]:
+                - generic [ref=e381]:
+                  - paragraph [ref=e382]: AI Camera System – Phase 1
+                  - paragraph [ref=e383]: AI-PH1
+                - generic [ref=e384]:
+                  - paragraph [ref=e385]: ₱5.4M
+                  - paragraph [ref=e386]: +₱152K pending

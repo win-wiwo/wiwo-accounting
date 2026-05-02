@@ -1,0 +1,203 @@
+- generic [ref=e132]:
+  - complementary [ref=e133]:
+    - generic [ref=e134]:
+      - img "WIWO" [ref=e136]
+      - button [ref=e137]:
+        - img [ref=e138]
+    - navigation [ref=e141]:
+      - link "Dashboard" [ref=e142] [cursor=pointer]:
+        - /url: /dashboard
+        - img [ref=e143]
+        - generic [ref=e148]: Dashboard
+      - link "Purchase Requests" [ref=e149] [cursor=pointer]:
+        - /url: /purchase-requests
+        - img [ref=e150]
+        - generic [ref=e153]: Purchase Requests
+      - link "Approvals" [ref=e154] [cursor=pointer]:
+        - /url: /approvals
+        - img [ref=e155]
+        - generic [ref=e158]: Approvals
+      - link "Purchase Orders" [ref=e159] [cursor=pointer]:
+        - /url: /purchase-orders
+        - img [ref=e160]
+        - generic [ref=e164]: Purchase Orders
+      - link "Search & Monitor" [ref=e165] [cursor=pointer]:
+        - /url: /search
+        - img [ref=e166]
+        - generic [ref=e169]: Search & Monitor
+      - link "Reports" [ref=e170] [cursor=pointer]:
+        - /url: /reports
+        - img [ref=e171]
+        - generic [ref=e173]: Reports
+      - generic [ref=e176]: Admin
+      - link "Projects" [ref=e178] [cursor=pointer]:
+        - /url: /projects
+        - img [ref=e179]
+        - generic [ref=e181]: Projects
+    - generic [ref=e184]:
+      - link "MR Maria Reyes COO" [ref=e185] [cursor=pointer]:
+        - /url: /profile
+        - img "MR" [ref=e187]
+        - generic [ref=e188]:
+          - paragraph [ref=e189]: Maria Reyes
+          - paragraph [ref=e190]: COO
+      - button "Sign out" [ref=e191]:
+        - img
+        - text: Sign out
+  - banner [ref=e192]:
+    - generic [ref=e194]:
+      - img [ref=e195]
+      - textbox "Search PRs... (Ctrl+K)" [ref=e198]
+    - button "3" [ref=e200]:
+      - img
+      - generic [ref=e201]: "3"
+  - main [ref=e202]:
+    - generic [ref=e206]:
+      - generic [ref=e208]:
+        - generic [ref=e209]:
+          - heading "Good evening, Maria." [level=1] [ref=e210]
+          - paragraph [ref=e211]: 3 requests need your approval.
+        - paragraph [ref=e212]: Saturday, May 2, 2026
+      - generic [ref=e214] [cursor=pointer]:
+        - generic [ref=e215]:
+          - generic [ref=e218]: 3 requests awaiting your review
+          - paragraph [ref=e219]: PoE Switches and Patch Panels – Busway Phase 2
+          - paragraph [ref=e220]: Mark Ramos · High · 13d ago
+        - button "Review" [ref=e221]:
+          - text: Review
+          - img [ref=e222]
+      - generic [ref=e225]:
+        - generic [ref=e226] [cursor=pointer]:
+          - paragraph [ref=e228]: Pending Approval
+          - paragraph [ref=e230]: "3"
+        - generic [ref=e231] [cursor=pointer]:
+          - paragraph [ref=e233]: Overdue
+          - paragraph [ref=e235]: "3"
+        - generic [ref=e236]:
+          - paragraph [ref=e238]: Oldest Pending
+          - paragraph [ref=e240]: 13d
+        - generic [ref=e241] [cursor=pointer]:
+          - paragraph [ref=e243]: Total PRs
+          - paragraph [ref=e245]: "31"
+      - generic [ref=e246]:
+        - generic [ref=e247]:
+          - generic [ref=e248]:
+            - generic [ref=e249]:
+              - generic [ref=e250]: Approval Queue
+              - button "View all" [ref=e251]:
+                - text: View all
+                - img [ref=e252]
+            - generic [ref=e254]:
+              - button "All" [ref=e255]
+              - button "Approval" [ref=e256]
+              - button "Price Review" [ref=e257]
+            - generic [ref=e259]:
+              - generic [ref=e260] [cursor=pointer]:
+                - generic [ref=e262]:
+                  - paragraph [ref=e263]: PoE Switches and Patch Panels – Busway Phase 2
+                  - generic [ref=e264]:
+                    - generic [ref=e265]: Mark Ramos
+                    - generic [ref=e266]: Procurement
+                - generic [ref=e267]: ₱284K
+                - generic [ref=e268]: 13d ago
+                - img [ref=e269]
+              - generic [ref=e271] [cursor=pointer]:
+                - generic [ref=e273]:
+                  - paragraph [ref=e274]: AI Analytics Training and Certification – Team of 4
+                  - generic [ref=e275]:
+                    - generic [ref=e276]: Kevin Bautista
+                    - generic [ref=e277]: Procurement
+                - generic [ref=e278]: ₱152K
+                - generic [ref=e279]: 9d ago
+                - img [ref=e280]
+              - generic [ref=e282] [cursor=pointer]:
+                - generic [ref=e284]:
+                  - paragraph [ref=e285]: AI Camera Outdoor Enclosures – Phase 1
+                  - generic [ref=e286]:
+                    - generic [ref=e287]: Kevin Bautista
+                    - generic [ref=e288]: Procurement
+                - generic [ref=e289]: Pending Quote
+                - generic [ref=e290]: 5d ago
+                - img [ref=e291]
+          - generic [ref=e293]:
+            - generic [ref=e294]:
+              - generic [ref=e295]: Spend by Department
+              - generic [ref=e296]: Approved only
+            - generic [ref=e298]:
+              - generic [ref=e300]:
+                - generic [ref=e301]: IT & Systems
+                - generic [ref=e302]:
+                  - text: ₱6.2M
+                  - generic [ref=e303]: 9 PRs
+              - generic [ref=e307]:
+                - generic [ref=e308]: Operations
+                - generic [ref=e309]:
+                  - text: ₱3.2M
+                  - generic [ref=e310]: 2 PRs
+              - generic [ref=e314]:
+                - generic [ref=e315]: Engineering & Technical
+                - generic [ref=e316]:
+                  - text: ₱2.1M
+                  - generic [ref=e317]: 4 PRs
+              - generic [ref=e321]:
+                - generic [ref=e322]: Administration
+                - generic [ref=e323]:
+                  - text: ₱180K
+                  - generic [ref=e324]: 2 PRs
+              - generic [ref=e328]:
+                - generic [ref=e329]: Procurement
+                - generic [ref=e330]:
+                  - text: ₱48K
+                  - generic [ref=e331]: 1 PR
+        - generic [ref=e334]:
+          - generic [ref=e335]:
+            - generic [ref=e337]: Quick Actions
+            - generic [ref=e338]:
+              - button "Approval Queue 3" [ref=e339]:
+                - img [ref=e340]
+                - text: Approval Queue
+                - generic [ref=e343]: "3"
+              - button "All Purchase Requests" [ref=e344]:
+                - img [ref=e345]
+                - text: All Purchase Requests
+          - generic [ref=e348]:
+            - generic [ref=e350]: System Status
+            - generic [ref=e352]:
+              - generic [ref=e353]:
+                - generic [ref=e356]: COO Review
+                - generic [ref=e357]: "1"
+              - generic [ref=e358]:
+                - generic [ref=e361]: CEO Review
+                - generic [ref=e362]: "1"
+              - generic [ref=e363]:
+                - generic [ref=e366]: Pending Canvass
+                - generic [ref=e367]: "3"
+              - generic [ref=e368]:
+                - generic [ref=e371]: Price Review
+                - generic [ref=e372]: "2"
+              - generic [ref=e373]:
+                - generic [ref=e376]: Returned
+                - generic [ref=e377]: "2"
+              - generic [ref=e378]:
+                - generic [ref=e381]: Rejected
+                - generic [ref=e382]: "1"
+              - generic [ref=e383]:
+                - generic [ref=e386]: Approved
+                - generic [ref=e387]: "18"
+          - generic [ref=e388]:
+            - generic [ref=e390]: Project Spending
+            - generic [ref=e392]:
+              - generic [ref=e394]:
+                - generic [ref=e395]:
+                  - paragraph [ref=e396]: CCTV Installation – Busway Line 1
+                  - paragraph [ref=e397]: BUSWAY-1
+                - generic [ref=e398]:
+                  - paragraph [ref=e399]: ₱4.8M
+                  - paragraph [ref=e400]: +₱284K pending
+              - generic [ref=e404]:
+                - generic [ref=e405]:
+                  - paragraph [ref=e406]: AI Camera System – Phase 1
+                  - paragraph [ref=e407]: AI-PH1
+                - generic [ref=e408]:
+                  - paragraph [ref=e409]: ₱5.4M
+                  - paragraph [ref=e410]: +₱152K pending

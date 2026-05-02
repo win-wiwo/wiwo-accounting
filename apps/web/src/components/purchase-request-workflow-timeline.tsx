@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Link } from "react-router-dom";
 import {
   APPROVAL_LEVEL_LABELS,
   normalizePrStatus,
@@ -30,6 +31,7 @@ type TimelineEntry = {
   note?: string | null;
   levelLabel?: string;
   icon: ReactNode;
+  linkTo?: string;
 };
 
 type LinkedPoStatus = "pending" | "ordered" | "received" | "cancelled";
@@ -40,10 +42,20 @@ type LinkedPo = {
   receivedBy?: string | { firstName: string; lastName: string } | null;
 } | null;
 
+type CancelledPoEntry = {
+  _id: string;
+  poNumber?: string;
+  status: string;
+  cancellationReason?: string;
+  updatedAt?: string;
+  createdAt?: string;
+};
+
 interface PurchaseRequestWorkflowTimelineProps {
   pr: PurchaseRequest;
   approvalHistory: ApprovalHistoryEntry[];
   po?: LinkedPo;
+  cancelledPos?: CancelledPoEntry[];
   compact?: boolean;
   // Hide the trailing "awaiting" pulse — useful in the approval modal where
   // the approver is about to make that decision.
@@ -99,6 +111,7 @@ function buildTimelineEntries(
   pr: PurchaseRequest,
   approvalHistory: ApprovalHistoryEntry[],
   po: LinkedPo,
+  cancelledPos: CancelledPoEntry[] = [],
 ): TimelineEntry[] {
   const entries: TimelineEntry[] = [];
 
@@ -219,12 +232,14 @@ function buildTimelineEntries(
     });
   }
 
-  if (po?.status === "cancelled") {
+  for (const cancelledPo of cancelledPos) {
     entries.push({
-      id: `po-cancelled-${pr._id}`,
-      date: pr.updatedAt,
-      title: "Purchase Order Cancelled",
-      icon: <XCircle className="h-4 w-4 text-muted-foreground" />,
+      id: `po-cancelled-${cancelledPo._id}`,
+      date: cancelledPo.updatedAt || cancelledPo.createdAt || pr.updatedAt,
+      title: `${cancelledPo.poNumber || 'PO'} Cancelled`,
+      note: cancelledPo.cancellationReason || null,
+      icon: <XCircle className="h-4 w-4 text-red-500" />,
+      linkTo: `/purchase-orders/${cancelledPo._id}`,
     });
   }
 
@@ -324,10 +339,11 @@ export function PurchaseRequestWorkflowTimeline({
   pr,
   approvalHistory,
   po = null,
+  cancelledPos = [],
   compact = false,
   showCurrentState = true,
 }: PurchaseRequestWorkflowTimelineProps) {
-  const entries = buildTimelineEntries(pr, approvalHistory, po);
+  const entries = buildTimelineEntries(pr, approvalHistory, po, cancelledPos);
 
   if (entries.length === 0) {
     return showCurrentState ? <CurrentState pr={pr} po={po} compact={compact} /> : null;
@@ -388,7 +404,11 @@ export function PurchaseRequestWorkflowTimeline({
             <div className={cls.iconWrap}>{renderIcon(entry.icon)}</div>
             <div className="flex-1 min-w-0 pb-0.5">
               <div className="flex items-center gap-2">
-                <span className={cls.title}>{entry.title}</span>
+                {entry.linkTo ? (
+                  <Link to={entry.linkTo} className={`${cls.title} hover:underline`}>{entry.title}</Link>
+                ) : (
+                  <span className={cls.title}>{entry.title}</span>
+                )}
                 {entry.levelLabel && (
                   <span className={cls.badge}>{entry.levelLabel}</span>
                 )}

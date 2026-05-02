@@ -384,6 +384,9 @@ export const purchaseOrdersApi = {
   getByPurchaseRequest: (prId: string) =>
     apiClient.get<ApiResponse<any>>(`/purchase-orders/by-pr/${prId}`).then((r) => r.data),
 
+  getAllByPurchaseRequest: (prId: string) =>
+    apiClient.get<ApiResponse<any[]>>(`/purchase-orders/all-by-pr/${prId}`).then((r) => r.data),
+
   update: (id: string, data: { estimatedArrivalDate?: string; remarks?: string }) =>
     apiClient.patch<ApiResponse<any>>(`/purchase-orders/${id}`, data).then((r) => r.data),
 

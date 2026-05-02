@@ -1,0 +1,64 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - img "WIWO" [ref=e7]
+      - button [ref=e8]:
+        - img [ref=e9]
+    - navigation [ref=e12]:
+      - link "Dashboard" [ref=e13] [cursor=pointer]:
+        - /url: /dashboard
+        - img [ref=e14]
+        - generic [ref=e19]: Dashboard
+      - link "Purchase Requests" [ref=e20] [cursor=pointer]:
+        - /url: /purchase-requests
+        - img [ref=e21]
+        - generic [ref=e24]: Purchase Requests
+      - link "Purchase Orders" [ref=e25] [cursor=pointer]:
+        - /url: /purchase-orders
+        - img [ref=e26]
+        - generic [ref=e30]: Purchase Orders
+      - link "Reports" [ref=e31] [cursor=pointer]:
+        - /url: /reports
+        - img [ref=e32]
+        - generic [ref=e34]: Reports
+    - generic [ref=e37]:
+      - link "JD Juan Dela Cruz Staff" [ref=e38] [cursor=pointer]:
+        - /url: /profile
+        - generic [ref=e40]: JD
+        - generic [ref=e41]:
+          - paragraph [ref=e42]: Juan Dela Cruz
+          - paragraph [ref=e43]: Staff
+      - button "Sign out" [ref=e44]:
+        - img
+        - text: Sign out
+  - banner [ref=e45]:
+    - generic [ref=e47]:
+      - img [ref=e48]
+      - textbox "Search PRs... (Ctrl+K)" [ref=e51]
+    - button [ref=e53]:
+      - img
+  - main [ref=e54]:
+    - generic [ref=e58]:
+      - generic [ref=e59]:
+        - generic [ref=e60]:
+          - heading "Purchase Requests" [level=1] [ref=e61]
+          - paragraph [ref=e62]: Create, track, and manage purchase requests.
+        - generic [ref=e63]:
+          - generic [ref=e65]: 0 Total
+          - button "New PR" [ref=e66] [cursor=pointer]:
+            - img [ref=e67]
+            - text: New PR
+      - generic [ref=e69]:
+        - generic [ref=e70]:
+          - img [ref=e71]
+          - textbox "Search by PR number or item summary..." [ref=e74]
+        - generic [ref=e75]:
+          - combobox [ref=e76]:
+            - generic: All Statuses
+            - img [ref=e77]
+          - combobox [ref=e79]:
+            - generic: All Priorities
+            - img [ref=e80]
+          - combobox [ref=e82]:
+            - generic: All Types
+            - img [ref=e83]

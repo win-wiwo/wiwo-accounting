@@ -1,0 +1,139 @@
+- generic [ref=e132]:
+  - complementary [ref=e133]:
+    - generic [ref=e134]:
+      - img "WIWO" [ref=e136]
+      - button [ref=e137]:
+        - img [ref=e138]
+    - navigation [ref=e141]:
+      - link "Dashboard" [ref=e142] [cursor=pointer]:
+        - /url: /dashboard
+        - img [ref=e143]
+        - generic [ref=e148]: Dashboard
+      - link "Purchase Requests" [ref=e149] [cursor=pointer]:
+        - /url: /purchase-requests
+        - img [ref=e150]
+        - generic [ref=e153]: Purchase Requests
+      - link "Approvals" [ref=e154] [cursor=pointer]:
+        - /url: /approvals
+        - img [ref=e155]
+        - generic [ref=e158]: Approvals
+      - link "Purchase Orders" [ref=e159] [cursor=pointer]:
+        - /url: /purchase-orders
+        - img [ref=e160]
+        - generic [ref=e164]: Purchase Orders
+      - link "Search & Monitor" [ref=e165] [cursor=pointer]:
+        - /url: /search
+        - img [ref=e166]
+        - generic [ref=e169]: Search & Monitor
+      - link "Reports" [ref=e170] [cursor=pointer]:
+        - /url: /reports
+        - img [ref=e171]
+        - generic [ref=e173]: Reports
+    - generic [ref=e176]:
+      - link "CG Carlos Garcia Department Head" [ref=e177] [cursor=pointer]:
+        - /url: /profile
+        - img "CG" [ref=e179]
+        - generic [ref=e180]:
+          - paragraph [ref=e181]: Carlos Garcia
+          - paragraph [ref=e182]: Department Head
+      - button "Sign out" [ref=e183]:
+        - img
+        - text: Sign out
+  - banner [ref=e184]:
+    - generic [ref=e186]:
+      - img [ref=e187]
+      - textbox "Search PRs... (Ctrl+K)" [ref=e190]
+    - button "1" [ref=e192]:
+      - img
+      - generic [ref=e193]: "1"
+  - main [ref=e194]:
+    - generic [ref=e198]:
+      - generic [ref=e200]:
+        - generic [ref=e201]:
+          - heading "Good evening, Carlos." [level=1] [ref=e202]
+          - paragraph [ref=e203]: 1 request needs your approval.
+        - paragraph [ref=e204]: Saturday, May 2, 2026
+      - generic [ref=e206] [cursor=pointer]:
+        - generic [ref=e207]:
+          - generic [ref=e210]: 1 request awaiting your review
+          - paragraph [ref=e211]: Ergonomic Office Chairs – Engineering Team
+          - paragraph [ref=e212]: Sarah Villanueva · Medium · Today
+        - button "Review" [ref=e213]:
+          - text: Review
+          - img [ref=e214]
+      - generic [ref=e217]:
+        - generic [ref=e218] [cursor=pointer]:
+          - paragraph [ref=e220]: Pending Approval
+          - paragraph [ref=e222]: "1"
+        - generic [ref=e223] [cursor=pointer]:
+          - paragraph [ref=e225]: Total PRs
+          - paragraph [ref=e227]: "14"
+      - generic [ref=e228]:
+        - generic [ref=e230]:
+          - generic [ref=e231]:
+            - generic [ref=e232]: Approval Queue
+            - button "View all" [ref=e233]:
+              - text: View all
+              - img [ref=e234]
+          - button "All" [ref=e237]
+          - generic [ref=e240] [cursor=pointer]:
+            - generic [ref=e242]:
+              - paragraph [ref=e243]: Ergonomic Office Chairs – Engineering Team
+              - generic [ref=e244]:
+                - generic [ref=e245]: Sarah Villanueva
+                - generic [ref=e246]: Procurement
+            - generic [ref=e247]: Pending Quote
+            - generic [ref=e248]: Today
+            - img [ref=e249]
+        - generic [ref=e251]:
+          - generic [ref=e252]:
+            - generic [ref=e254]: Quick Actions
+            - generic [ref=e255]:
+              - button "Approval Queue 1" [ref=e256]:
+                - img [ref=e257]
+                - text: Approval Queue
+                - generic [ref=e260]: "1"
+              - button "All Purchase Requests" [ref=e261]:
+                - img [ref=e262]
+                - text: All Purchase Requests
+          - generic [ref=e265]:
+            - generic [ref=e267]: System Status
+            - generic [ref=e269]:
+              - generic [ref=e270]:
+                - generic [ref=e273]: Dept Head Review
+                - generic [ref=e274]: "1"
+              - generic [ref=e275]:
+                - generic [ref=e278]: COO Review
+                - generic [ref=e279]: "1"
+              - generic [ref=e280]:
+                - generic [ref=e283]: Pending Canvass
+                - generic [ref=e284]: "1"
+              - generic [ref=e285]:
+                - generic [ref=e288]: Price Review
+                - generic [ref=e289]: "2"
+              - generic [ref=e290]:
+                - generic [ref=e293]: Returned
+                - generic [ref=e294]: "2"
+              - generic [ref=e295]:
+                - generic [ref=e298]: Rejected
+                - generic [ref=e299]: "1"
+              - generic [ref=e300]:
+                - generic [ref=e303]: Approved
+                - generic [ref=e304]: "4"
+          - generic [ref=e305]:
+            - generic [ref=e307]: Project Spending
+            - generic [ref=e309]:
+              - generic [ref=e311]:
+                - generic [ref=e312]:
+                  - paragraph [ref=e313]: CCTV Installation – Busway Line 1
+                  - paragraph [ref=e314]: BUSWAY-1
+                - generic [ref=e315]:
+                  - paragraph [ref=e316]: ₱96K
+                  - paragraph [ref=e317]: +₱284K pending
+              - generic [ref=e321]:
+                - generic [ref=e322]:
+                  - paragraph [ref=e323]: AI Camera System – Phase 1
+                  - paragraph [ref=e324]: AI-PH1
+                - generic [ref=e325]:
+                  - paragraph [ref=e326]: ₱1.4M
+                  - paragraph [ref=e327]: +₱152K pending

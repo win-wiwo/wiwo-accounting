@@ -191,7 +191,7 @@ export function PoDetailPage() {
           ? 'PR returned to procurement for re-canvassing.'
           : cancelPrAction === 'cancel_pr'
             ? 'Parent PR has also been cancelled.'
-            : 'Parent PR remains approved — you can issue a new PO.';
+            : 'A replacement PO has been created automatically.';
       toast({ title: 'PO cancelled', description: followUp, variant: 'success' });
     } catch {
       toast({ title: 'Failed to cancel', variant: 'error' });
@@ -442,7 +442,7 @@ export function PoDetailPage() {
             <Surface>
               <PanelHeader icon={<ImageIcon className="h-4 w-4 text-zinc-400" />} title="Receiving Proof Photos" />
               <div className="px-6 pb-6">
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                   {po.proofPhotos.map((photo: { _id: string; storagePath: string; originalName: string }) => {
                     const photoUrl = resolvePhotoUrl(`/${photo.storagePath}`);
                     return (
@@ -467,16 +467,6 @@ export function PoDetailPage() {
                     <p className="text-[13px] text-zinc-700 whitespace-pre-wrap">{po.receivingNotes}</p>
                   </div>
                 )}
-              </div>
-            </Surface>
-          )}
-
-          {/* Cancellation Reason */}
-          {isCancelled && po.cancellationReason && (
-            <Surface className="border-red-200 bg-red-50/30">
-              <PanelHeader title="Cancellation Reason" />
-              <div className="px-6 pb-6">
-                <p className="text-[13px] text-zinc-700 leading-relaxed whitespace-pre-wrap">{po.cancellationReason}</p>
               </div>
             </Surface>
           )}
@@ -521,7 +511,7 @@ export function PoDetailPage() {
             <div className="p-6">
               <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400 mb-4">Fulfillment Timeline</p>
               {(() => {
-                const nodes: { id: string; icon: React.ReactNode; title: string; actor?: string; date: string; pulse?: boolean }[] = [];
+                const nodes: { id: string; icon: React.ReactNode; title: string; actor?: string; date: string; detail?: string; pulse?: boolean }[] = [];
 
                 nodes.push({
                   id: 'created',
@@ -565,6 +555,7 @@ export function PoDetailPage() {
                     id: 'cancelled',
                     icon: <XCircle className="h-4 w-4 text-red-500" />,
                     title: 'Cancelled',
+                    detail: po.cancellationReason || undefined,
                     date: po.updatedAt ?? po.createdAt,
                   });
                 }
@@ -589,6 +580,11 @@ export function PoDetailPage() {
                             <p className="mt-1 text-[11px] tabular-nums text-zinc-400">
                               {node.id === 'eta' ? formatDate(node.date) : formatDateTime(node.date)}
                             </p>
+                            {node.detail && (
+                              <div className="mt-2 rounded-lg border border-zinc-100 bg-zinc-50/80 px-3 py-2.5">
+                                <p className="text-[12px] text-zinc-500 leading-relaxed whitespace-pre-wrap italic">"{node.detail}"</p>
+                              </div>
+                            )}
                           </div>
                         </div>
                       ))}
