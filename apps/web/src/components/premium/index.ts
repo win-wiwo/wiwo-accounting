@@ -21,16 +21,6 @@ export {
 } from './filter-bar';
 
 export {
-  DataTable,
-  DataTableHead,
-  DataTableBody,
-  DataTh,
-  DataRow,
-  DataCell,
-  SortableHeader,
-} from './data-table';
-
-export {
   StatusBadge,
   prStatusTone,
   prPriorityTone,

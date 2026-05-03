@@ -208,7 +208,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
               className={cn(
                 "relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
                 isActive
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
+                  ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
                   : "text-[oklch(0.72_0_0)] hover:bg-white/[0.08] hover:text-sidebar-foreground",
                 collapsed && "justify-center px-0",
               )}
@@ -216,14 +216,14 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
               <item.icon
                 className={cn(
                   "h-4 w-4 shrink-0",
-                  isActive ? "text-sidebar-accent-foreground" : "",
+                  isActive ? "text-sidebar-primary-foreground" : "",
                 )}
               />
               {!collapsed && (
                 <span className="flex flex-1 items-center justify-between text-[13px]">
                   {item.label}
                   {item.href === "/approvals" && pendingCount > 0 && (
-                    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-foreground/10 px-1.5 text-[10px] font-bold text-sidebar-accent-foreground bg-[oklch(0.577_0.245_27.325)]">
+                    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-foreground/10 px-1.5 text-[10px] font-bold text-sidebar-primary-foreground bg-[oklch(0.577_0.245_27.325)]">
                       {pendingCount}
                     </span>
                   )}
@@ -258,7 +258,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                   className={cn(
                     "relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
                     isActive
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
+                      ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
                       : "text-[oklch(0.72_0_0)] hover:bg-white/[0.08] hover:text-sidebar-foreground",
                     collapsed && "justify-center px-0",
                   )}

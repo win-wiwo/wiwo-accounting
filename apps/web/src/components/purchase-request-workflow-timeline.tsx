@@ -159,7 +159,7 @@ function buildTimelineEntries(
       date: entry.recalledAt,
       title: "Recalled to Draft",
       actor: recalledByName(entry.recalledBy),
-      icon: <Undo2 className="h-4 w-4 text-slate-600" />,
+      icon: <Undo2 className="h-4 w-4 text-zinc-600" />,
     });
   }
 
