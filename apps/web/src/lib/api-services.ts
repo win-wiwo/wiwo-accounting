@@ -126,6 +126,7 @@ export interface PurchaseRequestsQuery {
   priority?: string;
   requestType?: string;
   departmentId?: string;
+  projectId?: string;
   sort?: string;
   order?: 'asc' | 'desc';
   dateFrom?: string;
@@ -242,6 +243,9 @@ export const purchaseRequestsApi = {
 
   getManagementStats: () =>
     apiClient.get<ApiResponse<ManagementStats>>('/purchase-requests/stats/management').then((r) => r.data),
+
+  getProjectHealth: () =>
+    apiClient.get<ApiResponse<ProjectHealthResponse>>('/purchase-requests/stats/project-health').then((r) => r.data),
 };
 
 export interface ProjectSpendingItem {
@@ -413,6 +417,38 @@ export const purchaseOrdersApi = {
   getMonthlyStats: () =>
     apiClient.get<{ data: { receivedThisMonth: number } }>('/purchase-orders/stats/monthly').then((r) => r.data),
 };
+
+export interface ProjectHealthItem {
+  projectId: string | null;
+  projectName: string;
+  projectCode: string | null;
+  projectStatus: string | null;
+  totalPrs: number;
+  draftCount: number;
+  inReviewCount: number;
+  inProcurementCount: number;
+  approvedCount: number;
+  returnedCount: number;
+  rejectedCount: number;
+  overdueCount: number;
+  totalAmount: number;
+  approvedAmount: number;
+  pendingAmount: number;
+  oldestSubmittedAt: string | null;
+  highestPriority: number;
+  health: 'on_track' | 'at_risk' | 'delayed' | 'blocked';
+}
+
+export interface ProjectHealthResponse {
+  summary: {
+    total: number;
+    onTrack: number;
+    atRisk: number;
+    delayed: number;
+    blocked: number;
+  };
+  projects: ProjectHealthItem[];
+}
 
 export interface ManagementStats {
   avgApprovalDays: number | null;

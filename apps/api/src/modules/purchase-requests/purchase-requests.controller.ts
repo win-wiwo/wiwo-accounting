@@ -75,6 +75,14 @@ export class PurchaseRequestsController {
     return this.prService.getProjectSpending(user);
   }
 
+  @Get('stats/project-health')
+  @ApiOperation({ summary: 'Get per-project health dashboard data' })
+  async getProjectHealth(
+    @CurrentUser() user: { _id: string; role: string; departmentId: string | null },
+  ) {
+    return this.prService.getProjectHealth(user);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get purchase request by ID' })
   async findOne(

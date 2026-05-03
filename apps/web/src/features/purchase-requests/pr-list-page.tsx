@@ -97,6 +97,7 @@ export function PrListPage() {
   const [statusFilter, setStatusFilter] = useState<string>(searchParams.get('status') ?? 'all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [projectIdFilter] = useState<string | undefined>(searchParams.get('projectId') ?? undefined);
   const [limit, setLimit] = useState(10);
   const [sortBy, setSortBy] = useState<'createdAt' | 'totalAmount'>('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
@@ -118,6 +119,7 @@ export function PrListPage() {
     status: statusFilter !== 'all' ? statusFilter : undefined,
     priority: priorityFilter !== 'all' ? priorityFilter : undefined,
     requestType: typeFilter !== 'all' ? typeFilter : undefined,
+    projectId: projectIdFilter,
     sort: sortBy,
     order: sortOrder,
   });
