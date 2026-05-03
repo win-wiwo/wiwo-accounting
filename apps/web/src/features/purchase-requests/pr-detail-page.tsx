@@ -49,10 +49,10 @@ import { useAuthStore } from "@/stores/auth.store";
 import { useToast } from "@/components/ui/toast";
 import { PurchaseRequestWorkflowTimeline } from "@/components/purchase-request-workflow-timeline";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/premium/status-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { EmptyState } from "@/components/ui/empty-state";
+import { EmptyState } from "@/components/premium/empty-state";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { resolvePhotoUrl } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
@@ -158,7 +158,7 @@ function ResubmissionChanges({
                 <p className="text-xs line-through text-red-600 bg-red-50 rounded px-2 py-1">
                   {snapshot.title}
                 </p>
-                <p className="text-xs text-green-700 bg-green-50 rounded px-2 py-1">
+                <p className="text-xs text-emerald-700 bg-emerald-50 rounded px-2 py-1">
                   {currentTitle}
                 </p>
               </div>
@@ -171,7 +171,7 @@ function ResubmissionChanges({
                 <p className="text-xs line-through text-red-600 bg-red-50 rounded px-2 py-1 capitalize">
                   {snapshot.priority}
                 </p>
-                <p className="text-xs text-green-700 bg-green-50 rounded px-2 py-1 capitalize">
+                <p className="text-xs text-emerald-700 bg-emerald-50 rounded px-2 py-1 capitalize">
                   {currentPriority}
                 </p>
               </div>
@@ -184,7 +184,7 @@ function ResubmissionChanges({
                 <p className="text-xs line-through text-red-600 bg-red-50 rounded px-2 py-1">
                   {snapshot.justification}
                 </p>
-                <p className="text-xs text-green-700 bg-green-50 rounded px-2 py-1">
+                <p className="text-xs text-emerald-700 bg-emerald-50 rounded px-2 py-1">
                   {currentJustification}
                 </p>
               </div>
@@ -219,7 +219,7 @@ function ResubmissionChanges({
                     </div>
                   )}
                   {diff.type === "added" && diff.new && (
-                    <div className="bg-green-50 border-green-200 px-3 py-2 text-green-700">
+                    <div className="bg-emerald-50 border-emerald-200 px-3 py-2 text-emerald-700">
                       <span className="font-medium">
                         {diff.new.description}
                       </span>
@@ -227,7 +227,7 @@ function ResubmissionChanges({
                       {diff.new.quantity} {diff.new.unit}
                       {(diff.new.estimatedPrice ?? 0) > 0 &&
                         ` · ₱${(diff.new.estimatedPrice ?? 0).toLocaleString()}/unit`}
-                      <span className="ml-1 text-[10px] font-medium bg-green-200 text-green-800 rounded px-1">
+                      <span className="ml-1 text-[10px] font-medium bg-emerald-200 text-emerald-800 rounded px-1">
                         added
                       </span>
                     </div>
@@ -243,7 +243,7 @@ function ResubmissionChanges({
                         {diff.old.estimatedPrice > 0 &&
                           ` · ₱${diff.old.estimatedPrice.toLocaleString()}/unit`}
                       </div>
-                      <div className="bg-green-50 px-3 py-1.5 text-green-700">
+                      <div className="bg-emerald-50 px-3 py-1.5 text-emerald-700">
                         <span className="font-medium">
                           {diff.new.description}
                         </span>
@@ -642,7 +642,7 @@ export function PrDetailPage() {
         title: "Draft — Not Yet Submitted",
         nextStep: canEdit ? "Fill in all required fields, then submit for approval." : "Awaiting submission by requester.",
         icon: <Pencil className="h-4 w-4" />,
-        tone: "border-slate-200 bg-slate-50/80 text-slate-800",
+        tone: "border-zinc-200 bg-zinc-50/80 text-zinc-800",
       };
     }
     if (runtimeStatus === PrStatus.PENDING_QUOTATION) {
@@ -731,7 +731,7 @@ export function PrDetailPage() {
         title: "Request Cancelled",
         nextStep: "This request was cancelled. The reason is shown below.",
         icon: <Ban className="h-4 w-4" />,
-        tone: "border-slate-200 bg-slate-50/80 text-slate-700",
+        tone: "border-zinc-200 bg-zinc-50/80 text-zinc-700",
       };
     }
     return {
@@ -1197,7 +1197,7 @@ export function PrDetailPage() {
                           </p>
                         </div>
                         {entry.isSelected && (
-                          <Badge variant="success">Selected</Badge>
+                          <StatusBadge tone="success">Selected</StatusBadge>
                         )}
                       </div>
                       <div className="space-y-1">

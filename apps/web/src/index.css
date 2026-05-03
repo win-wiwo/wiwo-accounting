@@ -1,7 +1,5 @@
 @import "tailwindcss";
 
-@custom-variant dark (&:is(.dark *));
-
 @theme {
   /* ── Surfaces ──────────────────────────────────────────── */
   --color-background: #F6F7F9;
@@ -20,9 +18,6 @@
   --color-secondary-foreground: #374151;
   --color-muted: #F9FAFB;
   --color-muted-foreground: #6B7280;
-  --color-accent: #F3F4F6;
-  --color-accent-foreground: #111827;
-
   /* ── Semantic ──────────────────────────────────────────── */
   --color-destructive: #B42318;
   --color-destructive-foreground: #FFFFFF;
@@ -44,8 +39,6 @@
   --color-sidebar-foreground: #E5E7EB;
   --color-sidebar-primary: #FFFFFF;
   --color-sidebar-primary-foreground: #111318;
-  --color-sidebar-accent: #FFFFFF;
-  --color-sidebar-accent-foreground: #111827;
   --color-sidebar-border: #1E2229;
   --color-sidebar-ring: #6B7280;
   --color-sidebar-muted: #6B7280;

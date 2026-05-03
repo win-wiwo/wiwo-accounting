@@ -33,5 +33,8 @@ mongo-data/
 # Uploads
 apps/api/uploads/
 
+# Audit smoke screenshots
+audit/smoke/
+
 # Turbo
 .turbo/
