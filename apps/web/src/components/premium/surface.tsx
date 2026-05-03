@@ -5,9 +5,9 @@ type Elevation = 'flat' | 'subtle' | 'default' | 'raised';
 
 const ELEVATION: Record<Elevation, string> = {
   flat:    '',
-  subtle:  'shadow-[0_1px_3px_rgba(0,0,0,0.04)]',
-  default: 'shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_16px_rgba(0,0,0,0.03)]',
-  raised:  'shadow-[0_2px_6px_rgba(0,0,0,0.06),0_12px_32px_rgba(0,0,0,0.05)]',
+  subtle:  'shadow-card',
+  default: 'shadow-card-hover',
+  raised:  'shadow-card-raised',
 };
 
 interface SurfaceProps extends React.HTMLAttributes<HTMLDivElement> {

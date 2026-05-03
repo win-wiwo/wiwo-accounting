@@ -129,7 +129,7 @@ export const CanvassMatrix = forwardRef<CanvassMatrixHandle, CanvassMatrixProps>
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="rounded-xl border border-zinc-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+      <div className="rounded-xl border border-zinc-200/80 bg-white shadow-card overflow-hidden">
         <div className="flex items-center justify-between px-5 pt-5 pb-3">
           <div>
             <h3 className="text-[15px] font-semibold text-zinc-900">Supplier Comparison</h3>
@@ -240,7 +240,7 @@ export const CanvassMatrix = forwardRef<CanvassMatrixHandle, CanvassMatrixProps>
                                 <Tooltip.Content
                                   side="bottom"
                                   sideOffset={4}
-                                  className="z-50 max-w-[320px] rounded-lg border border-zinc-800/60 bg-zinc-900 px-3 py-1.5 text-[12px] font-medium text-white shadow-[0_8px_24px_rgba(0,0,0,0.18)] animate-in fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-1 data-[side=top]:slide-in-from-bottom-1"
+                                  className="z-50 max-w-[320px] rounded-lg border border-zinc-800/60 bg-zinc-900 px-3 py-1.5 text-[12px] font-medium text-white shadow-modal animate-in fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-1 data-[side=top]:slide-in-from-bottom-1"
                                 >
                                   {item.specifications}
                                   <Tooltip.Arrow className="fill-zinc-900" />
@@ -318,7 +318,7 @@ export const CanvassMatrix = forwardRef<CanvassMatrixHandle, CanvassMatrixProps>
                       <div className="space-y-1.5">
                         <textarea
                           rows={2}
-                          className="flex w-full rounded-md border border-zinc-200 bg-white px-2.5 py-1.5 text-[11px] shadow-sm placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-300 resize-none transition-shadow duration-150"
+                          className="flex w-full rounded-md border border-zinc-200 bg-white px-2.5 py-1.5 text-[11px] shadow-xs placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-300 resize-none transition-shadow duration-150"
                           placeholder="Lead time, warranty, payment terms..."
                           value={entry.remarks}
                           onChange={(e) => onUpdateEntry(entry.localId, { remarks: e.target.value })}
@@ -408,7 +408,7 @@ export const CanvassMatrix = forwardRef<CanvassMatrixHandle, CanvassMatrixProps>
 
       {/* Justification for fewer than 3 */}
       {entries.length < 3 && (
-        <div className="rounded-xl border border-amber-200/80 bg-amber-50/30 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5 space-y-2">
+        <div className="rounded-xl border border-amber-200/80 bg-amber-50/30 shadow-card p-5 space-y-2">
           <div>
             <h4 className="text-[13px] font-semibold text-amber-900">Justification for Fewer than 3 Suppliers</h4>
             <p className="text-[11px] text-amber-700/70 mt-0.5">Explain why only one or two suppliers could be canvassed</p>
@@ -416,7 +416,7 @@ export const CanvassMatrix = forwardRef<CanvassMatrixHandle, CanvassMatrixProps>
           <textarea
             ref={justificationRef}
             rows={3}
-            className={`flex w-full rounded-lg border bg-white px-3 py-2.5 text-[13px] shadow-sm placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 resize-none transition-all duration-150 ${
+            className={`flex w-full rounded-lg border bg-white px-3 py-2.5 text-[13px] shadow-xs placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 resize-none transition-all duration-150 ${
               justificationError ? 'border-red-400 focus-visible:ring-red-300' : 'border-amber-300 focus-visible:ring-amber-300'
             }`}
             placeholder="e.g. Only one authorized dealer in the Philippines for this product, or sole-source OEM requirement..."
@@ -512,7 +512,7 @@ export const CanvassMatrix = forwardRef<CanvassMatrixHandle, CanvassMatrixProps>
                   <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-zinc-400 mb-1.5">Remarks</p>
                   <textarea
                     rows={2}
-                    className="flex w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-[12px] shadow-sm placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-300 resize-none"
+                    className="flex w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-[12px] shadow-xs placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-300 resize-none"
                     placeholder="Lead time, warranty, payment terms..."
                     value={addRemarks}
                     onChange={(e) => setAddRemarks(e.target.value)}

@@ -49,6 +49,41 @@
 
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
     "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+
+  /* ── Status tones ─────────────────────────────────────── */
+  --color-tone-success-bg:      oklch(97.9% 0.021 166.113);
+  --color-tone-success-text:    oklch(50.8% 0.118 165.612);
+  --color-tone-success-border:  oklch(90.5% 0.093 164.15);
+
+  --color-tone-warning-bg:      oklch(98.7% 0.022 95.277);
+  --color-tone-warning-text:    oklch(55.5% 0.163 48.998);
+  --color-tone-warning-border:  oklch(92.4% 0.12 95.746);
+
+  --color-tone-danger-bg:       oklch(97.1% 0.013 17.38);
+  --color-tone-danger-text:     oklch(50.5% 0.213 27.518);
+  --color-tone-danger-border:   oklch(88.5% 0.062 18.334);
+
+  --color-tone-info-bg:         oklch(97% 0.014 254.604);
+  --color-tone-info-text:       oklch(48.8% 0.243 264.376);
+  --color-tone-info-border:     oklch(88.2% 0.059 254.128);
+
+  --color-tone-accent-bg:       oklch(96.9% 0.016 293.756);
+  --color-tone-accent-text:     oklch(49.1% 0.27 292.581);
+  --color-tone-accent-border:   oklch(89.4% 0.057 293.283);
+
+  --color-tone-neutral-bg:      oklch(96.7% 0.001 286.375);
+  --color-tone-neutral-text:    oklch(44.2% 0.017 285.786);
+  --color-tone-neutral-border:  oklch(92% 0.004 286.32);
+
+  /* ── Shadows ──────────────────────────────────────────── */
+  --shadow-xs:           0 1px 2px rgba(0,0,0,0.04);
+  --shadow-card:         0 1px 3px rgba(0,0,0,0.04);
+  --shadow-card-hover:   0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.03);
+  --shadow-card-raised:  0 2px 8px rgba(0,0,0,0.04), 0 12px 32px rgba(0,0,0,0.05);
+  --shadow-popover:      0 4px 24px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04);
+  --shadow-modal:        0 24px 80px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.06);
+  --shadow-focus:        0 0 0 3px rgba(0,0,0,0.06);
+  --shadow-up:           0 -4px 16px rgba(0,0,0,0.04);
 }
 
 /* ── Login hero animations ──────────────────────────────── */

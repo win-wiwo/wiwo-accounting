@@ -46,10 +46,10 @@ const PRIORITY_ORDER: Record<string, number> = { urgent: 0, high: 1, medium: 2, 
 
 /* ── Priority badge styling (matches PR list) ────────── */
 const priorityStyle: Record<string, string> = {
-  low:    'bg-zinc-100 text-zinc-500',
-  medium: 'bg-blue-50 text-blue-600',
-  high:   'bg-amber-50 text-amber-700',
-  urgent: 'bg-red-50 text-red-600',
+  low:    'bg-tone-neutral-bg text-tone-neutral-text',
+  medium: 'bg-tone-info-bg text-tone-info-text',
+  high:   'bg-tone-warning-bg text-tone-warning-text',
+  urgent: 'bg-tone-danger-bg text-tone-danger-text',
 };
 
 export function ApprovalsPage() {
@@ -164,12 +164,12 @@ export function ApprovalsPage() {
               {totalPending} Pending
             </span>
             {urgentCount > 0 && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-3 py-1 text-[12px] font-medium text-red-600 tabular-nums">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-tone-danger-bg px-3 py-1 text-[12px] font-medium text-tone-danger-text tabular-nums">
                 {urgentCount} Urgent
               </span>
             )}
             {oldestDays >= 5 && (
-              <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-medium tabular-nums ${oldestDays >= 10 ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-700'}`}>
+              <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-medium tabular-nums ${oldestDays >= 10 ? 'bg-tone-danger-bg text-tone-danger-text' : 'bg-tone-warning-bg text-tone-warning-text'}`}>
                 {oldestDays}d oldest
               </span>
             )}
@@ -190,7 +190,7 @@ export function ApprovalsPage() {
               onClick={() => setTypeFilter(tab.key)}
               className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-medium transition-all duration-150 ${
                 typeFilter === tab.key
-                  ? 'bg-white text-zinc-900 shadow-sm'
+                  ? 'bg-white text-zinc-900 shadow-xs'
                   : 'text-zinc-500 hover:text-zinc-700'
               }`}
             >
@@ -209,7 +209,7 @@ export function ApprovalsPage() {
 
       {/* ── Table Container ──────────────────────────────────── */}
       <div
-        className="pr-list-section rounded-xl border border-zinc-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_16px_rgba(0,0,0,0.03)] overflow-hidden"
+        className="pr-list-section rounded-xl border border-zinc-200/80 bg-white shadow-card-hover overflow-hidden"
         style={{ animationDelay: '0.06s' }}
       >
         {isLoading ? (
@@ -311,11 +311,11 @@ export function ApprovalsPage() {
                         {isCoo && (
                           <td className="px-5 py-4">
                             {pr.status === PrStatus.QUOTED ? (
-                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-full px-2 py-0.5">
+                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-tone-success-text bg-tone-success-bg border border-tone-success-border rounded-full px-2 py-0.5">
                                 Price Review
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-violet-700 bg-violet-50 border border-violet-100 rounded-full px-2 py-0.5">
+                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-tone-info-text bg-tone-info-bg border border-tone-info-border rounded-full px-2 py-0.5">
                                 Approval
                               </span>
                             )}
@@ -333,17 +333,17 @@ export function ApprovalsPage() {
                                 <span className="text-[11px] text-zinc-400">{dept.name}</span>
                               )}
                               {hasProcurement && (
-                                <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-blue-700 bg-blue-50 border border-blue-100 rounded-full px-1.5 py-0.5">
+                                <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-tone-info-text bg-tone-info-bg border border-tone-info-border rounded-full px-1.5 py-0.5">
                                   <ShoppingCart className="h-2.5 w-2.5" /> Procurement
                                 </span>
                               )}
                               {isRevised && (
-                                <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-amber-700 bg-amber-50 border border-amber-100 rounded-full px-1.5 py-0.5">
+                                <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-tone-warning-text bg-tone-warning-bg border border-tone-warning-border rounded-full px-1.5 py-0.5">
                                   <RotateCcw className="h-2.5 w-2.5" /> Revised
                                 </span>
                               )}
                               {isOverdue && (
-                                <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-red-600 bg-red-50 border border-red-100 rounded-full px-1.5 py-0.5">
+                                <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-tone-danger-text bg-tone-danger-bg border border-tone-danger-border rounded-full px-1.5 py-0.5">
                                   <AlertTriangle className="h-2.5 w-2.5" /> Need Date Passed
                                 </span>
                               )}
@@ -371,7 +371,7 @@ export function ApprovalsPage() {
 
                         {/* Priority */}
                         <td className="px-5 py-4">
-                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${priorityStyle[pr.priority] ?? 'bg-zinc-100 text-zinc-500'}`}>
+                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${priorityStyle[pr.priority] ?? 'bg-tone-neutral-bg text-tone-neutral-text'}`}>
                             {PR_PRIORITY_LABELS[pr.priority as PrPriorityType]}
                           </span>
                         </td>
@@ -410,7 +410,7 @@ export function ApprovalsPage() {
                   <div className="flex items-center gap-2">
                     <span className="text-[12px] text-zinc-400">Rows per page</span>
                     <Select value={String(limit)} onValueChange={(v) => { setLimit(Number(v)); setPage(1); }}>
-                      <SelectTrigger className="w-auto h-8 px-2.5 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]">
+                      <SelectTrigger className="w-auto h-8 px-2.5 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-focus">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="min-w-0">
@@ -443,7 +443,7 @@ export function ApprovalsPage() {
                           onClick={() => setPage(p as number)}
                           className={`h-8 w-8 rounded-lg text-[12px] font-semibold transition-all duration-150 ${
                             p === meta.page
-                              ? 'bg-zinc-900 text-white shadow-sm'
+                              ? 'bg-zinc-900 text-white shadow-xs'
                               : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700'
                           }`}
                         >

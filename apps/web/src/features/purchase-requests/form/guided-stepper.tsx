@@ -13,7 +13,7 @@ export function GuidedStepper({
   onStepClick,
 }: GuidedStepperProps) {
   return (
-    <div className="rounded-xl border border-zinc-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+    <div className="rounded-xl border border-zinc-200/80 bg-white shadow-card">
       {/* Mobile: compact progress header */}
       <div className="sm:hidden px-5 py-4">
         <div className="flex items-center justify-between mb-3">
@@ -73,7 +73,7 @@ export function GuidedStepper({
                   className={cn(
                     'flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[13px] font-bold transition-all duration-300',
                     current &&
-                      'bg-zinc-900 text-white shadow-[0_0_0_4px_rgba(24,24,27,0.08)]',
+                      'bg-zinc-900 text-white shadow-focus',
                     completed && 'bg-zinc-900 text-white',
                     !current &&
                       !completed &&

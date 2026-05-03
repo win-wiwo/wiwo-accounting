@@ -235,7 +235,7 @@ export function DashboardPage() {
                 action={{ label: 'View All Returned', onClick: () => navigate('/purchase-requests?status=returned') }}
               />
             ) : myPrs.length > 0 ? (
-              <div className="rounded-xl border border-zinc-200 bg-white px-6 py-4 flex items-center gap-3 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+              <div className="rounded-xl border border-zinc-200 bg-white px-6 py-4 flex items-center gap-3 shadow-card">
                 <span className="h-2 w-2 rounded-full bg-emerald-400 shrink-0" />
                 <div>
                   <p className="font-semibold text-[14px] text-zinc-900">All clear</p>
@@ -376,7 +376,7 @@ export function DashboardPage() {
                 summary={`${pendingCount} pending approval${overdueApprovals.length > 0 ? ` (${overdueApprovals.length} overdue)` : ''}`}
               />
             ) : (
-              <div className="rounded-xl border border-zinc-200 bg-white px-6 py-4 flex items-center gap-3 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+              <div className="rounded-xl border border-zinc-200 bg-white px-6 py-4 flex items-center gap-3 shadow-card">
                 <span className="h-2 w-2 rounded-full bg-emerald-400 shrink-0" />
                 <div>
                   <p className="font-semibold text-[14px] text-zinc-900">You're all caught up</p>
@@ -431,7 +431,7 @@ export function DashboardPage() {
                           onClick={() => setQueueFilter(f.key)}
                           className={`px-3 py-1 rounded-full text-[11px] font-semibold tracking-wide transition-all duration-200 active:scale-[0.96] ${
                             queueFilter === f.key
-                              ? 'bg-zinc-900 text-white shadow-sm'
+                              ? 'bg-zinc-900 text-white shadow-xs'
                               : 'text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100'
                           }`}
                         >
@@ -467,10 +467,10 @@ export function DashboardPage() {
                                 <div className="flex items-center gap-2 mt-0.5">
                                   <span className="text-[12px] text-zinc-400">{requesterName(pr)}</span>
                                   {pr.status === PrStatus.QUOTED && (
-                                    <span className="text-[10px] font-semibold text-violet-600 bg-violet-50 rounded-full px-2 py-0.5">Price Review</span>
+                                    <span className="text-[10px] font-semibold text-tone-info-text bg-tone-info-bg rounded-full px-2 py-0.5">Price Review</span>
                                   )}
                                   {hasProcurement && pr.status !== PrStatus.QUOTED && (
-                                    <span className="text-[10px] font-semibold text-violet-600 bg-violet-50 rounded-full px-2 py-0.5">Procurement</span>
+                                    <span className="text-[10px] font-semibold text-tone-info-text bg-tone-info-bg rounded-full px-2 py-0.5">Procurement</span>
                                   )}
                                 </div>
                               </div>
@@ -593,7 +593,7 @@ export function DashboardPage() {
               }));
 
               if (urgentItems.length === 0) return (
-                <div className="rounded-xl border border-zinc-200 bg-white px-6 py-4 flex items-center gap-3 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+                <div className="rounded-xl border border-zinc-200 bg-white px-6 py-4 flex items-center gap-3 shadow-card">
                   <span className="h-2 w-2 rounded-full bg-emerald-400 shrink-0" />
                   <div>
                     <p className="font-semibold text-[14px] text-zinc-900">Pipeline on track</p>
@@ -838,10 +838,10 @@ function AnimSection({ delay, children }: { delay: number; children: React.React
 // ─── Project Overview Panel ─────────────────────────────────────────────
 
 const HEALTH_CONFIG = {
-  on_track: { label: 'On Track',  dot: 'bg-emerald-400', text: 'text-emerald-700', bg: 'bg-emerald-50' },
-  at_risk:  { label: 'At Risk',   dot: 'bg-amber-400',   text: 'text-amber-700',   bg: 'bg-amber-50' },
-  delayed:  { label: 'Delayed',   dot: 'bg-amber-400',   text: 'text-amber-700',   bg: 'bg-amber-50' },
-  blocked:  { label: 'Blocked',   dot: 'bg-red-500',     text: 'text-red-700',     bg: 'bg-red-50' },
+  on_track: { label: 'On Track',  dot: 'bg-emerald-400', text: 'text-tone-success-text', bg: 'bg-tone-success-bg' },
+  at_risk:  { label: 'At Risk',   dot: 'bg-amber-400',   text: 'text-tone-warning-text',   bg: 'bg-tone-warning-bg' },
+  delayed:  { label: 'Delayed',   dot: 'bg-amber-400',   text: 'text-tone-warning-text',   bg: 'bg-tone-warning-bg' },
+  blocked:  { label: 'Blocked',   dot: 'bg-red-500',     text: 'text-tone-danger-text',     bg: 'bg-tone-danger-bg' },
 } as const;
 
 function ProjectOverviewPanel({ summary, projects, loading, onProjectClick }: {
@@ -1174,12 +1174,12 @@ function PrRow({ pr, onClick, showStatus }: { pr: any; onClick: () => void; show
 
 function PoRow({ po, onClick }: { po: any; onClick: () => void }) {
   const statusConfig: Record<string, { text: string; bg: string; border: string; dot: string }> = {
-    pending:   { text: 'text-amber-700',   bg: 'bg-amber-50',   border: 'border-amber-200',   dot: 'bg-amber-500' },
-    ordered:   { text: 'text-blue-700',    bg: 'bg-blue-50',    border: 'border-blue-200',    dot: 'bg-blue-500' },
-    received:  { text: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200', dot: 'bg-emerald-500' },
-    cancelled: { text: 'text-zinc-500',    bg: 'bg-zinc-50',    border: 'border-zinc-200',    dot: 'bg-zinc-400' },
+    pending:   { text: 'text-tone-warning-text',   bg: 'bg-tone-warning-bg',   border: 'border-tone-warning-border',   dot: 'bg-amber-500' },
+    ordered:   { text: 'text-tone-info-text',    bg: 'bg-tone-info-bg',    border: 'border-tone-info-border',    dot: 'bg-blue-500' },
+    received:  { text: 'text-tone-success-text', bg: 'bg-tone-success-bg', border: 'border-tone-success-border', dot: 'bg-emerald-500' },
+    cancelled: { text: 'text-tone-neutral-text',    bg: 'bg-tone-neutral-bg',    border: 'border-tone-neutral-border',    dot: 'bg-zinc-400' },
   };
-  const cfg = statusConfig[po.status ?? ''] ?? { text: 'text-zinc-500', bg: 'bg-zinc-50', border: 'border-zinc-200', dot: 'bg-zinc-400' };
+  const cfg = statusConfig[po.status ?? ''] ?? { text: 'text-tone-neutral-text', bg: 'bg-tone-neutral-bg', border: 'border-tone-neutral-border', dot: 'bg-zinc-400' };
   return (
     <div
       className="flex items-center gap-3 py-3.5 cursor-pointer hover:bg-zinc-50 -mx-6 px-6 transition-colors duration-150 group"
@@ -1290,7 +1290,7 @@ function KpiCard({
   };
   return (
     <div
-      className={`rounded-xl border border-zinc-100 bg-white px-5 py-5 shadow-[0_1px_3px_rgba(0,0,0,0.05)] ${
+      className={`rounded-xl border border-zinc-100 bg-white px-5 py-5 shadow-card ${
         onClick ? 'cursor-pointer transition-all duration-200 hover:shadow-[0_6px_20px_rgba(0,0,0,0.09),inset_0_1px_0_rgba(255,255,255,0.9)] hover:-translate-y-0.5 hover:border-zinc-200' : ''
       }`}
       onClick={onClick}

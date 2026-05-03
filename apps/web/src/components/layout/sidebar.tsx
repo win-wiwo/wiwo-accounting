@@ -208,7 +208,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
               className={cn(
                 "relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
                 isActive
-                  ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
+                  ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-xs"
                   : "text-[oklch(0.72_0_0)] hover:bg-white/[0.08] hover:text-sidebar-foreground",
                 collapsed && "justify-center px-0",
               )}
@@ -258,7 +258,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                   className={cn(
                     "relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
                     isActive
-                      ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
+                      ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-xs"
                       : "text-[oklch(0.72_0_0)] hover:bg-white/[0.08] hover:text-sidebar-foreground",
                     collapsed && "justify-center px-0",
                   )}

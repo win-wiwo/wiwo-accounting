@@ -41,9 +41,9 @@ const STATUS_LABEL: Record<string, string> = {
   blacklisted: 'Blacklisted',
 };
 const STATUS_STYLE: Record<string, string> = {
-  active:      'bg-emerald-50 text-emerald-700 border-emerald-200',
-  inactive:    'bg-zinc-50 text-zinc-700 border-zinc-200',
-  blacklisted: 'bg-red-50 text-red-700 border-red-200',
+  active:      'bg-tone-success-bg text-tone-success-text border-tone-success-border',
+  inactive:    'bg-tone-neutral-bg text-tone-neutral-text border-tone-neutral-border',
+  blacklisted: 'bg-tone-danger-bg text-tone-danger-text border-tone-danger-border',
 };
 /* Tax chip — secondary, quieter */
 const TAX_CHIP: Record<string, { bg: string; text: string; label: string }> = {
@@ -132,17 +132,17 @@ export function SuppliersListPage() {
                 {stats.total} Total
               </span>
               {stats.active > 0 && (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-[12px] font-medium text-emerald-700 tabular-nums">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-tone-success-bg px-3 py-1 text-[12px] font-medium text-tone-success-text tabular-nums">
                   {stats.active} Active
                 </span>
               )}
               {stats.blacklisted > 0 && (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-3 py-1 text-[12px] font-medium text-red-600 tabular-nums">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-tone-danger-bg px-3 py-1 text-[12px] font-medium text-tone-danger-text tabular-nums">
                   {stats.blacklisted} Blacklisted
                 </span>
               )}
               {(stats.missingContact ?? 0) > 0 && (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-[12px] font-medium text-amber-700 tabular-nums">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-tone-warning-bg px-3 py-1 text-[12px] font-medium text-tone-warning-text tabular-nums">
                   <AlertCircle className="h-3 w-3" />
                   {stats.missingContact} Needs Review
                 </span>
@@ -175,7 +175,7 @@ export function SuppliersListPage() {
 
       {/* ── Filter Bar ───────────────────────────────────────── */}
       <div
-        className="pr-list-section rounded-xl border border-zinc-200/80 bg-white px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
+        className="pr-list-section rounded-xl border border-zinc-200/80 bg-white px-5 py-4 shadow-card"
         style={{ animationDelay: '0.04s' }}
       >
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -187,7 +187,7 @@ export function SuppliersListPage() {
               placeholder="Search by name, TIN, or contact..."
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="peer h-10 w-full rounded-lg border border-zinc-200 bg-zinc-50/60 pl-10 pr-4 text-[13px] text-zinc-800 placeholder:text-zinc-400 outline-none transition-all duration-200 focus:border-zinc-400 focus:bg-white focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]"
+              className="peer h-10 w-full rounded-lg border border-zinc-200 bg-zinc-50/60 pl-10 pr-4 text-[13px] text-zinc-800 placeholder:text-zinc-400 outline-none transition-all duration-200 focus:border-zinc-400 focus:bg-white focus:shadow-focus"
             />
           </div>
 
@@ -197,7 +197,7 @@ export function SuppliersListPage() {
               value={statusFilter || 'all'}
               onValueChange={(v) => { setStatusFilter(v === 'all' ? '' : v); setPage(1); }}
             >
-              <SelectTrigger className="w-full sm:w-[150px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]">
+              <SelectTrigger className="w-full sm:w-[150px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-focus">
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
               <SelectContent>
@@ -212,7 +212,7 @@ export function SuppliersListPage() {
               value={taxTypeFilter || 'all'}
               onValueChange={(v) => { setTaxTypeFilter(v === 'all' ? '' : v); setPage(1); }}
             >
-              <SelectTrigger className="w-full sm:w-[150px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]">
+              <SelectTrigger className="w-full sm:w-[150px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-focus">
                 <SelectValue placeholder="All Tax Types" />
               </SelectTrigger>
               <SelectContent>
@@ -226,7 +226,7 @@ export function SuppliersListPage() {
               value={sortValue}
               onValueChange={(v) => { setSortValue(v); setPage(1); }}
             >
-              <SelectTrigger className="w-full sm:w-[180px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]">
+              <SelectTrigger className="w-full sm:w-[180px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-focus">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -244,7 +244,7 @@ export function SuppliersListPage() {
 
       {/* ── Table ────────────────────────────────────────────── */}
       <div
-        className="pr-list-section rounded-xl border border-zinc-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_16px_rgba(0,0,0,0.03)] overflow-hidden"
+        className="pr-list-section rounded-xl border border-zinc-200/80 bg-white shadow-card-hover overflow-hidden"
         style={{ animationDelay: '0.08s' }}
       >
         {isLoading ? (
@@ -357,7 +357,7 @@ export function SuppliersListPage() {
 
                         {/* Status */}
                         <td className="px-5 py-4">
-                          <span className={`inline-flex h-[22px] items-center gap-1.5 rounded-md border px-2 text-[11px] font-medium leading-none ${STATUS_STYLE[supplier.status] ?? 'bg-zinc-50 text-zinc-700 border-zinc-200'}`}>
+                          <span className={`inline-flex h-[22px] items-center gap-1.5 rounded-md border px-2 text-[11px] font-medium leading-none ${STATUS_STYLE[supplier.status] ?? 'bg-tone-neutral-bg text-tone-neutral-text border-tone-neutral-border'}`}>
                             <span className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT[supplier.status] ?? 'bg-zinc-400'}`} />
                             {STATUS_LABEL[supplier.status] ?? supplier.status}
                           </span>
@@ -383,7 +383,7 @@ export function SuppliersListPage() {
                   <div className="flex items-center gap-2">
                     <span className="text-[12px] text-zinc-400">Rows per page</span>
                     <Select value={String(limit)} onValueChange={(v) => { setLimit(Number(v)); setPage(1); }}>
-                      <SelectTrigger className="w-auto h-8 px-2.5 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]">
+                      <SelectTrigger className="w-auto h-8 px-2.5 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-focus">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="min-w-0">
@@ -416,7 +416,7 @@ export function SuppliersListPage() {
                           onClick={() => setPage(p as number)}
                           className={`h-8 w-8 rounded-lg text-[12px] font-semibold transition-all duration-150 ${
                             p === meta.page
-                              ? 'bg-zinc-900 text-white shadow-sm'
+                              ? 'bg-zinc-900 text-white shadow-xs'
                               : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700'
                           }`}
                         >

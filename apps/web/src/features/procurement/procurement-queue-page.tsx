@@ -25,10 +25,10 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 /* ── Badge styling (matches other pages) ──────────────── */
 /* Priority — quieter than status: no border, lighter tint */
 const priorityStyle: Record<string, string> = {
-  low:    'bg-zinc-50 text-zinc-500',
-  medium: 'bg-zinc-50 text-zinc-700',
-  high:   'bg-amber-50/70 text-amber-800',
-  urgent: 'bg-red-50/70 text-red-700',
+  low:    'bg-tone-neutral-bg text-tone-neutral-text',
+  medium: 'bg-tone-neutral-bg text-tone-neutral-text',
+  high:   'bg-tone-warning-bg/70 text-tone-warning-text',
+  urgent: 'bg-tone-danger-bg/70 text-tone-danger-text',
 };
 
 const priorityDot: Record<string, string> = {
@@ -40,9 +40,9 @@ const priorityDot: Record<string, string> = {
 
 /* Status — restrained semantic palette with soft border + dot */
 const procStatusStyle: Record<string, string> = {
-  pending_quotation: 'bg-blue-50 text-blue-700 border-blue-200',
-  quoted:            'bg-emerald-50 text-emerald-700 border-emerald-200',
-  returned:          'bg-amber-50 text-amber-800 border-amber-200',
+  pending_quotation: 'bg-tone-info-bg text-tone-info-text border-tone-info-border',
+  quoted:            'bg-tone-success-bg text-tone-success-text border-tone-success-border',
+  returned:          'bg-tone-warning-bg text-tone-warning-text border-tone-warning-border',
 };
 
 const procStatusDot: Record<string, string> = {
@@ -146,12 +146,12 @@ export function ProcurementQueuePage() {
               {totalPending} Pending
             </span>
             {highCount > 0 && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-[12px] font-medium text-amber-700 tabular-nums">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-tone-warning-bg px-3 py-1 text-[12px] font-medium text-tone-warning-text tabular-nums">
                 {highCount} High Priority
               </span>
             )}
             {oldestDays >= 5 && (
-              <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-medium tabular-nums ${oldestDays >= 10 ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-700'}`}>
+              <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-medium tabular-nums ${oldestDays >= 10 ? 'bg-tone-danger-bg text-tone-danger-text' : 'bg-tone-warning-bg text-tone-warning-text'}`}>
                 {oldestDays}d oldest
               </span>
             )}
@@ -161,7 +161,7 @@ export function ProcurementQueuePage() {
 
       {/* ── Table Container ──────────────────────────────────── */}
       <div
-        className="pr-list-section rounded-xl border border-zinc-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_16px_rgba(0,0,0,0.03)] overflow-hidden"
+        className="pr-list-section rounded-xl border border-zinc-200/80 bg-white shadow-card-hover overflow-hidden"
         style={{ animationDelay: '0.06s' }}
       >
         {isLoading ? (
@@ -276,7 +276,7 @@ export function ProcurementQueuePage() {
 
                         {/* Status */}
                         <td className="px-5 py-4">
-                          <span className={`inline-flex h-[22px] items-center gap-1.5 rounded-md border px-2 text-[11px] font-medium leading-none ${procStatusStyle[pr.status] ?? 'bg-zinc-50 text-zinc-700 border-zinc-200'}`}>
+                          <span className={`inline-flex h-[22px] items-center gap-1.5 rounded-md border px-2 text-[11px] font-medium leading-none ${procStatusStyle[pr.status] ?? 'bg-tone-neutral-bg text-tone-neutral-text border-tone-neutral-border'}`}>
                             <span className={`h-1.5 w-1.5 rounded-full ${procStatusDot[pr.status] ?? 'bg-zinc-400'}`} />
                             {PR_STATUS_LABELS[pr.status as PrStatusType]}
                           </span>
@@ -284,7 +284,7 @@ export function ProcurementQueuePage() {
 
                         {/* Priority */}
                         <td className="px-5 py-4">
-                          <span className={`inline-flex h-[22px] items-center gap-1.5 rounded-md px-2 text-[11px] font-medium leading-none ${priorityStyle[pr.priority] ?? 'bg-zinc-50 text-zinc-500'}`}>
+                          <span className={`inline-flex h-[22px] items-center gap-1.5 rounded-md px-2 text-[11px] font-medium leading-none ${priorityStyle[pr.priority] ?? 'bg-tone-neutral-bg text-tone-neutral-text'}`}>
                             <span className={`h-1.5 w-1.5 rounded-full ${priorityDot[pr.priority] ?? 'bg-zinc-300'}`} />
                             {PR_PRIORITY_LABELS[pr.priority as PrPriorityType]}
                           </span>
@@ -324,7 +324,7 @@ export function ProcurementQueuePage() {
                   <div className="flex items-center gap-2">
                     <span className="text-[12px] text-zinc-400">Rows per page</span>
                     <Select value={String(limit)} onValueChange={(v) => { setLimit(Number(v)); setPage(1); }}>
-                      <SelectTrigger className="w-auto h-8 px-2.5 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]">
+                      <SelectTrigger className="w-auto h-8 px-2.5 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-focus">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="min-w-0">
@@ -357,7 +357,7 @@ export function ProcurementQueuePage() {
                           onClick={() => setPage(p as number)}
                           className={`h-8 w-8 rounded-lg text-[12px] font-semibold transition-all duration-150 ${
                             p === meta.page
-                              ? 'bg-zinc-900 text-white shadow-sm'
+                              ? 'bg-zinc-900 text-white shadow-xs'
                               : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700'
                           }`}
                         >

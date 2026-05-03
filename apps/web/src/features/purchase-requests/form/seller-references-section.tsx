@@ -139,7 +139,7 @@ export function SellerReferencesSection({
               <div
                 key={field.id}
                 className={cn(
-                  'rounded-lg border bg-white px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)] space-y-3 transition-colors duration-150',
+                  'rounded-lg border bg-white px-4 py-3 shadow-xs space-y-3 transition-colors duration-150',
                   isSelected
                     ? 'border-zinc-800/80 bg-zinc-50/40'
                     : 'border-zinc-100 hover:border-zinc-200',

@@ -290,25 +290,25 @@ function formatDate(d: string | null) {
 
 /* ── Semantic badge styles (matches list page system) ── */
 const statusStyle: Record<string, string> = {
-  draft:              'bg-zinc-100 text-zinc-600',
-  submitted:          'bg-blue-50 text-blue-700',
-  level1_review:      'bg-blue-50 text-blue-700',
-  level2_review:      'bg-blue-50 text-blue-700',
-  level3_review:      'bg-indigo-50 text-indigo-700',
-  pending_quotation:  'bg-violet-50 text-violet-700',
-  quoted:             'bg-violet-50 text-violet-700',
-  approved:           'bg-emerald-50 text-emerald-700',
-  completed:          'bg-emerald-50 text-emerald-700',
-  rejected:           'bg-red-50 text-red-600',
-  returned:           'bg-amber-50 text-amber-700',
-  cancelled:          'bg-zinc-100 text-zinc-500',
+  draft:              'bg-tone-neutral-bg text-tone-neutral-text',
+  submitted:          'bg-tone-info-bg text-tone-info-text',
+  level1_review:      'bg-tone-info-bg text-tone-info-text',
+  level2_review:      'bg-tone-info-bg text-tone-info-text',
+  level3_review:      'bg-tone-info-bg text-tone-info-text',
+  pending_quotation:  'bg-tone-info-bg text-tone-info-text',
+  quoted:             'bg-tone-info-bg text-tone-info-text',
+  approved:           'bg-tone-success-bg text-tone-success-text',
+  completed:          'bg-tone-success-bg text-tone-success-text',
+  rejected:           'bg-tone-danger-bg text-tone-danger-text',
+  returned:           'bg-tone-warning-bg text-tone-warning-text',
+  cancelled:          'bg-tone-neutral-bg text-tone-neutral-text',
 };
 
 const priorityStyle: Record<string, string> = {
-  low:    'bg-zinc-100 text-zinc-500',
-  medium: 'bg-blue-50 text-blue-600',
-  high:   'bg-amber-50 text-amber-700',
-  urgent: 'bg-red-50 text-red-600',
+  low:    'bg-tone-neutral-bg text-tone-neutral-text',
+  medium: 'bg-tone-info-bg text-tone-info-text',
+  high:   'bg-tone-warning-bg text-tone-warning-text',
+  urgent: 'bg-tone-danger-bg text-tone-danger-text',
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -745,7 +745,7 @@ export function PrDetailPage() {
   return (
     <div className="space-y-6 max-w-screen-2xl">
       {/* ── Sticky header ──────────────────────────────────── */}
-      <div className="sticky top-16 z-10 -mx-4 bg-white/95 backdrop-blur-sm px-4 py-3 border-b border-zinc-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+      <div className="sticky top-16 z-10 -mx-4 bg-white/95 backdrop-blur-sm px-4 py-3 border-b border-zinc-100 shadow-card">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="min-w-0">
             {/* Breadcrumb */}
@@ -767,8 +767,8 @@ export function PrDetailPage() {
               </span>
               <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold shrink-0 ${
                 pr.sourcingMode === SourcingType.ONLINE
-                  ? 'bg-blue-50 text-blue-700 border border-blue-100'
-                  : 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                  ? 'bg-tone-info-bg text-tone-info-text border border-tone-info-border'
+                  : 'bg-tone-success-bg text-tone-success-text border border-tone-success-border'
               }`}>
                 {pr.sourcingMode === SourcingType.ONLINE ? 'Online' : 'Procurement'}
               </span>
@@ -821,7 +821,7 @@ export function PrDetailPage() {
                       <Tooltip.Content
                         side="bottom"
                         sideOffset={6}
-                        className="z-50 max-w-[240px] rounded-lg border border-zinc-800/60 bg-zinc-900 px-3 py-1.5 text-[12px] font-medium text-white shadow-[0_8px_24px_rgba(0,0,0,0.18)] animate-in fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-1 data-[side=top]:slide-in-from-bottom-1"
+                        className="z-50 max-w-[240px] rounded-lg border border-zinc-800/60 bg-zinc-900 px-3 py-1.5 text-[12px] font-medium text-white shadow-modal animate-in fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-1 data-[side=top]:slide-in-from-bottom-1"
                       >
                         {pdfBlockedReason}
                         <Tooltip.Arrow className="fill-zinc-900" />
@@ -904,7 +904,7 @@ export function PrDetailPage() {
             {canApprove && (
               <>
                 <button
-                  className="inline-flex items-center gap-1.5 rounded-lg h-8 px-4 text-[13px] font-semibold text-white bg-emerald-600 transition-all duration-200 hover:bg-emerald-700 hover:-translate-y-px hover:shadow-md"
+                  className="inline-flex items-center gap-1.5 rounded-lg h-8 px-4 text-[13px] font-semibold text-white bg-emerald-600 transition-all duration-200 hover:bg-emerald-700 hover:-translate-y-px hover:shadow-card"
                   onClick={() => { setApprovalComments(""); setApprovalDialog({ open: true, action: "approved" }); }}
                 >
                   <CheckCircle2 className="h-3.5 w-3.5" />
@@ -924,7 +924,7 @@ export function PrDetailPage() {
 
       {/* ── Status banner ──────────────────────────────────── */}
       <div className={`pr-detail-section flex items-start gap-3.5 rounded-xl border px-5 py-4 ${stagePresentation.tone}`} style={{ animationDelay: '0s' }}>
-        <div className="rounded-lg bg-white/70 p-2 mt-0.5 shrink-0 shadow-sm">
+        <div className="rounded-lg bg-white/70 p-2 mt-0.5 shrink-0 shadow-xs">
           {stagePresentation.icon}
         </div>
         <div className="min-w-0">
@@ -937,7 +937,7 @@ export function PrDetailPage() {
       <div className="pr-detail-section grid gap-6 xl:grid-cols-[1fr_360px]" style={{ animationDelay: '0.06s' }}>
         <div className="space-y-6">
           {/* Line Items */}
-          <div className="rounded-xl border border-zinc-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_16px_rgba(0,0,0,0.03)] overflow-hidden">
+          <div className="rounded-xl border border-zinc-200/80 bg-white shadow-card-hover overflow-hidden">
             <div className="px-6 pt-6 pb-4">
               <h2 className="text-[15px] font-semibold text-zinc-900">Line Items</h2>
               <p className="mt-1 text-[12px] text-zinc-400 leading-relaxed">
@@ -972,7 +972,7 @@ export function PrDetailPage() {
                 return (
                   <div
                     key={item._id}
-                    className="rounded-xl border border-zinc-100 bg-white p-5 transition-all duration-150 hover:border-zinc-200 hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
+                    className="rounded-xl border border-zinc-100 bg-white p-5 transition-all duration-150 hover:border-zinc-200 hover:shadow-card-raised"
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0 space-y-2">
@@ -1015,13 +1015,13 @@ export function PrDetailPage() {
                       {isProcurement &&
                         item.quotedUnitPrice &&
                         item.quotedAt && (
-                          <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+                          <span className="inline-flex items-center rounded-full border border-tone-success-border bg-tone-success-bg px-2.5 py-1 text-xs font-medium text-tone-success-text">
                             Quoted {formatDate(item.quotedAt)}
                           </span>
                         )}
                       {typeof item.selectedSupplierId === "object" &&
                         item.selectedSupplierId?.companyName && (
-                          <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-800">
+                          <span className="inline-flex items-center rounded-full border border-tone-success-border bg-tone-success-bg px-2.5 py-1 text-xs font-medium text-tone-success-text">
                             Supplier: {item.selectedSupplierId.companyName}
                           </span>
                         )}
@@ -1184,7 +1184,7 @@ export function PrDetailPage() {
                         entry._id ??
                         `${entry.supplierName}-${entry.totalQuotedAmount}`
                       }
-                      className={`rounded-lg border p-4 space-y-3 shadow-sm ${entry.isSelected ? "border-emerald-400 bg-white ring-1 ring-emerald-200" : "bg-white/80"}`}
+                      className={`rounded-lg border p-4 space-y-3 shadow-xs ${entry.isSelected ? "border-emerald-400 bg-white ring-1 ring-emerald-200" : "bg-white/80"}`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
@@ -1270,7 +1270,7 @@ export function PrDetailPage() {
         {/* ── Sidebar ────────────────────────────────────── */}
         <div className="space-y-5">
           {/* Request Details */}
-          <div className="rounded-xl border border-zinc-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+          <div className="rounded-xl border border-zinc-200/80 bg-white shadow-card overflow-hidden">
             <div className="p-6 space-y-6">
 
               {/* Ownership */}
@@ -1352,7 +1352,7 @@ export function PrDetailPage() {
           </div>
 
           {/* Approval Timeline */}
-          <div className="rounded-xl border border-zinc-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+          <div className="rounded-xl border border-zinc-200/80 bg-white shadow-card overflow-hidden">
             <div className="px-6 pt-5 pb-3">
               <h3 className="text-[13px] font-semibold text-zinc-900">Approval Timeline</h3>
             </div>
@@ -1454,7 +1454,7 @@ export function PrDetailPage() {
             <textarea
               id="cancel-reason"
               rows={3}
-              className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               placeholder="Why is this PR being cancelled?"
               value={cancelReason}
               onChange={(e) => setCancelReason(e.target.value)}
@@ -1562,7 +1562,7 @@ export function PrDetailPage() {
             <textarea
               id="approval-comments"
               rows={3}
-              className="flex w-full rounded-lg border border-zinc-200 bg-zinc-50/60 px-3 py-2.5 text-[13px] text-zinc-800 placeholder:text-zinc-400 outline-none transition-all duration-200 focus:border-zinc-400 focus:bg-white focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]"
+              className="flex w-full rounded-lg border border-zinc-200 bg-zinc-50/60 px-3 py-2.5 text-[13px] text-zinc-800 placeholder:text-zinc-400 outline-none transition-all duration-200 focus:border-zinc-400 focus:bg-white focus:shadow-focus"
               placeholder={
                 approvalDialog.action === "approved"
                   ? "Optional comments..."
@@ -1586,7 +1586,7 @@ export function PrDetailPage() {
             </Button>
             {approvalDialog.action === "approved" && (
               <button
-                className="inline-flex items-center gap-1.5 rounded-lg h-9 px-4 text-[13px] font-semibold text-white bg-emerald-600 transition-all duration-200 hover:bg-emerald-700 hover:-translate-y-px hover:shadow-md disabled:opacity-50 disabled:pointer-events-none"
+                className="inline-flex items-center gap-1.5 rounded-lg h-9 px-4 text-[13px] font-semibold text-white bg-emerald-600 transition-all duration-200 hover:bg-emerald-700 hover:-translate-y-px hover:shadow-card disabled:opacity-50 disabled:pointer-events-none"
                 onClick={handleApprovalAction}
                 disabled={processApproval.isPending}
               >

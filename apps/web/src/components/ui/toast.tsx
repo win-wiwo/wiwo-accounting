@@ -103,7 +103,7 @@ function ToastItem({
     <div
       className={cn(
         'group relative flex w-[360px] items-start gap-3 overflow-hidden rounded-xl border px-4 py-3.5',
-        'shadow-[0_8px_30px_rgba(0,0,0,0.06),0_2px_8px_rgba(0,0,0,0.04)]',
+        'shadow-popover',
         config.border,
         config.bg,
         dismissing

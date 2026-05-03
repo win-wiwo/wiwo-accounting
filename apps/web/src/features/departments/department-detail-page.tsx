@@ -389,7 +389,7 @@ export function DepartmentDetailPage() {
               value={memberSearch}
               onChange={(e) => setMemberSearch(e.target.value)}
               autoFocus
-              className="w-full h-10 rounded-lg border border-zinc-200 bg-zinc-50/60 pl-10 pr-4 text-[13px] text-zinc-800 placeholder:text-zinc-400 outline-none transition-all duration-200 focus:border-zinc-400 focus:bg-white focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]"
+              className="w-full h-10 rounded-lg border border-zinc-200 bg-zinc-50/60 pl-10 pr-4 text-[13px] text-zinc-800 placeholder:text-zinc-400 outline-none transition-all duration-200 focus:border-zinc-400 focus:bg-white focus:shadow-focus"
             />
           </div>
           <div className="max-h-64 overflow-y-auto">

@@ -89,11 +89,11 @@ const DatePicker = React.forwardRef<HTMLButtonElement, DatePickerProps>(
             disabled={disabled}
             className={cn(
               'flex h-10 w-full items-center gap-2.5 rounded-xl border border-zinc-200/80 bg-zinc-50/40 px-3.5 py-2 text-left text-[13px]',
-              'shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-all duration-200',
-              'hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-[0_1px_3px_rgba(0,0,0,0.06)]',
-              'focus:outline-none focus:border-zinc-300 focus:bg-white focus:shadow-[0_0_0_2px_rgba(0,0,0,0.04)]',
+              'shadow-xs transition-all duration-200',
+              'hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-card',
+              'focus:outline-none focus:border-zinc-300 focus:bg-white focus:shadow-focus',
               'disabled:cursor-not-allowed disabled:opacity-50',
-              open && 'border-zinc-300 bg-white shadow-[0_0_0_2px_rgba(0,0,0,0.04)]',
+              open && 'border-zinc-300 bg-white shadow-focus',
               className,
             )}
           >
@@ -108,7 +108,7 @@ const DatePicker = React.forwardRef<HTMLButtonElement, DatePickerProps>(
         </PopoverTrigger>
         <PopoverContent
           align="start"
-          className="w-auto min-w-[296px] p-0 shadow-[0_8px_24px_rgba(0,0,0,0.10)] border-zinc-200/80"
+          className="w-auto min-w-[296px] p-0 shadow-popover border-zinc-200/80"
         >
           <Calendar
             mode="single"

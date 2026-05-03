@@ -42,10 +42,10 @@ const PO_STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_STYLE: Record<string, string> = {
-  pending:   'bg-amber-50 text-amber-800 border-amber-200',
-  ordered:   'bg-blue-50 text-blue-700 border-blue-200',
-  received:  'bg-emerald-50 text-emerald-700 border-emerald-200',
-  cancelled: 'bg-red-50 text-red-700 border-red-200',
+  pending:   'bg-tone-warning-bg text-tone-warning-text border-tone-warning-border',
+  ordered:   'bg-tone-info-bg text-tone-info-text border-tone-info-border',
+  received:  'bg-tone-success-bg text-tone-success-text border-tone-success-border',
+  cancelled: 'bg-tone-danger-bg text-tone-danger-text border-tone-danger-border',
 };
 
 const STATUS_DOT: Record<string, string> = {
@@ -153,22 +153,22 @@ export function PoListPage() {
                 {stats.total} Total
               </span>
               {stats.pending > 0 && (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-[12px] font-medium text-amber-700 tabular-nums">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-tone-warning-bg px-3 py-1 text-[12px] font-medium text-tone-warning-text tabular-nums">
                   {stats.pending} Pending
                 </span>
               )}
               {stats.ordered > 0 && (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-[12px] font-medium text-blue-700 tabular-nums">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-tone-info-bg px-3 py-1 text-[12px] font-medium text-tone-info-text tabular-nums">
                   {stats.ordered} Ordered
                 </span>
               )}
               {stats.received > 0 && (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-[12px] font-medium text-emerald-700 tabular-nums">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-tone-success-bg px-3 py-1 text-[12px] font-medium text-tone-success-text tabular-nums">
                   {stats.received} Received
                 </span>
               )}
               {stats.activeValue > 0 && (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-violet-50 px-3 py-1 text-[12px] font-medium text-violet-700 tabular-nums">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-tone-info-bg px-3 py-1 text-[12px] font-medium text-tone-info-text tabular-nums">
                   {formatCurrency(stats.activeValue)} Active
                 </span>
               )}
@@ -179,7 +179,7 @@ export function PoListPage() {
 
       {/* ── Filter Bar ───────────────────────────────────────── */}
       <div
-        className="pr-list-section rounded-xl border border-zinc-200/80 bg-white px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
+        className="pr-list-section rounded-xl border border-zinc-200/80 bg-white px-5 py-4 shadow-card"
         style={{ animationDelay: '0.04s' }}
       >
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -190,12 +190,12 @@ export function PoListPage() {
               placeholder="Search by PO number, source, or project..."
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="peer h-10 w-full rounded-lg border border-zinc-200 bg-zinc-50/60 pl-10 pr-4 text-[13px] text-zinc-800 placeholder:text-zinc-400 outline-none transition-all duration-200 focus:border-zinc-400 focus:bg-white focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]"
+              className="peer h-10 w-full rounded-lg border border-zinc-200 bg-zinc-50/60 pl-10 pr-4 text-[13px] text-zinc-800 placeholder:text-zinc-400 outline-none transition-all duration-200 focus:border-zinc-400 focus:bg-white focus:shadow-focus"
             />
           </div>
           <div className="flex items-center gap-2 flex-wrap shrink-0">
             <Select value={statusFilter || 'all'} onValueChange={(v) => { setStatusFilter(v === 'all' ? '' : v); setPage(1); }}>
-              <SelectTrigger className="w-full sm:w-[140px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]">
+              <SelectTrigger className="w-full sm:w-[140px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-focus">
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
               <SelectContent>
@@ -207,7 +207,7 @@ export function PoListPage() {
             </Select>
 
             <Select value={sourceFilter || 'all'} onValueChange={(v) => { setSourceFilter(v === 'all' ? '' : v); setPage(1); }}>
-              <SelectTrigger className="w-full sm:w-[154px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]">
+              <SelectTrigger className="w-full sm:w-[154px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-focus">
                 <SelectValue placeholder="All Sources" />
               </SelectTrigger>
               <SelectContent>
@@ -219,7 +219,7 @@ export function PoListPage() {
             </Select>
 
             <Select value={sortValue} onValueChange={(v) => { setSortValue(v); setPage(1); }}>
-              <SelectTrigger className="w-full sm:w-[154px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]">
+              <SelectTrigger className="w-full sm:w-[154px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-focus">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -235,7 +235,7 @@ export function PoListPage() {
 
       {/* ── Table ────────────────────────────────────────────── */}
       <div
-        className="pr-list-section rounded-xl border border-zinc-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_16px_rgba(0,0,0,0.03)] overflow-hidden"
+        className="pr-list-section rounded-xl border border-zinc-200/80 bg-white shadow-card-hover overflow-hidden"
         style={{ animationDelay: '0.08s' }}
       >
         {isLoading ? (
@@ -366,7 +366,7 @@ export function PoListPage() {
 
                         {/* Status */}
                         <td className="px-5 py-4">
-                          <span className={`inline-flex h-[22px] items-center gap-1.5 rounded-md border px-2 text-[11px] font-medium leading-none ${STATUS_STYLE[po.status] ?? 'bg-zinc-50 text-zinc-700 border-zinc-200'}`}>
+                          <span className={`inline-flex h-[22px] items-center gap-1.5 rounded-md border px-2 text-[11px] font-medium leading-none ${STATUS_STYLE[po.status] ?? 'bg-tone-neutral-bg text-tone-neutral-text border-tone-neutral-border'}`}>
                             <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${STATUS_DOT[po.status] ?? 'bg-zinc-400'}`} />
                             {PO_STATUS_LABELS[po.status] ?? po.status}
                           </span>
@@ -402,7 +402,7 @@ export function PoListPage() {
                   <div className="flex items-center gap-2">
                     <span className="text-[12px] text-zinc-400">Rows per page</span>
                     <Select value={String(limit)} onValueChange={(v) => { setLimit(Number(v)); setPage(1); }}>
-                      <SelectTrigger className="w-auto h-8 px-2.5 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]">
+                      <SelectTrigger className="w-auto h-8 px-2.5 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-focus">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="min-w-0">
@@ -435,7 +435,7 @@ export function PoListPage() {
                           onClick={() => setPage(p as number)}
                           className={`h-8 w-8 rounded-lg text-[12px] font-semibold transition-all duration-150 ${
                             p === meta.page
-                              ? 'bg-zinc-900 text-white shadow-sm'
+                              ? 'bg-zinc-900 text-white shadow-xs'
                               : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700'
                           }`}
                         >

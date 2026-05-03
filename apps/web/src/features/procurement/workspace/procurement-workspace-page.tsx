@@ -237,14 +237,14 @@ export function ProcurementWorkspacePage() {
               <span className="h-3.5 w-px bg-zinc-200" />
               <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${
                 pr.status === 'pending_quotation' || pr.status === 'returned'
-                  ? 'bg-amber-50 text-amber-700 border-amber-100'
-                  : 'bg-zinc-100 text-zinc-600 border-zinc-200'
+                  ? 'bg-tone-warning-bg text-tone-warning-text border-tone-warning-border'
+                  : 'bg-tone-neutral-bg text-tone-neutral-text border-tone-neutral-border'
               }`}>
                 {PR_STATUS_LABELS[pr.status as PrStatusType]}
               </span>
               {(pr.priority === 'urgent' || pr.priority === 'high') && (
                 <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${
-                  pr.priority === 'urgent' ? 'bg-red-50 text-red-600 border-red-100' : 'bg-amber-50 text-amber-700 border-amber-100'
+                  pr.priority === 'urgent' ? 'bg-tone-danger-bg text-tone-danger-text border-tone-danger-border' : 'bg-tone-warning-bg text-tone-warning-text border-tone-warning-border'
                 }`}>
                   <AlertTriangle className="h-2.5 w-2.5" /> {PR_PRIORITY_LABELS[pr.priority as PrPriority]}
                 </span>
@@ -303,7 +303,7 @@ export function ProcurementWorkspacePage() {
         {/* ── LEFT: Request Details ────────────────────── */}
         <div className="space-y-4">
           {/* Request Details */}
-          <div className="rounded-xl border border-zinc-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+          <div className="rounded-xl border border-zinc-200/80 bg-white shadow-card overflow-hidden">
             <div className="px-5 py-3 border-b border-zinc-100">
               <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-zinc-400">Request Details</p>
             </div>
@@ -346,7 +346,7 @@ export function ProcurementWorkspacePage() {
 
           {/* Supporting Attachments */}
           {supportingAttachments.length > 0 && (
-            <div className="rounded-xl border border-zinc-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+            <div className="rounded-xl border border-zinc-200/80 bg-white shadow-card overflow-hidden">
               <div className="flex items-center gap-2 px-5 py-3 border-b border-zinc-100">
                 <Paperclip className="h-3.5 w-3.5 text-zinc-400" />
                 <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-zinc-400">Attachments</p>
@@ -381,7 +381,7 @@ export function ProcurementWorkspacePage() {
           )}
 
           {/* Approval Timeline */}
-          <div className="rounded-xl border border-zinc-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+          <div className="rounded-xl border border-zinc-200/80 bg-white shadow-card overflow-hidden">
             <div className="px-5 py-3 border-b border-zinc-100">
               <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-zinc-400">Approval Timeline</p>
             </div>
@@ -401,7 +401,7 @@ export function ProcurementWorkspacePage() {
 
           {/* Read-Only Supplier Comparison */}
           {readOnlyMode && (
-            <div className="rounded-xl border border-zinc-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+            <div className="rounded-xl border border-zinc-200/80 bg-white shadow-card overflow-hidden">
               <div className="flex items-start justify-between px-6 pt-5 pb-4 gap-4 border-b border-zinc-100">
                 <div>
                   <h2 className="text-[16px] font-bold tracking-[-0.01em] text-zinc-900">Supplier Comparison</h2>
@@ -431,17 +431,17 @@ export function ProcurementWorkspacePage() {
               {existingEntries.length > 0 && (existingEntries.length === 1 || roPriceDiffPercent || (roSelectedEntry && existingEntries.length > 1 && roSelectedTotal === roLowestTotal)) && (
                 <div className="px-6 py-3 flex flex-wrap gap-2 border-b border-zinc-100">
                   {existingEntries.length === 1 && (
-                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-blue-50 border border-blue-100 px-3 py-1.5 text-[11px] text-blue-700 font-medium">
+                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-tone-info-bg border border-tone-info-border px-3 py-1.5 text-[11px] text-tone-info-text font-medium">
                       <Info className="h-3 w-3" /> Single supplier — justification required
                     </span>
                   )}
                   {roPriceDiffPercent && (
-                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 border border-amber-100 px-3 py-1.5 text-[11px] text-amber-700 font-medium">
+                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-tone-warning-bg border border-tone-warning-border px-3 py-1.5 text-[11px] text-tone-warning-text font-medium">
                       <AlertTriangle className="h-3 w-3" /> Selected is +{roPriceDiffPercent}% above cheapest
                     </span>
                   )}
                   {roSelectedEntry && existingEntries.length > 1 && roSelectedTotal === roLowestTotal && (
-                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-1.5 text-[11px] text-emerald-700 font-medium">
+                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-tone-success-bg border border-tone-success-border px-3 py-1.5 text-[11px] text-tone-success-text font-medium">
                       <CheckCircle className="h-3 w-3" /> Lowest qualified bid selected
                     </span>
                   )}
@@ -483,12 +483,12 @@ export function ProcurementWorkspacePage() {
                                 </span>
                               )}
                               {isOnlySupplier && (
-                                <span className="inline-flex items-center rounded-full bg-blue-50 border border-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-600">
+                                <span className="inline-flex items-center rounded-full bg-tone-info-bg border border-tone-info-border px-2 py-0.5 text-[10px] font-semibold text-tone-info-text">
                                   Only Supplier
                                 </span>
                               )}
                               {isLowestBid && !isWinner && (
-                                <span className="inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-500">
+                                <span className="inline-flex items-center rounded-full bg-tone-neutral-bg px-2 py-0.5 text-[10px] font-medium text-tone-neutral-text">
                                   Lowest Bid
                                 </span>
                               )}
@@ -535,7 +535,7 @@ export function ProcurementWorkspacePage() {
 
           {/* Empty state — no canvass started yet */}
           {!readOnlyMode && canvass.actionStep !== 'quotation' && (
-            <div className="rounded-xl border border-zinc-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+            <div className="rounded-xl border border-zinc-200/80 bg-white shadow-card overflow-hidden">
               <div className="px-6 pt-5 pb-4 border-b border-zinc-100">
                 <h2 className="text-[16px] font-bold tracking-[-0.01em] text-zinc-900">Supplier Comparison</h2>
                 <p className="text-[12px] text-zinc-400 mt-1">Quote every item per supplier. <span className="text-emerald-600 font-medium">Green</span> = lowest price. <span className="text-red-500 font-medium">Red</span> = highest.</p>
@@ -827,7 +827,7 @@ export function ProcurementWorkspacePage() {
                 </span>
               )}
               {canvass.canvassEntries.length < 3 && canvass.canvassJustification.trim() && (
-                <span className="inline-flex items-center gap-1.5 rounded-md bg-amber-50 border border-amber-100 px-2.5 py-1 text-[11px] font-medium text-amber-700">
+                <span className="inline-flex items-center gap-1.5 rounded-md bg-tone-warning-bg border border-tone-warning-border px-2.5 py-1 text-[11px] font-medium text-tone-warning-text">
                   <Info className="h-3 w-3" /> Justification provided
                 </span>
               )}

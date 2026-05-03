@@ -31,17 +31,17 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 /* ── Status badge styling ─────────────────────────────── */
 /* Restrained semantic palette: gray=draft, blue=in-progress, amber=attention, green=approved, red=rejected */
 const statusStyle: Record<string, string> = {
-  draft:              'bg-zinc-50 text-zinc-700 border-zinc-200',
-  submitted:          'bg-blue-50 text-blue-700 border-blue-200',
-  level1_review:      'bg-blue-50 text-blue-700 border-blue-200',
-  level2_review:      'bg-blue-50 text-blue-700 border-blue-200',
-  level3_review:      'bg-blue-50 text-blue-700 border-blue-200',
-  pending_quotation:  'bg-blue-50 text-blue-700 border-blue-200',
-  quoted:             'bg-blue-50 text-blue-700 border-blue-200',
-  approved:           'bg-emerald-50 text-emerald-700 border-emerald-200',
-  completed:          'bg-emerald-50 text-emerald-700 border-emerald-200',
-  rejected:           'bg-red-50 text-red-700 border-red-200',
-  returned:           'bg-amber-50 text-amber-800 border-amber-200',
+  draft:              'bg-tone-neutral-bg text-tone-neutral-text border-tone-neutral-border',
+  submitted:          'bg-tone-info-bg text-tone-info-text border-tone-info-border',
+  level1_review:      'bg-tone-info-bg text-tone-info-text border-tone-info-border',
+  level2_review:      'bg-tone-info-bg text-tone-info-text border-tone-info-border',
+  level3_review:      'bg-tone-info-bg text-tone-info-text border-tone-info-border',
+  pending_quotation:  'bg-tone-info-bg text-tone-info-text border-tone-info-border',
+  quoted:             'bg-tone-info-bg text-tone-info-text border-tone-info-border',
+  approved:           'bg-tone-success-bg text-tone-success-text border-tone-success-border',
+  completed:          'bg-tone-success-bg text-tone-success-text border-tone-success-border',
+  rejected:           'bg-tone-danger-bg text-tone-danger-text border-tone-danger-border',
+  returned:           'bg-tone-warning-bg text-tone-warning-text border-tone-warning-border',
 };
 
 const statusDot: Record<string, string> = {
@@ -61,10 +61,10 @@ const statusDot: Record<string, string> = {
 /* ── Priority badge styling ───────────────────────────── */
 /* Quieter than status: no border, lighter tint */
 const priorityStyle: Record<string, string> = {
-  low:    'bg-zinc-50 text-zinc-500',
-  medium: 'bg-zinc-50 text-zinc-700',
-  high:   'bg-amber-50/70 text-amber-800',
-  urgent: 'bg-red-50/70 text-red-700',
+  low:    'bg-tone-neutral-bg text-tone-neutral-text',
+  medium: 'bg-tone-neutral-bg text-tone-neutral-text',
+  high:   'bg-tone-warning-bg/70 text-tone-warning-text',
+  urgent: 'bg-tone-danger-bg/70 text-tone-danger-text',
 };
 
 const priorityDot: Record<string, string> = {
@@ -194,7 +194,7 @@ export function PrListPage() {
 
       {/* ── Search + Filters Bar ─────────────────────────────── */}
       <div
-        className="pr-list-section rounded-xl border border-zinc-200/80 bg-white px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
+        className="pr-list-section rounded-xl border border-zinc-200/80 bg-white px-5 py-4 shadow-card"
         style={{ animationDelay: '0.06s' }}
       >
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
@@ -206,13 +206,13 @@ export function PrListPage() {
               placeholder="Search by PR number or item summary..."
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="peer w-full h-10 rounded-lg border border-zinc-200 bg-zinc-50/60 pl-10 pr-4 text-[13px] text-zinc-800 placeholder:text-zinc-400 outline-none transition-all duration-200 focus:border-zinc-400 focus:bg-white focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]"
+              className="peer w-full h-10 rounded-lg border border-zinc-200 bg-zinc-50/60 pl-10 pr-4 text-[13px] text-zinc-800 placeholder:text-zinc-400 outline-none transition-all duration-200 focus:border-zinc-400 focus:bg-white focus:shadow-focus"
             />
           </div>
           {/* Filters — secondary, grouped tighter */}
           <div className="flex gap-2 flex-wrap sm:flex-nowrap shrink-0">
             <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); setSearchParams({}, { replace: true }); }}>
-              <SelectTrigger className="w-full sm:w-[154px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]">
+              <SelectTrigger className="w-full sm:w-[154px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-focus">
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
               <SelectContent>
@@ -227,7 +227,7 @@ export function PrListPage() {
               </SelectContent>
             </Select>
             <Select value={priorityFilter} onValueChange={(v) => { setPriorityFilter(v); setPage(1); }}>
-              <SelectTrigger className="w-full sm:w-[134px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]">
+              <SelectTrigger className="w-full sm:w-[134px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-focus">
                 <SelectValue placeholder="All Priorities" />
               </SelectTrigger>
               <SelectContent>
@@ -240,7 +240,7 @@ export function PrListPage() {
               </SelectContent>
             </Select>
             <Select value={typeFilter} onValueChange={(v) => { setTypeFilter(v); setPage(1); }}>
-              <SelectTrigger className="w-full sm:w-[134px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]">
+              <SelectTrigger className="w-full sm:w-[134px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-focus">
                 <SelectValue placeholder="All Types" />
               </SelectTrigger>
               <SelectContent>
@@ -255,7 +255,7 @@ export function PrListPage() {
 
       {/* ── Table Container ──────────────────────────────────── */}
       <div
-        className="pr-list-section rounded-xl border border-zinc-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_16px_rgba(0,0,0,0.03)] overflow-hidden"
+        className="pr-list-section rounded-xl border border-zinc-200/80 bg-white shadow-card-hover overflow-hidden"
         style={{ animationDelay: '0.1s' }}
       >
         {isLoading ? (
@@ -279,7 +279,7 @@ export function PrListPage() {
             {canCreate && (
               <button
                 onClick={() => navigate('/purchase-requests/new')}
-                className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-5 py-2.5 text-[13px] font-semibold text-white transition-all duration-200 hover:bg-zinc-800 hover:shadow-md"
+                className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-5 py-2.5 text-[13px] font-semibold text-white transition-all duration-200 hover:bg-zinc-800 hover:shadow-card"
               >
                 <Plus className="h-4 w-4" /> Create Purchase Request
               </button>
@@ -410,7 +410,7 @@ export function PrListPage() {
                   <div className="flex items-center gap-2">
                     <span className="text-[12px] text-zinc-400">Rows per page</span>
                     <Select value={String(limit)} onValueChange={(v) => { setLimit(Number(v)); setPage(1); }}>
-                      <SelectTrigger className="w-auto h-8 px-2.5 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]">
+                      <SelectTrigger className="w-auto h-8 px-2.5 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-focus">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="min-w-0">
@@ -443,7 +443,7 @@ export function PrListPage() {
                           onClick={() => setPage(p as number)}
                           className={`h-8 w-8 rounded-lg text-[12px] font-semibold transition-all duration-150 ${
                             p === meta.page
-                              ? 'bg-zinc-900 text-white shadow-sm'
+                              ? 'bg-zinc-900 text-white shadow-xs'
                               : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700'
                           }`}
                         >

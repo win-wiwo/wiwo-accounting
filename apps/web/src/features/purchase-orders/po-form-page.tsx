@@ -289,7 +289,7 @@ export function PoFormPage() {
                 return (
                   <div
                     key={field.id}
-                    className="rounded-xl border border-zinc-100 bg-white p-5 transition-all duration-150 hover:border-zinc-200 hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
+                    className="rounded-xl border border-zinc-100 bg-white p-5 transition-all duration-150 hover:border-zinc-200 hover:shadow-card-raised"
                   >
                     <div className="mb-3 flex items-center justify-between">
                       <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">

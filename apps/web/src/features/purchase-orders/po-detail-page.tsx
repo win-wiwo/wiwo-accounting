@@ -695,7 +695,7 @@ export function PoDetailPage() {
               <textarea
                 id="receive-notes"
                 rows={3}
-                className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[13px] text-zinc-800 outline-none transition-all duration-200 focus:border-zinc-400 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]"
+                className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[13px] text-zinc-800 outline-none transition-all duration-200 focus:border-zinc-400 focus:shadow-focus"
                 placeholder="Optional notes about the received items..."
                 value={receiveNotes}
                 onChange={(e) => setReceiveNotes(e.target.value)}
@@ -751,7 +751,7 @@ export function PoDetailPage() {
               <textarea
                 id="cancel-reason"
                 rows={3}
-                className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[13px] text-zinc-800 outline-none transition-all duration-200 focus:border-zinc-400 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]"
+                className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[13px] text-zinc-800 outline-none transition-all duration-200 focus:border-zinc-400 focus:shadow-focus"
                 placeholder="Why is this PO being cancelled?"
                 value={cancelReason}
                 onChange={(e) => setCancelReason(e.target.value)}

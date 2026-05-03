@@ -180,7 +180,7 @@ function ProjectFormDialog({ project, open, onClose }: ProjectFormDialogProps) {
             <textarea
               id="proj-desc"
               rows={3}
-              className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               placeholder="Brief description of this project..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -320,7 +320,7 @@ export function ProjectsPage() {
             return (
               <div
                 key={project._id}
-                className="pr-row-enter rounded-xl border border-zinc-200/80 bg-white px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all duration-150 hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:border-zinc-300/80"
+                className="pr-row-enter rounded-xl border border-zinc-200/80 bg-white px-5 py-4 shadow-card transition-all duration-150 hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:border-zinc-300/80"
                 style={{ animationDelay: `${0.04 + idx * 0.025}s` }}
               >
                 <div className="flex items-center gap-4">

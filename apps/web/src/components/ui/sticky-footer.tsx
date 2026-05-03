@@ -16,8 +16,8 @@ export function StickyFooter({ children, className }: StickyFooterProps) {
     <div
       className={cn(
         'fixed bottom-0 z-20',
-        'border-t border-zinc-200 bg-[#F6F7F9] px-6 lg:px-8 py-4 rounded-b-2xl',
-        'shadow-[0_-4px_24px_rgba(0,0,0,0.06)]',
+        'border-t border-zinc-200 bg-background px-6 lg:px-8 py-4 rounded-b-2xl',
+        'shadow-up',
         className,
       )}
       style={{

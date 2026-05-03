@@ -122,7 +122,7 @@ function writeFiltersToParams(filters: ReturnType<typeof readFiltersFromParams>)
 // ─── Reusable styled inputs ───────────────────────────────────
 
 const PREMIUM_INPUT_CLASS =
-  'w-full h-10 rounded-xl border border-zinc-200/80 bg-zinc-50/40 px-3.5 text-[13px] text-zinc-700 shadow-[0_1px_2px_rgba(0,0,0,0.04)] outline-none transition-all duration-200 hover:border-zinc-300 hover:bg-zinc-50/80 focus:border-zinc-400 focus:bg-white focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)] [&::-webkit-calendar-picker-indicator]:opacity-60 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:hover:opacity-100 [&::-webkit-calendar-picker-indicator]:transition-opacity';
+  'w-full h-10 rounded-xl border border-zinc-200/80 bg-zinc-50/40 px-3.5 text-[13px] text-zinc-700 shadow-xs outline-none transition-all duration-200 hover:border-zinc-300 hover:bg-zinc-50/80 focus:border-zinc-400 focus:bg-white focus:shadow-focus [&::-webkit-calendar-picker-indicator]:opacity-60 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:hover:opacity-100 [&::-webkit-calendar-picker-indicator]:transition-opacity';
 
 // ─── Component ────────────────────────────────────────────────
 

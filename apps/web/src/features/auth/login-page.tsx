@@ -51,7 +51,7 @@ function AnimatedMockup() {
     <div className="relative w-full select-none">
       {/* Floating secondary KPI card */}
       <div
-        className="hero-anim absolute -top-5 right-4 z-10 rounded-xl border border-white/10 bg-white/[0.07] px-4 py-3 shadow-lg backdrop-blur-sm"
+        className="hero-anim absolute -top-5 right-4 z-10 rounded-xl border border-white/10 bg-white/[0.07] px-4 py-3 shadow-popover backdrop-blur-sm"
         style={{ animation: 'heroFloat2 14s ease-in-out 1.5s infinite' }}
         aria-hidden
       >
@@ -171,7 +171,7 @@ export function LoginPage() {
     <div className="flex h-screen overflow-hidden">
 
       {/* ── Hero Panel (lg+) ─────────────────────────────── */}
-      <div className="relative hidden overflow-hidden lg:flex lg:w-[58%] xl:w-[60%] flex-col bg-[#131313]">
+      <div className="relative hidden overflow-hidden lg:flex lg:w-[58%] xl:w-[60%] flex-col bg-sidebar">
         <div
           className="pointer-events-none absolute inset-0"
           style={{ background: 'radial-gradient(ellipse 90% 70% at 55% 48%, rgba(255,255,255,0.05) 0%, transparent 62%)' }}

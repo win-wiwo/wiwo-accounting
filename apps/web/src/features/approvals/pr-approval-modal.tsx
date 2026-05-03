@@ -55,10 +55,10 @@ function daysPast(dateStr: string | null | undefined): number {
 }
 
 const priorityStyle: Record<string, string> = {
-  low:    'bg-zinc-100 text-zinc-500',
-  medium: 'bg-blue-50 text-blue-600',
-  high:   'bg-amber-50 text-amber-700',
-  urgent: 'bg-red-50 text-red-600',
+  low:    'bg-tone-neutral-bg text-tone-neutral-text',
+  medium: 'bg-tone-info-bg text-tone-info-text',
+  high:   'bg-tone-warning-bg text-tone-warning-text',
+  urgent: 'bg-tone-danger-bg text-tone-danger-text',
 };
 
 interface PrApprovalModalProps {
@@ -231,7 +231,7 @@ export function PrApprovalModal({
       }}>
         <DialogPrimitive.Portal>
           <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
-          <DialogPrimitive.Content onOpenAutoFocus={(e) => e.preventDefault()} className="fixed left-[50%] top-[50%] z-50 translate-x-[-50%] translate-y-[-50%] w-[94vw] max-w-[1200px] h-[90vh] flex flex-col rounded-2xl border border-zinc-200/80 bg-white shadow-[0_24px_80px_rgba(0,0,0,0.12),0_4px_16px_rgba(0,0,0,0.06)] duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-[0.97] data-[state=open]:zoom-in-[0.97] data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] overflow-hidden">
+          <DialogPrimitive.Content onOpenAutoFocus={(e) => e.preventDefault()} className="fixed left-[50%] top-[50%] z-50 translate-x-[-50%] translate-y-[-50%] w-[94vw] max-w-[1200px] h-[90vh] flex flex-col rounded-2xl border border-zinc-200/80 bg-white shadow-modal duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-[0.97] data-[state=open]:zoom-in-[0.97] data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] overflow-hidden">
             <DialogPrimitive.Title className="sr-only">Review Purchase Request</DialogPrimitive.Title>
             <DialogPrimitive.Description className="sr-only">Review and take action on this purchase request</DialogPrimitive.Description>
 
@@ -246,11 +246,11 @@ export function PrApprovalModal({
                 <div className="flex-1 min-w-0 pr-8">
                   <div className="flex items-center gap-2.5 flex-wrap">
                     <span className="font-mono text-[12px] font-medium text-zinc-400 tracking-tight">{pr.prNumber}</span>
-                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${priorityStyle[pr.priority] ?? 'bg-zinc-100 text-zinc-500'}`}>
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${priorityStyle[pr.priority] ?? 'bg-tone-neutral-bg text-tone-neutral-text'}`}>
                       {PR_PRIORITY_LABELS[pr.priority as PrPriorityType]}
                     </span>
                     {isPriceReview && (
-                      <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                      <span className="inline-flex items-center rounded-full bg-tone-success-bg px-2 py-0.5 text-[10px] font-semibold text-tone-success-text">
                         Price Review
                       </span>
                     )}
@@ -355,7 +355,7 @@ export function PrApprovalModal({
                                       <div className="flex items-center gap-2">
                                         <p className="text-[12.5px] font-medium text-zinc-800 truncate">{item.description}</p>
                                         {isProcurement && (
-                                          <span className="inline-flex items-center text-[9px] font-semibold text-blue-600 bg-blue-50 border border-blue-100 rounded-full px-1.5 py-0.5 shrink-0">Procurement</span>
+                                          <span className="inline-flex items-center text-[9px] font-semibold text-tone-info-text bg-tone-info-bg border border-blue-100 rounded-full px-1.5 py-0.5 shrink-0">Procurement</span>
                                         )}
                                         {item.referencePhotoPath && (
                                           <button type="button" onClick={(e) => { e.stopPropagation(); handleViewItemPhoto(item._id); }}
@@ -491,7 +491,7 @@ export function PrApprovalModal({
                             )}
                           </div>
                           {canvassEntries.length < 3 && pr.canvassJustification && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-tone-warning-bg px-2 py-0.5 text-[10px] font-semibold text-tone-warning-text">
                               <AlertTriangle className="h-2.5 w-2.5" /> &lt;3 suppliers
                             </span>
                           )}
@@ -645,11 +645,11 @@ export function PrApprovalModal({
                     </div>
 
                     {/* ── Actions (always visible) ──────────────── */}
-                    <div className="border-t border-zinc-200/60 bg-white px-5 py-4 shrink-0 shadow-[0_-4px_12px_rgba(0,0,0,0.03)]">
+                    <div className="border-t border-zinc-200/60 bg-white px-5 py-4 shrink-0 shadow-up">
                       {confirmStep === null ? (
                         <div className="space-y-2.5">
                           <button
-                            className="w-full inline-flex items-center justify-center gap-2 rounded-xl h-10 text-[13px] font-semibold text-white bg-emerald-600 transition-all duration-200 hover:bg-emerald-700 hover:-translate-y-px hover:shadow-md disabled:opacity-50 disabled:pointer-events-none"
+                            className="w-full inline-flex items-center justify-center gap-2 rounded-xl h-10 text-[13px] font-semibold text-white bg-emerald-600 transition-all duration-200 hover:bg-emerald-700 hover:-translate-y-px hover:shadow-card disabled:opacity-50 disabled:pointer-events-none"
                             onClick={() => startAction('approved')}
                             disabled={!pr || processApproval.isPending}
                           >
@@ -699,7 +699,7 @@ export function PrApprovalModal({
                             <textarea
                               id="modal-comments"
                               rows={3}
-                              className="w-full rounded-lg border border-zinc-200 bg-zinc-50/60 px-3 py-2 text-[12px] text-zinc-800 placeholder:text-zinc-400 outline-none transition-all duration-200 focus:border-zinc-400 focus:bg-white focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)] resize-none"
+                              className="w-full rounded-lg border border-zinc-200 bg-zinc-50/60 px-3 py-2 text-[12px] text-zinc-800 placeholder:text-zinc-400 outline-none transition-all duration-200 focus:border-zinc-400 focus:bg-white focus:shadow-focus resize-none"
                               placeholder={confirmStep === 'approved' ? 'Optional comments...' : 'Required \u2014 provide a reason...'}
                               value={comments}
                               onChange={(e) => setComments(e.target.value)}
@@ -796,7 +796,7 @@ function AttachmentRow({
   onPreview: (id: string, mimeType: string, name: string) => void;
 }) {
   return (
-    <div className="flex items-center justify-between rounded-xl border border-zinc-200/60 px-3.5 py-2.5 transition-all duration-150 hover:border-zinc-200 hover:shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
+    <div className="flex items-center justify-between rounded-xl border border-zinc-200/60 px-3.5 py-2.5 transition-all duration-150 hover:border-zinc-200 hover:shadow-card">
       <div className="flex items-center gap-2.5 min-w-0">
         <Paperclip className="h-3.5 w-3.5 shrink-0 text-zinc-300" />
         <div className="min-w-0">

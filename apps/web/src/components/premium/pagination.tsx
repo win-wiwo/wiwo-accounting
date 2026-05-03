@@ -38,7 +38,7 @@ export function Pagination({
           <div className="flex items-center gap-2">
             <span className="text-[12px] text-zinc-400">Rows per page</span>
             <Select value={String(limit)} onValueChange={(v) => { onLimitChange(Number(v)); onPageChange(1); }}>
-              <SelectTrigger className="w-auto h-8 px-2.5 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]">
+              <SelectTrigger className="w-auto h-8 px-2.5 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-focus">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="min-w-0">
@@ -73,7 +73,7 @@ export function Pagination({
                 className={cn(
                   'h-8 w-8 rounded-lg text-[12px] font-semibold transition-all duration-150',
                   p === page
-                    ? 'bg-zinc-900 text-white shadow-sm'
+                    ? 'bg-zinc-900 text-white shadow-xs'
                     : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700',
                 )}
               >

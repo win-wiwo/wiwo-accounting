@@ -129,7 +129,7 @@ function QuickSearch() {
       </div>
 
       {open && hasSearchQuery && (
-        <div className="absolute left-0 top-full z-50 mt-2 w-full min-w-[320px] overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-[0_4px_24px_rgba(0,0,0,0.12)] animate-in fade-in-0 zoom-in-95">
+        <div className="absolute left-0 top-full z-50 mt-2 w-full min-w-[320px] overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-popover animate-in fade-in-0 zoom-in-95">
           {isLoading ? (
             <div className="flex items-center justify-center py-6">
               <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />
@@ -260,7 +260,7 @@ export function Header({ sidebarCollapsed }: HeaderProps) {
 
           <Popover.Portal>
             <Popover.Content
-              className="z-50 w-[360px] overflow-hidden rounded-xl border border-zinc-200/80 bg-white shadow-[0_8px_30px_rgba(0,0,0,0.12)] animate-in fade-in-0 zoom-in-95 slide-in-from-top-2"
+              className="z-50 w-[360px] overflow-hidden rounded-xl border border-zinc-200/80 bg-white shadow-popover animate-in fade-in-0 zoom-in-95 slide-in-from-top-2"
               align="end"
               sideOffset={8}
             >

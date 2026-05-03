@@ -47,4 +47,4 @@ export function FormField({
  * input styling (zinc-50/60 bg, focus shadow ring).
  */
 export const premiumTextareaClass =
-  'w-full rounded-lg border border-zinc-200 bg-zinc-50/60 px-3 py-2.5 text-[13px] text-zinc-800 placeholder:text-zinc-400 outline-none transition-all duration-200 focus:border-zinc-400 focus:bg-white focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)] resize-y';
+  'w-full rounded-lg border border-zinc-200 bg-zinc-50/60 px-3 py-2.5 text-[13px] text-zinc-800 placeholder:text-zinc-400 outline-none transition-all duration-200 focus:border-zinc-400 focus:bg-white focus:shadow-focus resize-y';

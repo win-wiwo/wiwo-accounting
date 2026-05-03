@@ -14,12 +14,12 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      'flex h-10 w-full items-center justify-between gap-2 whitespace-nowrap rounded-xl border border-zinc-200/80 bg-zinc-50/40 px-3.5 py-2 text-[13px] text-zinc-700 shadow-[0_1px_2px_rgba(0,0,0,0.04)] ring-offset-background transition-all duration-200',
+      'flex h-10 w-full items-center justify-between gap-2 whitespace-nowrap rounded-xl border border-zinc-200/80 bg-zinc-50/40 px-3.5 py-2 text-[13px] text-zinc-700 shadow-xs ring-offset-background transition-all duration-200',
       'placeholder:text-zinc-400',
-      'hover:border-zinc-300 hover:bg-zinc-50/80 hover:shadow-[0_1px_3px_rgba(0,0,0,0.06)]',
-      'focus:outline-none focus:border-zinc-400 focus:bg-white focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]',
+      'hover:border-zinc-300 hover:bg-zinc-50/80 hover:shadow-card',
+      'focus:outline-none focus:border-zinc-400 focus:bg-white focus:shadow-focus',
       'disabled:cursor-not-allowed disabled:opacity-50',
-      'data-[state=open]:border-zinc-400 data-[state=open]:bg-white data-[state=open]:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]',
+      'data-[state=open]:border-zinc-400 data-[state=open]:bg-white data-[state=open]:shadow-focus',
       '[&>span]:line-clamp-1 [&>span]:text-left',
       className,
     )}
@@ -43,7 +43,7 @@ const SelectContent = React.forwardRef<
       className={cn(
         'relative z-50 max-h-[min(320px,var(--radix-select-content-available-height))] min-w-[8rem] overflow-y-auto',
         'rounded-xl border border-zinc-200/80 bg-white text-zinc-800',
-        'shadow-[0_4px_24px_rgba(0,0,0,0.08),0_1px_4px_rgba(0,0,0,0.04)]',
+        'shadow-popover',
         'data-[state=open]:animate-in data-[state=closed]:animate-out',
         'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
         'data-[state=closed]:zoom-out-[0.98] data-[state=open]:zoom-in-[0.98]',

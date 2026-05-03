@@ -416,8 +416,8 @@ function SourcingModeCard({ selected, onClick, icon, title, description }: Sourc
         'group relative flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all duration-200',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/15 focus-visible:ring-offset-2',
         selected
-          ? 'border-zinc-800/85 bg-zinc-50/60 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_3px_12px_rgba(0,0,0,0.04)]'
-          : 'border-zinc-200 bg-white hover:border-zinc-300 hover:shadow-[0_1px_3px_rgba(0,0,0,0.04)]',
+          ? 'border-zinc-800/85 bg-zinc-50/60 shadow-card-hover'
+          : 'border-zinc-200 bg-white hover:border-zinc-300 hover:shadow-card',
       )}
     >
       <span
