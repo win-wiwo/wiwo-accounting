@@ -162,11 +162,11 @@ export function SettingsPage() {
       {/* Section 1: PR Number Format Configuration */}
       <Surface delay={0.04}>
         <div className="px-6 pt-6 pb-4">
-          <h2 className="flex items-center gap-2 text-[15px] font-semibold text-zinc-900">
+          <h2 className="flex items-center gap-2 text-body-lg font-semibold text-zinc-900">
             <Settings className="h-4 w-4 text-zinc-400" />
             PR Number Format
           </h2>
-          <p className="mt-1 text-[12px] text-zinc-500">
+          <p className="mt-1 text-label text-zinc-500">
             All PR numbers follow the format <span className="font-mono">YEAR-MONTH-SERIES</span>.
             The series number is continuous across the year regardless of transaction month and
             resets only when the year changes.
@@ -183,11 +183,11 @@ export function SettingsPage() {
             <div className="space-y-6">
               {/* Preview */}
               <div className="rounded-xl border border-zinc-200/80 bg-zinc-50/60 px-5 py-4">
-                <div className="flex items-center gap-1.5 mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-500">
+                <div className="flex items-center gap-1.5 mb-2 text-micro font-semibold uppercase tracking-[0.08em] text-zinc-500">
                   <Eye className="h-3 w-3" />
                   Preview
                 </div>
-                <p className="text-[24px] font-mono font-bold text-zinc-900 tracking-wider">
+                <p className="text-display font-mono font-bold text-zinc-900 tracking-wider">
                   {localPreview}
                 </p>
               </div>
@@ -252,11 +252,11 @@ export function SettingsPage() {
       {/* Section 2: PR Number Series */}
       <Surface delay={0.08}>
         <div className="px-6 pt-6 pb-4">
-          <h2 className="flex items-center gap-2 text-[15px] font-semibold text-zinc-900">
+          <h2 className="flex items-center gap-2 text-body-lg font-semibold text-zinc-900">
             <Hash className="h-4 w-4 text-zinc-400" />
             Current Series
           </h2>
-          <p className="mt-1 text-[12px] text-zinc-500">
+          <p className="mt-1 text-label text-zinc-500">
             View the running counter for the current year. Use “Set Current Series” to migrate
             existing PR numbers issued manually before the system was deployed.
           </p>
@@ -289,7 +289,7 @@ export function SettingsPage() {
                 <>
                   <Divider />
                   <div>
-                    <div className="mb-3 text-[12px] font-semibold uppercase tracking-[0.08em] text-zinc-500">
+                    <div className="mb-3 text-label font-semibold uppercase tracking-[0.08em] text-zinc-500">
                       Historical Sequences
                     </div>
                     <div className="overflow-x-auto rounded-xl border border-zinc-100">
@@ -306,10 +306,10 @@ export function SettingsPage() {
                               key={seq._id}
                               className="border-b border-zinc-100/60 last:border-0 hover:bg-zinc-50/60 transition-colors"
                             >
-                              <td className="px-5 py-3.5 text-[13px] text-zinc-700 tabular-nums">
+                              <td className="px-5 py-3.5 text-body text-zinc-700 tabular-nums">
                                 {seq.year}
                               </td>
-                              <td className="px-5 py-3.5 text-[13px] text-zinc-700 tabular-nums">
+                              <td className="px-5 py-3.5 text-body text-zinc-700 tabular-nums">
                                 {seq.lastNumber}
                               </td>
                             </tr>
@@ -402,11 +402,11 @@ function SetSeriesForm({
 
   return (
     <div className="rounded-xl border border-zinc-200/80 bg-zinc-50/40 px-5 py-4">
-      <div className="mb-3 flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-[0.08em] text-zinc-600">
+      <div className="mb-3 flex items-center gap-1.5 text-label font-semibold uppercase tracking-[0.08em] text-zinc-600">
         <RefreshCw className="h-3 w-3" />
         Set Current Series
       </div>
-      <p className="text-[12px] text-zinc-500 mb-4">
+      <p className="text-label text-zinc-500 mb-4">
         Use this when the year has already started and PR numbers were issued before this system
         was deployed. The next PR number will be{' '}
         <span className="font-mono font-semibold text-zinc-700">lastNumber + 1</span>.
@@ -414,7 +414,7 @@ function SetSeriesForm({
 
       <div className="grid gap-4 sm:grid-cols-[160px_1fr]">
         <div className="space-y-1.5">
-          <Label className="text-[12px] font-semibold text-zinc-700">Year</Label>
+          <Label className="text-label font-semibold text-zinc-700">Year</Label>
           <Input
             type="number"
             value={year}
@@ -424,14 +424,14 @@ function SetSeriesForm({
           />
         </div>
         <div className="space-y-1.5">
-          <Label className="text-[12px] font-semibold text-zinc-700">Last Assigned Number</Label>
+          <Label className="text-label font-semibold text-zinc-700">Last Assigned Number</Label>
           <Input
             type="number"
             value={lastNumber}
             min={0}
             onChange={(e) => setLastNumber(e.target.value)}
           />
-          <p className="text-[11px] text-zinc-400 leading-relaxed">
+          <p className="text-caption text-zinc-400 leading-relaxed">
             Highest series number already issued for this year.
           </p>
         </div>
@@ -485,10 +485,10 @@ function ConfigField({
 }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-[12px] font-semibold text-zinc-700">{label}</Label>
+      <Label className="text-label font-semibold text-zinc-700">{label}</Label>
       {children}
       {description && (
-        <p className="text-[11px] text-zinc-400 leading-relaxed">{description}</p>
+        <p className="text-caption text-zinc-400 leading-relaxed">{description}</p>
       )}
     </div>
   );
@@ -507,12 +507,12 @@ function SummaryCard({
 }) {
   return (
     <div className="rounded-xl border border-zinc-200/80 bg-white px-5 py-4">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400">
+      <p className="text-micro font-semibold uppercase tracking-[0.08em] text-zinc-400">
         {label}
       </p>
       <p
         className={`mt-2 text-zinc-900 ${
-          large ? 'text-[24px] font-bold tabular-nums' : 'text-[13px] font-semibold'
+          large ? 'text-display font-bold tabular-nums' : 'text-body font-semibold'
         } ${mono ? 'font-mono' : ''}`}
       >
         {value}
@@ -523,7 +523,7 @@ function SummaryCard({
 
 function Th({ children }: { children: React.ReactNode }) {
   return (
-    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+    <th className="h-11 px-5 text-left text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400">
       {children}
     </th>
   );

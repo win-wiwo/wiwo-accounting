@@ -134,7 +134,7 @@ export function ProfilePage() {
             <div className="relative mb-4 group">
               <Avatar className="h-20 w-20">
                 <AvatarImage src={resolvePhotoUrl(user.photoUrl)} alt={initials} />
-                <AvatarFallback className="bg-zinc-100 text-zinc-700 text-[20px] font-semibold">
+                <AvatarFallback className="bg-zinc-100 text-zinc-700 text-heading font-semibold">
                   {initials}
                 </AvatarFallback>
               </Avatar>
@@ -161,10 +161,10 @@ export function ProfilePage() {
                 }}
               />
             </div>
-            <h2 className="text-[16px] font-semibold text-zinc-900">
+            <h2 className="text-heading-sm font-semibold text-zinc-900">
               {user.firstName} {user.lastName}
             </h2>
-            <p className="text-[13px] text-zinc-500 mt-0.5">{user.email}</p>
+            <p className="text-body text-zinc-500 mt-0.5">{user.email}</p>
             <div className="mt-3">
               <StatusBadge tone={ROLE_TONE[user.role] ?? 'neutral'}>
                 {ROLE_LABELS[user.role as UserRole] || user.role}
@@ -183,7 +183,7 @@ export function ProfilePage() {
         {/* Details */}
         <Surface className="lg:col-span-2">
           <div className="px-6 pt-6 pb-4">
-            <h2 className="text-[15px] font-semibold text-zinc-900">Account Details</h2>
+            <h2 className="text-body-lg font-semibold text-zinc-900">Account Details</h2>
           </div>
           <div className="px-6 pb-6">
             <div className="grid gap-5 sm:grid-cols-2">
@@ -226,8 +226,8 @@ export function ProfilePage() {
                 <PenLine className="h-4 w-4" />
               </div>
               <div>
-                <h2 className="text-[15px] font-semibold text-zinc-900">Signature</h2>
-                <p className="mt-1 text-[12.5px] text-zinc-500">
+                <h2 className="text-body-lg font-semibold text-zinc-900">Signature</h2>
+                <p className="mt-1 text-label text-zinc-500">
                   Used on printed documents for the blocks where you appear as requester or
                   approver. Upload a transparent PNG for best results.
                 </p>
@@ -243,7 +243,7 @@ export function ProfilePage() {
                     className="max-h-[68px] max-w-[200px] object-contain"
                   />
                 ) : (
-                  <span className="text-[12px] text-zinc-400">No signature on file</span>
+                  <span className="text-label text-zinc-400">No signature on file</span>
                 )}
               </div>
 
@@ -402,7 +402,7 @@ function ChangePasswordModal({
               </button>
             </div>
             {errors.currentPassword && (
-              <p className="text-[12px] text-red-600">{errors.currentPassword.message}</p>
+              <p className="text-label text-red-600">{errors.currentPassword.message}</p>
             )}
           </div>
 
@@ -425,12 +425,12 @@ function ChangePasswordModal({
               </button>
             </div>
             {errors.newPassword && (
-              <p className="text-[12px] text-red-600">{errors.newPassword.message}</p>
+              <p className="text-label text-red-600">{errors.newPassword.message}</p>
             )}
             {newPassword && (
               <div className="mt-2.5 space-y-1.5">
                 {requirements.map((req) => (
-                  <div key={req.label} className="flex items-center gap-2 text-[12px]">
+                  <div key={req.label} className="flex items-center gap-2 text-label">
                     <CheckCircle2
                       className={`h-3.5 w-3.5 ${req.met ? 'text-emerald-500' : 'text-zinc-300'}`}
                     />
@@ -447,7 +447,7 @@ function ChangePasswordModal({
             <Label htmlFor="cp-confirm">Confirm New Password</Label>
             <Input id="cp-confirm" type="password" {...register('confirmPassword')} />
             {errors.confirmPassword && (
-              <p className="text-[12px] text-red-600">{errors.confirmPassword.message}</p>
+              <p className="text-label text-red-600">{errors.confirmPassword.message}</p>
             )}
           </div>
 
@@ -485,11 +485,11 @@ function DetailRow({
     <div className="flex items-start gap-3">
       <div className="rounded-lg bg-zinc-100 p-2 text-zinc-500 shrink-0">{icon}</div>
       <div className="min-w-0">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+        <p className="text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400">
           {label}
         </p>
         <p
-          className={`mt-1 text-[13px] text-zinc-800 truncate ${mono ? 'font-mono' : 'font-medium'}`}
+          className={`mt-1 text-body text-zinc-800 truncate ${mono ? 'font-mono' : 'font-medium'}`}
         >
           {value}
         </p>

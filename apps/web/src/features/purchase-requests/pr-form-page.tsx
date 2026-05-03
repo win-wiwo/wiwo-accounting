@@ -216,10 +216,10 @@ export function PrFormPage() {
           {/* Desktop layout: step label left, actions right */}
           <div className="hidden sm:flex items-center justify-between gap-4">
             <div className="min-w-0 shrink-0">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400 leading-none">
+              <p className="text-micro font-semibold uppercase tracking-[0.08em] text-zinc-400 leading-none">
                 Step {step + 1} of {STEP_LABELS.length}
               </p>
-              <p className="mt-1.5 text-[14px] font-semibold text-zinc-900 leading-none">
+              <p className="mt-1.5 text-body-lg font-semibold text-zinc-900 leading-none">
                 {STEP_LABELS[step]}
               </p>
             </div>

@@ -115,11 +115,11 @@ export function StepItems({
       {/* ── Sourcing picker — sets the mode for all line items ───── */}
       <Surface delay={0.02}>
         <div className="px-6 pt-6 pb-2">
-          <h2 className="flex items-center gap-2 text-[15px] font-semibold text-zinc-900">
+          <h2 className="flex items-center gap-2 text-body-lg font-semibold text-zinc-900">
             <ShoppingCart className="h-4 w-4 text-zinc-400" />
             Sourcing
           </h2>
-          <p className="mt-1 text-[12px] text-zinc-500 leading-relaxed">
+          <p className="mt-1 text-label text-zinc-500 leading-relaxed">
             {sourcingModeLocked
               ? 'Sourcing mode is locked once items have content. Clear the items below to change it.'
               : 'Choose how the items below will be sourced. All items in this PR share the same mode.'}
@@ -155,11 +155,11 @@ export function StepItems({
         {/* ── Section header ─────────────────────────────── */}
         <div className="flex items-center justify-between px-6 pt-6 pb-4">
           <div>
-            <h2 className="flex items-center gap-2 text-[15px] font-semibold text-zinc-900">
+            <h2 className="flex items-center gap-2 text-body-lg font-semibold text-zinc-900">
               <Package className="h-4 w-4 text-zinc-400" />
               Line Items
             </h2>
-            <p className="mt-1 text-[12px] text-zinc-500 leading-relaxed">
+            <p className="mt-1 text-label text-zinc-500 leading-relaxed">
               {sourcingMode === SourcingType.ONLINE
                 ? 'Add items to be purchased online. List 3 sellers per item (or justify fewer).'
                 : 'Add items procurement will canvass. Specs and reference photos help suppliers quote accurately.'}
@@ -177,7 +177,7 @@ export function StepItems({
           {errors.items &&
             typeof errors.items === 'object' &&
             'message' in errors.items && (
-              <p className="text-[12px] text-red-600">
+              <p className="text-label text-red-600">
                 {errors.items.message as string}
               </p>
             )}
@@ -350,7 +350,7 @@ export function StepItems({
 
           {/* ── Cumulative summary footer ──────────── */}
           <div className="flex items-center justify-between rounded-xl border border-zinc-200/80 bg-zinc-50/60 px-6 py-4">
-            <div className="text-[12px] text-zinc-500 leading-relaxed pr-4">
+            <div className="text-label text-zinc-500 leading-relaxed pr-4">
               {sourcingMode === SourcingType.PROCUREMENT ? (
                 <>
                   <p className="flex items-center gap-1.5 font-medium text-zinc-700">
@@ -369,19 +369,19 @@ export function StepItems({
             <div className="text-right shrink-0">
               {sourcingMode === SourcingType.PROCUREMENT ? (
                 <>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-500">
+                  <p className="text-micro font-semibold uppercase tracking-[0.08em] text-zinc-500">
                     Pricing
                   </p>
-                  <p className="mt-1 text-[16px] font-semibold text-amber-600">
+                  <p className="mt-1 text-heading-sm font-semibold text-amber-600">
                     TBQ
                   </p>
                 </>
               ) : (
                 <>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-500">
+                  <p className="text-micro font-semibold uppercase tracking-[0.08em] text-zinc-500">
                     Total Amount
                   </p>
-                  <p className="mt-1 text-[22px] font-bold text-zinc-900 tabular-nums">
+                  <p className="mt-1 text-heading font-bold text-zinc-900 tabular-nums">
                     {formatCurrency(totalAmount)}
                   </p>
                 </>
@@ -431,8 +431,8 @@ function SourcingModeCard({ selected, onClick, icon, title, description }: Sourc
         {icon}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-[13px] font-semibold text-zinc-900 leading-tight">{title}</p>
-        <p className="mt-0.5 text-[11px] text-zinc-500 leading-relaxed">{description}</p>
+        <p className="text-body font-semibold text-zinc-900 leading-tight">{title}</p>
+        <p className="mt-0.5 text-caption text-zinc-500 leading-relaxed">{description}</p>
       </div>
       <span
         className={cn(
@@ -476,12 +476,12 @@ function ItemCard({
       {/* Header strip */}
       <div className="flex items-center justify-between gap-3 border-b border-zinc-100 bg-zinc-50/50 px-5 py-3">
         <div className="flex items-center gap-2.5 min-w-0 flex-1">
-          <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-zinc-900 text-[11px] font-bold text-white tabular-nums">
+          <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-zinc-900 text-caption font-bold text-white tabular-nums">
             {index + 1}
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <p className="text-[13px] font-semibold text-zinc-800">
+              <p className="text-body font-semibold text-zinc-800">
                 Item {index + 1}
               </p>
               {isOnline ? (
@@ -497,7 +497,7 @@ function ItemCard({
               )}
             </div>
             {collapsed && itemDescription && (
-              <p className="mt-0.5 text-[11px] text-zinc-500 truncate max-w-xs">
+              <p className="mt-0.5 text-caption text-zinc-500 truncate max-w-xs">
                 {itemDescription}
               </p>
             )}
@@ -506,12 +506,12 @@ function ItemCard({
 
         <div className="flex items-center gap-2 shrink-0">
           <div className="text-right">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400 leading-none">
+            <p className="text-micro font-semibold uppercase tracking-[0.08em] text-zinc-400 leading-none">
               {isOnline ? 'Line total' : 'Pricing'}
             </p>
             <p
               className={cn(
-                'mt-1 text-[14px] font-bold tabular-nums leading-none',
+                'mt-1 text-body-lg font-bold tabular-nums leading-none',
                 isOnline ? 'text-zinc-900' : 'text-amber-600',
               )}
             >
@@ -563,7 +563,7 @@ function ItemSection({
 }) {
   return (
     <div className="px-5 py-3 space-y-3">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400">
+      <p className="text-micro font-semibold uppercase tracking-[0.08em] text-zinc-400">
         {title}
       </p>
       {children}
@@ -599,17 +599,17 @@ function UnitPriceDisplay({
       {selectedSeller ? (
         <div className="flex items-center gap-3 rounded-lg border border-zinc-200 bg-zinc-50/60 px-4 py-2.5">
           <div className="flex-1 min-w-0">
-            <p className="text-[18px] font-bold text-zinc-900 tabular-nums leading-none">
+            <p className="text-heading-sm font-bold text-zinc-900 tabular-nums leading-none">
               {formatCurrency(selectedSeller.price)}
             </p>
-            <p className="mt-1 flex items-center gap-1 text-[11px] text-zinc-500">
+            <p className="mt-1 flex items-center gap-1 text-caption text-zinc-500">
               <Tag className="h-3 w-3 shrink-0" />
               <span className="truncate">
                 From: <span className="font-medium text-zinc-700">{selectedSeller.sellerName || 'Selected seller'}</span>
               </span>
             </p>
           </div>
-          <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400">
+          <span className="shrink-0 text-micro font-semibold uppercase tracking-[0.08em] text-zinc-400">
             auto-filled
           </span>
         </div>
@@ -619,10 +619,10 @@ function UnitPriceDisplay({
             <Tag className="h-3.5 w-3.5 text-zinc-400" />
           </div>
           <div>
-            <p className="text-[12px] font-medium text-zinc-600">
+            <p className="text-label font-medium text-zinc-600">
               No seller selected yet
             </p>
-            <p className="text-[11px] text-zinc-400 leading-relaxed">
+            <p className="text-caption text-zinc-400 leading-relaxed">
               Select a seller below — their price will fill here automatically.
             </p>
           </div>

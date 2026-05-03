@@ -198,7 +198,7 @@ export function SupplierDetailPage() {
           <Surface elevation="subtle">
             <div className="p-6">
               <SidebarLabel>Notes</SidebarLabel>
-              <p className="mt-3 text-[13px] leading-relaxed text-zinc-700 whitespace-pre-wrap">
+              <p className="mt-3 text-body leading-relaxed text-zinc-700 whitespace-pre-wrap">
                 {supplier.notes || (
                   <span className="italic text-zinc-400">No notes</span>
                 )}
@@ -210,7 +210,7 @@ export function SupplierDetailPage() {
             <div className="p-6 space-y-5">
               <div>
                 <SidebarLabel>Created By</SidebarLabel>
-                <p className="mt-2 text-[13px] font-medium text-zinc-900">
+                <p className="mt-2 text-body font-medium text-zinc-900">
                   {supplier.createdBy
                     ? `${supplier.createdBy.firstName} ${supplier.createdBy.lastName}`
                     : '—'}
@@ -220,13 +220,13 @@ export function SupplierDetailPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <SidebarLabel>Created</SidebarLabel>
-                  <p className="mt-1.5 text-[13px] font-medium text-zinc-800 tabular-nums">
+                  <p className="mt-1.5 text-body font-medium text-zinc-800 tabular-nums">
                     {formatDate(supplier.createdAt)}
                   </p>
                 </div>
                 <div>
                   <SidebarLabel>Updated</SidebarLabel>
-                  <p className="mt-1.5 text-[13px] font-medium text-zinc-800 tabular-nums">
+                  <p className="mt-1.5 text-body font-medium text-zinc-800 tabular-nums">
                     {formatDate(supplier.updatedAt)}
                   </p>
                 </div>
@@ -242,7 +242,7 @@ export function SupplierDetailPage() {
 function PanelHeader({ icon, title }: { icon?: React.ReactNode; title: string }) {
   return (
     <div className="px-6 pt-6 pb-4">
-      <h2 className="flex items-center gap-2 text-[15px] font-semibold text-zinc-900">
+      <h2 className="flex items-center gap-2 text-body-lg font-semibold text-zinc-900">
         {icon}
         {title}
       </h2>
@@ -263,13 +263,13 @@ function Field({
 }) {
   return (
     <div>
-      <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+      <p className="text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400">
         {label}
       </p>
       <div className="mt-1.5 flex items-center gap-1.5">
         {icon}
         <p
-          className={`text-[13px] text-zinc-800 ${mono ? 'font-mono' : 'font-medium'}`}
+          className={`text-body text-zinc-800 ${mono ? 'font-mono' : 'font-medium'}`}
         >
           {value}
         </p>
@@ -280,7 +280,7 @@ function Field({
 
 function SidebarLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400">
+    <p className="text-micro font-semibold uppercase tracking-[0.08em] text-zinc-400">
       {children}
     </p>
   );

@@ -221,28 +221,28 @@ export function DepartmentDetailPage() {
       >
         <Surface elevation="subtle">
           <div className="p-6">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400">
+            <p className="text-micro font-semibold uppercase tracking-[0.08em] text-zinc-400">
               Code
             </p>
-            <p className="mt-2 font-mono text-[20px] font-bold text-zinc-900">{dept.code}</p>
+            <p className="mt-2 font-mono text-heading font-bold text-zinc-900">{dept.code}</p>
           </div>
         </Surface>
         <Surface elevation="subtle">
           <div className="p-6">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400">
+            <p className="text-micro font-semibold uppercase tracking-[0.08em] text-zinc-400">
               Members
             </p>
-            <p className="mt-2 text-[20px] font-bold text-zinc-900 tabular-nums">
+            <p className="mt-2 text-heading font-bold text-zinc-900 tabular-nums">
               {members.length}
             </p>
           </div>
         </Surface>
         <Surface elevation="subtle">
           <div className="p-6">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400">
+            <p className="text-micro font-semibold uppercase tracking-[0.08em] text-zinc-400">
               Department Head
             </p>
-            <p className="mt-2 text-[14px] font-semibold text-zinc-900 truncate">
+            <p className="mt-2 text-body-lg font-semibold text-zinc-900 truncate">
               {deptHead ? (
                 <span className="inline-flex items-center gap-1.5">
                   <Crown className="h-3.5 w-3.5 text-amber-500" />
@@ -259,7 +259,7 @@ export function DepartmentDetailPage() {
       {/* Members */}
       <Surface delay={0.08}>
         <div className="flex items-center justify-between px-6 pt-6 pb-4">
-          <h2 className="text-[15px] font-semibold text-zinc-900">Members</h2>
+          <h2 className="text-body-lg font-semibold text-zinc-900">Members</h2>
           <PrimaryButton onClick={() => setAddDialogOpen(true)}>
             <Plus className="h-3.5 w-3.5" /> Add Member
           </PrimaryButton>
@@ -309,26 +309,26 @@ export function DepartmentDetailPage() {
                               src={resolvePhotoUrl(member.photoUrl)}
                               alt={`${member.firstName} ${member.lastName}`}
                             />
-                            <AvatarFallback className="bg-zinc-100 text-zinc-600 text-[12px] font-semibold">
+                            <AvatarFallback className="bg-zinc-100 text-zinc-600 text-label font-semibold">
                               {member.firstName[0]}
                               {member.lastName[0]}
                             </AvatarFallback>
                           </Avatar>
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5">
-                              <span className="text-[13px] font-medium text-zinc-800 truncate">
+                              <span className="text-body font-medium text-zinc-800 truncate">
                                 {member.firstName} {member.lastName}
                               </span>
                               {isHead && (
                                 <Crown className="h-3.5 w-3.5 text-amber-500 shrink-0" />
                               )}
                             </div>
-                            <p className="text-[12px] text-zinc-400 truncate">{member.email}</p>
+                            <p className="text-label text-zinc-400 truncate">{member.email}</p>
                           </div>
                         </div>
                       </td>
                       <td className="px-5 py-4">
-                        <span className="font-mono text-[13px] text-zinc-700">
+                        <span className="font-mono text-body text-zinc-700">
                           {member.employeeId}
                         </span>
                       </td>
@@ -389,16 +389,16 @@ export function DepartmentDetailPage() {
               value={memberSearch}
               onChange={(e) => setMemberSearch(e.target.value)}
               autoFocus
-              className="w-full h-10 rounded-lg border border-zinc-200 bg-zinc-50/60 pl-10 pr-4 text-[13px] text-zinc-800 placeholder:text-zinc-400 outline-none transition-all duration-200 focus:border-zinc-400 focus:bg-white focus:shadow-focus"
+              className="w-full h-10 rounded-lg border border-zinc-200 bg-zinc-50/60 pl-10 pr-4 text-body text-zinc-800 placeholder:text-zinc-400 outline-none transition-all duration-200 focus:border-zinc-400 focus:bg-white focus:shadow-focus"
             />
           </div>
           <div className="max-h-64 overflow-y-auto">
             {memberSearch.length < 2 ? (
-              <p className="py-4 text-center text-[13px] text-zinc-400">
+              <p className="py-4 text-center text-body text-zinc-400">
                 Type at least 2 characters to search.
               </p>
             ) : searchResults.length === 0 ? (
-              <p className="py-4 text-center text-[13px] text-zinc-400">
+              <p className="py-4 text-center text-body text-zinc-400">
                 No matching users found.
               </p>
             ) : (
@@ -414,16 +414,16 @@ export function DepartmentDetailPage() {
                         src={resolvePhotoUrl(user.photoUrl)}
                         alt={`${user.firstName} ${user.lastName}`}
                       />
-                      <AvatarFallback className="bg-zinc-100 text-zinc-600 text-[12px] font-semibold">
+                      <AvatarFallback className="bg-zinc-100 text-zinc-600 text-label font-semibold">
                         {user.firstName[0]}
                         {user.lastName[0]}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-medium text-zinc-800 truncate">
+                      <p className="text-body font-medium text-zinc-800 truncate">
                         {user.firstName} {user.lastName}
                       </p>
-                      <p className="text-[12px] text-zinc-400 truncate">{user.email}</p>
+                      <p className="text-label text-zinc-400 truncate">{user.email}</p>
                     </div>
                     <UserPlus className="h-4 w-4 text-zinc-400 shrink-0" />
                   </button>
@@ -596,7 +596,7 @@ function EditDepartmentModal({ open, onOpenChange, dept }: EditDepartmentModalPr
 
 function Th({ children }: { children: React.ReactNode }) {
   return (
-    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+    <th className="h-11 px-5 text-left text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400">
       {children}
     </th>
   );

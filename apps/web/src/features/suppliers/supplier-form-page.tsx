@@ -412,7 +412,7 @@ function SupplierForm({ id, isEdit, initialValues }: SupplierFormProps) {
 function PanelHeader({ title }: { title: string }) {
   return (
     <div className="px-6 pt-6 pb-4">
-      <h2 className="text-[15px] font-semibold text-zinc-900">{title}</h2>
+      <h2 className="text-body-lg font-semibold text-zinc-900">{title}</h2>
     </div>
   );
 }

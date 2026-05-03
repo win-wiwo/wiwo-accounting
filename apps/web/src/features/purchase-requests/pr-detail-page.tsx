@@ -134,16 +134,16 @@ function ResubmissionChanges({
   return (
     <Card className="border-blue-300 bg-blue-50/30">
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm text-blue-800 flex items-center gap-2">
+        <CardTitle className="text-body-lg text-blue-800 flex items-center gap-2">
           <RotateCcw className="h-4 w-4" />
           Changes from Previous Submission
         </CardTitle>
         {note && (
           <div className="mt-2 rounded-md border border-blue-200 bg-white px-3 py-2">
-            <p className="text-xs font-medium text-blue-700 mb-0.5">
+            <p className="text-label font-medium text-blue-700 mb-0.5">
               Requester's note
             </p>
-            <p className="text-sm text-foreground">{note}</p>
+            <p className="text-body-lg text-foreground">{note}</p>
           </div>
         )}
       </CardHeader>
@@ -152,39 +152,39 @@ function ResubmissionChanges({
           <div className="space-y-2">
             {titleChanged && (
               <div className="space-y-0.5">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                <p className="text-label font-medium text-muted-foreground uppercase tracking-wide">
                   Title
                 </p>
-                <p className="text-xs line-through text-red-600 bg-red-50 rounded px-2 py-1">
+                <p className="text-label line-through text-red-600 bg-red-50 rounded px-2 py-1">
                   {snapshot.title}
                 </p>
-                <p className="text-xs text-emerald-700 bg-emerald-50 rounded px-2 py-1">
+                <p className="text-label text-emerald-700 bg-emerald-50 rounded px-2 py-1">
                   {currentTitle}
                 </p>
               </div>
             )}
             {priorityChanged && (
               <div className="space-y-0.5">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                <p className="text-label font-medium text-muted-foreground uppercase tracking-wide">
                   Priority
                 </p>
-                <p className="text-xs line-through text-red-600 bg-red-50 rounded px-2 py-1 capitalize">
+                <p className="text-label line-through text-red-600 bg-red-50 rounded px-2 py-1 capitalize">
                   {snapshot.priority}
                 </p>
-                <p className="text-xs text-emerald-700 bg-emerald-50 rounded px-2 py-1 capitalize">
+                <p className="text-label text-emerald-700 bg-emerald-50 rounded px-2 py-1 capitalize">
                   {currentPriority}
                 </p>
               </div>
             )}
             {justificationChanged && (
               <div className="space-y-0.5">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                <p className="text-label font-medium text-muted-foreground uppercase tracking-wide">
                   Purpose
                 </p>
-                <p className="text-xs line-through text-red-600 bg-red-50 rounded px-2 py-1">
+                <p className="text-label line-through text-red-600 bg-red-50 rounded px-2 py-1">
                   {snapshot.justification}
                 </p>
-                <p className="text-xs text-emerald-700 bg-emerald-50 rounded px-2 py-1">
+                <p className="text-label text-emerald-700 bg-emerald-50 rounded px-2 py-1">
                   {currentJustification}
                 </p>
               </div>
@@ -194,7 +194,7 @@ function ResubmissionChanges({
 
         {hasItemChanges && (
           <div className="space-y-2">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            <p className="text-label font-medium text-muted-foreground uppercase tracking-wide">
               Line Items
             </p>
             {itemDiffs
@@ -202,7 +202,7 @@ function ResubmissionChanges({
               .map((diff, i) => (
                 <div
                   key={i}
-                  className="rounded-md border text-xs overflow-hidden"
+                  className="rounded-md border text-label overflow-hidden"
                 >
                   {diff.type === "removed" && diff.old && (
                     <div className="bg-red-50 border-red-200 px-3 py-2 line-through text-red-700">
@@ -213,7 +213,7 @@ function ResubmissionChanges({
                       {diff.old.quantity} {diff.old.unit}
                       {diff.old.estimatedPrice > 0 &&
                         ` · ₱${diff.old.estimatedPrice.toLocaleString()}/unit`}
-                      <span className="ml-1 text-[10px] no-underline not-italic font-medium bg-red-200 text-red-800 rounded px-1">
+                      <span className="ml-1 text-micro no-underline not-italic font-medium bg-red-200 text-red-800 rounded px-1">
                         removed
                       </span>
                     </div>
@@ -227,7 +227,7 @@ function ResubmissionChanges({
                       {diff.new.quantity} {diff.new.unit}
                       {(diff.new.estimatedPrice ?? 0) > 0 &&
                         ` · ₱${(diff.new.estimatedPrice ?? 0).toLocaleString()}/unit`}
-                      <span className="ml-1 text-[10px] font-medium bg-emerald-200 text-emerald-800 rounded px-1">
+                      <span className="ml-1 text-micro font-medium bg-emerald-200 text-emerald-800 rounded px-1">
                         added
                       </span>
                     </div>
@@ -251,7 +251,7 @@ function ResubmissionChanges({
                         {diff.new.quantity} {diff.new.unit}
                         {(diff.new.estimatedPrice ?? 0) > 0 &&
                           ` · ₱${(diff.new.estimatedPrice ?? 0).toLocaleString()}/unit`}
-                        <span className="ml-1 text-[10px] font-medium bg-amber-200 text-amber-800 rounded px-1">
+                        <span className="ml-1 text-micro font-medium bg-amber-200 text-amber-800 rounded px-1">
                           modified
                         </span>
                       </div>
@@ -263,7 +263,7 @@ function ResubmissionChanges({
         )}
 
         {!hasFieldChanges && !hasItemChanges && (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-label text-muted-foreground">
             No tracked field changes detected.
           </p>
         )}
@@ -750,7 +750,7 @@ export function PrDetailPage() {
           <div className="min-w-0">
             {/* Breadcrumb */}
             <button
-              className="flex items-center gap-1.5 text-[12px] text-zinc-400 hover:text-zinc-700 transition-colors duration-150 mb-1.5"
+              className="flex items-center gap-1.5 text-label text-zinc-400 hover:text-zinc-700 transition-colors duration-150 mb-1.5"
               onClick={() => navigate("/purchase-requests")}
             >
               <ArrowLeft className="h-3 w-3" />
@@ -761,23 +761,23 @@ export function PrDetailPage() {
             </button>
             {/* Title + badges */}
             <div className="flex items-center gap-2.5 flex-wrap">
-              <h1 className="text-[18px] font-bold tracking-[-0.01em] leading-tight text-zinc-900 truncate max-w-[480px]">{pr.title}</h1>
-              <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold shrink-0 ${statusStyle[pr.status] ?? 'bg-zinc-100 text-zinc-600'}`}>
+              <h1 className="text-heading-sm font-bold tracking-[-0.01em] leading-tight text-zinc-900 truncate max-w-[480px]">{pr.title}</h1>
+              <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-caption font-semibold shrink-0 ${statusStyle[pr.status] ?? 'bg-zinc-100 text-zinc-600'}`}>
                 {PR_STATUS_LABELS[pr.status as PrStatusType]}
               </span>
-              <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold shrink-0 ${
+              <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-caption font-semibold shrink-0 ${
                 pr.sourcingMode === SourcingType.ONLINE
                   ? 'bg-tone-info-bg text-tone-info-text border border-tone-info-border'
                   : 'bg-tone-success-bg text-tone-success-text border border-tone-success-border'
               }`}>
                 {pr.sourcingMode === SourcingType.ONLINE ? 'Online' : 'Procurement'}
               </span>
-              <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold shrink-0 ${priorityStyle[pr.priority] ?? 'bg-zinc-100 text-zinc-500'}`}>
+              <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-caption font-semibold shrink-0 ${priorityStyle[pr.priority] ?? 'bg-zinc-100 text-zinc-500'}`}>
                 {PR_PRIORITY_LABELS[pr.priority as PrPriorityType]}
               </span>
             </div>
             {/* Amount + needed by */}
-            <div className="flex items-center gap-2.5 mt-1.5 text-[13px]">
+            <div className="flex items-center gap-2.5 mt-1.5 text-body">
               {hasProcurementItems && hasUnquotedItems ? (
                 <span className="text-amber-600 font-semibold">Pending Quote</span>
               ) : (
@@ -790,14 +790,14 @@ export function PrDetailPage() {
                 </span>
               )}
               {pr.neededByDate && (
-                <span className="text-zinc-400 text-[12px]">· Needed {formatDate(pr.neededByDate)}</span>
+                <span className="text-zinc-400 text-label">· Needed {formatDate(pr.neededByDate)}</span>
               )}
             </div>
           </div>
           {/* Actions */}
           <div className="flex items-center gap-2 flex-wrap">
             {linkedPo && linkedPo.status !== 'cancelled' && (
-              <Button size="sm" variant="outline" className="rounded-lg text-[13px] h-8 border-blue-200 text-blue-700 hover:bg-blue-50" onClick={() => navigate(`/purchase-orders/${linkedPo._id}`)}>
+              <Button size="sm" variant="outline" className="rounded-lg text-body h-8 border-blue-200 text-blue-700 hover:bg-blue-50" onClick={() => navigate(`/purchase-orders/${linkedPo._id}`)}>
                 <ShoppingCart className="h-3.5 w-3.5" /> View Purchase Order
               </Button>
             )}
@@ -808,7 +808,7 @@ export function PrDetailPage() {
                     <Button
                       size="sm"
                       variant="outline"
-                      className={`rounded-lg text-[13px] h-8 ${canDownloadPdf ? '' : 'opacity-50 hover:bg-background'}`}
+                      className={`rounded-lg text-body h-8 ${canDownloadPdf ? '' : 'opacity-50 hover:bg-background'}`}
                       style={canDownloadPdf ? undefined : { cursor: 'default' }}
                       onClick={canDownloadPdf ? handleGenerateReport : (e) => e.preventDefault()}
                       aria-disabled={!canDownloadPdf}
@@ -821,7 +821,7 @@ export function PrDetailPage() {
                       <Tooltip.Content
                         side="bottom"
                         sideOffset={6}
-                        className="z-50 max-w-[240px] rounded-lg border border-zinc-800/60 bg-zinc-900 px-3 py-1.5 text-[12px] font-medium text-white shadow-modal animate-in fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-1 data-[side=top]:slide-in-from-bottom-1"
+                        className="z-50 max-w-[240px] rounded-lg border border-zinc-800/60 bg-zinc-900 px-3 py-1.5 text-label font-medium text-white shadow-modal animate-in fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-1 data-[side=top]:slide-in-from-bottom-1"
                       >
                         {pdfBlockedReason}
                         <Tooltip.Arrow className="fill-zinc-900" />
@@ -835,7 +835,7 @@ export function PrDetailPage() {
               <Button
                 size="sm"
                 variant="outline"
-                className="rounded-lg text-[13px] h-8"
+                className="rounded-lg text-body h-8"
                 onClick={() => {
                   setEditSpecsDraft(pr.items.map((item) => ({
                     itemId: item._id,
@@ -850,11 +850,11 @@ export function PrDetailPage() {
             )}
             {canEdit && (
               <>
-                <Button size="sm" variant="outline" className="rounded-lg text-[13px] h-8" onClick={() => navigate(`/purchase-requests/${id}/edit`)}>
+                <Button size="sm" variant="outline" className="rounded-lg text-body h-8" onClick={() => navigate(`/purchase-requests/${id}/edit`)}>
                   <Pencil className="h-3.5 w-3.5" /> Edit
                 </Button>
                 <button
-                  className="inline-flex items-center gap-1.5 rounded-lg h-8 px-3.5 text-[13px] font-semibold text-white transition-all duration-200 hover:-translate-y-px"
+                  className="inline-flex items-center gap-1.5 rounded-lg h-8 px-3.5 text-body font-semibold text-white transition-all duration-200 hover:-translate-y-px"
                   style={{ background: 'linear-gradient(155deg, #262626 0%, #0d0d0d 100%)', boxShadow: '0 1px 2px rgba(0,0,0,0.14), 0 3px 8px rgba(0,0,0,0.1)' }}
                   onClick={() => {
                     const errors = validatePrForSubmit(pr);
@@ -870,13 +870,13 @@ export function PrDetailPage() {
               </>
             )}
             {canRecall && (
-              <Button size="sm" variant="outline" className="rounded-lg text-[13px] h-8" onClick={() => setConfirmDialog({ open: true, type: "recall" })}>
+              <Button size="sm" variant="outline" className="rounded-lg text-body h-8" onClick={() => setConfirmDialog({ open: true, type: "recall" })}>
                 <Undo2 className="h-3.5 w-3.5" /> Recall
               </Button>
             )}
             {isOwner && isReturnedByProcurement && (
               <button
-                className="inline-flex items-center gap-1.5 rounded-lg h-8 px-3.5 text-[13px] font-semibold text-white transition-all duration-200 hover:-translate-y-px"
+                className="inline-flex items-center gap-1.5 rounded-lg h-8 px-3.5 text-body font-semibold text-white transition-all duration-200 hover:-translate-y-px"
                 style={{ background: 'linear-gradient(155deg, #262626 0%, #0d0d0d 100%)', boxShadow: '0 1px 2px rgba(0,0,0,0.14), 0 3px 8px rgba(0,0,0,0.1)' }}
                 onClick={() => {
                   setResubmitNote('');
@@ -890,30 +890,30 @@ export function PrDetailPage() {
               <Button
                 size="sm"
                 variant="outline"
-                className="rounded-lg text-[13px] h-8 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                className="rounded-lg text-body h-8 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
                 onClick={() => { setCancelReason(""); setCancelDialog(true); }}
               >
                 <Ban className="h-3.5 w-3.5" /> Cancel
               </Button>
             )}
             {isOwner && isDraft && (
-              <Button size="sm" variant="destructive" className="rounded-lg text-[13px] h-8" onClick={() => setConfirmDialog({ open: true, type: "delete" })}>
+              <Button size="sm" variant="destructive" className="rounded-lg text-body h-8" onClick={() => setConfirmDialog({ open: true, type: "delete" })}>
                 <Trash2 className="h-3.5 w-3.5" /> Delete
               </Button>
             )}
             {canApprove && (
               <>
                 <button
-                  className="inline-flex items-center gap-1.5 rounded-lg h-8 px-4 text-[13px] font-semibold text-white bg-emerald-600 transition-all duration-200 hover:bg-emerald-700 hover:-translate-y-px hover:shadow-card"
+                  className="inline-flex items-center gap-1.5 rounded-lg h-8 px-4 text-body font-semibold text-white bg-emerald-600 transition-all duration-200 hover:bg-emerald-700 hover:-translate-y-px hover:shadow-card"
                   onClick={() => { setApprovalComments(""); setApprovalDialog({ open: true, action: "approved" }); }}
                 >
                   <CheckCircle2 className="h-3.5 w-3.5" />
                   {isPriceReview ? "Approve Pricing" : "Approve"}
                 </button>
-                <Button size="sm" variant="outline" className="rounded-lg text-[13px] h-8" onClick={() => { setApprovalComments(""); setApprovalDialog({ open: true, action: "returned" }); }}>
+                <Button size="sm" variant="outline" className="rounded-lg text-body h-8" onClick={() => { setApprovalComments(""); setApprovalDialog({ open: true, action: "returned" }); }}>
                   <RotateCcw className="h-3.5 w-3.5" /> Return
                 </Button>
-                <Button size="sm" variant="destructive" className="rounded-lg text-[13px] h-8" onClick={() => { setApprovalComments(""); setApprovalDialog({ open: true, action: "rejected" }); }}>
+                <Button size="sm" variant="destructive" className="rounded-lg text-body h-8" onClick={() => { setApprovalComments(""); setApprovalDialog({ open: true, action: "rejected" }); }}>
                   <XCircle className="h-3.5 w-3.5" /> Reject
                 </Button>
               </>
@@ -928,8 +928,8 @@ export function PrDetailPage() {
           {stagePresentation.icon}
         </div>
         <div className="min-w-0">
-          <p className="text-[14px] font-semibold leading-tight">{stagePresentation.title}</p>
-          <p className="mt-1 text-[13px] leading-relaxed opacity-70">{stagePresentation.nextStep}</p>
+          <p className="text-body-lg font-semibold leading-tight">{stagePresentation.title}</p>
+          <p className="mt-1 text-body leading-relaxed opacity-70">{stagePresentation.nextStep}</p>
         </div>
       </div>
 
@@ -939,8 +939,8 @@ export function PrDetailPage() {
           {/* Line Items */}
           <div className="rounded-xl border border-zinc-200/80 bg-white shadow-card-hover overflow-hidden">
             <div className="px-6 pt-6 pb-4">
-              <h2 className="text-[15px] font-semibold text-zinc-900">Line Items</h2>
-              <p className="mt-1 text-[12px] text-zinc-400 leading-relaxed">
+              <h2 className="text-body-lg font-semibold text-zinc-900">Line Items</h2>
+              <p className="mt-1 text-label text-zinc-400 leading-relaxed">
                 {hasProcurementItems
                   ? 'Procurement-sourced items remain unpriced until canvass is complete.'
                   : 'Online-sourced items with seller references and pricing.'}
@@ -977,26 +977,26 @@ export function PrDetailPage() {
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0 space-y-2">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+                          <span className="text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400">
                             Item {i + 1}
                           </span>
                         </div>
-                        <p className="text-[14px] font-semibold leading-snug text-zinc-900">
+                        <p className="text-body-lg font-semibold leading-snug text-zinc-900">
                           {item.description}
                         </p>
                       </div>
                       <div className="shrink-0 text-right space-y-1 min-w-[120px]">
-                        <p className="text-[12px] text-zinc-400 tabular-nums">
+                        <p className="text-label text-zinc-400 tabular-nums">
                           {item.quantity} {item.unit}
                           {unitPriceLabel !== "Pending quotation" && (
                             <span className="ml-1">× {unitPriceLabel}</span>
                           )}
                         </p>
-                        <p className={`text-[15px] font-bold tabular-nums ${totalLabel === "TBQ" || totalLabel === "—" ? "text-amber-600" : "text-zinc-900"}`}>
+                        <p className={`text-body-lg font-bold tabular-nums ${totalLabel === "TBQ" || totalLabel === "—" ? "text-amber-600" : "text-zinc-900"}`}>
                           {totalLabel === "TBQ" ? "Pending Quote" : totalLabel}
                         </p>
                         {isProcurement && unitPriceLabel === "Pending quotation" && (
-                          <p className="text-[11px] text-amber-500">Awaiting canvass</p>
+                          <p className="text-caption text-amber-500">Awaiting canvass</p>
                         )}
                       </div>
                     </div>
@@ -1006,7 +1006,7 @@ export function PrDetailPage() {
                         <button
                           type="button"
                           onClick={() => handleViewItemPhoto(item._id)}
-                          className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100"
+                          className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-label font-medium text-blue-700 hover:bg-blue-100"
                         >
                           <Camera className="h-3 w-3" />
                           Reference photo
@@ -1015,13 +1015,13 @@ export function PrDetailPage() {
                       {isProcurement &&
                         item.quotedUnitPrice &&
                         item.quotedAt && (
-                          <span className="inline-flex items-center rounded-full border border-tone-success-border bg-tone-success-bg px-2.5 py-1 text-xs font-medium text-tone-success-text">
+                          <span className="inline-flex items-center rounded-full border border-tone-success-border bg-tone-success-bg px-2.5 py-1 text-label font-medium text-tone-success-text">
                             Quoted {formatDate(item.quotedAt)}
                           </span>
                         )}
                       {typeof item.selectedSupplierId === "object" &&
                         item.selectedSupplierId?.companyName && (
-                          <span className="inline-flex items-center rounded-full border border-tone-success-border bg-tone-success-bg px-2.5 py-1 text-xs font-medium text-tone-success-text">
+                          <span className="inline-flex items-center rounded-full border border-tone-success-border bg-tone-success-bg px-2.5 py-1 text-label font-medium text-tone-success-text">
                             Supplier: {item.selectedSupplierId.companyName}
                           </span>
                         )}
@@ -1031,20 +1031,20 @@ export function PrDetailPage() {
                       <div className="mt-3 grid gap-3 sm:grid-cols-2">
                         {item.specifications && (
                           <div className="rounded-lg bg-muted/30 px-3 py-2">
-                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                            <p className="text-caption uppercase tracking-wide text-muted-foreground">
                               Specifications
                             </p>
-                            <p className="mt-1 text-sm text-muted-foreground">
+                            <p className="mt-1 text-body-lg text-muted-foreground">
                               {item.specifications}
                             </p>
                           </div>
                         )}
                         {item.notes && (
                           <div className="rounded-lg bg-muted/30 px-3 py-2">
-                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                            <p className="text-caption uppercase tracking-wide text-muted-foreground">
                               Notes
                             </p>
-                            <p className="mt-1 text-sm text-muted-foreground">
+                            <p className="mt-1 text-body-lg text-muted-foreground">
                               {item.notes}
                             </p>
                           </div>
@@ -1056,14 +1056,14 @@ export function PrDetailPage() {
                       item.sellerReferences &&
                       item.sellerReferences.length > 0 && (
                         <div className="mt-3 rounded-lg border border-blue-100 bg-blue-50/40 p-3">
-                          <p className="text-[11px] uppercase tracking-wide text-blue-700">
+                          <p className="text-caption uppercase tracking-wide text-blue-700">
                             Seller References
                           </p>
                           <div className="mt-2 space-y-1.5">
                             {item.sellerReferences.map((ref, ri) => (
                               <div
                                 key={ri}
-                                className="flex items-center justify-between gap-3 text-xs text-muted-foreground"
+                                className="flex items-center justify-between gap-3 text-label text-muted-foreground"
                               >
                                 <span className="truncate">
                                   {ref.url ? (
@@ -1086,7 +1086,7 @@ export function PrDetailPage() {
                             ))}
                           </div>
                           {item.sellerReferencesJustification && (
-                            <p className="mt-2 flex items-start gap-1 text-xs text-amber-700">
+                            <p className="mt-2 flex items-start gap-1 text-label text-amber-700">
                               <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />
                               <span>{item.sellerReferencesJustification}</span>
                             </p>
@@ -1111,7 +1111,7 @@ export function PrDetailPage() {
                     return (
                       <div className="space-y-2.5">
                         <div className="space-y-1.5">
-                          <div className="flex items-center justify-between text-[12px]">
+                          <div className="flex items-center justify-between text-label">
                             <span className="text-zinc-500">{pr.items.length} item{pr.items.length > 1 ? 's' : ''}</span>
                             {quoted.length > 0 ? (
                               <span className="font-medium tabular-nums text-zinc-700">{formatCurrency(quotedTotal)}</span>
@@ -1120,24 +1120,24 @@ export function PrDetailPage() {
                             )}
                           </div>
                           {unquoted.length > 0 && quoted.length > 0 && (
-                            <div className="flex items-center justify-between text-[12px]">
+                            <div className="flex items-center justify-between text-label">
                               <span className="text-amber-600">{unquoted.length} item{unquoted.length > 1 ? 's' : ''} pending quote</span>
                               <span className="font-medium text-amber-600">TBD</span>
                             </div>
                           )}
                         </div>
                         <div className="flex items-end justify-between pt-2.5 border-t border-zinc-100">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">Grand Total</p>
+                          <p className="text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400">Grand Total</p>
                           {allUnquoted ? (
-                            <p className="text-[22px] font-bold text-amber-600 leading-none">Pending Quote</p>
+                            <p className="text-heading font-bold text-amber-600 leading-none">Pending Quote</p>
                           ) : (
                             <div className="text-right">
-                              <p className="text-[22px] font-bold tabular-nums text-zinc-900 leading-none">{formatCurrency(quotedTotal)}</p>
+                              <p className="text-heading font-bold tabular-nums text-zinc-900 leading-none">{formatCurrency(quotedTotal)}</p>
                               {unquoted.length > 0 && (
-                                <p className="text-[11px] text-amber-600 mt-1">+ pending procurement pricing</p>
+                                <p className="text-caption text-amber-600 mt-1">+ pending procurement pricing</p>
                               )}
                               {unquoted.length === 0 && (
-                                <p className="text-[11px] text-emerald-600 mt-1">Final amount after canvass</p>
+                                <p className="text-caption text-emerald-600 mt-1">Final amount after canvass</p>
                               )}
                             </div>
                           )}
@@ -1150,13 +1150,13 @@ export function PrDetailPage() {
                   const total = pr.items.reduce((s, i) => s + (i.quantity ?? 0) * (i.estimatedPrice ?? 0), 0);
                   return (
                     <div className="space-y-2.5">
-                      <div className="flex items-center justify-between text-[12px]">
+                      <div className="flex items-center justify-between text-label">
                         <span className="text-zinc-500">{pr.items.length} item{pr.items.length > 1 ? 's' : ''}</span>
                         <span className="font-medium tabular-nums text-zinc-700">{formatCurrency(total)}</span>
                       </div>
                       <div className="flex items-end justify-between pt-2.5 border-t border-zinc-100">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">Grand Total</p>
-                        <p className="text-[22px] font-bold tabular-nums text-zinc-900 leading-none">{formatCurrency(total)}</p>
+                        <p className="text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400">Grand Total</p>
+                        <p className="text-heading font-bold tabular-nums text-zinc-900 leading-none">{formatCurrency(total)}</p>
                       </div>
                     </div>
                   );
@@ -1168,10 +1168,10 @@ export function PrDetailPage() {
           {pr.canvassEntries && pr.canvassEntries.length > 0 && (
             <Card className="border-emerald-200 bg-emerald-50/40">
               <CardHeader>
-                <CardTitle className="text-base">
+                <CardTitle className="text-heading-sm">
                   Procurement Canvass Comparison
                 </CardTitle>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-label text-muted-foreground">
                   This section shows the supplier canvass prepared by
                   Procurement and the selected pricing basis.
                 </p>
@@ -1188,10 +1188,10 @@ export function PrDetailPage() {
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="text-sm font-medium">
+                          <p className="text-body-lg font-medium">
                             {entry.supplierName}
                           </p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-label text-muted-foreground">
                             Total quoted:{" "}
                             {formatCurrency(entry.totalQuotedAmount)}
                           </p>
@@ -1204,7 +1204,7 @@ export function PrDetailPage() {
                         {entry.quotedItems.map((quotedItem) => (
                           <div
                             key={quotedItem.itemId}
-                            className="flex items-center justify-between gap-3 text-xs"
+                            className="flex items-center justify-between gap-3 text-label"
                           >
                             <span className="truncate">
                               {quotedItem.description}
@@ -1216,7 +1216,7 @@ export function PrDetailPage() {
                         ))}
                       </div>
                       {entry.remarks && (
-                        <p className="text-xs text-muted-foreground italic">
+                        <p className="text-label text-muted-foreground italic">
                           {entry.remarks}
                         </p>
                       )}
@@ -1225,10 +1225,10 @@ export function PrDetailPage() {
                 </div>
                 {pr.canvassEntries.length < 3 && pr.canvassJustification && (
                   <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
-                    <p className="text-xs font-medium text-amber-800">
+                    <p className="text-label font-medium text-amber-800">
                       Fewer than 3 suppliers justification
                     </p>
-                    <p className="mt-1 text-sm text-amber-900">
+                    <p className="mt-1 text-body-lg text-amber-900">
                       {pr.canvassJustification}
                     </p>
                   </div>
@@ -1259,8 +1259,8 @@ export function PrDetailPage() {
                   <Ban className="h-4 w-4 text-red-600" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[14px] font-semibold text-red-800">Cancellation Reason</p>
-                  <p className="mt-2 text-[13px] leading-relaxed text-red-900/80">{pr.cancellationReason}</p>
+                  <p className="text-body-lg font-semibold text-red-800">Cancellation Reason</p>
+                  <p className="mt-2 text-body leading-relaxed text-red-900/80">{pr.cancellationReason}</p>
                 </div>
               </div>
             </div>
@@ -1275,22 +1275,22 @@ export function PrDetailPage() {
 
               {/* Ownership */}
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400 mb-3">Ownership</p>
+                <p className="text-micro font-semibold uppercase tracking-[0.08em] text-zinc-400 mb-3">Ownership</p>
                 <div className="flex items-center gap-3">
                   <Avatar className="h-10 w-10 shrink-0">
                     <AvatarImage
                       src={resolvePhotoUrl(requester?.photoUrl)}
                       alt={requester ? `${requester.firstName} ${requester.lastName}` : undefined}
                     />
-                    <AvatarFallback className="bg-zinc-100 text-zinc-500 text-[13px] font-semibold">
+                    <AvatarFallback className="bg-zinc-100 text-zinc-500 text-body font-semibold">
                       {requester ? requester.firstName[0] : <User className="h-4 w-4" />}
                     </AvatarFallback>
                   </Avatar>
                   <div className="min-w-0">
-                    <p className="text-[13px] font-semibold text-zinc-900 leading-tight truncate">
+                    <p className="text-body font-semibold text-zinc-900 leading-tight truncate">
                       {requester ? `${requester.firstName} ${requester.lastName}` : "—"}
                     </p>
-                    <p className="text-[12px] text-zinc-400 truncate mt-0.5">{department?.name || "—"}</p>
+                    <p className="text-label text-zinc-400 truncate mt-0.5">{department?.name || "—"}</p>
                   </div>
                 </div>
               </div>
@@ -1299,31 +1299,31 @@ export function PrDetailPage() {
 
               {/* Request Meta */}
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400 mb-3">Request Details</p>
+                <p className="text-micro font-semibold uppercase tracking-[0.08em] text-zinc-400 mb-3">Request Details</p>
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[12px] text-zinc-500">Priority</span>
-                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${priorityStyle[pr.priority] ?? 'bg-zinc-100 text-zinc-500'}`}>
+                    <span className="text-label text-zinc-500">Priority</span>
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-caption font-semibold ${priorityStyle[pr.priority] ?? 'bg-zinc-100 text-zinc-500'}`}>
                       {PR_PRIORITY_LABELS[pr.priority as PrPriorityType]}
                     </span>
                   </div>
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[12px] text-zinc-500">Type</span>
-                    <span className="text-[12px] font-medium text-zinc-800">{pr.requestType === 'job_request' ? 'Job Request' : 'Purchase Request'}</span>
+                    <span className="text-label text-zinc-500">Type</span>
+                    <span className="text-label font-medium text-zinc-800">{pr.requestType === 'job_request' ? 'Job Request' : 'Purchase Request'}</span>
                   </div>
                   {pr.neededByDate && (
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-[12px] text-zinc-500">Needed By</span>
-                      <span className="text-[12px] font-medium text-zinc-800 tabular-nums">{formatDate(pr.neededByDate)}</span>
+                      <span className="text-label text-zinc-500">Needed By</span>
+                      <span className="text-label font-medium text-zinc-800 tabular-nums">{formatDate(pr.neededByDate)}</span>
                     </div>
                   )}
                   {pr.projectId && (
                     <div className="flex items-start justify-between gap-2">
-                      <span className="text-[12px] text-zinc-500 shrink-0">Project</span>
-                      <span className="text-[12px] font-medium text-zinc-800 text-right">
+                      <span className="text-label text-zinc-500 shrink-0">Project</span>
+                      <span className="text-label font-medium text-zinc-800 text-right">
                         {(pr.projectId as unknown as { name: string; code: string | null }).name}
                         {(pr.projectId as unknown as { code: string | null }).code && (
-                          <span className="ml-1.5 font-mono bg-zinc-100 px-1.5 py-0.5 rounded text-[10px] text-zinc-600">
+                          <span className="ml-1.5 font-mono bg-zinc-100 px-1.5 py-0.5 rounded text-micro text-zinc-600">
                             {(pr.projectId as unknown as { code: string | null }).code}
                           </span>
                         )}
@@ -1337,10 +1337,10 @@ export function PrDetailPage() {
 
               {/* Business Need */}
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400 mb-2.5">Purpose</p>
-                <p className="text-[13px] leading-[1.7] text-zinc-700">{pr.justification}</p>
+                <p className="text-micro font-semibold uppercase tracking-[0.08em] text-zinc-400 mb-2.5">Purpose</p>
+                <p className="text-body leading-[1.7] text-zinc-700">{pr.justification}</p>
                 {pr.description && (
-                  <p className="mt-2 text-[12px] leading-relaxed text-zinc-400">{pr.description}</p>
+                  <p className="mt-2 text-label leading-relaxed text-zinc-400">{pr.description}</p>
                 )}
               </div>
 
@@ -1354,7 +1354,7 @@ export function PrDetailPage() {
           {/* Approval Timeline */}
           <div className="rounded-xl border border-zinc-200/80 bg-white shadow-card overflow-hidden">
             <div className="px-6 pt-5 pb-3">
-              <h3 className="text-[13px] font-semibold text-zinc-900">Approval Timeline</h3>
+              <h3 className="text-body font-semibold text-zinc-900">Approval Timeline</h3>
             </div>
             <div className="px-6 pb-5">
               <PurchaseRequestWorkflowTimeline
@@ -1401,7 +1401,7 @@ export function PrDetailPage() {
               <textarea
                 rows={3}
                 placeholder="Describe what changed…"
-                className="w-full rounded-xl border border-zinc-200/80 bg-zinc-50/50 px-4 py-3 text-[13px] text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:border-zinc-300 focus:bg-white resize-none transition-all duration-150 leading-relaxed"
+                className="w-full rounded-xl border border-zinc-200/80 bg-zinc-50/50 px-4 py-3 text-body text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:border-zinc-300 focus:bg-white resize-none transition-all duration-150 leading-relaxed"
                 value={resubmitNote}
                 onChange={(e) => setResubmitNote(e.target.value)}
               />
@@ -1454,7 +1454,7 @@ export function PrDetailPage() {
             <textarea
               id="cancel-reason"
               rows={3}
-              className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-body-lg shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               placeholder="Why is this PR being cancelled?"
               value={cancelReason}
               onChange={(e) => setCancelReason(e.target.value)}
@@ -1494,7 +1494,7 @@ export function PrDetailPage() {
         >
           <DialogHeader className="flex flex-row items-center gap-2 px-4 py-3 border-b shrink-0">
             <Paperclip className="h-4 w-4 shrink-0 text-muted-foreground" />
-            <DialogTitle className="truncate text-sm font-medium">
+            <DialogTitle className="truncate text-body-lg font-medium">
               {previewDialog.name}
             </DialogTitle>
           </DialogHeader>
@@ -1562,7 +1562,7 @@ export function PrDetailPage() {
             <textarea
               id="approval-comments"
               rows={3}
-              className="flex w-full rounded-lg border border-zinc-200 bg-zinc-50/60 px-3 py-2.5 text-[13px] text-zinc-800 placeholder:text-zinc-400 outline-none transition-all duration-200 focus:border-zinc-400 focus:bg-white focus:shadow-focus"
+              className="flex w-full rounded-lg border border-zinc-200 bg-zinc-50/60 px-3 py-2.5 text-body text-zinc-800 placeholder:text-zinc-400 outline-none transition-all duration-200 focus:border-zinc-400 focus:bg-white focus:shadow-focus"
               placeholder={
                 approvalDialog.action === "approved"
                   ? "Optional comments..."
@@ -1586,7 +1586,7 @@ export function PrDetailPage() {
             </Button>
             {approvalDialog.action === "approved" && (
               <button
-                className="inline-flex items-center gap-1.5 rounded-lg h-9 px-4 text-[13px] font-semibold text-white bg-emerald-600 transition-all duration-200 hover:bg-emerald-700 hover:-translate-y-px hover:shadow-card disabled:opacity-50 disabled:pointer-events-none"
+                className="inline-flex items-center gap-1.5 rounded-lg h-9 px-4 text-body font-semibold text-white bg-emerald-600 transition-all duration-200 hover:bg-emerald-700 hover:-translate-y-px hover:shadow-card disabled:opacity-50 disabled:pointer-events-none"
                 onClick={handleApprovalAction}
                 disabled={processApproval.isPending}
               >
@@ -1651,8 +1651,8 @@ export function PrDetailPage() {
       <Dialog open={editSpecsOpen} onOpenChange={setEditSpecsOpen}>
         <DialogContent className="max-w-xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-[16px]">Update Item Details</DialogTitle>
-            <DialogDescription className="text-[13px]">
+            <DialogTitle className="text-heading-sm">Update Item Details</DialogTitle>
+            <DialogDescription className="text-body">
               Update item descriptions and specifications to reflect the clarification. Quantities and sourcing type cannot be changed.
             </DialogDescription>
           </DialogHeader>
@@ -1660,12 +1660,12 @@ export function PrDetailPage() {
             {editSpecsDraft.map((draft, i) => (
               <div key={draft.itemId} className="space-y-3">
                 {i > 0 && <div className="h-px bg-zinc-100" />}
-                <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-zinc-400">Item {i + 1}</p>
+                <p className="text-caption font-semibold uppercase tracking-[0.07em] text-zinc-400">Item {i + 1}</p>
                 <div className="space-y-1.5">
-                  <label className="text-[12px] font-medium text-zinc-700">Description</label>
+                  <label className="text-label font-medium text-zinc-700">Description</label>
                   <input
                     type="text"
-                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-[13px] text-zinc-800 focus:outline-none focus:border-zinc-400 focus:bg-white transition-all duration-150"
+                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-body text-zinc-800 focus:outline-none focus:border-zinc-400 focus:bg-white transition-all duration-150"
                     value={draft.description}
                     onChange={(e) => setEditSpecsDraft((prev) =>
                       prev.map((d, idx) => idx === i ? { ...d, description: e.target.value } : d)
@@ -1673,10 +1673,10 @@ export function PrDetailPage() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[12px] font-medium text-zinc-700">Specifications <span className="text-zinc-400 font-normal">(optional)</span></label>
+                  <label className="text-label font-medium text-zinc-700">Specifications <span className="text-zinc-400 font-normal">(optional)</span></label>
                   <textarea
                     rows={2}
-                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-[13px] text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:border-zinc-400 focus:bg-white resize-none transition-all duration-150"
+                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-body text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:border-zinc-400 focus:bg-white resize-none transition-all duration-150"
                     placeholder="Brand, model, technical requirements…"
                     value={draft.specifications}
                     onChange={(e) => setEditSpecsDraft((prev) =>
@@ -1688,11 +1688,11 @@ export function PrDetailPage() {
             ))}
           </div>
           <DialogFooter>
-            <Button variant="outline" className="text-[12px]" onClick={() => setEditSpecsOpen(false)}>
+            <Button variant="outline" className="text-label" onClick={() => setEditSpecsOpen(false)}>
               Cancel
             </Button>
             <Button
-              className="text-[12px] bg-zinc-900 hover:bg-zinc-800 text-white"
+              className="text-label bg-zinc-900 hover:bg-zinc-800 text-white"
               disabled={updateItemSpecsMutation.isPending || editSpecsDraft.some((d) => !d.description.trim())}
               onClick={async () => {
                 try {

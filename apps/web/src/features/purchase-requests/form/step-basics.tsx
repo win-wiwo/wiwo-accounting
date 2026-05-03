@@ -168,7 +168,7 @@ export function StepBasics({ form, isEdit, projectOptions }: StepBasicsProps) {
               </Select>
             </FormField>
           ) : (
-            <div className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50/40 px-4 py-3 text-[12px] text-zinc-500 leading-relaxed">
+            <div className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50/40 px-4 py-3 text-label text-zinc-500 leading-relaxed">
               Not tied to a project — recorded as a general office or overhead
               expense.
             </div>
@@ -300,10 +300,10 @@ function RequestTypeCard({
         {icon}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-[13px] font-semibold text-zinc-900 leading-tight">
+        <p className="text-body font-semibold text-zinc-900 leading-tight">
           {title}
         </p>
-        <p className="mt-0.5 text-[11px] text-zinc-500 leading-relaxed">
+        <p className="mt-0.5 text-caption text-zinc-500 leading-relaxed">
           {description}
         </p>
       </div>
@@ -364,10 +364,10 @@ function AssignmentCard({
         {icon}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-[13px] font-semibold text-zinc-900 leading-tight">
+        <p className="text-body font-semibold text-zinc-900 leading-tight">
           {title}
         </p>
-        <p className="mt-0.5 text-[11px] text-zinc-500 leading-relaxed">
+        <p className="mt-0.5 text-caption text-zinc-500 leading-relaxed">
           {description}
         </p>
       </div>
@@ -396,12 +396,12 @@ function PanelHeader({
 }) {
   return (
     <div className="px-6 pt-6 pb-4">
-      <h2 className="flex items-center gap-2 text-[15px] font-semibold text-zinc-900">
+      <h2 className="flex items-center gap-2 text-body-lg font-semibold text-zinc-900">
         {icon}
         {title}
       </h2>
       {description && (
-        <p className="mt-1 text-[12px] text-zinc-500 leading-relaxed">
+        <p className="mt-1 text-label text-zinc-500 leading-relaxed">
           {description}
         </p>
       )}

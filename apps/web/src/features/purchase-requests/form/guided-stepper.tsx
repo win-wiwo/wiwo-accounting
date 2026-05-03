@@ -18,10 +18,10 @@ export function GuidedStepper({
       <div className="sm:hidden px-5 py-4">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400 leading-none">
+            <p className="text-micro font-semibold uppercase tracking-[0.08em] text-zinc-400 leading-none">
               Step {currentStep + 1} of {steps.length}
             </p>
-            <p className="mt-1.5 text-[15px] font-semibold text-zinc-900 leading-none">
+            <p className="mt-1.5 text-body-lg font-semibold text-zinc-900 leading-none">
               {steps[currentStep]}
             </p>
           </div>
@@ -71,7 +71,7 @@ export function GuidedStepper({
               >
                 <span
                   className={cn(
-                    'flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[13px] font-bold transition-all duration-300',
+                    'flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-body font-bold transition-all duration-300',
                     current &&
                       'bg-zinc-900 text-white shadow-focus',
                     completed && 'bg-zinc-900 text-white',
@@ -89,7 +89,7 @@ export function GuidedStepper({
                 <div className="text-left">
                   <p
                     className={cn(
-                      'text-[10px] font-semibold uppercase tracking-[0.08em] leading-none transition-colors',
+                      'text-micro font-semibold uppercase tracking-[0.08em] leading-none transition-colors',
                       current ? 'text-zinc-900' : 'text-zinc-400',
                     )}
                   >
@@ -97,7 +97,7 @@ export function GuidedStepper({
                   </p>
                   <p
                     className={cn(
-                      'mt-1.5 text-[14px] font-semibold leading-none transition-colors',
+                      'mt-1.5 text-body-lg font-semibold leading-none transition-colors',
                       current && 'text-zinc-900',
                       completed && 'text-zinc-700',
                       !current && !completed && 'text-zinc-400',

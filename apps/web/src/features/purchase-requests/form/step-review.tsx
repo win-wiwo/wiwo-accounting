@@ -49,11 +49,11 @@ export function StepReview({
       {/* Basics summary */}
       <Surface delay={0.04}>
         <div className="flex items-center justify-between px-6 pt-5 pb-3">
-          <h2 className="text-[14px] font-semibold text-zinc-900">Request Basics</h2>
+          <h2 className="text-body-lg font-semibold text-zinc-900">Request Basics</h2>
           <GhostButton
             type="button"
             onClick={() => onGoToStep(0)}
-            className="px-2.5 py-1 text-[12px]"
+            className="px-2.5 py-1 text-label"
           >
             <Pencil className="h-3 w-3" /> Edit
           </GhostButton>
@@ -104,13 +104,13 @@ export function StepReview({
       {/* Items summary */}
       <Surface delay={0.06}>
         <div className="flex items-center justify-between px-6 pt-5 pb-3">
-          <h2 className="text-[14px] font-semibold text-zinc-900">
+          <h2 className="text-body-lg font-semibold text-zinc-900">
             Line Items ({data.items.length})
           </h2>
           <GhostButton
             type="button"
             onClick={() => onGoToStep(1)}
-            className="px-2.5 py-1 text-[12px]"
+            className="px-2.5 py-1 text-label"
           >
             <Pencil className="h-3 w-3" /> Edit
           </GhostButton>
@@ -133,7 +133,7 @@ export function StepReview({
               return (
                 <div
                   key={i}
-                  className="rounded-lg border border-zinc-100 px-4 py-3 text-[13px]"
+                  className="rounded-lg border border-zinc-100 px-4 py-3 text-body"
                 >
                   <div className="flex items-center justify-between gap-4">
                     <div className="min-w-0 flex-1">
@@ -144,7 +144,7 @@ export function StepReview({
                         ×{item.quantity} {item.unit}
                       </span>
                       {isOnline && (
-                        <span className="ml-2 text-[11px] font-medium text-blue-600">
+                        <span className="ml-2 text-caption font-medium text-blue-600">
                           Online
                         </span>
                       )}
@@ -159,7 +159,7 @@ export function StepReview({
                     const sellerIdx = selectedSellerIndexes[i];
                     const seller = sellerIdx !== undefined ? item.sellerReferences?.[sellerIdx] : undefined;
                     return seller ? (
-                      <p className="mt-1.5 flex items-center gap-1.5 text-[12px] text-zinc-500">
+                      <p className="mt-1.5 flex items-center gap-1.5 text-label text-zinc-500">
                         <Tag className="h-3 w-3 shrink-0" />
                         Seller: <span className="font-medium text-zinc-700">{seller.sellerName}</span>
                         <span className="tabular-nums">— {formatCurrency(seller.price)}/unit</span>
@@ -167,7 +167,7 @@ export function StepReview({
                     ) : null;
                   })()}
                   {item.specifications && (
-                    <p className="mt-1.5 text-[12px] text-zinc-500 whitespace-pre-wrap leading-relaxed">
+                    <p className="mt-1.5 text-label text-zinc-500 whitespace-pre-wrap leading-relaxed">
                       {item.specifications}
                     </p>
                   )}
@@ -179,7 +179,7 @@ export function StepReview({
                         className="h-8 w-8 rounded-md object-cover border border-zinc-200"
                       />
                       <Camera className="h-3 w-3 text-zinc-400" />
-                      <span className="text-[11px] text-zinc-500 truncate max-w-[180px]">
+                      <span className="text-caption text-zinc-500 truncate max-w-[180px]">
                         {photoName}
                       </span>
                     </div>
@@ -190,13 +190,13 @@ export function StepReview({
           </div>
           <div className="mt-4 flex justify-end border-t border-zinc-100 pt-3">
             <div className="text-right">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-500">
+              <p className="text-micro font-semibold uppercase tracking-[0.08em] text-zinc-500">
                 {isProcurement ? 'Pricing' : 'Total'}
               </p>
               {isProcurement ? (
-                <p className="mt-1 text-[16px] font-semibold text-amber-600">TBQ</p>
+                <p className="mt-1 text-heading-sm font-semibold text-amber-600">TBQ</p>
               ) : (
-                <p className="mt-1 text-[18px] font-bold text-zinc-900 tabular-nums">
+                <p className="mt-1 text-heading-sm font-bold text-zinc-900 tabular-nums">
                   {formatCurrency(totalAmount)}
                 </p>
               )}
@@ -209,7 +209,7 @@ export function StepReview({
       {isReturned && (
         <Surface className="border-amber-200 bg-amber-50/40">
           <div className="px-6 pt-5 pb-3">
-            <h2 className="flex items-center gap-2 text-[15px] font-semibold text-amber-900">
+            <h2 className="flex items-center gap-2 text-body-lg font-semibold text-amber-900">
               <AlertCircle className="h-4 w-4" />
               What changed? <span className="text-red-600">*</span>
             </h2>
@@ -245,11 +245,11 @@ function SummaryItem({
 }) {
   return (
     <div>
-      <dt className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400">
+      <dt className="text-micro font-semibold uppercase tracking-[0.08em] text-zinc-400">
         {label}
       </dt>
       <dd
-        className={`mt-1.5 text-[13px] ${wrap ? 'whitespace-pre-wrap' : ''} ${
+        className={`mt-1.5 text-body ${wrap ? 'whitespace-pre-wrap' : ''} ${
           missing ? 'text-red-600 italic' : 'text-zinc-800 font-medium'
         }`}
       >

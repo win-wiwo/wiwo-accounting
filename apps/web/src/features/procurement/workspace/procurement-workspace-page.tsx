@@ -174,7 +174,7 @@ export function ProcurementWorkspacePage() {
     return (
       <div className="space-y-6 max-w-screen-2xl">
         <button
-          className="inline-flex items-center gap-1.5 text-[13px] text-zinc-400 hover:text-zinc-700 transition-colors duration-150"
+          className="inline-flex items-center gap-1.5 text-body text-zinc-400 hover:text-zinc-700 transition-colors duration-150"
           onClick={() => navigate('/procurement')}
         >
           <ArrowLeft className="h-3.5 w-3.5" /> Procurement Queue
@@ -183,8 +183,8 @@ export function ProcurementWorkspacePage() {
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-100 mb-4">
             <ShoppingCart className="h-6 w-6 text-zinc-400" />
           </div>
-          <h3 className="text-[16px] font-semibold text-zinc-900 mb-1.5">Purchase request not found</h3>
-          <p className="text-[13px] text-zinc-500 max-w-sm">This request may have been removed or you may not have access.</p>
+          <h3 className="text-heading-sm font-semibold text-zinc-900 mb-1.5">Purchase request not found</h3>
+          <p className="text-body text-zinc-500 max-w-sm">This request may have been removed or you may not have access.</p>
         </div>
       </div>
     );
@@ -219,7 +219,7 @@ export function ProcurementWorkspacePage() {
         style={{ animationDelay: '0s' }}
       >
         <button
-          className="inline-flex items-center gap-1.5 text-[11px] font-medium text-zinc-400 hover:text-zinc-600 transition-colors duration-150 mb-3 tracking-wide uppercase"
+          className="inline-flex items-center gap-1.5 text-caption font-medium text-zinc-400 hover:text-zinc-600 transition-colors duration-150 mb-3 tracking-wide uppercase"
           onClick={() => navigate('/procurement')}
         >
           <ArrowLeft className="h-3 w-3" /> Procurement Queue
@@ -227,15 +227,15 @@ export function ProcurementWorkspacePage() {
 
         <div className="flex items-end justify-between gap-6 flex-wrap">
           <div className="min-w-0">
-            <h1 className="text-[24px] font-bold tracking-[-0.02em] leading-tight text-zinc-900 truncate max-w-[640px]">
+            <h1 className="text-display font-bold tracking-[-0.02em] leading-tight text-zinc-900 truncate max-w-[640px]">
               {pr.title}
             </h1>
             <div className="flex items-center gap-2 mt-2 flex-wrap">
               {pr.prNumber && (
-                <span className="font-mono text-[12px] font-semibold text-zinc-400 tracking-tight">{pr.prNumber}</span>
+                <span className="font-mono text-label font-semibold text-zinc-400 tracking-tight">{pr.prNumber}</span>
               )}
               <span className="h-3.5 w-px bg-zinc-200" />
-              <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${
+              <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-caption font-semibold ${
                 pr.status === 'pending_quotation' || pr.status === 'returned'
                   ? 'bg-tone-warning-bg text-tone-warning-text border-tone-warning-border'
                   : 'bg-tone-neutral-bg text-tone-neutral-text border-tone-neutral-border'
@@ -243,7 +243,7 @@ export function ProcurementWorkspacePage() {
                 {PR_STATUS_LABELS[pr.status as PrStatusType]}
               </span>
               {(pr.priority === 'urgent' || pr.priority === 'high') && (
-                <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${
+                <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-caption font-semibold ${
                   pr.priority === 'urgent' ? 'bg-tone-danger-bg text-tone-danger-text border-tone-danger-border' : 'bg-tone-warning-bg text-tone-warning-text border-tone-warning-border'
                 }`}>
                   <AlertTriangle className="h-2.5 w-2.5" /> {PR_PRIORITY_LABELS[pr.priority as PrPriority]}
@@ -252,7 +252,7 @@ export function ProcurementWorkspacePage() {
               {pr.neededByDate && (
                 <>
                   <span className="h-3.5 w-px bg-zinc-200" />
-                  <span className={`text-[12px] font-medium ${neededByDays !== null && neededByDays <= 3 ? 'text-red-500' : 'text-zinc-500'}`}>
+                  <span className={`text-label font-medium ${neededByDays !== null && neededByDays <= 3 ? 'text-red-500' : 'text-zinc-500'}`}>
                     {neededByDays !== null && neededByDays <= 0
                       ? <span className="text-red-500">Overdue</span>
                       : <>Needed {formatDate(pr.neededByDate)} {neededByDays !== null && neededByDays > 0 && <span className="text-zinc-400 font-normal">({neededByDays}d left)</span>}</>}
@@ -260,7 +260,7 @@ export function ProcurementWorkspacePage() {
                 </>
               )}
               <span className="h-3.5 w-px bg-zinc-200" />
-              <span className="text-[12px] text-zinc-400">{procItems.length} item{procItems.length !== 1 ? 's' : ''} to source</span>
+              <span className="text-label text-zinc-400">{procItems.length} item{procItems.length !== 1 ? 's' : ''} to source</span>
             </div>
           </div>
 
@@ -271,7 +271,7 @@ export function ProcurementWorkspacePage() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="border-zinc-200 text-zinc-600 hover:bg-zinc-50 text-[12px] h-9 gap-1.5"
+                  className="border-zinc-200 text-zinc-600 hover:bg-zinc-50 text-label h-9 gap-1.5"
                   onClick={() => { canvass.setReturnNote(''); setShowReturnModal(true); }}
                   disabled={canvass.isReturning || canvass.isSubmitting}
                 >
@@ -279,7 +279,7 @@ export function ProcurementWorkspacePage() {
                 </Button>
                 <Button
                   size="sm"
-                  className="bg-zinc-900 hover:bg-zinc-800 text-white text-[12px] h-9 gap-1.5"
+                  className="bg-zinc-900 hover:bg-zinc-800 text-white text-label h-9 gap-1.5"
                   onClick={() => canvass.startQuotation(pr)}
                   disabled={procItems.length === 0 || canvass.isSubmitting || canvass.isReturning}
                 >
@@ -289,7 +289,7 @@ export function ProcurementWorkspacePage() {
               </>
             )}
             {canvass.actionStep === 'quotation' && (
-              <Button size="sm" variant="outline" className="text-[12px] h-9" onClick={() => setShowDiscardConfirm(true)} disabled={canvass.isSubmitting}>
+              <Button size="sm" variant="outline" className="text-label h-9" onClick={() => setShowDiscardConfirm(true)} disabled={canvass.isSubmitting}>
                 Discard Changes
               </Button>
             )}
@@ -305,7 +305,7 @@ export function ProcurementWorkspacePage() {
           {/* Request Details */}
           <div className="rounded-xl border border-zinc-200/80 bg-white shadow-card overflow-hidden">
             <div className="px-5 py-3 border-b border-zinc-100">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-zinc-400">Request Details</p>
+              <p className="text-caption font-semibold uppercase tracking-[0.07em] text-zinc-400">Request Details</p>
             </div>
             <div className="px-5 py-4 space-y-4">
               <div className="flex items-center gap-2.5">
@@ -314,32 +314,32 @@ export function ProcurementWorkspacePage() {
                     src={resolvePhotoUrl(requester?.photoUrl)}
                     alt={requester ? `${requester.firstName} ${requester.lastName}` : undefined}
                   />
-                  <AvatarFallback className="bg-zinc-100 text-zinc-600 text-[12px] font-semibold">
+                  <AvatarFallback className="bg-zinc-100 text-zinc-600 text-label font-semibold">
                     {requester?.firstName?.[0] ?? <User className="h-3.5 w-3.5" />}
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0">
-                  <p className="text-[13px] font-semibold leading-tight text-zinc-900">{requesterName}</p>
-                  <p className="text-[11px] text-zinc-400 mt-0.5">{department?.name ?? '—'}</p>
+                  <p className="text-body font-semibold leading-tight text-zinc-900">{requesterName}</p>
+                  <p className="text-caption text-zinc-400 mt-0.5">{department?.name ?? '—'}</p>
                 </div>
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[11px] text-zinc-400">Submitted</span>
-                  <span className="text-[12px] font-medium text-zinc-700">{formatDate(pr.submittedAt) || '—'}</span>
+                  <span className="text-caption text-zinc-400">Submitted</span>
+                  <span className="text-label font-medium text-zinc-700">{formatDate(pr.submittedAt) || '—'}</span>
                 </div>
                 {pr.projectId && (
                   <div className="flex items-start justify-between gap-2">
-                    <span className="text-[11px] text-zinc-400 shrink-0">Project</span>
-                    <span className="text-[12px] font-medium text-zinc-700 text-right truncate">
+                    <span className="text-caption text-zinc-400 shrink-0">Project</span>
+                    <span className="text-label font-medium text-zinc-700 text-right truncate">
                       {(pr.projectId as unknown as { name: string }).name}
                     </span>
                   </div>
                 )}
               </div>
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-zinc-400 mb-1.5">Purpose</p>
-                <p className="text-[12.5px] leading-relaxed text-zinc-600">{pr.justification}</p>
+                <p className="text-caption font-semibold uppercase tracking-[0.07em] text-zinc-400 mb-1.5">Purpose</p>
+                <p className="text-label leading-relaxed text-zinc-600">{pr.justification}</p>
               </div>
             </div>
           </div>
@@ -349,8 +349,8 @@ export function ProcurementWorkspacePage() {
             <div className="rounded-xl border border-zinc-200/80 bg-white shadow-card overflow-hidden">
               <div className="flex items-center gap-2 px-5 py-3 border-b border-zinc-100">
                 <Paperclip className="h-3.5 w-3.5 text-zinc-400" />
-                <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-zinc-400">Attachments</p>
-                <span className="ml-auto text-[11px] font-medium text-zinc-400 tabular-nums">{supportingAttachments.length}</span>
+                <p className="text-caption font-semibold uppercase tracking-[0.07em] text-zinc-400">Attachments</p>
+                <span className="ml-auto text-caption font-medium text-zinc-400 tabular-nums">{supportingAttachments.length}</span>
               </div>
               <div className="px-4 py-3 space-y-1">
                 {supportingAttachments.map((att) => (
@@ -360,7 +360,7 @@ export function ProcurementWorkspacePage() {
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       {fileTypeIcon(att.mimeType)}
-                      <span className="text-[12px] font-medium text-zinc-700 truncate">{att.originalName}</span>
+                      <span className="text-label font-medium text-zinc-700 truncate">{att.originalName}</span>
                     </div>
                     <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
                       {canPreviewAttachment(att.mimeType) && (
@@ -383,7 +383,7 @@ export function ProcurementWorkspacePage() {
           {/* Approval Timeline */}
           <div className="rounded-xl border border-zinc-200/80 bg-white shadow-card overflow-hidden">
             <div className="px-5 py-3 border-b border-zinc-100">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-zinc-400">Approval Timeline</p>
+              <p className="text-caption font-semibold uppercase tracking-[0.07em] text-zinc-400">Approval Timeline</p>
             </div>
             <div className="px-5 py-4">
               <PurchaseRequestWorkflowTimeline
@@ -404,8 +404,8 @@ export function ProcurementWorkspacePage() {
             <div className="rounded-xl border border-zinc-200/80 bg-white shadow-card overflow-hidden">
               <div className="flex items-start justify-between px-6 pt-5 pb-4 gap-4 border-b border-zinc-100">
                 <div>
-                  <h2 className="text-[16px] font-bold tracking-[-0.01em] text-zinc-900">Supplier Comparison</h2>
-                  <p className="text-[12px] mt-1">
+                  <h2 className="text-heading-sm font-bold tracking-[-0.01em] text-zinc-900">Supplier Comparison</h2>
+                  <p className="text-label mt-1">
                     {existingEntries.length === 1 ? (
                       <span className="text-blue-600 font-medium">1 Supplier Submitted</span>
                     ) : roSelectedEntry ? (
@@ -417,10 +417,10 @@ export function ProcurementWorkspacePage() {
                 </div>
                 {roSelectedTotal > 0 && (
                   <div className="text-right shrink-0">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.07em] text-zinc-400">Selected Total</p>
-                    <p className="text-[26px] font-bold tabular-nums leading-tight text-zinc-900 mt-0.5">{formatCurrency(roSelectedTotal)}</p>
+                    <p className="text-micro font-semibold uppercase tracking-[0.07em] text-zinc-400">Selected Total</p>
+                    <p className="text-display font-bold tabular-nums leading-tight text-zinc-900 mt-0.5">{formatCurrency(roSelectedTotal)}</p>
                     {roSavings > 0 && (
-                      <p className="text-[11px] text-emerald-600 font-medium flex items-center justify-end gap-0.5 mt-0.5">
+                      <p className="text-caption text-emerald-600 font-medium flex items-center justify-end gap-0.5 mt-0.5">
                         <TrendingDown className="h-3 w-3" /> saves {formatCurrency(roSavings)}
                       </p>
                     )}
@@ -431,17 +431,17 @@ export function ProcurementWorkspacePage() {
               {existingEntries.length > 0 && (existingEntries.length === 1 || roPriceDiffPercent || (roSelectedEntry && existingEntries.length > 1 && roSelectedTotal === roLowestTotal)) && (
                 <div className="px-6 py-3 flex flex-wrap gap-2 border-b border-zinc-100">
                   {existingEntries.length === 1 && (
-                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-tone-info-bg border border-tone-info-border px-3 py-1.5 text-[11px] text-tone-info-text font-medium">
+                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-tone-info-bg border border-tone-info-border px-3 py-1.5 text-caption text-tone-info-text font-medium">
                       <Info className="h-3 w-3" /> Single supplier — justification required
                     </span>
                   )}
                   {roPriceDiffPercent && (
-                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-tone-warning-bg border border-tone-warning-border px-3 py-1.5 text-[11px] text-tone-warning-text font-medium">
+                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-tone-warning-bg border border-tone-warning-border px-3 py-1.5 text-caption text-tone-warning-text font-medium">
                       <AlertTriangle className="h-3 w-3" /> Selected is +{roPriceDiffPercent}% above cheapest
                     </span>
                   )}
                   {roSelectedEntry && existingEntries.length > 1 && roSelectedTotal === roLowestTotal && (
-                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-tone-success-bg border border-tone-success-border px-3 py-1.5 text-[11px] text-tone-success-text font-medium">
+                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-tone-success-bg border border-tone-success-border px-3 py-1.5 text-caption text-tone-success-text font-medium">
                       <CheckCircle className="h-3 w-3" /> Lowest qualified bid selected
                     </span>
                   )}
@@ -449,16 +449,16 @@ export function ProcurementWorkspacePage() {
               )}
 
               <div className="overflow-x-auto">
-                <table className="w-full text-[13px]">
+                <table className="w-full text-body">
                   <thead>
                     <tr className="bg-zinc-50/60">
-                      <th className="text-left px-6 py-3 text-[10px] font-semibold uppercase tracking-[0.07em] text-zinc-400">Supplier</th>
+                      <th className="text-left px-6 py-3 text-micro font-semibold uppercase tracking-[0.07em] text-zinc-400">Supplier</th>
                       {existingEntries[0]?.quotedItems.map((qi) => (
-                        <th key={qi.itemId} className="text-right px-6 py-3 text-[10px] font-semibold uppercase tracking-[0.07em] text-zinc-400 max-w-[180px]">
+                        <th key={qi.itemId} className="text-right px-6 py-3 text-micro font-semibold uppercase tracking-[0.07em] text-zinc-400 max-w-[180px]">
                           <span className="block truncate">{qi.description}</span>
                         </th>
                       ))}
-                      <th className="text-right px-6 py-3 text-[10px] font-semibold uppercase tracking-[0.07em] text-zinc-400">Total</th>
+                      <th className="text-right px-6 py-3 text-micro font-semibold uppercase tracking-[0.07em] text-zinc-400">Total</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -478,29 +478,29 @@ export function ProcurementWorkspacePage() {
                               {isWinner && <CheckCircle className="h-3.5 w-3.5 text-emerald-500 shrink-0" />}
                               <span className={`font-semibold ${isWinner ? 'text-zinc-900' : 'text-zinc-700'}`}>{entry.supplierName}</span>
                               {isWinner && !isOnlySupplier && (
-                                <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-100 border border-emerald-200 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                                <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-100 border border-emerald-200 px-2 py-0.5 text-micro font-semibold text-emerald-700">
                                   <Trophy className="h-2.5 w-2.5" /> Winner
                                 </span>
                               )}
                               {isOnlySupplier && (
-                                <span className="inline-flex items-center rounded-full bg-tone-info-bg border border-tone-info-border px-2 py-0.5 text-[10px] font-semibold text-tone-info-text">
+                                <span className="inline-flex items-center rounded-full bg-tone-info-bg border border-tone-info-border px-2 py-0.5 text-micro font-semibold text-tone-info-text">
                                   Only Supplier
                                 </span>
                               )}
                               {isLowestBid && !isWinner && (
-                                <span className="inline-flex items-center rounded-full bg-tone-neutral-bg px-2 py-0.5 text-[10px] font-medium text-tone-neutral-text">
+                                <span className="inline-flex items-center rounded-full bg-tone-neutral-bg px-2 py-0.5 text-micro font-medium text-tone-neutral-text">
                                   Lowest Bid
                                 </span>
                               )}
                             </div>
-                            {entry.remarks && <p className="text-[11px] text-zinc-400 mt-1 italic">{entry.remarks}</p>}
+                            {entry.remarks && <p className="text-caption text-zinc-400 mt-1 italic">{entry.remarks}</p>}
                             {(() => {
                               const entryEvidence = quotationAttachments.filter((att) => att.canvassEntryId === entry._id);
                               if (entryEvidence.length === 0) return null;
                               return (
                                 <div className="flex flex-wrap gap-1 mt-1.5">
                                   {entryEvidence.map((att) => (
-                                    <span key={att._id} className="inline-flex items-center gap-1 rounded-md border border-zinc-100 bg-zinc-50 px-2 py-0.5 text-[10px] text-zinc-500">
+                                    <span key={att._id} className="inline-flex items-center gap-1 rounded-md border border-zinc-100 bg-zinc-50 px-2 py-0.5 text-micro text-zinc-500">
                                       <Paperclip className="h-2.5 w-2.5" />
                                       <span className="truncate max-w-[120px]">{att.originalName}</span>
                                     </span>
@@ -514,7 +514,7 @@ export function ProcurementWorkspacePage() {
                               {formatCurrency(qi.unitPrice)}
                             </td>
                           ))}
-                          <td className={`text-right px-6 py-4 tabular-nums font-bold text-[14px] ${isWinner ? 'text-emerald-700' : 'text-zinc-700'}`}>
+                          <td className={`text-right px-6 py-4 tabular-nums font-bold text-body-lg ${isWinner ? 'text-emerald-700' : 'text-zinc-700'}`}>
                             {formatCurrency(entry.totalQuotedAmount)}
                           </td>
                         </tr>
@@ -526,8 +526,8 @@ export function ProcurementWorkspacePage() {
 
               {existingEntries.length < 3 && pr.canvassJustification && (
                 <div className="mx-6 mb-5 mt-3 rounded-xl border border-amber-200/60 bg-amber-50/60 px-4 py-3.5">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.07em] text-amber-600 mb-1.5">Fewer than 3 suppliers — justification</p>
-                  <p className="text-[12.5px] text-amber-900 leading-relaxed">{pr.canvassJustification}</p>
+                  <p className="text-micro font-semibold uppercase tracking-[0.07em] text-amber-600 mb-1.5">Fewer than 3 suppliers — justification</p>
+                  <p className="text-label text-amber-900 leading-relaxed">{pr.canvassJustification}</p>
                 </div>
               )}
             </div>
@@ -537,15 +537,15 @@ export function ProcurementWorkspacePage() {
           {!readOnlyMode && canvass.actionStep !== 'quotation' && (
             <div className="rounded-xl border border-zinc-200/80 bg-white shadow-card overflow-hidden">
               <div className="px-6 pt-5 pb-4 border-b border-zinc-100">
-                <h2 className="text-[16px] font-bold tracking-[-0.01em] text-zinc-900">Supplier Comparison</h2>
-                <p className="text-[12px] text-zinc-400 mt-1">Quote every item per supplier. <span className="text-emerald-600 font-medium">Green</span> = lowest price. <span className="text-red-500 font-medium">Red</span> = highest.</p>
+                <h2 className="text-heading-sm font-bold tracking-[-0.01em] text-zinc-900">Supplier Comparison</h2>
+                <p className="text-label text-zinc-400 mt-1">Quote every item per supplier. <span className="text-emerald-600 font-medium">Green</span> = lowest price. <span className="text-red-500 font-medium">Red</span> = highest.</p>
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full text-[13px]">
+                <table className="w-full text-body">
                   <thead>
                     <tr className="bg-zinc-50/60">
-                      <th className="text-left px-6 py-3 text-[10px] font-semibold uppercase tracking-[0.07em] text-zinc-400">Item</th>
-                      <th className="text-right px-6 py-3 text-[10px] font-semibold uppercase tracking-[0.07em] text-zinc-400">Qty</th>
+                      <th className="text-left px-6 py-3 text-micro font-semibold uppercase tracking-[0.07em] text-zinc-400">Item</th>
+                      <th className="text-right px-6 py-3 text-micro font-semibold uppercase tracking-[0.07em] text-zinc-400">Qty</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -555,13 +555,13 @@ export function ProcurementWorkspacePage() {
                           <div className="flex items-start gap-2">
                             <div className="min-w-0 flex-1">
                               <p className="font-medium text-zinc-800">{item.description}</p>
-                              {item.specifications && <p className="text-[11px] text-zinc-400 mt-0.5">{item.specifications}</p>}
+                              {item.specifications && <p className="text-caption text-zinc-400 mt-0.5">{item.specifications}</p>}
                             </div>
                             {item.referencePhotoPath && (
                               <button
                                 type="button"
                                 onClick={() => handleViewItemPhoto(item._id)}
-                                className="shrink-0 mt-0.5 inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10px] text-zinc-500 hover:bg-zinc-100 transition-colors duration-150"
+                                className="shrink-0 mt-0.5 inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-micro text-zinc-500 hover:bg-zinc-100 transition-colors duration-150"
                               >
                                 <Camera className="h-2.5 w-2.5" /> Photo
                               </button>
@@ -574,8 +574,8 @@ export function ProcurementWorkspacePage() {
                   </tbody>
                 </table>
               </div>
-              <div className="px-6 py-3 border-t border-zinc-100 text-[11px] text-zinc-400">No suppliers added yet</div>
-              <div className="px-6 py-3 border-t border-zinc-100 font-semibold text-[11px] uppercase tracking-[0.07em] text-zinc-400">Total</div>
+              <div className="px-6 py-3 border-t border-zinc-100 text-caption text-zinc-400">No suppliers added yet</div>
+              <div className="px-6 py-3 border-t border-zinc-100 font-semibold text-caption uppercase tracking-[0.07em] text-zinc-400">Total</div>
             </div>
           )}
 
@@ -673,20 +673,20 @@ export function ProcurementWorkspacePage() {
             </div>
             <div className="flex items-center gap-3 shrink-0">
               {!isReady && (
-                <p className="text-[11px] text-amber-600 hidden lg:block max-w-[200px] leading-tight font-medium text-right">
+                <p className="text-caption text-amber-600 hidden lg:block max-w-[200px] leading-tight font-medium text-right">
                   {!hasWinner ? 'Select a winning supplier' :
                    !allPricesFilled ? 'Complete all prices' :
                    suppliersWithIds.length < 1 ? 'Add at least one supplier' : ''}
                 </p>
               )}
               {isReady && (
-                <p className="text-[11px] text-zinc-400 hidden lg:block max-w-[200px] leading-tight text-right">
+                <p className="text-caption text-zinc-400 hidden lg:block max-w-[200px] leading-tight text-right">
                   Sends pricing to COO for review
                 </p>
               )}
               <Button
                 variant="outline"
-                className="text-[12px] h-9 gap-1.5"
+                className="text-label h-9 gap-1.5"
                 onClick={() => canvass.handleSaveDraft()}
                 disabled={canvass.isSubmitting || canvass.isSavingDraft || suppliersWithIds.length === 0}
               >
@@ -694,7 +694,7 @@ export function ProcurementWorkspacePage() {
                 Save Draft
               </Button>
               <Button
-                className="bg-zinc-900 hover:bg-zinc-800 text-white text-[12px] h-9 gap-1.5"
+                className="bg-zinc-900 hover:bg-zinc-800 text-white text-label h-9 gap-1.5"
                 onClick={() => {
                   // Validate justification for fewer than 3 suppliers
                   if (canvass.canvassEntries.length < 3 && !canvass.canvassJustification.trim()) {
@@ -718,13 +718,13 @@ export function ProcurementWorkspacePage() {
       <Dialog open={showReturnModal} onOpenChange={setShowReturnModal}>
         <DialogContent className="sm:max-w-[440px]">
           <DialogHeader>
-            <DialogTitle className="text-[15px]">Return to Requester</DialogTitle>
+            <DialogTitle className="text-body-lg">Return to Requester</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <p className="text-[12px] text-zinc-500">The PR will be returned to the requester. Please provide a reason.</p>
+            <p className="text-label text-zinc-500">The PR will be returned to the requester. Please provide a reason.</p>
             <textarea
               rows={3}
-              className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-[13px] text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-300 resize-none leading-relaxed"
+              className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-body text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-300 resize-none leading-relaxed"
               placeholder="e.g. Please specify the exact model number or acceptable brand equivalents…"
               value={canvass.returnNote}
               onChange={(e) => canvass.setReturnNote(e.target.value)}
@@ -732,12 +732,12 @@ export function ProcurementWorkspacePage() {
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" size="sm" className="text-[12px]" onClick={() => setShowReturnModal(false)} disabled={canvass.isReturning}>
+            <Button variant="outline" size="sm" className="text-label" onClick={() => setShowReturnModal(false)} disabled={canvass.isReturning}>
               Cancel
             </Button>
             <Button
               size="sm"
-              className="text-[12px] gap-1.5"
+              className="text-label gap-1.5"
               onClick={async () => { await canvass.handleReturnForInfo(); setShowReturnModal(false); }}
               disabled={canvass.isReturning || !canvass.returnNote.trim()}
             >
@@ -752,14 +752,14 @@ export function ProcurementWorkspacePage() {
       <Dialog open={showDiscardConfirm} onOpenChange={setShowDiscardConfirm}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-[16px]">Discard Changes?</DialogTitle>
+            <DialogTitle className="text-heading-sm">Discard Changes?</DialogTitle>
           </DialogHeader>
-          <p className="text-[13px] text-zinc-500 leading-relaxed">
+          <p className="text-body text-zinc-500 leading-relaxed">
             All supplier entries, prices, and notes you entered will be lost.
           </p>
           <DialogFooter>
-            <Button variant="outline" className="text-[12px]" onClick={() => setShowDiscardConfirm(false)}>Keep Editing</Button>
-            <Button variant="destructive" className="text-[12px]" onClick={() => { setShowDiscardConfirm(false); canvass.resetActions(); }}>
+            <Button variant="outline" className="text-label" onClick={() => setShowDiscardConfirm(false)}>Keep Editing</Button>
+            <Button variant="destructive" className="text-label" onClick={() => { setShowDiscardConfirm(false); canvass.resetActions(); }}>
               Discard
             </Button>
           </DialogFooter>
@@ -770,7 +770,7 @@ export function ProcurementWorkspacePage() {
       <Dialog open={showSubmitConfirm} onOpenChange={setShowSubmitConfirm}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle className="text-[16px]">Confirm Supplier Selection</DialogTitle>
+            <DialogTitle className="text-heading-sm">Confirm Supplier Selection</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-1">
             {/* Winner card */}
@@ -781,16 +781,16 @@ export function ProcurementWorkspacePage() {
                     <Trophy className="h-3.5 w-3.5 text-emerald-600" />
                   </div>
                   <div>
-                    <p className="text-[13px] font-semibold text-zinc-900">{selectedSupplier?.companyName ?? '—'}</p>
-                    <p className="text-[10px] text-emerald-600 font-medium">
+                    <p className="text-body font-semibold text-zinc-900">{selectedSupplier?.companyName ?? '—'}</p>
+                    <p className="text-micro text-emerald-600 font-medium">
                       {canvass.canvassEntries.length === 1 ? 'Only Supplier' : 'Selected Winner'}
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-[20px] font-bold text-zinc-900 tabular-nums leading-tight">{formatCurrency(selectedTotal)}</p>
+                  <p className="text-heading font-bold text-zinc-900 tabular-nums leading-tight">{formatCurrency(selectedTotal)}</p>
                   {savings > 0 && (
-                    <p className="text-[11px] text-emerald-600 font-medium flex items-center justify-end gap-0.5 mt-0.5">
+                    <p className="text-caption text-emerald-600 font-medium flex items-center justify-end gap-0.5 mt-0.5">
                       <TrendingDown className="h-3 w-3" /> saves {formatCurrency(savings)}
                     </p>
                   )}
@@ -804,7 +804,7 @@ export function ProcurementWorkspacePage() {
                     const unitPrice = Number(selectedEntry.quotedPrices[item._id]) || 0;
                     const lineTotal = unitPrice * item.quantity;
                     return (
-                      <div key={item._id} className="flex items-center justify-between text-[11px]">
+                      <div key={item._id} className="flex items-center justify-between text-caption">
                         <span className="text-zinc-600 truncate max-w-[260px]">
                           {item.description} <span className="text-zinc-400">× {item.quantity}</span>
                         </span>
@@ -818,29 +818,29 @@ export function ProcurementWorkspacePage() {
 
             {/* Summary chips */}
             <div className="flex flex-wrap gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-md bg-zinc-100 px-2.5 py-1 text-[11px] font-medium text-zinc-600">
+              <span className="inline-flex items-center gap-1.5 rounded-md bg-zinc-100 px-2.5 py-1 text-caption font-medium text-zinc-600">
                 {canvass.canvassEntries.length} supplier{canvass.canvassEntries.length !== 1 ? 's' : ''} compared
               </span>
               {quotationAttachments.length > 0 && (
-                <span className="inline-flex items-center gap-1.5 rounded-md bg-zinc-100 px-2.5 py-1 text-[11px] font-medium text-zinc-600">
+                <span className="inline-flex items-center gap-1.5 rounded-md bg-zinc-100 px-2.5 py-1 text-caption font-medium text-zinc-600">
                   <Paperclip className="h-3 w-3" /> {quotationAttachments.length} evidence file{quotationAttachments.length !== 1 ? 's' : ''}
                 </span>
               )}
               {canvass.canvassEntries.length < 3 && canvass.canvassJustification.trim() && (
-                <span className="inline-flex items-center gap-1.5 rounded-md bg-tone-warning-bg border border-tone-warning-border px-2.5 py-1 text-[11px] font-medium text-tone-warning-text">
+                <span className="inline-flex items-center gap-1.5 rounded-md bg-tone-warning-bg border border-tone-warning-border px-2.5 py-1 text-caption font-medium text-tone-warning-text">
                   <Info className="h-3 w-3" /> Justification provided
                 </span>
               )}
             </div>
 
-            <p className="text-[12px] text-zinc-400 leading-relaxed">
+            <p className="text-label text-zinc-400 leading-relaxed">
               This will forward the canvass to the COO for price sign-off. Ensure all prices and evidence are correct.
             </p>
           </div>
           <DialogFooter>
-            <Button variant="outline" className="text-[12px]" onClick={() => setShowSubmitConfirm(false)}>Go Back</Button>
+            <Button variant="outline" className="text-label" onClick={() => setShowSubmitConfirm(false)}>Go Back</Button>
             <Button
-              className="bg-zinc-900 hover:bg-zinc-800 text-white text-[12px] gap-1.5"
+              className="bg-zinc-900 hover:bg-zinc-800 text-white text-label gap-1.5"
               onClick={() => { setShowSubmitConfirm(false); canvass.handleSubmitQuotation(); }}
               disabled={canvass.isSubmitting}
             >
@@ -855,7 +855,7 @@ export function ProcurementWorkspacePage() {
       <Dialog open={previewDialog.open} onOpenChange={(o) => { if (!o) closePreviewDialog(); }}>
         <DialogContent className="max-w-4xl" onOpenAutoFocus={(e) => e.preventDefault()}>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-[14px]">
+            <DialogTitle className="flex items-center gap-2 text-body-lg">
               <FileText className="h-4 w-4 text-zinc-400" /> {previewDialog.name || 'Attachment Preview'}
             </DialogTitle>
           </DialogHeader>
@@ -875,7 +875,7 @@ export function ProcurementWorkspacePage() {
       <Dialog open={itemPhotoDialog.open} onOpenChange={(o) => { if (!o) closeItemPhotoDialog(); }}>
         <DialogContent className="max-w-2xl" onOpenAutoFocus={(e) => e.preventDefault()}>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-[14px]">
+            <DialogTitle className="flex items-center gap-2 text-body-lg">
               <ImageIcon className="h-4 w-4 text-zinc-400" /> Reference Photo
             </DialogTitle>
           </DialogHeader>
@@ -896,7 +896,7 @@ export function ProcurementWorkspacePage() {
 
 function ChecklistItem({ done, label }: { done: boolean; label: string }) {
   return (
-    <div className="flex items-center gap-1.5 text-[12px]">
+    <div className="flex items-center gap-1.5 text-label">
       {done
         ? <CheckCircle className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
         : <XCircle className="h-3.5 w-3.5 text-zinc-300 shrink-0" />}

@@ -310,7 +310,7 @@ export function PoDetailPage() {
               <Button
                 size="sm"
                 variant="outline"
-                className="rounded-lg text-[13px] h-8 border-blue-200 text-blue-700 hover:bg-blue-50"
+                className="rounded-lg text-body h-8 border-blue-200 text-blue-700 hover:bg-blue-50"
                 onClick={() => navigate(`/purchase-requests/${sourceRequest._id}`)}
               >
                 <FileText className="h-3.5 w-3.5" /> View Purchase Request
@@ -372,27 +372,27 @@ export function PoDetailPage() {
               <table className="w-full">
                 <thead className="bg-white/95 border-b border-zinc-100">
                   <tr>
-                    <th className="h-11 px-5 w-10 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">#</th>
-                    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">Description</th>
-                    <th className="h-11 px-5 text-right text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">Qty</th>
-                    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">Unit</th>
-                    <th className="h-11 px-5 text-right text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">Unit Price</th>
-                    <th className="h-11 px-5 text-right text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">Total</th>
+                    <th className="h-11 px-5 w-10 text-left text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400">#</th>
+                    <th className="h-11 px-5 text-left text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400">Description</th>
+                    <th className="h-11 px-5 text-right text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400">Qty</th>
+                    <th className="h-11 px-5 text-left text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400">Unit</th>
+                    <th className="h-11 px-5 text-right text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400">Unit Price</th>
+                    <th className="h-11 px-5 text-right text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400">Total</th>
                   </tr>
                 </thead>
                 <tbody>
                   {po.items.map(
                     (item: { _id: string; description: string; quantity: number; unit: string; unitPrice: number; totalPrice: number; notes?: string }, i: number) => (
                       <tr key={item._id || i} className="border-b border-zinc-100/60 last:border-0 hover:bg-zinc-50/60 transition-colors duration-150">
-                        <td className="px-5 py-4 text-[12px] text-zinc-400 tabular-nums">{i + 1}</td>
+                        <td className="px-5 py-4 text-label text-zinc-400 tabular-nums">{i + 1}</td>
                         <td className="px-5 py-4">
-                          <p className="text-[13px] font-medium text-zinc-800">{item.description}</p>
-                          {item.notes && <p className="text-[12px] text-zinc-400 mt-0.5">{item.notes}</p>}
+                          <p className="text-body font-medium text-zinc-800">{item.description}</p>
+                          {item.notes && <p className="text-label text-zinc-400 mt-0.5">{item.notes}</p>}
                         </td>
-                        <td className="px-5 py-4 text-right text-[13px] text-zinc-700 tabular-nums">{item.quantity}</td>
-                        <td className="px-5 py-4 text-[13px] text-zinc-500">{item.unit}</td>
-                        <td className="px-5 py-4 text-right text-[13px] text-zinc-700 tabular-nums">{formatCurrency(item.unitPrice)}</td>
-                        <td className="px-5 py-4 text-right text-[13px] font-semibold text-zinc-900 tabular-nums">{formatCurrency(item.totalPrice)}</td>
+                        <td className="px-5 py-4 text-right text-body text-zinc-700 tabular-nums">{item.quantity}</td>
+                        <td className="px-5 py-4 text-body text-zinc-500">{item.unit}</td>
+                        <td className="px-5 py-4 text-right text-body text-zinc-700 tabular-nums">{formatCurrency(item.unitPrice)}</td>
+                        <td className="px-5 py-4 text-right text-body font-semibold text-zinc-900 tabular-nums">{formatCurrency(item.totalPrice)}</td>
                       </tr>
                     ),
                   )}
@@ -401,8 +401,8 @@ export function PoDetailPage() {
             </div>
             <div className="flex justify-end border-t border-zinc-100 px-6 py-4">
               <div className="text-right">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400">Total Amount</p>
-                <p className="mt-1.5 text-[24px] font-bold text-zinc-900 tabular-nums">{formatCurrency(po.totalAmount)}</p>
+                <p className="text-micro font-semibold uppercase tracking-[0.08em] text-zinc-400">Total Amount</p>
+                <p className="mt-1.5 text-display font-bold text-zinc-900 tabular-nums">{formatCurrency(po.totalAmount)}</p>
               </div>
             </div>
           </Surface>
@@ -422,11 +422,11 @@ export function PoDetailPage() {
                     >
                       <div className="flex items-center justify-between gap-4">
                         <div className="min-w-0">
-                          <p className="text-[13px] font-medium text-zinc-900 truncate">{entry.supplierName}</p>
-                          <p className="text-[12px] text-zinc-500 mt-0.5 tabular-nums">
+                          <p className="text-body font-medium text-zinc-900 truncate">{entry.supplierName}</p>
+                          <p className="text-label text-zinc-500 mt-0.5 tabular-nums">
                             Total Quoted: {formatCurrency(entry.totalQuotedAmount)}
                           </p>
-                          {entry.remarks && <p className="mt-1 text-[12px] italic text-zinc-400">{entry.remarks}</p>}
+                          {entry.remarks && <p className="mt-1 text-label italic text-zinc-400">{entry.remarks}</p>}
                         </div>
                         {entry.isSelected && <StatusBadge tone="success">Selected</StatusBadge>}
                       </div>
@@ -463,8 +463,8 @@ export function PoDetailPage() {
                 </div>
                 {po.receivingNotes && (
                   <div className="mt-4 rounded-lg bg-zinc-50 p-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400 mb-1">Receiving Notes</p>
-                    <p className="text-[13px] text-zinc-700 whitespace-pre-wrap">{po.receivingNotes}</p>
+                    <p className="text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400 mb-1">Receiving Notes</p>
+                    <p className="text-body text-zinc-700 whitespace-pre-wrap">{po.receivingNotes}</p>
                   </div>
                 )}
               </div>
@@ -475,7 +475,7 @@ export function PoDetailPage() {
             <Surface>
               <PanelHeader title="Remarks" />
               <div className="px-6 pb-6">
-                <p className="text-[13px] text-zinc-700 leading-relaxed whitespace-pre-wrap">{po.remarks}</p>
+                <p className="text-body text-zinc-700 leading-relaxed whitespace-pre-wrap">{po.remarks}</p>
               </div>
             </Surface>
           )}
@@ -488,8 +488,8 @@ export function PoDetailPage() {
             <div className="p-6 space-y-4">
               <div>
                 <SidebarLabel>Total Amount</SidebarLabel>
-                <p className="mt-2 text-[24px] font-bold text-zinc-900 tabular-nums leading-none">{formatCurrency(po.totalAmount)}</p>
-                <p className="mt-1 text-[12px] text-zinc-400">{po.currency || 'PHP'}</p>
+                <p className="mt-2 text-display font-bold text-zinc-900 tabular-nums leading-none">{formatCurrency(po.totalAmount)}</p>
+                <p className="mt-1 text-label text-zinc-400">{po.currency || 'PHP'}</p>
               </div>
             </div>
           </Surface>
@@ -500,7 +500,7 @@ export function PoDetailPage() {
               <SidebarLabel>
                 <span className="inline-flex items-center gap-1.5"><ShoppingCart className="h-3 w-3" /> Supplier</span>
               </SidebarLabel>
-              <p className="mt-2 text-[13px] font-semibold text-zinc-900">
+              <p className="mt-2 text-body font-semibold text-zinc-900">
                 {po.supplierName || ((po.canvassEntries?.length ?? 0) === 0 ? 'Online' : '—')}
               </p>
             </div>
@@ -509,7 +509,7 @@ export function PoDetailPage() {
           {/* Fulfillment Timeline */}
           <Surface elevation="subtle">
             <div className="p-6">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400 mb-4">Fulfillment Timeline</p>
+              <p className="text-micro font-semibold uppercase tracking-[0.08em] text-zinc-400 mb-4">Fulfillment Timeline</p>
               {(() => {
                 const nodes: { id: string; icon: React.ReactNode; title: string; actor?: string; date: string; detail?: string; pulse?: boolean }[] = [];
 
@@ -575,14 +575,14 @@ export function PoDetailPage() {
                             {node.icon}
                           </div>
                           <div className="flex-1 min-w-0 pb-0.5">
-                            <span className="text-[13px] font-semibold text-zinc-800">{node.title}</span>
-                            {node.actor && <p className="text-[12px] text-zinc-500 mt-0.5">by {node.actor}</p>}
-                            <p className="mt-1 text-[11px] tabular-nums text-zinc-400">
+                            <span className="text-body font-semibold text-zinc-800">{node.title}</span>
+                            {node.actor && <p className="text-label text-zinc-500 mt-0.5">by {node.actor}</p>}
+                            <p className="mt-1 text-caption tabular-nums text-zinc-400">
                               {node.id === 'eta' ? formatDate(node.date) : formatDateTime(node.date)}
                             </p>
                             {node.detail && (
                               <div className="mt-2 rounded-lg border border-zinc-100 bg-zinc-50/80 px-3 py-2.5">
-                                <p className="text-[12px] text-zinc-500 leading-relaxed whitespace-pre-wrap italic">"{node.detail}"</p>
+                                <p className="text-label text-zinc-500 leading-relaxed whitespace-pre-wrap italic">"{node.detail}"</p>
                               </div>
                             )}
                           </div>
@@ -594,7 +594,7 @@ export function PoDetailPage() {
                             <span className="block h-2 w-2 rounded-full bg-zinc-300 animate-pulse" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-[12px] text-zinc-400">
+                            <p className="text-label text-zinc-400">
                               {isPending ? 'Awaiting order placement' : 'Awaiting delivery'}
                             </p>
                           </div>
@@ -682,7 +682,7 @@ export function PoDetailPage() {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-zinc-300 bg-zinc-50 px-4 py-6 text-[13px] font-medium text-zinc-600 hover:border-zinc-400 hover:bg-zinc-100 transition-colors active:bg-zinc-200"
+                  className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-zinc-300 bg-zinc-50 px-4 py-6 text-body font-medium text-zinc-600 hover:border-zinc-400 hover:bg-zinc-100 transition-colors active:bg-zinc-200"
                 >
                   <Camera className="h-5 w-5 text-zinc-400" />
                   {receivePhotos.length === 0 ? 'Take Photo or Choose File' : 'Add More Photos'}
@@ -695,7 +695,7 @@ export function PoDetailPage() {
               <textarea
                 id="receive-notes"
                 rows={3}
-                className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[13px] text-zinc-800 outline-none transition-all duration-200 focus:border-zinc-400 focus:shadow-focus"
+                className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-body text-zinc-800 outline-none transition-all duration-200 focus:border-zinc-400 focus:shadow-focus"
                 placeholder="Optional notes about the received items..."
                 value={receiveNotes}
                 onChange={(e) => setReceiveNotes(e.target.value)}
@@ -751,14 +751,14 @@ export function PoDetailPage() {
               <textarea
                 id="cancel-reason"
                 rows={3}
-                className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[13px] text-zinc-800 outline-none transition-all duration-200 focus:border-zinc-400 focus:shadow-focus"
+                className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-body text-zinc-800 outline-none transition-all duration-200 focus:border-zinc-400 focus:shadow-focus"
                 placeholder="Why is this PO being cancelled?"
                 value={cancelReason}
                 onChange={(e) => setCancelReason(e.target.value)}
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-[13px]">What should happen to the PR?</Label>
+              <Label className="text-body">What should happen to the PR?</Label>
               <div className="space-y-2">
                 {(([
                   { value: 'keep_approved', title: 'Keep PR approved', hint: 'Issue a new PO from the existing canvass (e.g. wrong supplier picked, duplicate PO).' },
@@ -785,8 +785,8 @@ export function PoDetailPage() {
                       className="mt-1 shrink-0"
                     />
                     <div className="min-w-0">
-                      <p className="text-[13px] font-medium text-zinc-800">{opt.title}</p>
-                      <p className="text-[11.5px] text-zinc-500 leading-snug mt-0.5">{opt.hint}</p>
+                      <p className="text-body font-medium text-zinc-800">{opt.title}</p>
+                      <p className="text-caption text-zinc-500 leading-snug mt-0.5">{opt.hint}</p>
                     </div>
                   </label>
                 ))}
@@ -833,7 +833,7 @@ export function PoDetailPage() {
 function PanelHeader({ icon, title }: { icon?: React.ReactNode; title: string }) {
   return (
     <div className="px-6 pt-6 pb-4">
-      <h2 className="flex items-center gap-2 text-[15px] font-semibold text-zinc-900">{icon}{title}</h2>
+      <h2 className="flex items-center gap-2 text-body-lg font-semibold text-zinc-900">{icon}{title}</h2>
     </div>
   );
 }
@@ -841,14 +841,14 @@ function PanelHeader({ icon, title }: { icon?: React.ReactNode; title: string })
 function Field({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div>
-      <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">{label}</p>
-      <p className={`mt-1.5 text-[13px] text-zinc-800 ${mono ? 'font-mono' : 'font-medium'}`}>{value}</p>
+      <p className="text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400">{label}</p>
+      <p className={`mt-1.5 text-body text-zinc-800 ${mono ? 'font-mono' : 'font-medium'}`}>{value}</p>
     </div>
   );
 }
 
 function SidebarLabel({ children }: { children: React.ReactNode }) {
-  return <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400">{children}</p>;
+  return <p className="text-micro font-semibold uppercase tracking-[0.08em] text-zinc-400">{children}</p>;
 }
 
 function Divider() {

@@ -68,7 +68,7 @@ export function ItemPhotoWidget({
             alt="preview"
             className="h-8 w-8 rounded-md object-cover border border-zinc-200"
           />
-          <span className="text-[12px] text-zinc-700 truncate max-w-[140px]">
+          <span className="text-label text-zinc-700 truncate max-w-[140px]">
             {staged.file.name}
           </span>
           <button
@@ -105,7 +105,7 @@ export function ItemPhotoWidget({
           <button
             type="button"
             onClick={onViewServer}
-            className="text-[12px] text-zinc-700 truncate max-w-[140px] hover:text-zinc-900 transition-colors cursor-pointer"
+            className="text-label text-zinc-700 truncate max-w-[140px] hover:text-zinc-900 transition-colors cursor-pointer"
           >
             {serverPhotoName}
           </button>
@@ -129,7 +129,7 @@ export function ItemPhotoWidget({
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className="inline-flex items-center rounded-md px-2 py-1 text-[12px] font-medium text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 transition-colors"
+          className="inline-flex items-center rounded-md px-2 py-1 text-label font-medium text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 transition-colors"
         >
           Add reference photo
         </button>
@@ -141,7 +141,7 @@ export function ItemPhotoWidget({
           onChange={handleFileChange}
         />
       </div>
-      <p className="text-[11px] text-zinc-400 leading-relaxed">
+      <p className="text-caption text-zinc-400 leading-relaxed">
         Upload a file or paste (Ctrl+V) an image of this specific item, model, or site condition.
       </p>
     </div>

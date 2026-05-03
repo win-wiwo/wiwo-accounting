@@ -132,12 +132,12 @@ export const CanvassMatrix = forwardRef<CanvassMatrixHandle, CanvassMatrixProps>
       <div className="rounded-xl border border-zinc-200/80 bg-white shadow-card overflow-hidden">
         <div className="flex items-center justify-between px-5 pt-5 pb-3">
           <div>
-            <h3 className="text-[15px] font-semibold text-zinc-900">Supplier Comparison</h3>
-            <p className="text-[12px] text-zinc-400 mt-0.5">
+            <h3 className="text-body-lg font-semibold text-zinc-900">Supplier Comparison</h3>
+            <p className="text-label text-zinc-400 mt-0.5">
               Quote every item per supplier. <span className="text-emerald-600">Green</span> = lowest price. <span className="text-red-500">Red</span> = highest.
             </p>
           </div>
-          <Button type="button" variant="outline" size="sm" className="text-[12px] h-8" onClick={() => { setAddSupplierId(''); setAddPrices({}); setAddRemarks(''); setAddFile(null); setAddAttempted(false); setAddSupplierOpen(true); }}>
+          <Button type="button" variant="outline" size="sm" className="text-label h-8" onClick={() => { setAddSupplierId(''); setAddPrices({}); setAddRemarks(''); setAddFile(null); setAddAttempted(false); setAddSupplierOpen(true); }}>
             <Plus className="h-3.5 w-3.5" /> Add Supplier
           </Button>
         </div>
@@ -146,27 +146,27 @@ export const CanvassMatrix = forwardRef<CanvassMatrixHandle, CanvassMatrixProps>
         {entries.length > 0 && (
           <div className="px-5 pb-3 flex flex-wrap gap-2">
             {allItemsQuoted && (
-              <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 border border-emerald-100 px-2 py-1 text-[11px] text-emerald-700">
+              <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 border border-emerald-100 px-2 py-1 text-caption text-emerald-700">
                 All required items quoted
               </span>
             )}
             {hasSelection && isOnlySupplier && (
-              <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 border border-blue-100 px-2 py-1 text-[11px] text-blue-700">
+              <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 border border-blue-100 px-2 py-1 text-caption text-blue-700">
                 <Info className="h-3 w-3" /> Single supplier — justification required
               </span>
             )}
             {winnerAboveCheapestPercent && (
-              <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 border border-amber-100 px-2 py-1 text-[11px] text-amber-700">
+              <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 border border-amber-100 px-2 py-1 text-caption text-amber-700">
                 <AlertTriangle className="h-3 w-3" /> Selected is +{winnerAboveCheapestPercent}% above cheapest
               </span>
             )}
             {savings > 0 && (
-              <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 border border-emerald-100 px-2 py-1 text-[11px] text-emerald-700">
+              <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 border border-emerald-100 px-2 py-1 text-caption text-emerald-700">
                 <TrendingDown className="h-3 w-3" /> {formatCurrency(savings)} savings vs next best
               </span>
             )}
             {!hasSelection && entries.some((e) => e.supplierId) && (
-              <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 border border-amber-100 px-2 py-1 text-[11px] text-amber-700">
+              <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 border border-amber-100 px-2 py-1 text-caption text-amber-700">
                 <AlertTriangle className="h-3 w-3" /> Winner selection required
               </span>
             )}
@@ -175,32 +175,32 @@ export const CanvassMatrix = forwardRef<CanvassMatrixHandle, CanvassMatrixProps>
 
         {/* Matrix Table */}
         <div className="overflow-x-auto">
-          <table className="w-full text-[13px]">
+          <table className="w-full text-body">
             <thead>
               <tr className="border-t border-b border-zinc-100 bg-zinc-50/50">
-                <th className="text-left px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400 w-[280px] min-w-[280px]">Item</th>
-                <th className="text-left px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400 w-[60px]">Qty</th>
+                <th className="text-left px-5 py-2.5 text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400 w-[280px] min-w-[280px]">Item</th>
+                <th className="text-left px-5 py-2.5 text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400 w-[60px]">Qty</th>
                 {entries.map((entry, i) => {
                   const supplierName = suppliers.find((s) => s._id === entry.supplierId)?.companyName || `Supplier ${i + 1}`;
                   return (
                     <th key={entry.localId} className={`text-left px-4 py-2.5 min-w-[190px] ${entry.isSelected ? 'bg-emerald-50/40' : ''}`}>
                       <div className="space-y-1">
-                        <span className="text-[12px] font-semibold text-zinc-800 truncate block">{supplierName}</span>
+                        <span className="text-label font-semibold text-zinc-800 truncate block">{supplierName}</span>
                         <div className="flex items-center gap-1">
                           {entry.isSelected && entry.supplierId && !isOnlySupplier && (
-                            <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-100 px-1.5 py-0 text-[9px] font-semibold text-emerald-700 border border-emerald-200 shrink-0">
+                            <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-100 px-1.5 py-0 text-micro font-semibold text-emerald-700 border border-emerald-200 shrink-0">
                               <Trophy className="h-2.5 w-2.5" /> Winner
                             </span>
                           )}
                           {entry.isSelected && entry.supplierId && isOnlySupplier && (
-                            <span className="inline-flex items-center gap-0.5 rounded-full bg-blue-50 px-1.5 py-0 text-[9px] font-semibold text-blue-600 border border-blue-100 shrink-0">
+                            <span className="inline-flex items-center gap-0.5 rounded-full bg-blue-50 px-1.5 py-0 text-micro font-semibold text-blue-600 border border-blue-100 shrink-0">
                               Only Supplier
                             </span>
                           )}
                           {!entry.isSelected && (
                             <Button
                               type="button" size="sm" variant="ghost"
-                              className="h-6 text-[10px] px-1.5 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50"
+                              className="h-6 text-micro px-1.5 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50"
                               onClick={() => onSetWinner(entry.localId)}
                             >
                               <Trophy className="h-3 w-3" /> Set Winner
@@ -229,18 +229,18 @@ export const CanvassMatrix = forwardRef<CanvassMatrixHandle, CanvassMatrixProps>
                   <td className="px-5 py-2.5">
                     <div className="flex items-start gap-2">
                       <div className="min-w-0 flex-1">
-                        <p className="font-medium text-[12px] text-zinc-800">{item.description}</p>
+                        <p className="font-medium text-label text-zinc-800">{item.description}</p>
                         {item.specifications && (
                           <Tooltip.Provider delayDuration={200}>
                             <Tooltip.Root>
                               <Tooltip.Trigger asChild>
-                                <p className="text-[11px] text-zinc-400 mt-0.5 line-clamp-1 cursor-default">{item.specifications}</p>
+                                <p className="text-caption text-zinc-400 mt-0.5 line-clamp-1 cursor-default">{item.specifications}</p>
                               </Tooltip.Trigger>
                               <Tooltip.Portal>
                                 <Tooltip.Content
                                   side="bottom"
                                   sideOffset={4}
-                                  className="z-50 max-w-[320px] rounded-lg border border-zinc-800/60 bg-zinc-900 px-3 py-1.5 text-[12px] font-medium text-white shadow-modal animate-in fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-1 data-[side=top]:slide-in-from-bottom-1"
+                                  className="z-50 max-w-[320px] rounded-lg border border-zinc-800/60 bg-zinc-900 px-3 py-1.5 text-label font-medium text-white shadow-modal animate-in fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-1 data-[side=top]:slide-in-from-bottom-1"
                                 >
                                   {item.specifications}
                                   <Tooltip.Arrow className="fill-zinc-900" />
@@ -254,14 +254,14 @@ export const CanvassMatrix = forwardRef<CanvassMatrixHandle, CanvassMatrixProps>
                         <button
                           type="button"
                           onClick={() => onViewItemPhoto(item._id)}
-                          className="shrink-0 mt-0.5 inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10px] text-zinc-500 hover:bg-zinc-100 transition-colors duration-150"
+                          className="shrink-0 mt-0.5 inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-micro text-zinc-500 hover:bg-zinc-100 transition-colors duration-150"
                         >
                           <Camera className="h-2.5 w-2.5" /> Photo
                         </button>
                       )}
                     </div>
                   </td>
-                  <td className="px-5 py-2.5 text-[12px] text-zinc-400 tabular-nums">
+                  <td className="px-5 py-2.5 text-label text-zinc-400 tabular-nums">
                     {item.quantity} {item.unit}
                   </td>
                   {entries.map((entry) => {
@@ -276,12 +276,12 @@ export const CanvassMatrix = forwardRef<CanvassMatrixHandle, CanvassMatrixProps>
                       >
                         <div className="space-y-1">
                           <div className="relative">
-                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-zinc-400 font-medium">P</span>
+                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-caption text-zinc-400 font-medium">P</span>
                             <Input
                               type="text"
                               inputMode="decimal"
                               placeholder="0.00"
-                              className={`h-8 text-[12px] pl-7 tabular-nums bg-white ${isCheapest ? 'border-emerald-300 focus-visible:ring-emerald-300' : ''} ${isHighest ? 'border-red-200 focus-visible:ring-red-200' : ''}`}
+                              className={`h-8 text-label pl-7 tabular-nums bg-white ${isCheapest ? 'border-emerald-300 focus-visible:ring-emerald-300' : ''} ${isHighest ? 'border-red-200 focus-visible:ring-red-200' : ''}`}
                               value={entry.quotedPrices[item._id] ?? ''}
                               onChange={(e) => {
                                 // Allow only digits and one decimal point
@@ -297,7 +297,7 @@ export const CanvassMatrix = forwardRef<CanvassMatrixHandle, CanvassMatrixProps>
                             />
                           </div>
                           {price > 0 && (
-                            <p className={`text-[10px] tabular-nums ${isCheapest ? 'text-emerald-700 font-semibold' : isHighest ? 'text-red-500' : 'text-zinc-400'}`}>
+                            <p className={`text-micro tabular-nums ${isCheapest ? 'text-emerald-700 font-semibold' : isHighest ? 'text-red-500' : 'text-zinc-400'}`}>
                               = {formatCurrency(lineTotal)}
                             </p>
                           )}
@@ -309,7 +309,7 @@ export const CanvassMatrix = forwardRef<CanvassMatrixHandle, CanvassMatrixProps>
               ))}
               {/* Notes & evidence row */}
               <tr className="border-t border-zinc-100 bg-zinc-50/30">
-                <td className="px-5 py-2.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-zinc-400 align-top pt-3" colSpan={2}>Notes & Evidence</td>
+                <td className="px-5 py-2.5 text-micro font-semibold uppercase tracking-[0.06em] text-zinc-400 align-top pt-3" colSpan={2}>Notes & Evidence</td>
                 {entries.map((entry) => {
                   const entryId = entry.localId;
                   const entryAttachments = quotationAttachments.filter((att) => att.canvassEntryId === entryId);
@@ -318,7 +318,7 @@ export const CanvassMatrix = forwardRef<CanvassMatrixHandle, CanvassMatrixProps>
                       <div className="space-y-1.5">
                         <textarea
                           rows={2}
-                          className="flex w-full rounded-md border border-zinc-200 bg-white px-2.5 py-1.5 text-[11px] shadow-xs placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-300 resize-none transition-shadow duration-150"
+                          className="flex w-full rounded-md border border-zinc-200 bg-white px-2.5 py-1.5 text-caption shadow-xs placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-300 resize-none transition-shadow duration-150"
                           placeholder="Lead time, warranty, payment terms..."
                           value={entry.remarks}
                           onChange={(e) => onUpdateEntry(entry.localId, { remarks: e.target.value })}
@@ -326,7 +326,7 @@ export const CanvassMatrix = forwardRef<CanvassMatrixHandle, CanvassMatrixProps>
                         {entryAttachments.length > 0 && (
                           <div className="space-y-1">
                             {entryAttachments.map((att) => (
-                              <div key={att._id} className="flex items-center gap-1.5 rounded-md border border-zinc-100 bg-zinc-50/60 px-2 py-1 text-[10px] text-zinc-600 group overflow-hidden">
+                              <div key={att._id} className="flex items-center gap-1.5 rounded-md border border-zinc-100 bg-zinc-50/60 px-2 py-1 text-micro text-zinc-600 group overflow-hidden">
                                 <Paperclip className="h-2.5 w-2.5 shrink-0 text-zinc-300" />
                                 <span className="truncate flex-1 min-w-0">{att.originalName}</span>
                                 <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -354,7 +354,7 @@ export const CanvassMatrix = forwardRef<CanvassMatrixHandle, CanvassMatrixProps>
                           </div>
                         )}
                         {onUploadEvidence && (
-                          <label className="inline-flex items-center gap-1 text-[10px] text-zinc-400 hover:text-zinc-600 cursor-pointer transition-colors">
+                          <label className="inline-flex items-center gap-1 text-micro text-zinc-400 hover:text-zinc-600 cursor-pointer transition-colors">
                             <input
                               type="file"
                               accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
@@ -383,7 +383,7 @@ export const CanvassMatrix = forwardRef<CanvassMatrixHandle, CanvassMatrixProps>
               </tr>
               {/* Totals row */}
               <tr className="border-t-2 border-zinc-200 bg-zinc-50/80">
-                <td className="px-5 py-3 font-semibold text-[12px] uppercase tracking-[0.06em] text-zinc-400" colSpan={2}>Total</td>
+                <td className="px-5 py-3 font-semibold text-label uppercase tracking-[0.06em] text-zinc-400" colSpan={2}>Total</td>
                 {entries.map((entry, i) => {
                   const total = totals[i];
                   const supplier = suppliers.find((s) => s._id === entry.supplierId);
@@ -392,11 +392,11 @@ export const CanvassMatrix = forwardRef<CanvassMatrixHandle, CanvassMatrixProps>
                     <td key={entry.localId} className={`px-4 py-3 ${entry.isSelected ? 'bg-emerald-50/50' : ''}`}>
                       <div className="flex items-center gap-1.5">
                         {entry.isSelected && total > 0 && <CheckCircle className="h-4 w-4 text-emerald-600 shrink-0" />}
-                        <p className={`text-[15px] font-bold tabular-nums ${entry.isSelected ? 'text-emerald-700' : isLowest ? 'text-emerald-600' : 'text-zinc-800'}`}>
+                        <p className={`text-body-lg font-bold tabular-nums ${entry.isSelected ? 'text-emerald-700' : isLowest ? 'text-emerald-600' : 'text-zinc-800'}`}>
                           {total > 0 ? formatCurrency(total) : '\u2014'}
                         </p>
                       </div>
-                      {supplier && <p className="text-[10px] text-zinc-400 mt-0.5">{supplier.companyName}</p>}
+                      {supplier && <p className="text-micro text-zinc-400 mt-0.5">{supplier.companyName}</p>}
                     </td>
                   );
                 })}
@@ -410,13 +410,13 @@ export const CanvassMatrix = forwardRef<CanvassMatrixHandle, CanvassMatrixProps>
       {entries.length < 3 && (
         <div className="rounded-xl border border-amber-200/80 bg-amber-50/30 shadow-card p-5 space-y-2">
           <div>
-            <h4 className="text-[13px] font-semibold text-amber-900">Justification for Fewer than 3 Suppliers</h4>
-            <p className="text-[11px] text-amber-700/70 mt-0.5">Explain why only one or two suppliers could be canvassed</p>
+            <h4 className="text-body font-semibold text-amber-900">Justification for Fewer than 3 Suppliers</h4>
+            <p className="text-caption text-amber-700/70 mt-0.5">Explain why only one or two suppliers could be canvassed</p>
           </div>
           <textarea
             ref={justificationRef}
             rows={3}
-            className={`flex w-full rounded-lg border bg-white px-3 py-2.5 text-[13px] shadow-xs placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 resize-none transition-all duration-150 ${
+            className={`flex w-full rounded-lg border bg-white px-3 py-2.5 text-body shadow-xs placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 resize-none transition-all duration-150 ${
               justificationError ? 'border-red-400 focus-visible:ring-red-300' : 'border-amber-300 focus-visible:ring-amber-300'
             }`}
             placeholder="e.g. Only one authorized dealer in the Philippines for this product, or sole-source OEM requirement..."
@@ -424,7 +424,7 @@ export const CanvassMatrix = forwardRef<CanvassMatrixHandle, CanvassMatrixProps>
             onChange={(e) => onJustificationChange(e.target.value)}
           />
           {justificationError && (
-            <p className="text-[10px] text-red-500 font-medium">Required before submission</p>
+            <p className="text-micro text-red-500 font-medium">Required before submission</p>
           )}
         </div>
       )}
@@ -433,13 +433,13 @@ export const CanvassMatrix = forwardRef<CanvassMatrixHandle, CanvassMatrixProps>
       <Dialog open={addSupplierOpen} onOpenChange={setAddSupplierOpen}>
         <DialogContent className="sm:max-w-[560px]" onPointerDownOutside={(e) => e.preventDefault()}>
           <DialogHeader>
-            <DialogTitle className="text-[15px]">Add Supplier</DialogTitle>
+            <DialogTitle className="text-body-lg">Add Supplier</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <p className="text-[12px] text-zinc-500 mb-2">Select a supplier and enter quoted prices.</p>
+              <p className="text-label text-zinc-500 mb-2">Select a supplier and enter quoted prices.</p>
               <Select value={addSupplierId || 'none'} onValueChange={(v) => setAddSupplierId(v === 'none' ? '' : v)}>
-                <SelectTrigger className="h-9 text-[13px]">
+                <SelectTrigger className="h-9 text-body">
                   <SelectValue placeholder="Select supplier" />
                 </SelectTrigger>
                 <SelectContent>
@@ -454,9 +454,9 @@ export const CanvassMatrix = forwardRef<CanvassMatrixHandle, CanvassMatrixProps>
             {addSupplierId && (
               <div className="space-y-1">
                 <div className="grid grid-cols-[1fr_120px_80px] gap-2 px-1 pb-1">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-zinc-400">Item</p>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-zinc-400 text-right">Price / Unit</p>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-zinc-400 text-right">Line Total</p>
+                  <p className="text-micro font-semibold uppercase tracking-[0.06em] text-zinc-400">Item</p>
+                  <p className="text-micro font-semibold uppercase tracking-[0.06em] text-zinc-400 text-right">Price / Unit</p>
+                  <p className="text-micro font-semibold uppercase tracking-[0.06em] text-zinc-400 text-right">Line Total</p>
                 </div>
                 {procItems.map((item: ProcItem) => {
                   const unitPrice = Number(addPrices[item._id]) || 0;
@@ -464,19 +464,19 @@ export const CanvassMatrix = forwardRef<CanvassMatrixHandle, CanvassMatrixProps>
                   return (
                     <div key={item._id} className="grid grid-cols-[1fr_120px_80px] gap-2 items-center rounded-lg px-1 py-1.5 hover:bg-zinc-50/60">
                       <div className="min-w-0">
-                        <p className="text-[12px] font-medium text-zinc-700 truncate">{item.description}</p>
-                        <p className="text-[10px] text-zinc-400">
+                        <p className="text-label font-medium text-zinc-700 truncate">{item.description}</p>
+                        <p className="text-micro text-zinc-400">
                           {item.quantity} {item.unit}
                           {item.estimatedPrice > 0 && <span className="ml-1">· Est. {formatCurrency(item.estimatedPrice)}/{item.unit}</span>}
                         </p>
                       </div>
                       <div className="relative">
-                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-zinc-400 font-medium">₱</span>
+                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-caption text-zinc-400 font-medium">₱</span>
                         <Input
                           type="text"
                           inputMode="decimal"
                           placeholder="0.00"
-                          className={`h-8 text-[12px] pl-7 tabular-nums ${addAttempted && (!addPrices[item._id] || unitPrice <= 0) ? 'border-red-300 focus-visible:ring-red-300' : ''}`}
+                          className={`h-8 text-label pl-7 tabular-nums ${addAttempted && (!addPrices[item._id] || unitPrice <= 0) ? 'border-red-300 focus-visible:ring-red-300' : ''}`}
                           value={addPrices[item._id] ?? ''}
                           onChange={(e) => {
                             let v = e.target.value.replace(/[^\d.]/g, '');
@@ -487,7 +487,7 @@ export const CanvassMatrix = forwardRef<CanvassMatrixHandle, CanvassMatrixProps>
                           }}
                         />
                       </div>
-                      <p className={`text-[12px] tabular-nums text-right ${lineTotal > 0 ? 'text-zinc-700 font-medium' : 'text-zinc-300'}`}>
+                      <p className={`text-label tabular-nums text-right ${lineTotal > 0 ? 'text-zinc-700 font-medium' : 'text-zinc-300'}`}>
                         {lineTotal > 0 ? formatCurrency(lineTotal) : '—'}
                       </p>
                     </div>
@@ -497,9 +497,9 @@ export const CanvassMatrix = forwardRef<CanvassMatrixHandle, CanvassMatrixProps>
                   const grandTotal = procItems.reduce((sum: number, item: ProcItem) => sum + (Number(addPrices[item._id]) || 0) * item.quantity, 0);
                   return grandTotal > 0 ? (
                     <div className="grid grid-cols-[1fr_120px_80px] gap-2 items-center border-t border-zinc-200 mt-1 pt-2 px-1">
-                      <p className="text-[11px] font-semibold text-zinc-500">Grand Total</p>
+                      <p className="text-caption font-semibold text-zinc-500">Grand Total</p>
                       <div />
-                      <p className="text-[13px] font-bold tabular-nums text-zinc-900 text-right">{formatCurrency(grandTotal)}</p>
+                      <p className="text-body font-bold tabular-nums text-zinc-900 text-right">{formatCurrency(grandTotal)}</p>
                     </div>
                   ) : null;
                 })()}
@@ -509,29 +509,29 @@ export const CanvassMatrix = forwardRef<CanvassMatrixHandle, CanvassMatrixProps>
             {addSupplierId && (
               <>
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-zinc-400 mb-1.5">Remarks</p>
+                  <p className="text-micro font-semibold uppercase tracking-[0.06em] text-zinc-400 mb-1.5">Remarks</p>
                   <textarea
                     rows={2}
-                    className="flex w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-[12px] shadow-xs placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-300 resize-none"
+                    className="flex w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-label shadow-xs placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-300 resize-none"
                     placeholder="Lead time, warranty, payment terms..."
                     value={addRemarks}
                     onChange={(e) => setAddRemarks(e.target.value)}
                   />
                 </div>
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-zinc-400 mb-1.5">Quotation Evidence</p>
+                  <p className="text-micro font-semibold uppercase tracking-[0.06em] text-zinc-400 mb-1.5">Quotation Evidence</p>
                   {addFile ? (
                     <div className="flex items-center gap-2 rounded-md border border-zinc-200 bg-zinc-50/60 px-3 py-2">
                       <Paperclip className="h-3 w-3 text-zinc-400 shrink-0" />
-                      <span className="text-[12px] text-zinc-700 truncate flex-1">{addFile.name}</span>
-                      <button onClick={() => setAddFile(null)} className="text-[10px] text-red-500 hover:text-red-700 shrink-0">Remove</button>
+                      <span className="text-label text-zinc-700 truncate flex-1">{addFile.name}</span>
+                      <button onClick={() => setAddFile(null)} className="text-micro text-red-500 hover:text-red-700 shrink-0">Remove</button>
                     </div>
                   ) : (
                     <label className="flex items-center gap-2 rounded-md border border-dashed border-zinc-300 bg-zinc-50/30 px-3 py-2.5 cursor-pointer hover:bg-zinc-50 transition-colors">
                       <input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" className="hidden"
                         onChange={(e) => { setAddFile(e.target.files?.[0] ?? null); e.target.value = ''; }} />
                       <Upload className="h-3.5 w-3.5 text-zinc-400" />
-                      <span className="text-[12px] text-zinc-500">Attach PDF or image</span>
+                      <span className="text-label text-zinc-500">Attach PDF or image</span>
                     </label>
                   )}
                 </div>
@@ -539,11 +539,11 @@ export const CanvassMatrix = forwardRef<CanvassMatrixHandle, CanvassMatrixProps>
             )}
           </div>
           {addAttempted && addSupplierId && !procItems.every((item: ProcItem) => Number(addPrices[item._id]) > 0) && (
-            <p className="text-[11px] text-red-500">All item prices are required.</p>
+            <p className="text-caption text-red-500">All item prices are required.</p>
           )}
           <DialogFooter>
-            <Button variant="outline" size="sm" className="text-[12px]" onClick={() => setAddSupplierOpen(false)}>Cancel</Button>
-            <Button size="sm" className="text-[12px]" disabled={!addSupplierId} onClick={() => {
+            <Button variant="outline" size="sm" className="text-label" onClick={() => setAddSupplierOpen(false)}>Cancel</Button>
+            <Button size="sm" className="text-label" disabled={!addSupplierId} onClick={() => {
               setAddAttempted(true);
               if (!procItems.every((item: ProcItem) => Number(addPrices[item._id]) > 0)) return;
               onAddEntry(addSupplierId, addPrices, addRemarks, addFile);

@@ -39,7 +39,7 @@ const TRUST = [
 function StatusPill({ status }: { status: string }) {
   const cfg = STATUS[status] ?? STATUS['Pending'];
   return (
-    <span className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${cfg.bg} ${cfg.text}`}>
+    <span className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-micro font-medium ${cfg.bg} ${cfg.text}`}>
       <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
       {status}
     </span>
@@ -55,9 +55,9 @@ function AnimatedMockup() {
         style={{ animation: 'heroFloat2 14s ease-in-out 1.5s infinite' }}
         aria-hidden
       >
-        <p className="text-[10px] uppercase tracking-widest text-white/30">Pending Value</p>
-        <p className="mt-0.5 text-lg font-bold text-white">₱1.54M</p>
-        <p className="mt-0.5 text-[10px] text-amber-400">↑ 8 awaiting approval</p>
+        <p className="text-micro uppercase tracking-widest text-white/30">Pending Value</p>
+        <p className="mt-0.5 text-heading-smfont-bold text-white">₱1.54M</p>
+        <p className="mt-0.5 text-micro text-amber-400">↑ 8 awaiting approval</p>
       </div>
 
       {/* Main dashboard card */}
@@ -78,17 +78,17 @@ function AnimatedMockup() {
         {/* Header */}
         <div className="mb-5 flex items-start justify-between">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-white/30">Purchase Requests</p>
-            <p className="mt-0.5 text-2xl font-bold text-white">37 <span className="text-sm font-normal text-white/30">total</span></p>
+            <p className="text-micro font-semibold uppercase tracking-widest text-white/30">Purchase Requests</p>
+            <p className="mt-0.5 text-heading font-bold text-white">37 <span className="text-body-lgfont-normal text-white/30">total</span></p>
           </div>
           <div className="flex gap-4 text-right">
             <div>
-              <p className="text-[10px] text-white/30">Pending</p>
-              <p className="text-base font-semibold text-amber-400">8</p>
+              <p className="text-micro text-white/30">Pending</p>
+              <p className="text-heading-smfont-semibold text-amber-400">8</p>
             </div>
             <div>
-              <p className="text-[10px] text-white/30">Approved</p>
-              <p className="text-base font-semibold text-emerald-400">20</p>
+              <p className="text-micro text-white/30">Approved</p>
+              <p className="text-heading-smfont-semibold text-emerald-400">20</p>
             </div>
           </div>
         </div>
@@ -102,10 +102,10 @@ function AnimatedMockup() {
               style={{ animation: `heroFadeUp 0.6s cubic-bezier(0.16,1,0.3,1) ${0.1 + i * 0.1}s both` }}
             >
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[12px] font-medium text-white/75">{pr.title}</p>
-                <p className="mt-0.5 text-[10px] text-white/25">{pr.dept}</p>
+                <p className="truncate text-label font-medium text-white/75">{pr.title}</p>
+                <p className="mt-0.5 text-micro text-white/25">{pr.dept}</p>
               </div>
-              <span className="shrink-0 text-[11px] tabular-nums text-white/40">{pr.amount}</span>
+              <span className="shrink-0 text-caption tabular-nums text-white/40">{pr.amount}</span>
               <StatusPill status={pr.status} />
             </div>
           ))}
@@ -113,7 +113,7 @@ function AnimatedMockup() {
 
         {/* Mini bar chart */}
         <div className="mt-4 border-t border-white/[0.06] pt-4">
-          <p className="mb-2.5 text-[10px] font-semibold uppercase tracking-widest text-white/25">Monthly Volume</p>
+          <p className="mb-2.5 text-micro font-semibold uppercase tracking-widest text-white/25">Monthly Volume</p>
           <div className="flex h-10 items-end gap-[3px]">
             {BARS.map((h, i) => (
               <div
@@ -183,10 +183,10 @@ export function LoginPage() {
           </div>
           <div className="space-y-10">
             <div className="max-w-[440px] space-y-4">
-              <h1 className="text-[28px] font-bold leading-[1.25] tracking-tight text-white xl:text-[34px]">
+              <h1 className="text-display font-bold leading-[1.25] tracking-tight text-white xl:text-display">
                 Procurement, approvals, and purchase orders in one workspace.
               </h1>
-              <p className="text-[14px] leading-relaxed text-white/45">
+              <p className="text-body-lg leading-relaxed text-white/45">
                 Track requests, approvals, supplier sourcing, and purchase orders with a clean workflow built for fast-moving teams.
               </p>
             </div>
@@ -196,7 +196,7 @@ export function LoginPage() {
             {TRUST.map(({ icon: Icon, label }) => (
               <div key={label} className="flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1.5">
                 <Icon className="h-3 w-3 text-white/35" />
-                <span className="text-[11px] text-white/45">{label}</span>
+                <span className="text-caption text-white/45">{label}</span>
               </div>
             ))}
           </div>
@@ -212,8 +212,8 @@ export function LoginPage() {
         {/* Mobile branding */}
         <div className="relative mb-10 flex flex-col items-center gap-2 lg:hidden">
           <img src={wiwoLogo} alt="Wilson Works" className="h-9 rounded" />
-          <span className="text-base font-bold tracking-tight text-zinc-900">WIWO PR</span>
-          <span className="text-[13px] text-zinc-500">Procurement &amp; Requisition</span>
+          <span className="text-heading-smfont-bold tracking-tight text-zinc-900">WIWO PR</span>
+          <span className="text-body text-zinc-500">Procurement &amp; Requisition</span>
         </div>
 
         {/* Form wrapper */}
@@ -235,14 +235,14 @@ export function LoginPage() {
               >
                 <div className="mb-5 hidden items-center gap-2.5 lg:flex">
                   {/*<img src={wiwoLogo} alt="WIWO" className="h-5 rounded opacity-60" />*/}
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+                  <span className="text-micro font-semibold uppercase tracking-[0.14em] text-zinc-500">
                     Wilson Works
                   </span>
                 </div>
-                <h2 className="text-[26px] font-bold tracking-[-0.01em] text-zinc-900">
+                <h2 className="text-display font-bold tracking-[-0.01em] text-zinc-900">
                   Welcome back
                 </h2>
-                <p className="mt-1.5 text-[13.5px] leading-relaxed text-zinc-500">
+                <p className="mt-1.5 text-body-lg leading-relaxed text-zinc-500">
                   Sign in to access your procurement workspace.
                 </p>
               </div>
@@ -253,7 +253,7 @@ export function LoginPage() {
 
                 {error && (
                   <div
-                    className="login-anim rounded-xl border border-red-100 bg-red-50/80 px-4 py-3 text-[13px] text-red-600"
+                    className="login-anim rounded-xl border border-red-100 bg-red-50/80 px-4 py-3 text-body text-red-600"
                     style={{ animation: 'loginSlideUp 0.3s ease-out both' }}
                   >
                     {error}
@@ -267,7 +267,7 @@ export function LoginPage() {
                 >
                   <label
                     htmlFor="email"
-                    className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-500"
+                    className="block text-caption font-semibold uppercase tracking-[0.08em] text-zinc-500"
                   >
                     Email address
                   </label>
@@ -281,7 +281,7 @@ export function LoginPage() {
                     {...register('email')}
                   />
                   {errors.email && (
-                    <p className="text-[11px] text-red-500">{errors.email.message}</p>
+                    <p className="text-caption text-red-500">{errors.email.message}</p>
                   )}
                 </div>
 
@@ -292,7 +292,7 @@ export function LoginPage() {
                 >
                   <label
                     htmlFor="password"
-                    className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-500"
+                    className="block text-caption font-semibold uppercase tracking-[0.08em] text-zinc-500"
                   >
                     Password
                   </label>
@@ -315,7 +315,7 @@ export function LoginPage() {
                     </button>
                   </div>
                   {errors.password && (
-                    <p className="text-[11px] text-red-500">{errors.password.message}</p>
+                    <p className="text-caption text-red-500">{errors.password.message}</p>
                   )}
                 </div>
 
@@ -340,9 +340,9 @@ export function LoginPage() {
           >
             <div className="flex items-center gap-1.5">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 opacity-80" />
-              <span className="text-[11px] text-zinc-500">Secured internal access</span>
+              <span className="text-caption text-zinc-500">Secured internal access</span>
             </div>
-            <p className="text-[11px] text-zinc-400">
+            <p className="text-caption text-zinc-400">
               Contact your administrator if you need an account.
             </p>
           </div>

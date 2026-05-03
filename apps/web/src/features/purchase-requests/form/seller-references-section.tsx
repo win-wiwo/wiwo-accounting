@@ -62,12 +62,12 @@ export function SellerReferencesSection({
       {/* ── Section header ──────────────────────────────── */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400">
+          <p className="text-micro font-semibold uppercase tracking-[0.08em] text-zinc-400">
             Supplier References
           </p>
           <span
             className={cn(
-              'inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums leading-none',
+              'inline-flex items-center rounded-full px-1.5 py-0.5 text-micro font-bold tabular-nums leading-none',
               refs.length >= 3
                 ? 'bg-emerald-100 text-emerald-700'
                 : 'bg-amber-100 text-amber-700',
@@ -80,7 +80,7 @@ export function SellerReferencesSection({
           <GhostButton
             type="button"
             onClick={handleAppendSeller}
-            className="h-7 px-2.5 text-[11px]"
+            className="h-7 px-2.5 text-caption"
           >
             <Plus className="h-3 w-3" /> Add Seller
           </GhostButton>
@@ -109,21 +109,21 @@ export function SellerReferencesSection({
           <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-full bg-white border border-zinc-200">
             <Users className="h-4 w-4 text-zinc-400" />
           </div>
-          <p className="mt-2.5 text-[12px] font-semibold text-zinc-700">
+          <p className="mt-2.5 text-label font-semibold text-zinc-700">
             No seller references yet
           </p>
-          <p className="mt-1 text-[11px] text-zinc-500 max-w-[240px] mx-auto leading-relaxed">
+          <p className="mt-1 text-caption text-zinc-500 max-w-[240px] mx-auto leading-relaxed">
             3 sellers is the standard. The selected seller's price becomes the unit price.
           </p>
           <GhostButton
             type="button"
             onClick={handleAppendSeller}
-            className="mt-3 px-3 py-1.5 text-[12px]"
+            className="mt-3 px-3 py-1.5 text-label"
           >
             <Plus className="h-3 w-3" /> Add First Seller
           </GhostButton>
           {itemErrors?.sellerReferences?.message && (
-            <p className="mt-2 text-[12px] text-red-600">
+            <p className="mt-2 text-label text-red-600">
               {itemErrors.sellerReferences.message as string}
             </p>
           )}
@@ -148,10 +148,10 @@ export function SellerReferencesSection({
                 {/* Row header */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-100 text-[10px] font-bold text-zinc-600 tabular-nums">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-100 text-micro font-bold text-zinc-600 tabular-nums">
                       {si + 1}
                     </span>
-                    <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-500">
+                    <span className="text-caption font-semibold uppercase tracking-[0.06em] text-zinc-500">
                       Seller {si + 1}
                     </span>
                   </div>
@@ -160,7 +160,7 @@ export function SellerReferencesSection({
                       type="button"
                       onClick={() => onSelectSeller(si)}
                       className={cn(
-                        'flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-semibold transition-all duration-150',
+                        'flex items-center gap-1.5 rounded-md px-2.5 py-1 text-caption font-semibold transition-all duration-150',
                         isSelected
                           ? 'bg-zinc-900 text-white'
                           : 'border border-zinc-200 bg-white text-zinc-500 hover:border-zinc-300 hover:text-zinc-700',
@@ -184,7 +184,7 @@ export function SellerReferencesSection({
                 <div className="grid gap-3 sm:grid-cols-2">
                   <FormField label="Seller Name" required>
                     <Input
-                      className="h-9 text-[12px]"
+                      className="h-9 text-label"
                       placeholder="e.g. Lazada PH — TechSupplies"
                       {...register(
                         `items.${itemIndex}.sellerReferences.${si}.sellerName`,
@@ -193,7 +193,7 @@ export function SellerReferencesSection({
                   </FormField>
                   <FormField label="Price (PHP)" required>
                     <Input
-                      className="h-9 text-[12px] tabular-nums"
+                      className="h-9 text-label tabular-nums"
                       type="number"
                       min={0}
                       step="0.01"
@@ -238,7 +238,7 @@ export function SellerReferencesSection({
                   <div className="relative">
                     <Link className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400" />
                     <Input
-                      className="h-9 pl-9 text-[12px]"
+                      className="h-9 pl-9 text-label"
                       type="url"
                       placeholder="https://www.lazada.com.ph/products/..."
                       {...register(
@@ -249,7 +249,7 @@ export function SellerReferencesSection({
                 </FormField>
                 <FormField label="Notes">
                   <Input
-                    className="h-9 text-[12px]"
+                    className="h-9 text-label"
                     placeholder="e.g. includes shipping, 1yr warranty"
                     {...register(
                       `items.${itemIndex}.sellerReferences.${si}.notes`,
@@ -267,11 +267,11 @@ export function SellerReferencesSection({
         <div className="rounded-xl border border-amber-200 bg-amber-50/40 px-4 py-3">
           <div className="flex items-center gap-2">
             <AlertCircle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
-            <p className="text-[12px] font-semibold text-amber-800">
+            <p className="text-label font-semibold text-amber-800">
               Justification required
             </p>
           </div>
-          <p className="mt-0.5 text-[11px] text-amber-700/80 leading-relaxed">
+          <p className="mt-0.5 text-caption text-amber-700/80 leading-relaxed">
             Approvers need to know why this item has fewer than 3 sellers.
           </p>
           <div className="mt-2.5">
