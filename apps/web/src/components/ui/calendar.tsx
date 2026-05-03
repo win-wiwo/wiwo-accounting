@@ -35,7 +35,7 @@ function InlineMonthCaption({
         <ChevronLeft className="h-3.5 w-3.5" />
       </button>
 
-      <span className="select-none text-[13px] font-semibold tracking-[-0.01em] text-zinc-800">
+      <span className="select-none text-body font-semibold tracking-[-0.01em] text-zinc-800">
         {label}
       </span>
 
@@ -72,14 +72,14 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: D
         nav: 'hidden',
         weekdays: 'flex mt-1',
         weekday:
-          'w-9 text-[10px] font-semibold uppercase tracking-widest text-zinc-400/90 text-center pb-1.5',
+          'w-9 text-micro font-semibold uppercase tracking-widest text-zinc-400/90 text-center pb-1.5',
         week: 'flex mt-0.5',
         // w-9 matches weekday header width — required for column alignment in flex rows
         day: 'relative p-0 text-center w-9',
         // rdp v9 passes className directly to the <button> element (no rdp-day_button class)
         day_button: cn(
           'inline-flex h-8 w-8 items-center justify-center rounded-full',
-          'text-[13px] font-normal text-zinc-700',
+          'text-body font-normal text-zinc-700',
           'transition-all duration-150',
           'hover:bg-zinc-100 hover:text-zinc-900',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/10',

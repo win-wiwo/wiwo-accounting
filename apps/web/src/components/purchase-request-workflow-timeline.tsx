@@ -279,12 +279,12 @@ function CurrentState({
   const currentStatus = normalizePrStatus(pr.status);
   const poStatus = po?.status ?? null;
   const className = compact
-    ? "flex items-center gap-2 text-xs text-muted-foreground"
-    : "flex items-center gap-2 text-sm text-muted-foreground";
+    ? "flex items-center gap-2 text-label text-muted-foreground"
+    : "flex items-center gap-2 text-body-lg text-muted-foreground";
 
   if (currentStatus === PrStatus.DRAFT) {
     return (
-      <p className={compact ? "text-xs text-muted-foreground" : "text-sm text-muted-foreground"}>
+      <p className={compact ? "text-label text-muted-foreground" : "text-body-lg text-muted-foreground"}>
         Submit this PR to start the workflow.
       </p>
     );
@@ -357,12 +357,12 @@ export function PurchaseRequestWorkflowTimeline({
         listGap: 'space-y-3',
         rowGap: 'gap-2',
         iconWrap: 'mt-0.5 shrink-0 z-[1] rounded-full bg-white p-[2px]',
-        title: 'text-[12px] font-semibold text-zinc-800',
+        title: 'text-label font-semibold text-zinc-800',
         badge:
-          'inline-flex items-center rounded-full bg-zinc-100 px-1.5 py-0.5 text-[9px] font-medium text-zinc-600',
-        actor: 'text-[11px] text-zinc-500 mt-0.5',
-        note: 'mt-1 text-[11px] leading-snug text-zinc-500 italic rounded-md bg-zinc-50 px-2.5 py-1.5 border border-zinc-100',
-        date: 'mt-0.5 text-[10px] tabular-nums text-zinc-400',
+          'inline-flex items-center rounded-full bg-zinc-100 px-1.5 py-0.5 text-micro font-medium text-zinc-600',
+        actor: 'text-caption text-zinc-500 mt-0.5',
+        note: 'mt-1 text-caption leading-snug text-zinc-500 italic rounded-md bg-zinc-50 px-2.5 py-1.5 border border-zinc-100',
+        date: 'mt-0.5 text-micro tabular-nums text-zinc-400',
         currentDotWrap: 'mt-0.5 shrink-0 z-[1] flex items-center justify-center w-[18px]',
       }
     : {
@@ -370,12 +370,12 @@ export function PurchaseRequestWorkflowTimeline({
         listGap: 'space-y-5',
         rowGap: 'gap-3',
         iconWrap: 'mt-0.5 shrink-0 z-[1] rounded-full bg-white p-[3px]',
-        title: 'text-[13px] font-semibold text-zinc-800',
+        title: 'text-body font-semibold text-zinc-800',
         badge:
-          'inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-600',
-        actor: 'text-[12px] text-zinc-500 mt-0.5',
-        note: 'mt-1.5 text-[12px] leading-relaxed text-zinc-500 italic rounded-lg bg-zinc-50 px-3 py-2 border border-zinc-100',
-        date: 'mt-1 text-[11px] tabular-nums text-zinc-400',
+          'inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-micro font-medium text-zinc-600',
+        actor: 'text-label text-zinc-500 mt-0.5',
+        note: 'mt-1.5 text-label leading-relaxed text-zinc-500 italic rounded-lg bg-zinc-50 px-3 py-2 border border-zinc-100',
+        date: 'mt-1 text-caption tabular-nums text-zinc-400',
         currentDotWrap: 'mt-1 shrink-0 z-[1] flex items-center justify-center w-[22px]',
       };
 

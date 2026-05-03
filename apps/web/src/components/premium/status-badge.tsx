@@ -85,7 +85,7 @@ export function StatusBadge({
     <span
       {...props}
       className={cn(
-        'inline-flex h-[22px] items-center gap-1.5 rounded-md px-2 text-[11px] font-medium leading-none',
+        'inline-flex h-[22px] items-center gap-1.5 rounded-md px-2 text-caption font-medium leading-none',
         muted ? MUTED_TONE[tone] : `border ${TONE[tone]}`,
         className,
       )}

@@ -14,7 +14,7 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      'flex h-10 w-full items-center justify-between gap-2 whitespace-nowrap rounded-xl border border-zinc-200/80 bg-zinc-50/40 px-3.5 py-2 text-[13px] text-zinc-700 shadow-xs ring-offset-background transition-all duration-200',
+      'flex h-10 w-full items-center justify-between gap-2 whitespace-nowrap rounded-xl border border-zinc-200/80 bg-zinc-50/40 px-3.5 py-2 text-body text-zinc-700 shadow-xs ring-offset-background transition-all duration-200',
       'placeholder:text-zinc-400',
       'hover:border-zinc-300 hover:bg-zinc-50/80 hover:shadow-card',
       'focus:outline-none focus:border-zinc-400 focus:bg-white focus:shadow-focus',
@@ -76,7 +76,7 @@ const SelectItem = React.forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      'relative flex w-full cursor-default select-none items-center rounded-lg py-2 pl-3 pr-8 text-[13px] outline-none transition-colors duration-100',
+      'relative flex w-full cursor-default select-none items-center rounded-lg py-2 pl-3 pr-8 text-body outline-none transition-colors duration-100',
       'text-zinc-700',
       'focus:bg-zinc-50 focus:text-zinc-900',
       'data-[state=checked]:text-zinc-900 data-[state=checked]:font-medium',
@@ -102,7 +102,7 @@ const SelectLabel = React.forwardRef<
   <SelectPrimitive.Label
     ref={ref}
     className={cn(
-      'px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400',
+      'px-3 py-1.5 text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400',
       className,
     )}
     {...props}

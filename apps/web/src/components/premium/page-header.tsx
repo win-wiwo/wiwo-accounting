@@ -27,11 +27,11 @@ export function PageHeader({
       style={{ animationDelay: `${delay}s` }}
     >
       <div>
-        <h1 className="text-[28px] font-bold tracking-[-0.01em] leading-tight text-zinc-900">
+        <h1 className="text-display font-bold tracking-[-0.01em] leading-tight text-zinc-900">
           {title}
         </h1>
         {description && (
-          <p className="mt-1.5 text-[14px] text-zinc-500">{description}</p>
+          <p className="mt-1.5 text-body-lg text-zinc-500">{description}</p>
         )}
       </div>
       {(meta || actions) && (
@@ -73,7 +73,7 @@ export function MetricPill({ children, tone = 'default', className }: MetricPill
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-medium tabular-nums',
+        'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-label font-medium tabular-nums',
         PILL_TONE[tone],
         className,
       )}

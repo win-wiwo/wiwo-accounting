@@ -125,11 +125,11 @@ function ToastItem({
 
       {/* Content */}
       <div className="flex-1 min-w-0 py-0.5">
-        <p className={cn('text-[13px] font-semibold leading-snug', config.titleColor)}>
+        <p className={cn('text-body font-semibold leading-snug', config.titleColor)}>
           {t.title}
         </p>
         {t.description && (
-          <p className="mt-0.5 text-[11px] text-zinc-400 leading-relaxed">
+          <p className="mt-0.5 text-caption text-zinc-400 leading-relaxed">
             {t.description}
           </p>
         )}

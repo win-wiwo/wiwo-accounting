@@ -88,7 +88,7 @@ const DatePicker = React.forwardRef<HTMLButtonElement, DatePickerProps>(
             type="button"
             disabled={disabled}
             className={cn(
-              'flex h-10 w-full items-center gap-2.5 rounded-xl border border-zinc-200/80 bg-zinc-50/40 px-3.5 py-2 text-left text-[13px]',
+              'flex h-10 w-full items-center gap-2.5 rounded-xl border border-zinc-200/80 bg-zinc-50/40 px-3.5 py-2 text-left text-body',
               'shadow-xs transition-all duration-200',
               'hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-card',
               'focus:outline-none focus:border-zinc-300 focus:bg-white focus:shadow-focus',
@@ -122,14 +122,14 @@ const DatePicker = React.forwardRef<HTMLButtonElement, DatePickerProps>(
             <button
               type="button"
               onClick={handleClear}
-              className="rounded-md px-2 py-1 text-[12px] font-medium text-zinc-400 transition-colors duration-150 hover:text-zinc-600 hover:bg-zinc-50"
+              className="rounded-md px-2 py-1 text-label font-medium text-zinc-400 transition-colors duration-150 hover:text-zinc-600 hover:bg-zinc-50"
             >
               Clear
             </button>
             <button
               type="button"
               onClick={handleToday}
-              className="rounded-md px-2.5 py-1 text-[12px] font-medium text-zinc-600 transition-colors duration-150 hover:text-zinc-900 hover:bg-zinc-50"
+              className="rounded-md px-2.5 py-1 text-label font-medium text-zinc-600 transition-colors duration-150 hover:text-zinc-900 hover:bg-zinc-50"
             >
               Today
             </button>

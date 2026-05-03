@@ -135,7 +135,7 @@ function QuickSearch() {
               <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />
             </div>
           ) : results.length === 0 ? (
-            <div className="py-6 text-center text-[13px] text-zinc-400">
+            <div className="py-6 text-center text-body text-zinc-400">
               No results found
             </div>
           ) : (
@@ -152,8 +152,8 @@ function QuickSearch() {
                 >
                   <FileText className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[13px] font-medium text-zinc-800">{pr.title}</p>
-                    <div className="flex items-center gap-2 text-[11px] text-zinc-400 mt-0.5">
+                    <p className="truncate text-body font-medium text-zinc-800">{pr.title}</p>
+                    <div className="flex items-center gap-2 text-caption text-zinc-400 mt-0.5">
                       <span className="font-mono">{pr.prNumber || 'Draft'}</span>
                       <span>·</span>
                       <span>{PR_STATUS_LABELS[pr.status as PrStatus]}</span>
@@ -162,7 +162,7 @@ function QuickSearch() {
                 </div>
               ))}
               <div
-                className="cursor-pointer border-t border-zinc-100 bg-zinc-50/50 px-4 py-2.5 text-center text-[12px] font-medium text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50 transition-colors duration-150"
+                className="cursor-pointer border-t border-zinc-100 bg-zinc-50/50 px-4 py-2.5 text-center text-label font-medium text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50 transition-colors duration-150"
                 onClick={() => {
                   navigate(`/search?search=${encodeURIComponent(query.trim())}`);
                   setOpen(false);
@@ -251,7 +251,7 @@ export function Header({ sidebarCollapsed }: HeaderProps) {
             <Button variant="ghost" size="icon" className="relative h-9 w-9 text-sidebar-foreground/50 hover:bg-white/[0.06] hover:text-sidebar-foreground">
               <Bell className="h-4 w-4" />
               {unreadCount > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold leading-none text-destructive-foreground tabular-nums">
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-micro font-bold leading-none text-destructive-foreground tabular-nums">
                   {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               )}
@@ -267,16 +267,16 @@ export function Header({ sidebarCollapsed }: HeaderProps) {
               {/* Header */}
               <div className="flex items-center justify-between px-5 py-3.5 border-b border-zinc-100">
                 <div className="flex items-center gap-2.5">
-                  <h3 className="text-[13px] font-semibold text-zinc-900 tracking-tight">Notifications</h3>
+                  <h3 className="text-body font-semibold text-zinc-900 tracking-tight">Notifications</h3>
                   {unreadCount > 0 && (
-                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-zinc-900 px-1.5 text-[10px] font-bold text-white tabular-nums">
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-zinc-900 px-1.5 text-micro font-bold text-white tabular-nums">
                       {unreadCount > 99 ? '99+' : unreadCount}
                     </span>
                   )}
                 </div>
                 {unreadCount > 0 && (
                   <button
-                    className="flex items-center gap-1 text-[11px] font-medium text-zinc-400 hover:text-zinc-700 transition-colors duration-150"
+                    className="flex items-center gap-1 text-caption font-medium text-zinc-400 hover:text-zinc-700 transition-colors duration-150"
                     onClick={() => markAllAsRead.mutate()}
                   >
                     <CheckCheck className="h-3 w-3" />
@@ -292,8 +292,8 @@ export function Header({ sidebarCollapsed }: HeaderProps) {
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-50 mb-3">
                       <Bell className="h-4 w-4 text-zinc-300" />
                     </div>
-                    <p className="text-[13px] font-medium text-zinc-400">No notifications yet</p>
-                    <p className="text-[11px] text-zinc-300 mt-0.5">You're all caught up</p>
+                    <p className="text-body font-medium text-zinc-400">No notifications yet</p>
+                    <p className="text-caption text-zinc-300 mt-0.5">You're all caught up</p>
                   </div>
                 ) : (
                   notifications.map((notif) => {
@@ -320,12 +320,12 @@ export function Header({ sidebarCollapsed }: HeaderProps) {
                         {/* Content */}
                         <div className="min-w-0 flex-1">
                           <p className={cn(
-                            'text-[13px] leading-snug text-zinc-800 truncate',
+                            'text-body leading-snug text-zinc-800 truncate',
                             !notif.isRead ? 'font-semibold' : 'font-medium',
                           )}>
                             {notif.title}
                           </p>
-                          <p className="text-[12px] text-zinc-400 truncate mt-0.5">
+                          <p className="text-label text-zinc-400 truncate mt-0.5">
                             {notif.message} <span className="text-zinc-300">&middot;</span> <span className="text-zinc-300">{timeAgo(notif.createdAt)}</span>
                           </p>
                         </div>

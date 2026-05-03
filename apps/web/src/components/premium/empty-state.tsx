@@ -48,9 +48,9 @@ export function EmptyState({
           {icon}
         </div>
       )}
-      <h3 className="text-[16px] font-semibold text-zinc-900 mb-1.5">{title}</h3>
+      <h3 className="text-heading-sm font-semibold text-zinc-900 mb-1.5">{title}</h3>
       {description && (
-        <p className="text-[13px] text-zinc-500 max-w-sm mb-6">{description}</p>
+        <p className="text-body text-zinc-500 max-w-sm mb-6">{description}</p>
       )}
       {action}
     </div>

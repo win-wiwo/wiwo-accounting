@@ -37,7 +37,7 @@ export const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
         type="text"
         {...props}
         className={cn(
-          'peer w-full h-10 rounded-xl border border-zinc-200/80 bg-zinc-50/40 pl-10 pr-4 text-[13px] text-zinc-700 shadow-xs placeholder:text-zinc-400 outline-none transition-all duration-200',
+          'peer w-full h-10 rounded-xl border border-zinc-200/80 bg-zinc-50/40 pl-10 pr-4 text-body text-zinc-700 shadow-xs placeholder:text-zinc-400 outline-none transition-all duration-200',
           'hover:border-zinc-300 hover:bg-zinc-50/80',
           'focus:border-zinc-400 focus:bg-white focus:shadow-focus',
           className,

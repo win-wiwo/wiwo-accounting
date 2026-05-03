@@ -12,6 +12,9 @@
  * Auth strategy:
  *   For each role we log in via the API, then inject the Zustand-persisted
  *   localStorage key so every subsequent page load is authenticated.
+ *
+ * Output directory is controlled by OUTPUT_DIR env var.
+ * Default: audit/smoke/3c-baseline
  */
 
 import { test, expect, type Page, type BrowserContext } from '@playwright/test';
@@ -20,10 +23,10 @@ import path from 'path';
 
 // ── Config ────────────────────────────────────────────────
 
-const BASE_URL = process.env.BASE_URL || 'http://localhost:5173';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:5174';
 const API_URL = process.env.API_URL || 'http://localhost:3000/api';
+const OUTPUT_DIR = process.env.OUTPUT_DIR || path.join(__dirname, 'smoke', '3c-baseline');
 const PASSWORD = 'Password@123';
-const EXTRA_DELAY_MS = 800; // extra wait after network idle for animations
 
 const VIEWPORTS = [
   { tag: 'desktop', width: 1440, height: 900 },
@@ -85,23 +88,82 @@ const ROUTES: RouteEntry[] = [
   { name: 'settings', url: '/settings', role: 'admin' },
   { name: 'reports', url: '/reports', role: 'admin' },
   { name: 'search', url: '/search', role: 'admin' },
-  { name: 'profile', url: '/profile', role: 'admin' },
+  { name: 'profile-admin', url: '/profile', role: 'admin' },
 
-  // ── Role-specific dashboards ──
+  // ── CEO pages ──
   { name: 'dashboard-ceo', url: '/dashboard', role: 'ceo' },
+  { name: 'approvals-ceo', url: '/approvals', role: 'ceo' },
+
+  // ── COO pages ──
   { name: 'dashboard-coo', url: '/dashboard', role: 'coo' },
+
+  // ── Dept Head pages ──
   { name: 'dashboard-dept-head', url: '/dashboard', role: 'dept_head' },
+  { name: 'approvals-dept-head', url: '/approvals', role: 'dept_head' },
+
+  // ── Staff pages ──
   { name: 'dashboard-staff', url: '/dashboard', role: 'staff' },
+  { name: 'purchase-requests-staff', url: '/purchase-requests', role: 'staff' },
+  { name: 'purchase-request-detail-staff', url: '/purchase-requests/<PR_ID>', role: 'staff' },
+  { name: 'purchase-orders-staff', url: '/purchase-orders', role: 'staff' },
+  { name: 'reports-staff', url: '/reports', role: 'staff' },
+  { name: 'profile-staff', url: '/profile', role: 'staff' },
+
+  // ── PR Form: Step 1 (Basics) ──
+  { name: 'pr-form-step1', url: '/purchase-requests/new', role: 'staff' },
+
+  // ── PR Form: Step 2 (Items) ──
+  {
+    name: 'pr-form-step2',
+    url: '/purchase-requests/new',
+    role: 'staff',
+    setup: async (page) => {
+      // Fill minimum required fields to advance to step 2
+      await page.getByPlaceholder(/busway/i).fill('Visual QA Test Request');
+      // Click Continue to go to Step 2
+      const continueBtn = page.getByRole('button', { name: /continue/i });
+      if (await continueBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+        await continueBtn.click();
+        await page.waitForTimeout(1000);
+      }
+    },
+  },
+
+  // ── PR Form: Step 3 (Review) ──
+  {
+    name: 'pr-form-step3',
+    url: '/purchase-requests/new',
+    role: 'staff',
+    setup: async (page) => {
+      // Fill step 1
+      await page.getByPlaceholder(/busway/i).fill('Visual QA Test Request');
+      const continueBtn = page.getByRole('button', { name: /continue/i });
+      if (await continueBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+        await continueBtn.click();
+        await page.waitForTimeout(800);
+      }
+      // On step 2, click Continue to get to step 3 (may need an item but let's try)
+      const continueBtn2 = page.getByRole('button', { name: /continue/i });
+      if (await continueBtn2.isVisible({ timeout: 3000 }).catch(() => false)) {
+        await continueBtn2.click();
+        await page.waitForTimeout(1000);
+      }
+    },
+  },
+
+  // ── PR Form: Edit (existing draft) ──
+  { name: 'pr-form-edit', url: '/purchase-requests/<DRAFT_PR_ID>/edit', role: 'staff' },
+
+  // ── Procurement pages ──
   { name: 'dashboard-procurement', url: '/dashboard', role: 'procurement' },
+  { name: 'procurement-queue-officer', url: '/procurement', role: 'procurement' },
+  { name: 'procurement-workspace-officer', url: '/procurement/<PROCUREMENT_PR_ID>', role: 'procurement' },
+  { name: 'suppliers-procurement', url: '/suppliers', role: 'procurement' },
+
+  // ── Accounting pages ──
   { name: 'dashboard-accounting', url: '/dashboard', role: 'accounting' },
 
-  // ── Role-specific pages ──
-  { name: 'approvals-ceo', url: '/approvals', role: 'ceo' },
-  { name: 'approvals-dept-head', url: '/approvals', role: 'dept_head' },
-  { name: 'pr-form-new', url: '/purchase-requests/new', role: 'staff' },
-  { name: 'pr-form-edit', url: '/purchase-requests/<PR_ID>/edit', role: 'staff' },
-
-  // ── Modal surfaces (desktop only for clarity) ──
+  // ── Modal surfaces (desktop only) ──
   {
     name: 'modal-create-user',
     url: '/users',
@@ -109,7 +171,7 @@ const ROUTES: RouteEntry[] = [
     viewports: ['desktop'],
     setup: async (page) => {
       await page.getByRole('button', { name: /add user/i }).click();
-      await page.waitForTimeout(400);
+      await page.waitForTimeout(600);
     },
   },
   {
@@ -119,7 +181,7 @@ const ROUTES: RouteEntry[] = [
     viewports: ['desktop'],
     setup: async (page) => {
       await page.getByRole('button', { name: /add department/i }).click();
-      await page.waitForTimeout(400);
+      await page.waitForTimeout(600);
     },
   },
   {
@@ -129,7 +191,7 @@ const ROUTES: RouteEntry[] = [
     viewports: ['desktop'],
     setup: async (page) => {
       await page.getByRole('button', { name: /new project/i }).click();
-      await page.waitForTimeout(400);
+      await page.waitForTimeout(600);
     },
   },
   {
@@ -138,11 +200,11 @@ const ROUTES: RouteEntry[] = [
     role: 'ceo',
     viewports: ['desktop'],
     setup: async (page) => {
-      // Click the first PR row in the approvals list
-      const firstRow = page.locator('.pr-row-enter').first();
-      if (await firstRow.isVisible({ timeout: 5000 }).catch(() => false)) {
-        await firstRow.click();
-        await page.waitForTimeout(800);
+      // Click the first actionable row in the approvals table
+      const row = page.locator('table tbody tr').first();
+      if (await row.isVisible({ timeout: 5000 }).catch(() => false)) {
+        await row.click();
+        await page.waitForTimeout(1000);
       }
     },
   },
@@ -153,7 +215,7 @@ const ROUTES: RouteEntry[] = [
     viewports: ['desktop'],
     setup: async (page) => {
       await page.getByRole('button', { name: /change password/i }).click();
-      await page.waitForTimeout(400);
+      await page.waitForTimeout(600);
     },
   },
 ];
@@ -170,7 +232,6 @@ async function getAuthPayload(email: string): Promise<string> {
   if (!res.ok) throw new Error(`Login failed for ${email}: ${res.status}`);
   const json = await res.json();
   const { user, tokens } = json.data;
-  // Match the shape Zustand persist expects (see auth.store.ts partialize)
   return JSON.stringify({
     state: {
       user,
@@ -222,6 +283,13 @@ async function resolveIds(token: string): Promise<Record<string, string>> {
     ids['<PROCUREMENT_PR_ID>'] = json.data?.[0]?._id ?? ids['<PR_ID>'] ?? '';
   } catch { ids['<PROCUREMENT_PR_ID>'] = ids['<PR_ID>'] ?? ''; }
 
+  // Fetch a draft PR for staff edit form
+  try {
+    const res = await fetch(`${API_URL}/purchase-requests?status=draft&limit=1`, { headers });
+    const json = await res.json();
+    ids['<DRAFT_PR_ID>'] = json.data?.[0]?._id ?? ids['<PR_ID>'] ?? '';
+  } catch { ids['<DRAFT_PR_ID>'] = ids['<PR_ID>'] ?? ''; }
+
   return ids;
 }
 
@@ -234,7 +302,7 @@ function resolveUrl(url: string, ids: Record<string, string>): string {
 }
 
 function screenshotDir(viewport: string): string {
-  return path.join(__dirname, 'screenshots', viewport);
+  return path.join(OUTPUT_DIR, viewport);
 }
 
 async function captureScreenshot(
@@ -251,8 +319,6 @@ async function captureScreenshot(
 }
 
 async function waitForPageReady(page: Page) {
-  // Wait for DOM to be ready, then give extra time for data fetches + animations.
-  // Avoid networkidle — some pages have long-polling or keep-alive connections.
   await page.waitForLoadState('domcontentloaded').catch(() => {});
   await page.waitForTimeout(2500);
 }
@@ -282,7 +348,15 @@ test.beforeAll(async () => {
   resolvedIds = await resolveIds(parsed.state.accessToken);
 
   console.log('Resolved IDs:', resolvedIds);
-  console.log(`Capturing ${ROUTES.length} routes × ${VIEWPORTS.length} viewports`);
+  console.log(`Output directory: ${OUTPUT_DIR}`);
+  console.log(`Capturing ${ROUTES.length} routes × up to ${VIEWPORTS.length} viewports`);
+
+  // Count total screenshots
+  let total = 0;
+  for (const r of ROUTES) {
+    total += r.viewports ? r.viewports.length : VIEWPORTS.length;
+  }
+  console.log(`Total screenshots to capture: ${total}`);
 });
 
 for (const route of ROUTES) {

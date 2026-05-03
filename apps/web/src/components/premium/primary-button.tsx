@@ -11,7 +11,7 @@ export const PrimaryButton = React.forwardRef<HTMLButtonElement, PrimaryButtonPr
       {...props}
       className={cn(
         'premium-primary-btn',
-        'inline-flex items-center justify-center gap-2 rounded-[10px] px-5 py-2.5 text-[13px] font-semibold text-white cursor-pointer',
+        'inline-flex items-center justify-center gap-2 rounded-[10px] px-5 py-2.5 text-body font-semibold text-white cursor-pointer',
         'transition-all duration-200',
         'disabled:opacity-50 disabled:cursor-not-allowed',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 focus-visible:ring-offset-2',
@@ -31,7 +31,7 @@ export const GhostButton = React.forwardRef<HTMLButtonElement, GhostButtonProps>
       type={type}
       {...props}
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-[10px] px-4 py-2 text-[13px] font-medium text-zinc-700 cursor-pointer',
+        'inline-flex items-center justify-center gap-2 rounded-[10px] px-4 py-2 text-body font-medium text-zinc-700 cursor-pointer',
         'border border-zinc-200 bg-white',
         'transition-all duration-200',
         'hover:bg-zinc-50 hover:border-zinc-300',

@@ -206,7 +206,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
               key={item.href}
               to={item.href}
               className={cn(
-                "relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                "relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-body-lg font-medium transition-all duration-200",
                 isActive
                   ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-xs"
                   : "text-[oklch(0.72_0_0)] hover:bg-white/[0.08] hover:text-sidebar-foreground",
@@ -220,17 +220,17 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                 )}
               />
               {!collapsed && (
-                <span className="flex flex-1 items-center justify-between text-[13px]">
+                <span className="flex flex-1 items-center justify-between text-body">
                   {item.label}
                   {item.href === "/approvals" && pendingCount > 0 && (
-                    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-foreground/10 px-1.5 text-[10px] font-bold text-sidebar-primary-foreground bg-[oklch(0.577_0.245_27.325)]">
+                    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-foreground/10 px-1.5 text-micro font-bold text-sidebar-primary-foreground bg-[oklch(0.577_0.245_27.325)]">
                       {pendingCount}
                     </span>
                   )}
                 </span>
               )}
               {collapsed && item.href === "/approvals" && pendingCount > 0 && (
-                <span className="absolute right-1 top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-[oklch(0.577_0.245_27.325)] px-0.5 text-[8px] font-bold text-white">
+                <span className="absolute right-1 top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-[oklch(0.577_0.245_27.325)] px-0.5 text-micro font-bold text-white">
                   {pendingCount}
                 </span>
               )}
@@ -243,7 +243,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             <div className="my-3 flex items-center gap-2">
               <div className="h-px flex-1 bg-sidebar-border" />
               {!collapsed && (
-                <span className="text-[10px] font-semibold uppercase tracking-widest text-[oklch(0.52_0_0)]">
+                <span className="text-micro font-semibold uppercase tracking-widest text-[oklch(0.52_0_0)]">
                   Admin
                 </span>
               )}
@@ -256,7 +256,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                   key={item.href}
                   to={item.href}
                   className={cn(
-                    "relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                    "relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-body-lg font-medium transition-all duration-200",
                     isActive
                       ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-xs"
                       : "text-[oklch(0.72_0_0)] hover:bg-white/[0.08] hover:text-sidebar-foreground",
@@ -268,7 +268,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                   )}
                   <item.icon className="h-4 w-4 shrink-0" />
                   {!collapsed && (
-                    <span className="text-[13px]">{item.label}</span>
+                    <span className="text-body">{item.label}</span>
                   )}
                 </Link>
               );
@@ -305,16 +305,16 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                 src={resolvePhotoUrl(user?.photoUrl)}
                 alt={initials}
               />
-              <AvatarFallback className="bg-white/10 text-sidebar-foreground text-[11px] font-semibold">
+              <AvatarFallback className="bg-white/10 text-sidebar-foreground text-caption font-semibold">
                 {initials}
               </AvatarFallback>
             </Avatar>
             {!collapsed && (
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[13px] font-medium text-sidebar-foreground">
+                <p className="truncate text-body font-medium text-sidebar-foreground">
                   {user?.firstName} {user?.lastName}
                 </p>
-                <p className="truncate text-[11px] text-[oklch(0.58_0_0)]">
+                <p className="truncate text-caption text-[oklch(0.58_0_0)]">
                   {ROLE_LABELS[user?.role as UserRole] || user?.role}
                 </p>
               </div>
@@ -330,7 +330,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
               "text-[oklch(0.60_0_0)] hover:bg-white/[0.07] hover:text-sidebar-foreground transition-all duration-200",
               collapsed
                 ? "h-9 w-9"
-                : "w-full justify-start gap-3 px-3 text-[13px]",
+                : "w-full justify-start gap-3 px-3 text-body",
             )}
           >
             <LogOut className="h-4 w-4 shrink-0" />
