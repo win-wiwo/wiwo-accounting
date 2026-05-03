@@ -3,7 +3,7 @@ import { usePageTitle } from '@/hooks/use-page-title';
 import { useNavigate } from 'react-router-dom';
 import {
   FileText, Clock, CheckCircle2, ArrowRight,
-  Plus, ChevronRight, AlertTriangle,
+  Plus, ChevronRight,
   Package,
 } from 'lucide-react';
 import {
@@ -27,7 +27,7 @@ const OVERDUE_DAYS = 5;
 const priorityDot: Record<string, string> = {
   urgent: 'bg-red-500',
   high:   'bg-amber-400',
-  medium: 'bg-blue-400',
+  medium: 'bg-zinc-400',
   low:    'bg-zinc-300',
 };
 
@@ -208,7 +208,7 @@ export function DashboardPage() {
             </h1>
             <p className="mt-2 text-[14px] leading-relaxed text-zinc-500">{subtitle}</p>
           </div>
-          <p className="text-[12px] text-zinc-400 shrink-0 pb-0.5 tabular-nums">
+          <p className="text-[11px] text-zinc-400/80 shrink-0 pb-0.5 tabular-nums">
             {new Date().toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
           </p>
         </div>
@@ -455,7 +455,6 @@ export function DashboardPage() {
                           const hasProcurement = pr.items.some((i: any) => i.sourcingType === SourcingType.PROCUREMENT);
                           const amountUnknown = hasProcurement && pr.totalAmount === 0;
                           const days = ageDays(pr.submittedAt);
-                          const isOverdue = days >= OVERDUE_DAYS;
                           return (
                             <div
                               key={pr._id}
@@ -478,7 +477,7 @@ export function DashboardPage() {
                               <span className={`text-[13px] font-semibold shrink-0 tabular-nums ${amountUnknown ? 'text-amber-500 text-[11px] font-normal italic' : 'text-zinc-700'}`}>
                                 {amountUnknown ? 'Pending Quote' : compact(pr.totalAmount)}
                               </span>
-                              <span className={`text-[12px] shrink-0 w-14 text-right tabular-nums ${isOverdue ? 'text-red-500 font-medium' : 'text-zinc-400'}`}>
+                              <span className={`text-[12px] shrink-0 w-14 text-right tabular-nums ${days >= 15 ? 'text-red-500 font-medium' : days >= 8 ? 'text-amber-500 font-medium' : 'text-zinc-400'}`}>
                                 {ageLabel(pr.submittedAt)}
                               </span>
                               <ChevronRight className="h-3.5 w-3.5 text-zinc-200 group-hover:text-zinc-400 shrink-0 transition-colors duration-150" />
@@ -620,7 +619,7 @@ export function DashboardPage() {
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
-                <KpiCard label="Pending Canvass" value={procPendingCount} onClick={() => navigate('/procurement')} variant={procPendingCount > 0 ? 'warning' : 'default'} />
+                <KpiCard label="Pending Canvass" value={procPendingCount} onClick={() => navigate('/procurement')} />
                 {quotedCount > 0 && (
                   <KpiCard label="Awaiting Price Review" value={quotedCount} onClick={() => navigate('/purchase-requests?status=quoted')} />
                 )}
@@ -663,17 +662,20 @@ export function DashboardPage() {
                               className="flex items-center gap-3 py-3.5 cursor-pointer hover:bg-zinc-50 -mx-6 px-6 transition-colors duration-150 group"
                               onClick={() => navigate(`/procurement/${pr._id}`)}
                             >
-                              <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${priorityDot[pr.priority] ?? 'bg-zinc-300'}`} />
+                              <span className="h-[3px] w-[3px] rounded-full shrink-0 bg-zinc-300" />
                               <div className="min-w-0 flex-1">
                                 <p className="font-medium text-[13px] text-zinc-800 leading-snug line-clamp-1">{pr.title}</p>
                                 <p className="text-[12px] text-zinc-400 mt-0.5">
                                   {requesterName(pr)} · {itemCount} item{itemCount !== 1 ? 's' : ''} to source
                                 </p>
                               </div>
-                              <span className={`text-[12px] font-semibold shrink-0 ${pr.priority === 'urgent' ? 'text-red-600' : 'text-zinc-500'}`}>
-                                {PR_PRIORITY_LABELS[pr.priority as PrPriorityType]}
+                              <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold shrink-0">
+                                <span className={`h-1.5 w-1.5 rounded-full ${priorityDot[pr.priority] ?? 'bg-zinc-300'}`} />
+                                <span className={pr.priority === 'urgent' ? 'text-red-600' : pr.priority === 'high' ? 'text-amber-600' : 'text-zinc-500'}>
+                                  {PR_PRIORITY_LABELS[pr.priority as PrPriorityType]}
+                                </span>
                               </span>
-                              <span className={`text-[12px] shrink-0 w-14 text-right tabular-nums ${days >= OVERDUE_DAYS ? 'text-red-500 font-medium' : 'text-zinc-400'}`}>
+                              <span className={`text-[12px] shrink-0 w-14 text-right tabular-nums ${days >= 15 ? 'text-red-500 font-medium' : days >= 8 ? 'text-amber-500 font-medium' : 'text-zinc-400'}`}>
                                 {ageLabel(pr.submittedAt)}
                               </span>
                               <ChevronRight className="h-3.5 w-3.5 text-zinc-200 group-hover:text-zinc-400 shrink-0 transition-colors duration-150" />
@@ -729,11 +731,11 @@ export function DashboardPage() {
                       <CardTitle className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-400">PO Pipeline</CardTitle>
                     </CardHeader>
                     <CardContent className="pt-0 px-6 pb-5 space-y-3">
-                      <PipelineRow label="Pending" count={poStats.pending} color="bg-amber-400" total={poStats.total} />
-                      <PipelineRow label="Ordered" count={poStats.ordered} color="bg-blue-400" total={poStats.total} />
-                      <PipelineRow label="Received" count={poStats.received} color="bg-emerald-400" total={poStats.total} />
+                      <PipelineRow label="Pending" count={poStats.pending} color="bg-amber-400/50" total={poStats.total} />
+                      <PipelineRow label="Ordered" count={poStats.ordered} color="bg-blue-400/50" total={poStats.total} />
+                      <PipelineRow label="Received" count={poStats.received} color="bg-emerald-400/70" total={poStats.total} />
                       {poStats.cancelled > 0 && (
-                        <PipelineRow label="Cancelled" count={poStats.cancelled} color="bg-red-400" total={poStats.total} />
+                        <PipelineRow label="Cancelled" count={poStats.cancelled} color="bg-zinc-300" total={poStats.total} />
                       )}
                     </CardContent>
                   </Card>
@@ -838,7 +840,7 @@ function AnimSection({ delay, children }: { delay: number; children: React.React
 const HEALTH_CONFIG = {
   on_track: { label: 'On Track',  dot: 'bg-emerald-400', text: 'text-emerald-700', bg: 'bg-emerald-50' },
   at_risk:  { label: 'At Risk',   dot: 'bg-amber-400',   text: 'text-amber-700',   bg: 'bg-amber-50' },
-  delayed:  { label: 'Delayed',   dot: 'bg-orange-400',  text: 'text-orange-700',  bg: 'bg-orange-50' },
+  delayed:  { label: 'Delayed',   dot: 'bg-amber-400',   text: 'text-amber-700',   bg: 'bg-amber-50' },
   blocked:  { label: 'Blocked',   dot: 'bg-red-500',     text: 'text-red-700',     bg: 'bg-red-50' },
 } as const;
 
@@ -874,9 +876,10 @@ function ProjectOverviewPanel({ summary, projects, loading, onProjectClick }: {
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2 min-w-0 flex-1 pr-3">
                     <span className="text-[13px] font-medium text-zinc-700 truncate">{proj.projectName}</span>
-                    {proj.projectCode && <span className="text-[11px] text-zinc-400 font-mono shrink-0">{proj.projectCode}</span>}
+                    {proj.projectCode && <span className="text-[10px] text-zinc-500 font-mono shrink-0 bg-zinc-100 rounded-full px-2 py-0.5">{proj.projectCode}</span>}
                     {proj.health !== 'on_track' && (
-                      <span className={`text-[10px] font-semibold rounded-full px-2 py-0.5 shrink-0 ${h.bg} ${h.text}`}>
+                      <span className={`inline-flex items-center gap-1 text-[10px] font-semibold rounded-full px-2 py-0.5 shrink-0 ${h.bg} ${h.text}`}>
+                        <span className={`h-1.5 w-1.5 rounded-full ${h.dot}`} />
                         {h.label}
                       </span>
                     )}
@@ -884,7 +887,9 @@ function ProjectOverviewPanel({ summary, projects, loading, onProjectClick }: {
                   <div className="text-right shrink-0">
                     <span className="text-[13px] font-semibold tabular-nums text-zinc-900">{compact(proj.approvedAmount)}</span>
                     {proj.pendingAmount > 0 && (
-                      <span className="text-[11px] tabular-nums text-amber-600 ml-1.5">+{compact(proj.pendingAmount)}</span>
+                      <span className={`text-[11px] tabular-nums ml-1.5 ${
+                        proj.health === 'blocked' ? 'text-red-600' : proj.health === 'delayed' || proj.health === 'at_risk' ? 'text-amber-600' : 'text-zinc-400'
+                      }`}>+{compact(proj.pendingAmount)}</span>
                     )}
                     <span className="text-[11px] text-zinc-400 ml-2">{proj.totalPrs} PR{proj.totalPrs !== 1 ? 's' : ''}</span>
                   </div>
@@ -895,13 +900,13 @@ function ProjectOverviewPanel({ summary, projects, loading, onProjectClick }: {
                   <div className="h-full flex">
                     {approvedPct > 0 && (
                       <div
-                        className="h-full bg-emerald-400 transition-all duration-500"
+                        className="h-full bg-emerald-400/70 transition-all duration-500"
                         style={{ width: `${approvedPct}%` }}
                       />
                     )}
                     {pendingPct > 0 && (
                       <div
-                        className="h-full bg-amber-300 transition-all duration-500"
+                        className="h-full bg-amber-400/50 transition-all duration-500"
                         style={{ width: `${pendingPct}%` }}
                       />
                     )}
@@ -910,13 +915,17 @@ function ProjectOverviewPanel({ summary, projects, loading, onProjectClick }: {
 
                 {/* Issue callout for troubled projects */}
                 {proj.health !== 'on_track' && (
-                  <p className="text-[11px] text-zinc-400 mt-1">
-                    {proj.overdueCount > 0 && `${proj.overdueCount} overdue`}
-                    {proj.overdueCount > 0 && proj.returnedCount > 0 && ' · '}
-                    {proj.returnedCount > 0 && `${proj.returnedCount} returned`}
-                    {(proj.overdueCount > 0 || proj.returnedCount > 0) && proj.inProcurementCount > 0 && ' · '}
-                    {proj.inProcurementCount > 0 && `${proj.inProcurementCount} in procurement`}
-                  </p>
+                  <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                    {proj.overdueCount > 0 && (
+                      <span className="text-[10px] text-zinc-500 bg-zinc-50 border border-zinc-200 rounded-full px-2 py-0.5 hover:bg-zinc-100 transition-colors cursor-pointer">{proj.overdueCount} overdue</span>
+                    )}
+                    {proj.returnedCount > 0 && (
+                      <span className="text-[10px] text-zinc-500 bg-zinc-50 border border-zinc-200 rounded-full px-2 py-0.5 hover:bg-zinc-100 transition-colors cursor-pointer">{proj.returnedCount} returned</span>
+                    )}
+                    {proj.inProcurementCount > 0 && (
+                      <span className="text-[10px] text-zinc-500 bg-zinc-50 border border-zinc-200 rounded-full px-2 py-0.5 hover:bg-zinc-100 transition-colors cursor-pointer">{proj.inProcurementCount} in procurement</span>
+                    )}
+                  </div>
                 )}
               </div>
             );
@@ -946,43 +955,40 @@ function UrgentPanel({ title, items, action, summary }: {
 }) {
   if (items.length === 0) return null;
   return (
-    <div className="rounded-xl border border-red-100 bg-gradient-to-r from-red-50/60 to-white shadow-[0_1px_3px_rgba(0,0,0,0.05)] overflow-hidden">
-      <div className="px-6 pt-5 pb-3 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <AlertTriangle className="h-4 w-4 text-red-500" />
-          <h3 className="text-[14px] font-semibold text-zinc-900">{title}</h3>
-          {summary && <span className="text-[12px] text-zinc-400 ml-1">{summary}</span>}
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between pb-3 px-6 pt-6">
+        <div className="flex items-center gap-2">
+          <CardTitle className="text-[15px] font-semibold text-zinc-900">{title}</CardTitle>
+          {summary && <span className="text-[12px] text-zinc-400">{summary}</span>}
         </div>
         {action && (
-          <button
-            className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-900 px-4 py-2 text-[13px] font-semibold text-white transition-all duration-200 hover:bg-zinc-800 hover:shadow-md"
-            onClick={action.onClick}
-          >
-            {action.label} <ArrowRight className="h-3.5 w-3.5" />
-          </button>
+          <NavLink label={action.label} onClick={action.onClick} />
         )}
-      </div>
-      <div className="px-6 pb-5 space-y-2">
-        {items.map(item => (
-          <div
-            key={item.id}
-            className="flex items-center gap-3 rounded-lg px-3 py-2.5 bg-white/80 border border-zinc-100 cursor-pointer hover:bg-white hover:shadow-sm transition-all duration-150"
-            onClick={item.onClick}
-          >
-            <span className={`h-2 w-2 rounded-full shrink-0 ${item.severity === 'danger' ? 'bg-red-500' : 'bg-amber-400'}`} />
-            <div className="min-w-0 flex-1">
-              <p className="text-[13px] font-medium text-zinc-800 truncate">{item.title}</p>
+      </CardHeader>
+      <CardContent className="pt-0 px-6">
+        <div className="divide-y divide-zinc-100">
+          {items.map(item => (
+            <div
+              key={item.id}
+              className="flex items-center gap-3 py-3.5 cursor-pointer hover:bg-zinc-50 -mx-6 px-6 transition-colors duration-150 group"
+              onClick={item.onClick}
+            >
+              <span className={`h-[5px] w-[5px] rounded-full shrink-0 ${item.severity === 'danger' ? 'bg-red-500' : 'bg-amber-400'}`} />
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] font-medium text-zinc-800 truncate">{item.title}</p>
+              </div>
+              <span className={`inline-flex items-center gap-1.5 text-[12px] font-medium shrink-0 ${
+                item.severity === 'danger' ? 'text-red-600' : 'text-amber-600'
+              }`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${item.severity === 'danger' ? 'bg-red-500' : 'bg-amber-400'}`} />
+                {item.reason}
+              </span>
+              <ChevronRight className="h-3.5 w-3.5 text-zinc-200 group-hover:text-zinc-400 shrink-0 transition-colors duration-150" />
             </div>
-            <span className={`text-[11px] font-semibold shrink-0 px-2 py-0.5 rounded-full ${
-              item.severity === 'danger' ? 'text-red-700 bg-red-50' : 'text-amber-700 bg-amber-50'
-            }`}>
-              {item.reason}
-            </span>
-            <ChevronRight className="h-3.5 w-3.5 text-zinc-300 shrink-0" />
-          </div>
-        ))}
-      </div>
-    </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -1095,12 +1101,12 @@ function ProjectSpendingCard({ spending, loading }: { spending: ProjectSpendingI
                     <div className="text-right shrink-0">
                       <p className="text-[13px] font-semibold tabular-nums text-zinc-900">{compact(p.approvedAmount)}</p>
                       {p.pendingAmount > 0 && (
-                        <p className="text-[11px] tabular-nums text-amber-600">+{compact(p.pendingAmount)} pending</p>
+                        <p className="text-[11px] tabular-nums text-zinc-400">+{compact(p.pendingAmount)} pending</p>
                       )}
                     </div>
                   </div>
                   <div className="h-1 rounded-full bg-zinc-100 overflow-hidden">
-                    <div className="h-full rounded-full bg-emerald-400 transition-all duration-500" style={{ width: `${pct}%` }} />
+                    <div className="h-full rounded-full bg-emerald-400/70 transition-all duration-500" style={{ width: `${pct}%` }} />
                   </div>
                 </div>
               );
@@ -1167,12 +1173,13 @@ function PrRow({ pr, onClick, showStatus }: { pr: any; onClick: () => void; show
 }
 
 function PoRow({ po, onClick }: { po: any; onClick: () => void }) {
-  const statusColors: Record<string, string> = {
-    pending: 'text-amber-600 bg-amber-50',
-    ordered: 'text-blue-600 bg-blue-50',
-    received: 'text-emerald-600 bg-emerald-50',
-    cancelled: 'text-red-600 bg-red-50',
+  const statusConfig: Record<string, { text: string; bg: string; border: string; dot: string }> = {
+    pending:   { text: 'text-amber-700',   bg: 'bg-amber-50',   border: 'border-amber-200',   dot: 'bg-amber-500' },
+    ordered:   { text: 'text-blue-700',    bg: 'bg-blue-50',    border: 'border-blue-200',    dot: 'bg-blue-500' },
+    received:  { text: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200', dot: 'bg-emerald-500' },
+    cancelled: { text: 'text-zinc-500',    bg: 'bg-zinc-50',    border: 'border-zinc-200',    dot: 'bg-zinc-400' },
   };
+  const cfg = statusConfig[po.status ?? ''] ?? { text: 'text-zinc-500', bg: 'bg-zinc-50', border: 'border-zinc-200', dot: 'bg-zinc-400' };
   return (
     <div
       className="flex items-center gap-3 py-3.5 cursor-pointer hover:bg-zinc-50 -mx-6 px-6 transition-colors duration-150 group"
@@ -1187,7 +1194,8 @@ function PoRow({ po, onClick }: { po: any; onClick: () => void }) {
         </p>
       </div>
       <span className="text-[13px] font-semibold shrink-0 tabular-nums text-zinc-700">{compact(po.totalAmount ?? 0)}</span>
-      <span className={`text-[10px] font-semibold rounded-full px-2 py-0.5 capitalize shrink-0 ${statusColors[po.status ?? ''] ?? 'text-zinc-500 bg-zinc-50'}`}>
+      <span className={`inline-flex h-[22px] items-center gap-1.5 rounded-md border px-2 text-[11px] font-medium leading-none capitalize shrink-0 ${cfg.bg} ${cfg.text} ${cfg.border}`}>
+        <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
         {po.status ?? '--'}
       </span>
       <ChevronRight className="h-3.5 w-3.5 text-zinc-200 group-hover:text-zinc-400 shrink-0 transition-colors duration-150" />
@@ -1219,7 +1227,7 @@ function PipelineRow({ label, count, color, total }: { label: string; count: num
 function NavLink({ label, onClick }: { label: string; onClick: () => void }) {
   return (
     <button
-      className="inline-flex items-center gap-1 text-[12px] font-medium text-zinc-400 hover:text-zinc-700 transition-colors duration-150"
+      className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-400/70 hover:text-zinc-600 transition-colors duration-150"
       onClick={onClick}
     >
       {label} <ArrowRight className="h-3 w-3" />
@@ -1289,7 +1297,7 @@ function KpiCard({
     >
       <div className="flex items-center justify-between mb-3">
         <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-zinc-400">{label}</p>
-        <span className={`h-2 w-2 rounded-full ${dotStyles[variant]}`} />
+        <span className={`h-1.5 w-1.5 rounded-full opacity-40 ${dotStyles[variant]}`} />
       </div>
       <p className={`kpi-value text-[32px] font-bold tabular-nums leading-none ${valueStyles[variant]}`}>{value}</p>
     </div>
