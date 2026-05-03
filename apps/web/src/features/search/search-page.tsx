@@ -122,7 +122,7 @@ function writeFiltersToParams(filters: ReturnType<typeof readFiltersFromParams>)
 // ─── Reusable styled inputs ───────────────────────────────────
 
 const PREMIUM_INPUT_CLASS =
-  'w-full h-10 rounded-xl border border-zinc-200/80 bg-zinc-50/40 px-3.5 text-[13px] text-zinc-700 shadow-xs outline-none transition-all duration-200 hover:border-zinc-300 hover:bg-zinc-50/80 focus:border-zinc-400 focus:bg-white focus:shadow-focus [&::-webkit-calendar-picker-indicator]:opacity-60 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:hover:opacity-100 [&::-webkit-calendar-picker-indicator]:transition-opacity';
+  'w-full h-10 rounded-xl border border-zinc-200/80 bg-zinc-50/40 px-3.5 text-body text-zinc-700 shadow-xs outline-none transition-all duration-200 hover:border-zinc-300 hover:bg-zinc-50/80 focus:border-zinc-400 focus:bg-white focus:shadow-focus [&::-webkit-calendar-picker-indicator]:opacity-60 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:hover:opacity-100 [&::-webkit-calendar-picker-indicator]:transition-opacity';
 
 // ─── Component ────────────────────────────────────────────────
 
@@ -358,7 +358,7 @@ export function SearchPage() {
           onClick={() => setFiltersExpanded((v) => !v)}
           className="w-full flex items-center justify-between px-6 py-4 cursor-pointer select-none hover:bg-zinc-50/50 transition-colors duration-150"
         >
-          <span className="flex items-center gap-2 text-[15px] font-semibold text-zinc-900">
+          <span className="flex items-center gap-2 text-body-lg font-semibold text-zinc-900">
             <Search className="h-4 w-4 text-zinc-400" />
             Advanced Search
             {hasActiveFilters && (
@@ -402,7 +402,7 @@ export function SearchPage() {
                       type="button"
                       onClick={() => toggleStatus(s)}
                       className={cn(
-                        'inline-flex items-center rounded-full border px-3 py-1 text-[12px] font-medium transition-colors duration-150',
+                        'inline-flex items-center rounded-full border px-3 py-1 text-label font-medium transition-colors duration-150',
                         isActive
                           ? 'border-zinc-900 bg-zinc-900 text-white'
                           : 'border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900',
@@ -551,7 +551,7 @@ export function SearchPage() {
 
       {/* ── Results summary ────────────────────────────────── */}
       {meta && (
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between text-[13px] text-zinc-500">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between text-body text-zinc-500">
           <span>
             <span className="font-semibold text-zinc-800 tabular-nums">{meta.total}</span> result
             {meta.total !== 1 ? 's' : ''} found
@@ -625,29 +625,29 @@ export function SearchPage() {
                       >
                         <td className="px-5 py-4">
                           {pr.prNumber ? (
-                            <span className="font-mono text-[13px] font-medium text-zinc-800 tracking-tight">
+                            <span className="font-mono text-body font-medium text-zinc-800 tracking-tight">
                               {pr.prNumber}
                             </span>
                           ) : (
-                            <span className="text-[13px] italic text-zinc-400">Draft</span>
+                            <span className="text-body italic text-zinc-400">Draft</span>
                           )}
                         </td>
                         <td className="px-5 py-4">
-                          <p className="text-[13px] font-medium text-zinc-800 leading-snug truncate max-w-[260px] group-hover:text-zinc-950 transition-colors duration-150">
+                          <p className="text-body font-medium text-zinc-800 leading-snug truncate max-w-[260px] group-hover:text-zinc-950 transition-colors duration-150">
                             {pr.title}
                           </p>
                         </td>
-                        <td className="px-5 py-4 text-[13px] text-zinc-500">
+                        <td className="px-5 py-4 text-body text-zinc-500">
                           {requester ? `${requester.firstName} ${requester.lastName}` : '—'}
                         </td>
-                        <td className="px-5 py-4 text-[13px] text-zinc-500">
+                        <td className="px-5 py-4 text-body text-zinc-500">
                           {dept ? dept.name : '—'}
                         </td>
                         <td className="px-5 py-4 text-right">
                           {hasPendingQuote(pr) ? (
-                            <span className="text-[13px] font-semibold text-amber-600">TBD</span>
+                            <span className="text-body font-semibold text-amber-600">TBD</span>
                           ) : (
-                            <span className="text-[13px] font-semibold tabular-nums text-zinc-800">
+                            <span className="text-body font-semibold tabular-nums text-zinc-800">
                               {formatCurrency(pr.totalAmount)}
                             </span>
                           )}
@@ -662,7 +662,7 @@ export function SearchPage() {
                             {PR_STATUS_LABELS[pr.status as PrStatusType]}
                           </StatusBadge>
                         </td>
-                        <td className="px-5 py-4 text-[13px] tabular-nums text-zinc-400 whitespace-nowrap">
+                        <td className="px-5 py-4 text-body tabular-nums text-zinc-400 whitespace-nowrap">
                           {new Date(pr.createdAt).toLocaleDateString('en-PH', {
                             month: 'short',
                             day: 'numeric',
@@ -695,15 +695,15 @@ export function SearchPage() {
                     onClick={() => navigate(`/purchase-requests/${pr._id}`)}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-mono text-[12px] text-zinc-400">
+                      <span className="font-mono text-label text-zinc-400">
                         {pr.prNumber || 'Draft'}
                       </span>
                       <StatusBadge tone={prStatusTone(pr.status)} dot>
                         {PR_STATUS_LABELS[pr.status as PrStatusType]}
                       </StatusBadge>
                     </div>
-                    <p className="text-[13px] font-medium text-zinc-800 truncate">{pr.title}</p>
-                    <div className="flex items-center justify-between text-[12px] text-zinc-500">
+                    <p className="text-body font-medium text-zinc-800 truncate">{pr.title}</p>
+                    <div className="flex items-center justify-between text-label text-zinc-500">
                       <span className="truncate pr-2">
                         {requester ? `${requester.firstName} ${requester.lastName}` : '—'}
                         {dept ? ` · ${dept.name}` : ''}
@@ -720,7 +720,7 @@ export function SearchPage() {
                       <StatusBadge tone={prPriorityTone(pr.priority)} dot muted>
                         {PR_PRIORITY_LABELS[pr.priority as PrPriorityType]}
                       </StatusBadge>
-                      <span className="text-[12px] text-zinc-400 tabular-nums">
+                      <span className="text-label text-zinc-400 tabular-nums">
                         {new Date(pr.createdAt).toLocaleDateString('en-PH', {
                           month: 'short',
                           day: 'numeric',
@@ -753,7 +753,7 @@ export function SearchPage() {
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-500">
+    <p className="mb-1.5 text-caption font-semibold uppercase tracking-[0.06em] text-zinc-500">
       {children}
     </p>
   );
@@ -763,7 +763,7 @@ function Th({ children, align = 'left' }: { children: React.ReactNode; align?: '
   return (
     <th
       className={cn(
-        'h-11 px-5 text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400',
+        'h-11 px-5 text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400',
         align === 'left' && 'text-left',
         align === 'right' && 'text-right',
         align === 'center' && 'text-center',

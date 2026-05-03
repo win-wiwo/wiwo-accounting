@@ -144,26 +144,26 @@ export function PrListPage() {
       {/* ── Page Header ──────────────────────────────────────── */}
       <div className="pr-list-section flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between" style={{ animationDelay: '0s' }}>
         <div>
-          <h1 className="text-[28px] font-bold tracking-[-0.01em] leading-tight text-zinc-900">
+          <h1 className="text-display font-bold tracking-[-0.01em] leading-tight text-zinc-900">
             Purchase Requests
           </h1>
-          <p className="mt-1.5 text-[14px] text-zinc-500">
+          <p className="mt-1.5 text-body-lg text-zinc-500">
             Create, track, and manage purchase requests.
           </p>
         </div>
         <div className="flex items-center gap-4">
           {/* Header metadata pills */}
           <div className="hidden sm:flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1 text-[12px] font-medium text-zinc-600 tabular-nums">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1 text-label font-medium text-zinc-600 tabular-nums">
               {totalPrs} Total
             </span>
             {draftCount > 0 && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1 text-[12px] font-medium text-zinc-500 tabular-nums">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1 text-label font-medium text-zinc-500 tabular-nums">
                 {draftCount} Draft
               </span>
             )}
             {inReviewCount > 0 && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-[12px] font-medium text-blue-600 tabular-nums">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-label font-medium text-blue-600 tabular-nums">
                 {inReviewCount} In Review
               </span>
             )}
@@ -171,7 +171,7 @@ export function PrListPage() {
           {canCreate && (
             <button
               onClick={() => navigate('/purchase-requests/new')}
-              className="inline-flex items-center gap-2 rounded-[10px] px-5 py-2.5 text-[13px] font-semibold text-white transition-all duration-200 cursor-pointer"
+              className="inline-flex items-center gap-2 rounded-[10px] px-5 py-2.5 text-body font-semibold text-white transition-all duration-200 cursor-pointer"
               style={{
                 background: 'linear-gradient(155deg, #262626 0%, #0d0d0d 100%)',
                 boxShadow: '0 1px 2px rgba(0,0,0,0.14), 0 4px 12px rgba(0,0,0,0.11), inset 0 1px 0 rgba(255,255,255,0.07)',
@@ -206,13 +206,13 @@ export function PrListPage() {
               placeholder="Search by PR number or item summary..."
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="peer w-full h-10 rounded-lg border border-zinc-200 bg-zinc-50/60 pl-10 pr-4 text-[13px] text-zinc-800 placeholder:text-zinc-400 outline-none transition-all duration-200 focus:border-zinc-400 focus:bg-white focus:shadow-focus"
+              className="peer w-full h-10 rounded-lg border border-zinc-200 bg-zinc-50/60 pl-10 pr-4 text-body text-zinc-800 placeholder:text-zinc-400 outline-none transition-all duration-200 focus:border-zinc-400 focus:bg-white focus:shadow-focus"
             />
           </div>
           {/* Filters — secondary, grouped tighter */}
           <div className="flex gap-2 flex-wrap sm:flex-nowrap shrink-0">
             <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); setSearchParams({}, { replace: true }); }}>
-              <SelectTrigger className="w-full sm:w-[154px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-focus">
+              <SelectTrigger className="w-full sm:w-[154px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-body text-zinc-600 focus:border-zinc-400 focus:shadow-focus">
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
               <SelectContent>
@@ -227,7 +227,7 @@ export function PrListPage() {
               </SelectContent>
             </Select>
             <Select value={priorityFilter} onValueChange={(v) => { setPriorityFilter(v); setPage(1); }}>
-              <SelectTrigger className="w-full sm:w-[134px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-focus">
+              <SelectTrigger className="w-full sm:w-[134px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-body text-zinc-600 focus:border-zinc-400 focus:shadow-focus">
                 <SelectValue placeholder="All Priorities" />
               </SelectTrigger>
               <SelectContent>
@@ -240,7 +240,7 @@ export function PrListPage() {
               </SelectContent>
             </Select>
             <Select value={typeFilter} onValueChange={(v) => { setTypeFilter(v); setPage(1); }}>
-              <SelectTrigger className="w-full sm:w-[134px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-focus">
+              <SelectTrigger className="w-full sm:w-[134px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-body text-zinc-600 focus:border-zinc-400 focus:shadow-focus">
                 <SelectValue placeholder="All Types" />
               </SelectTrigger>
               <SelectContent>
@@ -270,8 +270,8 @@ export function PrListPage() {
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-zinc-100 mb-5">
               <FileText className="h-7 w-7 text-zinc-400" />
             </div>
-            <h3 className="text-[16px] font-semibold text-zinc-900 mb-1.5">No purchase requests</h3>
-            <p className="text-[13px] text-zinc-500 max-w-sm mb-6">
+            <h3 className="text-heading-sm font-semibold text-zinc-900 mb-1.5">No purchase requests</h3>
+            <p className="text-body text-zinc-500 max-w-sm mb-6">
               {canCreate
                 ? 'Get started by creating your first purchase request.'
                 : 'No purchase requests to display.'}
@@ -279,7 +279,7 @@ export function PrListPage() {
             {canCreate && (
               <button
                 onClick={() => navigate('/purchase-requests/new')}
-                className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-5 py-2.5 text-[13px] font-semibold text-white transition-all duration-200 hover:bg-zinc-800 hover:shadow-card"
+                className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-5 py-2.5 text-body font-semibold text-white transition-all duration-200 hover:bg-zinc-800 hover:shadow-card"
               >
                 <Plus className="h-4 w-4" /> Create Purchase Request
               </button>
@@ -292,13 +292,13 @@ export function PrListPage() {
               <table className="w-full">
                 <thead className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm">
                   <tr className="border-b border-zinc-100">
-                    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+                    <th className="h-11 px-5 text-left text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400">
                       PR Number
                     </th>
-                    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+                    <th className="h-11 px-5 text-left text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400">
                       Request
                     </th>
-                    <th className="h-11 px-5 text-right text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+                    <th className="h-11 px-5 text-right text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400">
                       <span
                         onClick={() => toggleSort('totalAmount')}
                         className={`inline-flex items-center gap-1 cursor-pointer select-none transition-colors duration-150 ${sortBy === 'totalAmount' ? 'text-zinc-700' : 'hover:text-zinc-600'}`}
@@ -309,13 +309,13 @@ export function PrListPage() {
                           : <ArrowUpDown className="h-3 w-3 opacity-40" />}
                       </span>
                     </th>
-                    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+                    <th className="h-11 px-5 text-left text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400">
                       Priority
                     </th>
-                    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+                    <th className="h-11 px-5 text-left text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400">
                       Status
                     </th>
-                    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+                    <th className="h-11 px-5 text-left text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400">
                       <span
                         onClick={() => toggleSort('createdAt')}
                         className={`inline-flex items-center gap-1 cursor-pointer select-none transition-colors duration-150 ${sortBy === 'createdAt' ? 'text-zinc-700' : 'hover:text-zinc-600'}`}
@@ -339,22 +339,22 @@ export function PrListPage() {
                         {/* PR Number */}
                         <td className="px-5 py-4">
                           {pr.prNumber ? (
-                            <span className="font-mono text-[13px] font-medium text-zinc-800 tracking-tight">
+                            <span className="font-mono text-body font-medium text-zinc-800 tracking-tight">
                               {pr.prNumber}
                             </span>
                           ) : (
-                            <span className="text-[13px] italic text-zinc-400">Draft</span>
+                            <span className="text-body italic text-zinc-400">Draft</span>
                           )}
                         </td>
 
                         {/* Request title + description */}
                         <td className="px-5 py-4">
                           <div className="max-w-[320px]">
-                            <p className="text-[13px] font-medium text-zinc-800 leading-snug truncate group-hover:text-zinc-950 transition-colors duration-150">
+                            <p className="text-body font-medium text-zinc-800 leading-snug truncate group-hover:text-zinc-950 transition-colors duration-150">
                               {pr.title}
                             </p>
                             {pr.description && (
-                              <p className="text-[12px] text-zinc-400 truncate mt-0.5">{pr.description}</p>
+                              <p className="text-label text-zinc-400 truncate mt-0.5">{pr.description}</p>
                             )}
                           </div>
                         </td>
@@ -362,9 +362,9 @@ export function PrListPage() {
                         {/* Amount */}
                         <td className="px-5 py-4 text-right">
                           {hasPendingQuote(pr) ? (
-                            <span className="text-[13px] font-semibold text-amber-600">TBD</span>
+                            <span className="text-body font-semibold text-amber-600">TBD</span>
                           ) : (
-                            <span className="text-[13px] font-semibold tabular-nums text-zinc-800">
+                            <span className="text-body font-semibold tabular-nums text-zinc-800">
                               {formatCurrency(pr.totalAmount)}
                             </span>
                           )}
@@ -372,7 +372,7 @@ export function PrListPage() {
 
                         {/* Priority */}
                         <td className="px-5 py-4">
-                          <span className={`inline-flex h-[22px] items-center gap-1.5 rounded-md px-2 text-[11px] font-medium leading-none transition-opacity duration-150 ${priorityStyle[pr.priority] ?? 'bg-zinc-50 text-zinc-500'}`}>
+                          <span className={`inline-flex h-[22px] items-center gap-1.5 rounded-md px-2 text-caption font-medium leading-none transition-opacity duration-150 ${priorityStyle[pr.priority] ?? 'bg-zinc-50 text-zinc-500'}`}>
                             <span className={`h-1.5 w-1.5 rounded-full ${priorityDot[pr.priority] ?? 'bg-zinc-300'}`} />
                             {PR_PRIORITY_LABELS[pr.priority as PrPriorityType]}
                           </span>
@@ -380,7 +380,7 @@ export function PrListPage() {
 
                         {/* Status */}
                         <td className="px-5 py-4">
-                          <span className={`inline-flex h-[22px] items-center gap-1.5 rounded-md border px-2 text-[11px] font-medium leading-none transition-opacity duration-150 ${statusStyle[pr.status] ?? 'bg-zinc-50 text-zinc-700 border-zinc-200'}`}>
+                          <span className={`inline-flex h-[22px] items-center gap-1.5 rounded-md border px-2 text-caption font-medium leading-none transition-opacity duration-150 ${statusStyle[pr.status] ?? 'bg-zinc-50 text-zinc-700 border-zinc-200'}`}>
                             <span className={`h-1.5 w-1.5 rounded-full ${statusDot[pr.status] ?? 'bg-zinc-400'}`} />
                             {PR_STATUS_LABELS[pr.status as PrStatusType]}
                           </span>
@@ -388,7 +388,7 @@ export function PrListPage() {
 
                         {/* Date */}
                         <td className="px-5 py-4">
-                          <span className="text-[13px] tabular-nums text-zinc-400">
+                          <span className="text-body tabular-nums text-zinc-400">
                             {new Date(pr.createdAt).toLocaleDateString('en-PH', {
                               month: 'short',
                               day: 'numeric',
@@ -408,9 +408,9 @@ export function PrListPage() {
               <div className="flex items-center justify-between border-t border-zinc-100 px-5 py-3">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-[12px] text-zinc-400">Rows per page</span>
+                    <span className="text-label text-zinc-400">Rows per page</span>
                     <Select value={String(limit)} onValueChange={(v) => { setLimit(Number(v)); setPage(1); }}>
-                      <SelectTrigger className="w-auto h-8 px-2.5 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-focus">
+                      <SelectTrigger className="w-auto h-8 px-2.5 rounded-lg border-zinc-200 bg-zinc-50/40 text-body text-zinc-600 focus:border-zinc-400 focus:shadow-focus">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="min-w-0">
@@ -420,7 +420,7 @@ export function PrListPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <p className="text-[12px] text-zinc-400 tabular-nums">
+                  <p className="text-label text-zinc-400 tabular-nums">
                     {meta.totalPages > 1 && <>Page {meta.page} of {meta.totalPages}<span className="text-zinc-300 mx-1.5">&middot;</span></>}
                     {meta.total} total
                   </p>
@@ -430,18 +430,18 @@ export function PrListPage() {
                     <button
                       onClick={() => setPage(page - 1)}
                       disabled={page <= 1}
-                      className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-500 transition-all duration-150 hover:bg-zinc-50 hover:text-zinc-700 disabled:opacity-40 disabled:pointer-events-none"
+                      className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-label font-medium text-zinc-500 transition-all duration-150 hover:bg-zinc-50 hover:text-zinc-700 disabled:opacity-40 disabled:pointer-events-none"
                     >
                       <ChevronLeft className="h-3.5 w-3.5" /> Previous
                     </button>
                     {getPageNumbers(meta.page, meta.totalPages).map((p, i) =>
                       p === '...' ? (
-                        <span key={`dots-${i}`} className="px-1.5 text-[12px] text-zinc-300">...</span>
+                        <span key={`dots-${i}`} className="px-1.5 text-label text-zinc-300">...</span>
                       ) : (
                         <button
                           key={p}
                           onClick={() => setPage(p as number)}
-                          className={`h-8 w-8 rounded-lg text-[12px] font-semibold transition-all duration-150 ${
+                          className={`h-8 w-8 rounded-lg text-label font-semibold transition-all duration-150 ${
                             p === meta.page
                               ? 'bg-zinc-900 text-white shadow-xs'
                               : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700'
@@ -454,7 +454,7 @@ export function PrListPage() {
                     <button
                       onClick={() => setPage(page + 1)}
                       disabled={page >= meta.totalPages}
-                      className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-500 transition-all duration-150 hover:bg-zinc-50 hover:text-zinc-700 disabled:opacity-40 disabled:pointer-events-none"
+                      className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-label font-medium text-zinc-500 transition-all duration-150 hover:bg-zinc-50 hover:text-zinc-700 disabled:opacity-40 disabled:pointer-events-none"
                     >
                       Next <ChevronRight className="h-3.5 w-3.5" />
                     </button>

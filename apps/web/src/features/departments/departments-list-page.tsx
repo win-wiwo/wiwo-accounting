@@ -138,17 +138,17 @@ export function DepartmentsListPage() {
                         onClick={() => navigate(`/departments/${dept._id}`)}
                       >
                         <td className="px-5 py-4">
-                          <p className="text-[13px] font-medium text-zinc-800 group-hover:text-zinc-950">
+                          <p className="text-body font-medium text-zinc-800 group-hover:text-zinc-950">
                             {dept.name}
                           </p>
                           {dept.description && (
-                            <p className="text-[12px] text-zinc-400 line-clamp-1 mt-0.5">
+                            <p className="text-label text-zinc-400 line-clamp-1 mt-0.5">
                               {dept.description}
                             </p>
                           )}
                         </td>
                         <td className="px-5 py-4">
-                          <span className="inline-flex items-center rounded-md border border-zinc-200 bg-white px-2 py-0.5 font-mono text-[12px] text-zinc-600">
+                          <span className="inline-flex items-center rounded-md border border-zinc-200 bg-white px-2 py-0.5 font-mono text-label text-zinc-600">
                             {dept.code}
                           </span>
                         </td>
@@ -156,12 +156,12 @@ export function DepartmentsListPage() {
                           {head ? (
                             <div className="flex items-center gap-1.5">
                               <Crown className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-                              <span className="text-[13px] text-zinc-700">
+                              <span className="text-body text-zinc-700">
                                 {head.firstName} {head.lastName}
                               </span>
                             </div>
                           ) : (
-                            <span className="text-[13px] text-zinc-400">Not assigned</span>
+                            <span className="text-body text-zinc-400">Not assigned</span>
                           )}
                         </td>
                         <td className="px-5 py-4">
@@ -467,7 +467,7 @@ function CreateDepartmentModal({ open, onOpenChange }: CreateDepartmentModalProp
 
 function Th({ children }: { children: React.ReactNode }) {
   return (
-    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+    <th className="h-11 px-5 text-left text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400">
       {children}
     </th>
   );

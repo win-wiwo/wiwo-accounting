@@ -203,12 +203,12 @@ export function DashboardPage() {
       <div className="dash-section greeting-glow rounded-2xl pb-1 -mx-2 px-2 py-1" style={{ animation: 'dashFadeUp 0.5s cubic-bezier(0.16,1,0.3,1) both' }}>
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-1.5">
           <div>
-            <h1 className="text-[28px] font-bold tracking-[-0.01em] leading-tight text-zinc-900">
+            <h1 className="text-display font-bold tracking-[-0.01em] leading-tight text-zinc-900">
               {greeting()}, {user?.firstName}.
             </h1>
-            <p className="mt-2 text-[14px] leading-relaxed text-zinc-500">{subtitle}</p>
+            <p className="mt-2 text-body-lg leading-relaxed text-zinc-500">{subtitle}</p>
           </div>
-          <p className="text-[11px] text-zinc-400/80 shrink-0 pb-0.5 tabular-nums">
+          <p className="text-caption text-zinc-400/80 shrink-0 pb-0.5 tabular-nums">
             {new Date().toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
           </p>
         </div>
@@ -238,8 +238,8 @@ export function DashboardPage() {
               <div className="rounded-xl border border-zinc-200 bg-white px-6 py-4 flex items-center gap-3 shadow-card">
                 <span className="h-2 w-2 rounded-full bg-emerald-400 shrink-0" />
                 <div>
-                  <p className="font-semibold text-[14px] text-zinc-900">All clear</p>
-                  <p className="text-[13px] text-zinc-500 mt-0.5">No requests need your attention right now.</p>
+                  <p className="font-semibold text-body-lg text-zinc-900">All clear</p>
+                  <p className="text-body text-zinc-500 mt-0.5">No requests need your attention right now.</p>
                 </div>
               </div>
             ) : null}
@@ -274,7 +274,7 @@ export function DashboardPage() {
               <div className="lg:col-span-8 space-y-5">
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between pb-3 px-6 pt-6">
-                    <CardTitle className="text-[15px] font-semibold text-zinc-900">My Recent Requests</CardTitle>
+                    <CardTitle className="text-body-lg font-semibold text-zinc-900">My Recent Requests</CardTitle>
                     <NavLink label="View all" onClick={() => navigate('/purchase-requests')} />
                   </CardHeader>
                   <CardContent className="pt-0 px-6">
@@ -309,8 +309,8 @@ export function DashboardPage() {
                 {isAccounting && mgmtStats && mgmtStats.spendByDepartment.length > 0 && (
                   <Card>
                     <CardHeader className="flex flex-row items-center justify-between pb-3 px-6 pt-6">
-                      <CardTitle className="text-[15px] font-semibold text-zinc-900">Spend by Department</CardTitle>
-                      <span className="text-[11px] text-zinc-400">Approved only</span>
+                      <CardTitle className="text-body-lg font-semibold text-zinc-900">Spend by Department</CardTitle>
+                      <span className="text-caption text-zinc-400">Approved only</span>
                     </CardHeader>
                     <CardContent className="pt-0 px-6 pb-6">
                       {mgmtLoading ? (
@@ -379,8 +379,8 @@ export function DashboardPage() {
               <div className="rounded-xl border border-zinc-200 bg-white px-6 py-4 flex items-center gap-3 shadow-card">
                 <span className="h-2 w-2 rounded-full bg-emerald-400 shrink-0" />
                 <div>
-                  <p className="font-semibold text-[14px] text-zinc-900">You're all caught up</p>
-                  <p className="text-[13px] text-zinc-500 mt-0.5">No purchase requests are waiting for your approval.</p>
+                  <p className="font-semibold text-body-lg text-zinc-900">You're all caught up</p>
+                  <p className="text-body text-zinc-500 mt-0.5">No purchase requests are waiting for your approval.</p>
                 </div>
               </div>
             )}
@@ -414,7 +414,7 @@ export function DashboardPage() {
                 {/* Approval Queue */}
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between pb-3 px-6 pt-6">
-                    <CardTitle className="text-[15px] font-semibold text-zinc-900">Approval Queue</CardTitle>
+                    <CardTitle className="text-body-lg font-semibold text-zinc-900">Approval Queue</CardTitle>
                     <NavLink label="View all" onClick={() => navigate('/approvals')} />
                   </CardHeader>
 
@@ -429,7 +429,7 @@ export function DashboardPage() {
                         <button
                           key={f.key}
                           onClick={() => setQueueFilter(f.key)}
-                          className={`px-3 py-1 rounded-full text-[11px] font-semibold tracking-wide transition-all duration-200 active:scale-[0.96] ${
+                          className={`px-3 py-1 rounded-full text-caption font-semibold tracking-wide transition-all duration-200 active:scale-[0.96] ${
                             queueFilter === f.key
                               ? 'bg-zinc-900 text-white shadow-xs'
                               : 'text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100'
@@ -463,21 +463,21 @@ export function DashboardPage() {
                             >
                               <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${priorityDot[pr.priority] ?? 'bg-zinc-300'}`} />
                               <div className="min-w-0 flex-1">
-                                <p className="font-medium text-[13px] text-zinc-800 leading-snug line-clamp-1">{pr.title}</p>
+                                <p className="font-medium text-body text-zinc-800 leading-snug line-clamp-1">{pr.title}</p>
                                 <div className="flex items-center gap-2 mt-0.5">
-                                  <span className="text-[12px] text-zinc-400">{requesterName(pr)}</span>
+                                  <span className="text-label text-zinc-400">{requesterName(pr)}</span>
                                   {pr.status === PrStatus.QUOTED && (
-                                    <span className="text-[10px] font-semibold text-tone-info-text bg-tone-info-bg rounded-full px-2 py-0.5">Price Review</span>
+                                    <span className="text-micro font-semibold text-tone-info-text bg-tone-info-bg rounded-full px-2 py-0.5">Price Review</span>
                                   )}
                                   {hasProcurement && pr.status !== PrStatus.QUOTED && (
-                                    <span className="text-[10px] font-semibold text-tone-info-text bg-tone-info-bg rounded-full px-2 py-0.5">Procurement</span>
+                                    <span className="text-micro font-semibold text-tone-info-text bg-tone-info-bg rounded-full px-2 py-0.5">Procurement</span>
                                   )}
                                 </div>
                               </div>
-                              <span className={`text-[13px] font-semibold shrink-0 tabular-nums ${amountUnknown ? 'text-amber-500 text-[11px] font-normal italic' : 'text-zinc-700'}`}>
+                              <span className={`text-body font-semibold shrink-0 tabular-nums ${amountUnknown ? 'text-amber-500 text-caption font-normal italic' : 'text-zinc-700'}`}>
                                 {amountUnknown ? 'Pending Quote' : compact(pr.totalAmount)}
                               </span>
-                              <span className={`text-[12px] shrink-0 w-14 text-right tabular-nums ${days >= 15 ? 'text-red-500 font-medium' : days >= 8 ? 'text-amber-500 font-medium' : 'text-zinc-400'}`}>
+                              <span className={`text-label shrink-0 w-14 text-right tabular-nums ${days >= 15 ? 'text-red-500 font-medium' : days >= 8 ? 'text-amber-500 font-medium' : 'text-zinc-400'}`}>
                                 {ageLabel(pr.submittedAt)}
                               </span>
                               <ChevronRight className="h-3.5 w-3.5 text-zinc-200 group-hover:text-zinc-400 shrink-0 transition-colors duration-150" />
@@ -503,8 +503,8 @@ export function DashboardPage() {
                 {isManagement && mgmtStats && mgmtStats.spendByDepartment.length > 0 && (
                   <Card>
                     <CardHeader className="flex flex-row items-center justify-between pb-3 px-6 pt-6">
-                      <CardTitle className="text-[15px] font-semibold text-zinc-900">Spend by Department</CardTitle>
-                      <span className="text-[11px] text-zinc-400">Approved only</span>
+                      <CardTitle className="text-body-lg font-semibold text-zinc-900">Spend by Department</CardTitle>
+                      <span className="text-caption text-zinc-400">Approved only</span>
                     </CardHeader>
                     <CardContent className="pt-0 px-6 pb-6">
                       {mgmtLoading ? (
@@ -596,8 +596,8 @@ export function DashboardPage() {
                 <div className="rounded-xl border border-zinc-200 bg-white px-6 py-4 flex items-center gap-3 shadow-card">
                   <span className="h-2 w-2 rounded-full bg-emerald-400 shrink-0" />
                   <div>
-                    <p className="font-semibold text-[14px] text-zinc-900">Pipeline on track</p>
-                    <p className="text-[13px] text-zinc-500 mt-0.5">No overdue POs or urgent canvass items.</p>
+                    <p className="font-semibold text-body-lg text-zinc-900">Pipeline on track</p>
+                    <p className="text-body text-zinc-500 mt-0.5">No overdue POs or urgent canvass items.</p>
                   </div>
                 </div>
               );
@@ -640,7 +640,7 @@ export function DashboardPage() {
                 {/* Pending Canvass */}
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between pb-3 px-6 pt-6">
-                    <CardTitle className="text-[15px] font-semibold text-zinc-900">Canvass Queue</CardTitle>
+                    <CardTitle className="text-body-lg font-semibold text-zinc-900">Canvass Queue</CardTitle>
                     <NavLink label="View all" onClick={() => navigate('/procurement')} />
                   </CardHeader>
                   <CardContent className="pt-0 px-6">
@@ -664,18 +664,18 @@ export function DashboardPage() {
                             >
                               <span className="h-[3px] w-[3px] rounded-full shrink-0 bg-zinc-300" />
                               <div className="min-w-0 flex-1">
-                                <p className="font-medium text-[13px] text-zinc-800 leading-snug line-clamp-1">{pr.title}</p>
-                                <p className="text-[12px] text-zinc-400 mt-0.5">
+                                <p className="font-medium text-body text-zinc-800 leading-snug line-clamp-1">{pr.title}</p>
+                                <p className="text-label text-zinc-400 mt-0.5">
                                   {requesterName(pr)} · {itemCount} item{itemCount !== 1 ? 's' : ''} to source
                                 </p>
                               </div>
-                              <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold shrink-0">
+                              <span className="inline-flex items-center gap-1.5 text-label font-semibold shrink-0">
                                 <span className={`h-1.5 w-1.5 rounded-full ${priorityDot[pr.priority] ?? 'bg-zinc-300'}`} />
                                 <span className={pr.priority === 'urgent' ? 'text-red-600' : pr.priority === 'high' ? 'text-amber-600' : 'text-zinc-500'}>
                                   {PR_PRIORITY_LABELS[pr.priority as PrPriorityType]}
                                 </span>
                               </span>
-                              <span className={`text-[12px] shrink-0 w-14 text-right tabular-nums ${days >= 15 ? 'text-red-500 font-medium' : days >= 8 ? 'text-amber-500 font-medium' : 'text-zinc-400'}`}>
+                              <span className={`text-label shrink-0 w-14 text-right tabular-nums ${days >= 15 ? 'text-red-500 font-medium' : days >= 8 ? 'text-amber-500 font-medium' : 'text-zinc-400'}`}>
                                 {ageLabel(pr.submittedAt)}
                               </span>
                               <ChevronRight className="h-3.5 w-3.5 text-zinc-200 group-hover:text-zinc-400 shrink-0 transition-colors duration-150" />
@@ -690,7 +690,7 @@ export function DashboardPage() {
                 {/* Recent POs */}
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between pb-3 px-6 pt-6">
-                    <CardTitle className="text-[15px] font-semibold text-zinc-900">Recent Purchase Orders</CardTitle>
+                    <CardTitle className="text-body-lg font-semibold text-zinc-900">Recent Purchase Orders</CardTitle>
                     <NavLink label="View all" onClick={() => navigate('/purchase-orders')} />
                   </CardHeader>
                   <CardContent className="pt-0 px-6">
@@ -728,7 +728,7 @@ export function DashboardPage() {
                 {poStats && (
                   <Card>
                     <CardHeader className="pb-4 px-6 pt-5">
-                      <CardTitle className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-400">PO Pipeline</CardTitle>
+                      <CardTitle className="text-micro font-semibold uppercase tracking-[0.1em] text-zinc-400">PO Pipeline</CardTitle>
                     </CardHeader>
                     <CardContent className="pt-0 px-6 pb-5 space-y-3">
                       <PipelineRow label="Pending" count={poStats.pending} color="bg-amber-400/50" total={poStats.total} />
@@ -793,8 +793,8 @@ export function DashboardPage() {
                 {mgmtStats && mgmtStats.spendByDepartment.length > 0 && (
                   <Card>
                     <CardHeader className="flex flex-row items-center justify-between pb-3 px-6 pt-6">
-                      <CardTitle className="text-[15px] font-semibold text-zinc-900">Spend by Department</CardTitle>
-                      <span className="text-[11px] text-zinc-400">Approved only</span>
+                      <CardTitle className="text-body-lg font-semibold text-zinc-900">Spend by Department</CardTitle>
+                      <span className="text-caption text-zinc-400">Approved only</span>
                     </CardHeader>
                     <CardContent className="pt-0 px-6 pb-6">
                       <DeptSpendBars departments={mgmtStats.spendByDepartment} />
@@ -858,8 +858,8 @@ function ProjectOverviewPanel({ summary, projects, loading, onProjectClick }: {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-3 px-6 pt-6">
-        <CardTitle className="text-[15px] font-semibold text-zinc-900">Spending</CardTitle>
-        <span className="text-[11px] text-zinc-400">{summary.total} categor{summary.total !== 1 ? 'ies' : 'y'}</span>
+        <CardTitle className="text-body-lg font-semibold text-zinc-900">Spending</CardTitle>
+        <span className="text-caption text-zinc-400">{summary.total} categor{summary.total !== 1 ? 'ies' : 'y'}</span>
       </CardHeader>
 
       <CardContent className="pt-0 px-6 pb-5">
@@ -875,23 +875,23 @@ function ProjectOverviewPanel({ summary, projects, loading, onProjectClick }: {
                 {/* Header row: name + health + spend */}
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2 min-w-0 flex-1 pr-3">
-                    <span className="text-[13px] font-medium text-zinc-700 truncate">{proj.projectName}</span>
-                    {proj.projectCode && <span className="text-[10px] text-zinc-500 font-mono shrink-0 bg-zinc-100 rounded-full px-2 py-0.5">{proj.projectCode}</span>}
+                    <span className="text-body font-medium text-zinc-700 truncate">{proj.projectName}</span>
+                    {proj.projectCode && <span className="text-micro text-zinc-500 font-mono shrink-0 bg-zinc-100 rounded-full px-2 py-0.5">{proj.projectCode}</span>}
                     {proj.health !== 'on_track' && (
-                      <span className={`inline-flex items-center gap-1 text-[10px] font-semibold rounded-full px-2 py-0.5 shrink-0 ${h.bg} ${h.text}`}>
+                      <span className={`inline-flex items-center gap-1 text-micro font-semibold rounded-full px-2 py-0.5 shrink-0 ${h.bg} ${h.text}`}>
                         <span className={`h-1.5 w-1.5 rounded-full ${h.dot}`} />
                         {h.label}
                       </span>
                     )}
                   </div>
                   <div className="text-right shrink-0">
-                    <span className="text-[13px] font-semibold tabular-nums text-zinc-900">{compact(proj.approvedAmount)}</span>
+                    <span className="text-body font-semibold tabular-nums text-zinc-900">{compact(proj.approvedAmount)}</span>
                     {proj.pendingAmount > 0 && (
-                      <span className={`text-[11px] tabular-nums ml-1.5 ${
+                      <span className={`text-caption tabular-nums ml-1.5 ${
                         proj.health === 'blocked' ? 'text-red-600' : proj.health === 'delayed' || proj.health === 'at_risk' ? 'text-amber-600' : 'text-zinc-400'
                       }`}>+{compact(proj.pendingAmount)}</span>
                     )}
-                    <span className="text-[11px] text-zinc-400 ml-2">{proj.totalPrs} PR{proj.totalPrs !== 1 ? 's' : ''}</span>
+                    <span className="text-caption text-zinc-400 ml-2">{proj.totalPrs} PR{proj.totalPrs !== 1 ? 's' : ''}</span>
                   </div>
                 </div>
 
@@ -917,13 +917,13 @@ function ProjectOverviewPanel({ summary, projects, loading, onProjectClick }: {
                 {proj.health !== 'on_track' && (
                   <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                     {proj.overdueCount > 0 && (
-                      <span className="text-[10px] text-zinc-500 bg-zinc-50 border border-zinc-200 rounded-full px-2 py-0.5 hover:bg-zinc-100 transition-colors cursor-pointer">{proj.overdueCount} overdue</span>
+                      <span className="text-micro text-zinc-500 bg-zinc-50 border border-zinc-200 rounded-full px-2 py-0.5 hover:bg-zinc-100 transition-colors cursor-pointer">{proj.overdueCount} overdue</span>
                     )}
                     {proj.returnedCount > 0 && (
-                      <span className="text-[10px] text-zinc-500 bg-zinc-50 border border-zinc-200 rounded-full px-2 py-0.5 hover:bg-zinc-100 transition-colors cursor-pointer">{proj.returnedCount} returned</span>
+                      <span className="text-micro text-zinc-500 bg-zinc-50 border border-zinc-200 rounded-full px-2 py-0.5 hover:bg-zinc-100 transition-colors cursor-pointer">{proj.returnedCount} returned</span>
                     )}
                     {proj.inProcurementCount > 0 && (
-                      <span className="text-[10px] text-zinc-500 bg-zinc-50 border border-zinc-200 rounded-full px-2 py-0.5 hover:bg-zinc-100 transition-colors cursor-pointer">{proj.inProcurementCount} in procurement</span>
+                      <span className="text-micro text-zinc-500 bg-zinc-50 border border-zinc-200 rounded-full px-2 py-0.5 hover:bg-zinc-100 transition-colors cursor-pointer">{proj.inProcurementCount} in procurement</span>
                     )}
                   </div>
                 )}
@@ -958,8 +958,8 @@ function UrgentPanel({ title, items, action, summary }: {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-3 px-6 pt-6">
         <div className="flex items-center gap-2">
-          <CardTitle className="text-[15px] font-semibold text-zinc-900">{title}</CardTitle>
-          {summary && <span className="text-[12px] text-zinc-400">{summary}</span>}
+          <CardTitle className="text-body-lg font-semibold text-zinc-900">{title}</CardTitle>
+          {summary && <span className="text-label text-zinc-400">{summary}</span>}
         </div>
         {action && (
           <NavLink label={action.label} onClick={action.onClick} />
@@ -975,9 +975,9 @@ function UrgentPanel({ title, items, action, summary }: {
             >
               <span className={`h-[5px] w-[5px] rounded-full shrink-0 ${item.severity === 'danger' ? 'bg-red-500' : 'bg-amber-400'}`} />
               <div className="min-w-0 flex-1">
-                <p className="text-[13px] font-medium text-zinc-800 truncate">{item.title}</p>
+                <p className="text-body font-medium text-zinc-800 truncate">{item.title}</p>
               </div>
-              <span className={`inline-flex items-center gap-1.5 text-[12px] font-medium shrink-0 ${
+              <span className={`inline-flex items-center gap-1.5 text-label font-medium shrink-0 ${
                 item.severity === 'danger' ? 'text-red-600' : 'text-amber-600'
               }`}>
                 <span className={`h-1.5 w-1.5 rounded-full ${item.severity === 'danger' ? 'bg-red-500' : 'bg-amber-400'}`} />
@@ -1016,13 +1016,13 @@ function SystemStatusCard({ byStatus, totalPrs, loading }: {
   return (
     <Card>
       <CardHeader className="pb-4 px-6 pt-5">
-        <CardTitle className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-400">System Status</CardTitle>
+        <CardTitle className="text-micro font-semibold uppercase tracking-[0.1em] text-zinc-400">System Status</CardTitle>
       </CardHeader>
       <CardContent className="pt-0 px-6 pb-5">
         {loading ? (
           <QueueSkeleton count={5} height="h-5" />
         ) : totalPrs === 0 ? (
-          <p className="text-[13px] text-zinc-400 py-1">No requests in the system yet.</p>
+          <p className="text-body text-zinc-400 py-1">No requests in the system yet.</p>
         ) : (
           <div className="space-y-3">
             {STATUS_HEALTH.map(({ key, label, dot }) => {
@@ -1032,9 +1032,9 @@ function SystemStatusCard({ byStatus, totalPrs, loading }: {
                 <div key={key} className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
                     <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${dot}`} />
-                    <span className="text-[13px] text-zinc-500">{label}</span>
+                    <span className="text-body text-zinc-500">{label}</span>
                   </div>
-                  <span className="text-[13px] font-semibold tabular-nums text-zinc-900">{count}</span>
+                  <span className="text-body font-semibold tabular-nums text-zinc-900">{count}</span>
                 </div>
               );
             })}
@@ -1053,19 +1053,19 @@ function QuickActionsCard({ actions }: {
   return (
     <Card>
       <CardHeader className="pb-4 px-6 pt-5">
-        <CardTitle className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-400">Quick Actions</CardTitle>
+        <CardTitle className="text-micro font-semibold uppercase tracking-[0.1em] text-zinc-400">Quick Actions</CardTitle>
       </CardHeader>
       <CardContent className="pt-0 px-6 pb-5 space-y-0.5">
         {actions.map((a, i) => (
           <button
             key={i}
-            className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium text-zinc-700 hover:bg-zinc-50 transition-colors duration-150"
+            className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-body font-medium text-zinc-700 hover:bg-zinc-50 transition-colors duration-150"
             onClick={a.onClick}
           >
             <span className="text-zinc-400 shrink-0">{a.icon}</span>
             {a.label}
             {a.badge != null && a.badge > 0 && (
-              <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-zinc-900 px-1.5 text-[10px] font-bold text-white">
+              <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-zinc-900 px-1.5 text-micro font-bold text-white">
                 {a.badge}
               </span>
             )}
@@ -1082,7 +1082,7 @@ function ProjectSpendingCard({ spending, loading }: { spending: ProjectSpendingI
   return (
     <Card>
       <CardHeader className="pb-4 px-6 pt-5">
-        <CardTitle className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-400">Project Spending</CardTitle>
+        <CardTitle className="text-micro font-semibold uppercase tracking-[0.1em] text-zinc-400">Project Spending</CardTitle>
       </CardHeader>
       <CardContent className="pt-0 px-6 pb-5">
         {loading ? (
@@ -1095,13 +1095,13 @@ function ProjectSpendingCard({ spending, loading }: { spending: ProjectSpendingI
                 <div key={String(p.projectId)}>
                   <div className="flex items-center justify-between mb-1">
                     <div className="min-w-0 flex-1 pr-3">
-                      <p className="text-[13px] font-medium text-zinc-800 truncate">{p.projectName}</p>
-                      {p.projectCode && <p className="text-[11px] text-zinc-400 font-mono">{p.projectCode}</p>}
+                      <p className="text-body font-medium text-zinc-800 truncate">{p.projectName}</p>
+                      {p.projectCode && <p className="text-caption text-zinc-400 font-mono">{p.projectCode}</p>}
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-[13px] font-semibold tabular-nums text-zinc-900">{compact(p.approvedAmount)}</p>
+                      <p className="text-body font-semibold tabular-nums text-zinc-900">{compact(p.approvedAmount)}</p>
                       {p.pendingAmount > 0 && (
-                        <p className="text-[11px] tabular-nums text-zinc-400">+{compact(p.pendingAmount)} pending</p>
+                        <p className="text-caption tabular-nums text-zinc-400">+{compact(p.pendingAmount)} pending</p>
                       )}
                     </div>
                   </div>
@@ -1127,10 +1127,10 @@ function DeptSpendBars({ departments }: { departments: Array<{ departmentId: str
       {departments.map((dept, idx) => (
         <div key={String(dept.departmentId)} className="group rounded-lg py-3 first:pt-0 last:pb-0 -mx-2 px-2 hover:bg-zinc-50 transition-colors duration-150">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[13px] font-medium text-zinc-700 truncate pr-3">{dept.departmentName}</span>
+            <span className="text-body font-medium text-zinc-700 truncate pr-3">{dept.departmentName}</span>
             <div className="text-right shrink-0">
-              <span className="text-[13px] font-semibold tabular-nums text-zinc-900">{compact(dept.totalAmount)}</span>
-              <span className="text-[11px] text-zinc-400 ml-2">{dept.count} PR{dept.count !== 1 ? 's' : ''}</span>
+              <span className="text-body font-semibold tabular-nums text-zinc-900">{compact(dept.totalAmount)}</span>
+              <span className="text-caption text-zinc-400 ml-2">{dept.count} PR{dept.count !== 1 ? 's' : ''}</span>
             </div>
           </div>
           <div className="h-1.5 rounded-full bg-zinc-100 overflow-hidden">
@@ -1157,14 +1157,14 @@ function PrRow({ pr, onClick, showStatus }: { pr: any; onClick: () => void; show
     >
       <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${priorityDot[pr.priority] ?? 'bg-zinc-300'}`} />
       <div className="min-w-0 flex-1">
-        <p className="font-medium text-[13px] text-zinc-800 leading-snug line-clamp-1">{pr.title}</p>
-        <p className="text-[12px] text-zinc-400 mt-0.5">
+        <p className="font-medium text-body text-zinc-800 leading-snug line-clamp-1">{pr.title}</p>
+        <p className="text-label text-zinc-400 mt-0.5">
           {showStatus ? (PR_STATUS_LABELS[pr.status as PrStatusType] ?? pr.status) : requesterName(pr)}
           {' · '}
           {ageLabel(pr.submittedAt ?? pr.createdAt)}
         </p>
       </div>
-      <span className={`text-[13px] font-semibold shrink-0 tabular-nums ${amountUnknown ? 'text-amber-500 text-[11px] font-normal italic' : 'text-zinc-700'}`}>
+      <span className={`text-body font-semibold shrink-0 tabular-nums ${amountUnknown ? 'text-amber-500 text-caption font-normal italic' : 'text-zinc-700'}`}>
         {amountUnknown ? 'Pending Quote' : compact(pr.totalAmount)}
       </span>
       <ChevronRight className="h-3.5 w-3.5 text-zinc-200 group-hover:text-zinc-400 shrink-0 transition-colors duration-150" />
@@ -1186,15 +1186,15 @@ function PoRow({ po, onClick }: { po: any; onClick: () => void }) {
       onClick={onClick}
     >
       <div className="min-w-0 flex-1">
-        <p className="font-medium text-[13px] text-zinc-800 leading-snug line-clamp-1">
+        <p className="font-medium text-body text-zinc-800 leading-snug line-clamp-1">
           {po.poNumber ? `${po.poNumber} — ` : ''}{po.title ?? 'Purchase Order'}
         </p>
-        <p className="text-[12px] text-zinc-400 mt-0.5">
+        <p className="text-label text-zinc-400 mt-0.5">
           {po.supplierName || 'Online'} · {ageLabel(po.createdAt)}
         </p>
       </div>
-      <span className="text-[13px] font-semibold shrink-0 tabular-nums text-zinc-700">{compact(po.totalAmount ?? 0)}</span>
-      <span className={`inline-flex h-[22px] items-center gap-1.5 rounded-md border px-2 text-[11px] font-medium leading-none capitalize shrink-0 ${cfg.bg} ${cfg.text} ${cfg.border}`}>
+      <span className="text-body font-semibold shrink-0 tabular-nums text-zinc-700">{compact(po.totalAmount ?? 0)}</span>
+      <span className={`inline-flex h-[22px] items-center gap-1.5 rounded-md border px-2 text-caption font-medium leading-none capitalize shrink-0 ${cfg.bg} ${cfg.text} ${cfg.border}`}>
         <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
         {po.status ?? '--'}
       </span>
@@ -1210,8 +1210,8 @@ function PipelineRow({ label, count, color, total }: { label: string; count: num
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
-        <span className="text-[13px] text-zinc-600">{label}</span>
-        <span className="text-[13px] font-semibold tabular-nums text-zinc-900">{count}</span>
+        <span className="text-body text-zinc-600">{label}</span>
+        <span className="text-body font-semibold tabular-nums text-zinc-900">{count}</span>
       </div>
       <div className="h-1.5 rounded-full bg-zinc-100 overflow-hidden">
         <div className={`h-full rounded-full ${color} transition-all duration-500`} style={{ width: `${pct}%` }} />
@@ -1227,7 +1227,7 @@ function PipelineRow({ label, count, color, total }: { label: string; count: num
 function NavLink({ label, onClick }: { label: string; onClick: () => void }) {
   return (
     <button
-      className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-400/70 hover:text-zinc-600 transition-colors duration-150"
+      className="inline-flex items-center gap-1 text-caption font-medium text-zinc-400/70 hover:text-zinc-600 transition-colors duration-150"
       onClick={onClick}
     >
       {label} <ArrowRight className="h-3 w-3" />
@@ -1245,10 +1245,10 @@ function EmptyQueue({ icon, message, action }: {
   return (
     <div className="py-10 text-center">
       <div className="mx-auto mb-2.5">{icon}</div>
-      <p className="text-[13px] text-zinc-400">{message}</p>
+      <p className="text-body text-zinc-400">{message}</p>
       {action && (
         <button
-          className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-zinc-900 px-4 py-2 text-[13px] font-semibold text-white transition-all duration-200 hover:bg-zinc-800"
+          className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-zinc-900 px-4 py-2 text-body font-semibold text-white transition-all duration-200 hover:bg-zinc-800"
           onClick={action.onClick}
         >
           <Plus className="h-3.5 w-3.5" /> {action.label}
@@ -1296,10 +1296,10 @@ function KpiCard({
       onClick={onClick}
     >
       <div className="flex items-center justify-between mb-3">
-        <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-zinc-400">{label}</p>
+        <p className="text-caption font-medium uppercase tracking-[0.08em] text-zinc-400">{label}</p>
         <span className={`h-1.5 w-1.5 rounded-full opacity-40 ${dotStyles[variant]}`} />
       </div>
-      <p className={`kpi-value text-[32px] font-bold tabular-nums leading-none ${valueStyles[variant]}`}>{value}</p>
+      <p className={`kpi-value text-display font-bold tabular-nums leading-none ${valueStyles[variant]}`}>{value}</p>
     </div>
   );
 }

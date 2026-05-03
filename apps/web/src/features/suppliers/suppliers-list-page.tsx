@@ -118,31 +118,31 @@ export function SuppliersListPage() {
         style={{ animationDelay: '0s' }}
       >
         <div>
-          <h1 className="text-[28px] font-bold tracking-[-0.01em] leading-tight text-zinc-900">
+          <h1 className="text-display font-bold tracking-[-0.01em] leading-tight text-zinc-900">
             Suppliers
           </h1>
-          <p className="mt-1.5 text-[14px] text-zinc-500">
+          <p className="mt-1.5 text-body-lg text-zinc-500">
             Vendor master records for procurement and finance.
           </p>
         </div>
         <div className="flex items-center gap-2.5">
           {stats && (
             <>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1 text-[12px] font-medium text-zinc-600 tabular-nums">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1 text-label font-medium text-zinc-600 tabular-nums">
                 {stats.total} Total
               </span>
               {stats.active > 0 && (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-tone-success-bg px-3 py-1 text-[12px] font-medium text-tone-success-text tabular-nums">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-tone-success-bg px-3 py-1 text-label font-medium text-tone-success-text tabular-nums">
                   {stats.active} Active
                 </span>
               )}
               {stats.blacklisted > 0 && (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-tone-danger-bg px-3 py-1 text-[12px] font-medium text-tone-danger-text tabular-nums">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-tone-danger-bg px-3 py-1 text-label font-medium text-tone-danger-text tabular-nums">
                   {stats.blacklisted} Blacklisted
                 </span>
               )}
               {(stats.missingContact ?? 0) > 0 && (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-tone-warning-bg px-3 py-1 text-[12px] font-medium text-tone-warning-text tabular-nums">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-tone-warning-bg px-3 py-1 text-label font-medium text-tone-warning-text tabular-nums">
                   <AlertCircle className="h-3 w-3" />
                   {stats.missingContact} Needs Review
                 </span>
@@ -164,7 +164,7 @@ export function SuppliersListPage() {
                 transform: btnHover ? 'translateY(-1px)' : 'none',
                 transition: 'all 0.2s cubic-bezier(0.16,1,0.3,1)',
               }}
-              className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-[13px] font-semibold text-white"
+              className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-body font-semibold text-white"
             >
               <Plus className="h-3.5 w-3.5" />
               New Supplier
@@ -187,7 +187,7 @@ export function SuppliersListPage() {
               placeholder="Search by name, TIN, or contact..."
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="peer h-10 w-full rounded-lg border border-zinc-200 bg-zinc-50/60 pl-10 pr-4 text-[13px] text-zinc-800 placeholder:text-zinc-400 outline-none transition-all duration-200 focus:border-zinc-400 focus:bg-white focus:shadow-focus"
+              className="peer h-10 w-full rounded-lg border border-zinc-200 bg-zinc-50/60 pl-10 pr-4 text-body text-zinc-800 placeholder:text-zinc-400 outline-none transition-all duration-200 focus:border-zinc-400 focus:bg-white focus:shadow-focus"
             />
           </div>
 
@@ -197,7 +197,7 @@ export function SuppliersListPage() {
               value={statusFilter || 'all'}
               onValueChange={(v) => { setStatusFilter(v === 'all' ? '' : v); setPage(1); }}
             >
-              <SelectTrigger className="w-full sm:w-[150px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-focus">
+              <SelectTrigger className="w-full sm:w-[150px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-body text-zinc-600 focus:border-zinc-400 focus:shadow-focus">
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
               <SelectContent>
@@ -212,7 +212,7 @@ export function SuppliersListPage() {
               value={taxTypeFilter || 'all'}
               onValueChange={(v) => { setTaxTypeFilter(v === 'all' ? '' : v); setPage(1); }}
             >
-              <SelectTrigger className="w-full sm:w-[150px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-focus">
+              <SelectTrigger className="w-full sm:w-[150px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-body text-zinc-600 focus:border-zinc-400 focus:shadow-focus">
                 <SelectValue placeholder="All Tax Types" />
               </SelectTrigger>
               <SelectContent>
@@ -226,7 +226,7 @@ export function SuppliersListPage() {
               value={sortValue}
               onValueChange={(v) => { setSortValue(v); setPage(1); }}
             >
-              <SelectTrigger className="w-full sm:w-[180px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-focus">
+              <SelectTrigger className="w-full sm:w-[180px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-body text-zinc-600 focus:border-zinc-400 focus:shadow-focus">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -258,15 +258,15 @@ export function SuppliersListPage() {
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-zinc-50 mb-5">
               <Building2 className="h-7 w-7 text-zinc-300" />
             </div>
-            <h3 className="text-[16px] font-semibold text-zinc-900 mb-1.5">No suppliers found</h3>
-            <p className="text-[13px] text-zinc-500 max-w-sm">
+            <h3 className="text-heading-sm font-semibold text-zinc-900 mb-1.5">No suppliers found</h3>
+            <p className="text-body text-zinc-500 max-w-sm">
               {hasFilters
                 ? 'Try adjusting your search or filters.'
                 : 'Add your first supplier to get started.'}
             </p>
             {canManage && !hasFilters && (
               <button
-                className="mt-5 inline-flex items-center gap-1.5 rounded-lg bg-zinc-900 px-4 py-2 text-[13px] font-semibold text-white hover:bg-zinc-800 transition-colors"
+                className="mt-5 inline-flex items-center gap-1.5 rounded-lg bg-zinc-900 px-4 py-2 text-body font-semibold text-white hover:bg-zinc-800 transition-colors"
                 onClick={() => navigate('/suppliers/new')}
               >
                 <Plus className="h-3.5 w-3.5" /> Add Supplier
@@ -279,19 +279,19 @@ export function SuppliersListPage() {
               <table className="w-full">
                 <thead className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm">
                   <tr className="border-b border-zinc-100">
-                    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+                    <th className="h-11 px-5 text-left text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400">
                       Supplier
                     </th>
-                    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400 hidden md:table-cell">
+                    <th className="h-11 px-5 text-left text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400 hidden md:table-cell">
                       Contact
                     </th>
-                    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400 hidden lg:table-cell">
+                    <th className="h-11 px-5 text-left text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400 hidden lg:table-cell">
                       Tax / TIN
                     </th>
-                    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+                    <th className="h-11 px-5 text-left text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400">
                       Status
                     </th>
-                    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400 hidden xl:table-cell">
+                    <th className="h-11 px-5 text-left text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400 hidden xl:table-cell">
                       Last Updated
                     </th>
                   </tr>
@@ -311,11 +311,11 @@ export function SuppliersListPage() {
                         <td className="px-5 py-4">
                           <div className="max-w-[280px]">
                             <div className="flex items-center gap-2">
-                              <p className="text-[13px] font-medium text-zinc-800 truncate group-hover:text-zinc-950 transition-colors duration-150">
+                              <p className="text-body font-medium text-zinc-800 truncate group-hover:text-zinc-950 transition-colors duration-150">
                                 {supplier.companyName}
                               </p>
                               {supplier.status === 'blacklisted' && (
-                                <span className="shrink-0 text-[10px] font-bold text-red-600 bg-red-50 border border-red-100 rounded-full px-1.5 py-0.5 uppercase tracking-wide">
+                                <span className="shrink-0 text-micro font-bold text-red-600 bg-red-50 border border-red-100 rounded-full px-1.5 py-0.5 uppercase tracking-wide">
                                   Blacklisted
                                 </span>
                               )}
@@ -323,7 +323,7 @@ export function SuppliersListPage() {
                                 <AlertCircle className="h-3 w-3 text-amber-400 shrink-0" aria-label={missing ?? undefined} />
                               )}
                             </div>
-                            <p className="text-[11px] text-zinc-400 truncate mt-0.5">{supplier.address}</p>
+                            <p className="text-caption text-zinc-400 truncate mt-0.5">{supplier.address}</p>
                           </div>
                         </td>
 
@@ -331,15 +331,15 @@ export function SuppliersListPage() {
                         <td className="px-5 py-4 hidden md:table-cell">
                           {supplier.contactPerson ? (
                             <div>
-                              <p className="text-[13px] text-zinc-700 truncate max-w-[180px]">
+                              <p className="text-body text-zinc-700 truncate max-w-[180px]">
                                 {supplier.contactPerson}
                               </p>
-                              <p className="text-[11px] text-zinc-400 mt-0.5 truncate max-w-[180px]">
+                              <p className="text-caption text-zinc-400 mt-0.5 truncate max-w-[180px]">
                                 {supplier.contactNumber ?? supplier.email ?? '—'}
                               </p>
                             </div>
                           ) : (
-                            <span className="text-[12px] text-zinc-300 italic">—</span>
+                            <span className="text-label text-zinc-300 italic">—</span>
                           )}
                         </td>
 
@@ -347,17 +347,17 @@ export function SuppliersListPage() {
                         <td className="px-5 py-4 hidden lg:table-cell">
                           <div className="space-y-1">
                             {tax && (
-                              <span className={`inline-flex h-[22px] items-center rounded-md px-2 text-[11px] font-medium leading-none ${tax.bg} ${tax.text}`}>
+                              <span className={`inline-flex h-[22px] items-center rounded-md px-2 text-caption font-medium leading-none ${tax.bg} ${tax.text}`}>
                                 {tax.label}
                               </span>
                             )}
-                            <p className="text-[11px] text-zinc-400 font-mono">{supplier.tin}</p>
+                            <p className="text-caption text-zinc-400 font-mono">{supplier.tin}</p>
                           </div>
                         </td>
 
                         {/* Status */}
                         <td className="px-5 py-4">
-                          <span className={`inline-flex h-[22px] items-center gap-1.5 rounded-md border px-2 text-[11px] font-medium leading-none ${STATUS_STYLE[supplier.status] ?? 'bg-tone-neutral-bg text-tone-neutral-text border-tone-neutral-border'}`}>
+                          <span className={`inline-flex h-[22px] items-center gap-1.5 rounded-md border px-2 text-caption font-medium leading-none ${STATUS_STYLE[supplier.status] ?? 'bg-tone-neutral-bg text-tone-neutral-text border-tone-neutral-border'}`}>
                             <span className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT[supplier.status] ?? 'bg-zinc-400'}`} />
                             {STATUS_LABEL[supplier.status] ?? supplier.status}
                           </span>
@@ -365,7 +365,7 @@ export function SuppliersListPage() {
 
                         {/* Last Updated */}
                         <td className="px-5 py-4 hidden xl:table-cell">
-                          <span className="text-[12px] text-zinc-400 tabular-nums whitespace-nowrap">
+                          <span className="text-label text-zinc-400 tabular-nums whitespace-nowrap">
                             {dateLabel(supplier.updatedAt)}
                           </span>
                         </td>
@@ -381,9 +381,9 @@ export function SuppliersListPage() {
               <div className="flex items-center justify-between border-t border-zinc-100 px-5 py-3">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-[12px] text-zinc-400">Rows per page</span>
+                    <span className="text-label text-zinc-400">Rows per page</span>
                     <Select value={String(limit)} onValueChange={(v) => { setLimit(Number(v)); setPage(1); }}>
-                      <SelectTrigger className="w-auto h-8 px-2.5 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-focus">
+                      <SelectTrigger className="w-auto h-8 px-2.5 rounded-lg border-zinc-200 bg-zinc-50/40 text-body text-zinc-600 focus:border-zinc-400 focus:shadow-focus">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="min-w-0">
@@ -393,7 +393,7 @@ export function SuppliersListPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <p className="text-[12px] text-zinc-400 tabular-nums">
+                  <p className="text-label text-zinc-400 tabular-nums">
                     {meta.totalPages > 1 && <>Page {meta.page} of {meta.totalPages}<span className="text-zinc-300 mx-1.5">&middot;</span></>}
                     {meta.total} total
                   </p>
@@ -403,18 +403,18 @@ export function SuppliersListPage() {
                     <button
                       onClick={() => setPage(page - 1)}
                       disabled={page <= 1}
-                      className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-500 transition-all duration-150 hover:bg-zinc-50 hover:text-zinc-700 disabled:opacity-40 disabled:pointer-events-none"
+                      className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-label font-medium text-zinc-500 transition-all duration-150 hover:bg-zinc-50 hover:text-zinc-700 disabled:opacity-40 disabled:pointer-events-none"
                     >
                       <ChevronLeft className="h-3.5 w-3.5" /> Previous
                     </button>
                     {getPageNumbers(meta.page, meta.totalPages).map((p, i) =>
                       p === '...' ? (
-                        <span key={`dots-${i}`} className="px-1.5 text-[12px] text-zinc-300">...</span>
+                        <span key={`dots-${i}`} className="px-1.5 text-label text-zinc-300">...</span>
                       ) : (
                         <button
                           key={p}
                           onClick={() => setPage(p as number)}
-                          className={`h-8 w-8 rounded-lg text-[12px] font-semibold transition-all duration-150 ${
+                          className={`h-8 w-8 rounded-lg text-label font-semibold transition-all duration-150 ${
                             p === meta.page
                               ? 'bg-zinc-900 text-white shadow-xs'
                               : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700'
@@ -427,7 +427,7 @@ export function SuppliersListPage() {
                     <button
                       onClick={() => setPage(page + 1)}
                       disabled={page >= meta.totalPages}
-                      className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-500 transition-all duration-150 hover:bg-zinc-50 hover:text-zinc-700 disabled:opacity-40 disabled:pointer-events-none"
+                      className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-label font-medium text-zinc-500 transition-all duration-150 hover:bg-zinc-50 hover:text-zinc-700 disabled:opacity-40 disabled:pointer-events-none"
                     >
                       Next <ChevronRight className="h-3.5 w-3.5" />
                     </button>
@@ -447,7 +447,7 @@ export function SuppliersListPage() {
         >
           <div className="flex items-center gap-2 mb-3">
             <AlertCircle className="h-3.5 w-3.5 text-amber-500" />
-            <span className="text-[11px] font-semibold uppercase tracking-[0.07em] text-amber-600">
+            <span className="text-caption font-semibold uppercase tracking-[0.07em] text-amber-600">
               {needsAttention.length} Active Supplier{needsAttention.length !== 1 ? 's' : ''} Missing Contact Info
             </span>
           </div>
@@ -458,10 +458,10 @@ export function SuppliersListPage() {
                 className="flex items-center justify-between cursor-pointer group/row"
                 onClick={() => navigate(`/suppliers/${s._id}/edit`)}
               >
-                <p className="text-[13px] font-medium text-zinc-800 truncate pr-4 group-hover/row:text-zinc-900 transition-colors">
+                <p className="text-body font-medium text-zinc-800 truncate pr-4 group-hover/row:text-zinc-900 transition-colors">
                   {s.companyName}
                 </p>
-                <span className="text-[11px] text-amber-600 shrink-0 group-hover/row:text-amber-700 transition-colors">
+                <span className="text-caption text-amber-600 shrink-0 group-hover/row:text-amber-700 transition-colors">
                   {missingInfo(s)} →
                 </span>
               </div>

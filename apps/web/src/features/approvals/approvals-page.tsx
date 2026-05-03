@@ -150,26 +150,26 @@ export function ApprovalsPage() {
       {/* ── Page Header ──────────────────────────────────────── */}
       <div className="pr-list-section flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between" style={{ animationDelay: '0s' }}>
         <div>
-          <h1 className="text-[28px] font-bold tracking-[-0.01em] leading-tight text-zinc-900">
+          <h1 className="text-display font-bold tracking-[-0.01em] leading-tight text-zinc-900">
             Approval Queue
           </h1>
-          <p className="mt-1.5 text-[14px] text-zinc-500">
+          <p className="mt-1.5 text-body-lg text-zinc-500">
             {levelLabel ? `Pending your review as ${levelLabel}` : 'PRs awaiting your approval'}
           </p>
         </div>
         {/* Header metadata pills */}
         {!isLoading && prs.length > 0 && (
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1 text-[12px] font-medium text-zinc-600 tabular-nums">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1 text-label font-medium text-zinc-600 tabular-nums">
               {totalPending} Pending
             </span>
             {urgentCount > 0 && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-tone-danger-bg px-3 py-1 text-[12px] font-medium text-tone-danger-text tabular-nums">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-tone-danger-bg px-3 py-1 text-label font-medium text-tone-danger-text tabular-nums">
                 {urgentCount} Urgent
               </span>
             )}
             {oldestDays >= 5 && (
-              <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-medium tabular-nums ${oldestDays >= 10 ? 'bg-tone-danger-bg text-tone-danger-text' : 'bg-tone-warning-bg text-tone-warning-text'}`}>
+              <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-label font-medium tabular-nums ${oldestDays >= 10 ? 'bg-tone-danger-bg text-tone-danger-text' : 'bg-tone-warning-bg text-tone-warning-text'}`}>
                 {oldestDays}d oldest
               </span>
             )}
@@ -188,14 +188,14 @@ export function ApprovalsPage() {
             <button
               key={tab.key}
               onClick={() => setTypeFilter(tab.key)}
-              className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-medium transition-all duration-150 ${
+              className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-label font-medium transition-all duration-150 ${
                 typeFilter === tab.key
                   ? 'bg-white text-zinc-900 shadow-xs'
                   : 'text-zinc-500 hover:text-zinc-700'
               }`}
             >
               {tab.label}
-              <span className={`tabular-nums text-[11px] rounded-full px-1.5 py-px ${
+              <span className={`tabular-nums text-caption rounded-full px-1.5 py-px ${
                 typeFilter === tab.key
                   ? 'bg-zinc-100 text-zinc-600'
                   : 'bg-zinc-200/60 text-zinc-400'
@@ -224,8 +224,8 @@ export function ApprovalsPage() {
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 mb-5">
               <CheckCircle2 className="h-7 w-7 text-emerald-500" />
             </div>
-            <h3 className="text-[16px] font-semibold text-zinc-900 mb-1.5">All caught up</h3>
-            <p className="text-[13px] text-zinc-500 max-w-sm">
+            <h3 className="text-heading-sm font-semibold text-zinc-900 mb-1.5">All caught up</h3>
+            <p className="text-body text-zinc-500 max-w-sm">
               You have no pending approvals right now.
             </p>
           </div>
@@ -236,21 +236,21 @@ export function ApprovalsPage() {
               <table className="w-full">
                 <thead className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm">
                   <tr className="border-b border-zinc-100">
-                    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+                    <th className="h-11 px-5 text-left text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400">
                       PR Number
                     </th>
                     {isCoo && (
-                      <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+                      <th className="h-11 px-5 text-left text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400">
                         Type
                       </th>
                     )}
-                    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+                    <th className="h-11 px-5 text-left text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400">
                       Request
                     </th>
-                    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+                    <th className="h-11 px-5 text-left text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400">
                       Requester
                     </th>
-                    <th className="h-11 px-5 text-right text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+                    <th className="h-11 px-5 text-right text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400">
                       <span
                         onClick={() => toggleSort('amount')}
                         className={`inline-flex items-center gap-1 cursor-pointer select-none transition-colors duration-150 ${sortCol === 'amount' ? 'text-zinc-700' : 'hover:text-zinc-600'}`}
@@ -261,10 +261,10 @@ export function ApprovalsPage() {
                           : <ArrowUpDown className="h-3 w-3 opacity-40" />}
                       </span>
                     </th>
-                    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+                    <th className="h-11 px-5 text-left text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400">
                       Priority
                     </th>
-                    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+                    <th className="h-11 px-5 text-left text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400">
                       <span
                         onClick={() => toggleSort('age')}
                         className={`inline-flex items-center gap-1 cursor-pointer select-none transition-colors duration-150 ${sortCol === 'age' ? 'text-zinc-700' : 'hover:text-zinc-600'}`}
@@ -302,7 +302,7 @@ export function ApprovalsPage() {
                       >
                         {/* PR Number */}
                         <td className="px-5 py-4">
-                          <span className="font-mono text-[13px] font-medium text-zinc-800 tracking-tight">
+                          <span className="font-mono text-body font-medium text-zinc-800 tracking-tight">
                             {pr.prNumber}
                           </span>
                         </td>
@@ -311,11 +311,11 @@ export function ApprovalsPage() {
                         {isCoo && (
                           <td className="px-5 py-4">
                             {pr.status === PrStatus.QUOTED ? (
-                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-tone-success-text bg-tone-success-bg border border-tone-success-border rounded-full px-2 py-0.5">
+                              <span className="inline-flex items-center gap-1 text-caption font-semibold text-tone-success-text bg-tone-success-bg border border-tone-success-border rounded-full px-2 py-0.5">
                                 Price Review
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-tone-info-text bg-tone-info-bg border border-tone-info-border rounded-full px-2 py-0.5">
+                              <span className="inline-flex items-center gap-1 text-caption font-semibold text-tone-info-text bg-tone-info-bg border border-tone-info-border rounded-full px-2 py-0.5">
                                 Approval
                               </span>
                             )}
@@ -325,25 +325,25 @@ export function ApprovalsPage() {
                         {/* Request */}
                         <td className="px-5 py-4">
                           <div className="max-w-[320px]">
-                            <p className="text-[13px] font-medium text-zinc-800 leading-snug truncate group-hover:text-zinc-950 transition-colors duration-150">
+                            <p className="text-body font-medium text-zinc-800 leading-snug truncate group-hover:text-zinc-950 transition-colors duration-150">
                               {pr.title}
                             </p>
                             <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                               {dept && (
-                                <span className="text-[11px] text-zinc-400">{dept.name}</span>
+                                <span className="text-caption text-zinc-400">{dept.name}</span>
                               )}
                               {hasProcurement && (
-                                <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-tone-info-text bg-tone-info-bg border border-tone-info-border rounded-full px-1.5 py-0.5">
+                                <span className="inline-flex items-center gap-0.5 text-micro font-medium text-tone-info-text bg-tone-info-bg border border-tone-info-border rounded-full px-1.5 py-0.5">
                                   <ShoppingCart className="h-2.5 w-2.5" /> Procurement
                                 </span>
                               )}
                               {isRevised && (
-                                <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-tone-warning-text bg-tone-warning-bg border border-tone-warning-border rounded-full px-1.5 py-0.5">
+                                <span className="inline-flex items-center gap-0.5 text-micro font-medium text-tone-warning-text bg-tone-warning-bg border border-tone-warning-border rounded-full px-1.5 py-0.5">
                                   <RotateCcw className="h-2.5 w-2.5" /> Revised
                                 </span>
                               )}
                               {isOverdue && (
-                                <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-tone-danger-text bg-tone-danger-bg border border-tone-danger-border rounded-full px-1.5 py-0.5">
+                                <span className="inline-flex items-center gap-0.5 text-micro font-medium text-tone-danger-text bg-tone-danger-bg border border-tone-danger-border rounded-full px-1.5 py-0.5">
                                   <AlertTriangle className="h-2.5 w-2.5" /> Need Date Passed
                                 </span>
                               )}
@@ -353,7 +353,7 @@ export function ApprovalsPage() {
 
                         {/* Requester */}
                         <td className="px-5 py-4">
-                          <span className="text-[13px] text-zinc-500">
+                          <span className="text-body text-zinc-500">
                             {requester ? `${requester.firstName} ${requester.lastName}` : '\u2014'}
                           </span>
                         </td>
@@ -361,9 +361,9 @@ export function ApprovalsPage() {
                         {/* Amount */}
                         <td className="px-5 py-4 text-right">
                           {amountIsUnknown ? (
-                            <span className="text-[13px] italic text-amber-600">Pending Quote</span>
+                            <span className="text-body italic text-amber-600">Pending Quote</span>
                           ) : (
-                            <span className="text-[13px] font-semibold tabular-nums text-zinc-800">
+                            <span className="text-body font-semibold tabular-nums text-zinc-800">
                               {formatCurrency(pr.totalAmount)}
                             </span>
                           )}
@@ -371,14 +371,14 @@ export function ApprovalsPage() {
 
                         {/* Priority */}
                         <td className="px-5 py-4">
-                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${priorityStyle[pr.priority] ?? 'bg-tone-neutral-bg text-tone-neutral-text'}`}>
+                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-caption font-semibold ${priorityStyle[pr.priority] ?? 'bg-tone-neutral-bg text-tone-neutral-text'}`}>
                             {PR_PRIORITY_LABELS[pr.priority as PrPriorityType]}
                           </span>
                         </td>
 
                         {/* Age */}
                         <td className="px-5 py-4">
-                          <span className={`text-[13px] tabular-nums whitespace-nowrap ${
+                          <span className={`text-body tabular-nums whitespace-nowrap ${
                             ageDays >= 10
                               ? 'text-red-600 font-semibold'
                               : ageDays >= 7
@@ -392,7 +392,7 @@ export function ApprovalsPage() {
                         {/* Chevron */}
                         <td className="px-3 py-4">
                           <span className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                            <span className="text-[11px] font-medium text-zinc-400 hidden lg:inline">Review</span>
+                            <span className="text-caption font-medium text-zinc-400 hidden lg:inline">Review</span>
                             <ChevronRight className="h-4 w-4 text-zinc-400" />
                           </span>
                         </td>
@@ -408,9 +408,9 @@ export function ApprovalsPage() {
               <div className="flex items-center justify-between border-t border-zinc-100 px-5 py-3">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-[12px] text-zinc-400">Rows per page</span>
+                    <span className="text-label text-zinc-400">Rows per page</span>
                     <Select value={String(limit)} onValueChange={(v) => { setLimit(Number(v)); setPage(1); }}>
-                      <SelectTrigger className="w-auto h-8 px-2.5 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-focus">
+                      <SelectTrigger className="w-auto h-8 px-2.5 rounded-lg border-zinc-200 bg-zinc-50/40 text-body text-zinc-600 focus:border-zinc-400 focus:shadow-focus">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="min-w-0">
@@ -420,7 +420,7 @@ export function ApprovalsPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <p className="text-[12px] text-zinc-400 tabular-nums">
+                  <p className="text-label text-zinc-400 tabular-nums">
                     {meta.totalPages > 1 && <>Page {meta.page} of {meta.totalPages}<span className="text-zinc-300 mx-1.5">&middot;</span></>}
                     {meta.total} total
                   </p>
@@ -430,18 +430,18 @@ export function ApprovalsPage() {
                     <button
                       onClick={() => setPage(page - 1)}
                       disabled={page <= 1}
-                      className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-500 transition-all duration-150 hover:bg-zinc-50 hover:text-zinc-700 disabled:opacity-40 disabled:pointer-events-none"
+                      className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-label font-medium text-zinc-500 transition-all duration-150 hover:bg-zinc-50 hover:text-zinc-700 disabled:opacity-40 disabled:pointer-events-none"
                     >
                       <ChevronLeft className="h-3.5 w-3.5" /> Previous
                     </button>
                     {getPageNumbers(meta.page, meta.totalPages).map((p, i) =>
                       p === '...' ? (
-                        <span key={`dots-${i}`} className="px-1.5 text-[12px] text-zinc-300">...</span>
+                        <span key={`dots-${i}`} className="px-1.5 text-label text-zinc-300">...</span>
                       ) : (
                         <button
                           key={p}
                           onClick={() => setPage(p as number)}
-                          className={`h-8 w-8 rounded-lg text-[12px] font-semibold transition-all duration-150 ${
+                          className={`h-8 w-8 rounded-lg text-label font-semibold transition-all duration-150 ${
                             p === meta.page
                               ? 'bg-zinc-900 text-white shadow-xs'
                               : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700'
@@ -454,7 +454,7 @@ export function ApprovalsPage() {
                     <button
                       onClick={() => setPage(page + 1)}
                       disabled={page >= meta.totalPages}
-                      className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-500 transition-all duration-150 hover:bg-zinc-50 hover:text-zinc-700 disabled:opacity-40 disabled:pointer-events-none"
+                      className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-label font-medium text-zinc-500 transition-all duration-150 hover:bg-zinc-50 hover:text-zinc-700 disabled:opacity-40 disabled:pointer-events-none"
                     >
                       Next <ChevronRight className="h-3.5 w-3.5" />
                     </button>

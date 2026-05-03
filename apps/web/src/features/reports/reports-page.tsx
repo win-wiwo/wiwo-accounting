@@ -107,8 +107,8 @@ export function ReportsPage() {
       {/* Filters */}
       <Surface delay={0.04}>
         <div className="px-6 pt-6 pb-4">
-          <h2 className="text-[15px] font-semibold text-zinc-900">Report Filters</h2>
-          <p className="mt-1 text-[12px] text-zinc-400">
+          <h2 className="text-body-lg font-semibold text-zinc-900">Report Filters</h2>
+          <p className="mt-1 text-label text-zinc-400">
             Configure filters that apply to all reports below.
           </p>
         </div>
@@ -274,8 +274,8 @@ function ReportCard({
             {icon}
           </div>
           <div className="min-w-0">
-            <h3 className="text-[15px] font-semibold text-zinc-900">{title}</h3>
-            <p className="mt-1 text-[12px] text-zinc-500 leading-relaxed">
+            <h3 className="text-body-lg font-semibold text-zinc-900">{title}</h3>
+            <p className="mt-1 text-label text-zinc-500 leading-relaxed">
               {description}
             </p>
           </div>
@@ -288,7 +288,7 @@ function ReportCard({
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-500">
+    <p className="mb-1.5 text-caption font-semibold uppercase tracking-[0.06em] text-zinc-500">
       {children}
     </p>
   );

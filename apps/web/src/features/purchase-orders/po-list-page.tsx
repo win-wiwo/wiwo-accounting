@@ -139,36 +139,36 @@ export function PoListPage() {
         style={{ animationDelay: '0s' }}
       >
         <div>
-          <h1 className="text-[28px] font-bold tracking-[-0.01em] leading-tight text-zinc-900">
+          <h1 className="text-display font-bold tracking-[-0.01em] leading-tight text-zinc-900">
             Purchase Orders
           </h1>
-          <p className="mt-1.5 text-[14px] text-zinc-500">
+          <p className="mt-1.5 text-body-lg text-zinc-500">
             Track and manage purchase orders.
           </p>
         </div>
         <div className="flex items-center gap-2.5 flex-wrap">
           {stats && (
             <>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1 text-[12px] font-medium text-zinc-600 tabular-nums">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1 text-label font-medium text-zinc-600 tabular-nums">
                 {stats.total} Total
               </span>
               {stats.pending > 0 && (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-tone-warning-bg px-3 py-1 text-[12px] font-medium text-tone-warning-text tabular-nums">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-tone-warning-bg px-3 py-1 text-label font-medium text-tone-warning-text tabular-nums">
                   {stats.pending} Pending
                 </span>
               )}
               {stats.ordered > 0 && (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-tone-info-bg px-3 py-1 text-[12px] font-medium text-tone-info-text tabular-nums">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-tone-info-bg px-3 py-1 text-label font-medium text-tone-info-text tabular-nums">
                   {stats.ordered} Ordered
                 </span>
               )}
               {stats.received > 0 && (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-tone-success-bg px-3 py-1 text-[12px] font-medium text-tone-success-text tabular-nums">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-tone-success-bg px-3 py-1 text-label font-medium text-tone-success-text tabular-nums">
                   {stats.received} Received
                 </span>
               )}
               {stats.activeValue > 0 && (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-tone-info-bg px-3 py-1 text-[12px] font-medium text-tone-info-text tabular-nums">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-tone-info-bg px-3 py-1 text-label font-medium text-tone-info-text tabular-nums">
                   {formatCurrency(stats.activeValue)} Active
                 </span>
               )}
@@ -190,12 +190,12 @@ export function PoListPage() {
               placeholder="Search by PO number, source, or project..."
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="peer h-10 w-full rounded-lg border border-zinc-200 bg-zinc-50/60 pl-10 pr-4 text-[13px] text-zinc-800 placeholder:text-zinc-400 outline-none transition-all duration-200 focus:border-zinc-400 focus:bg-white focus:shadow-focus"
+              className="peer h-10 w-full rounded-lg border border-zinc-200 bg-zinc-50/60 pl-10 pr-4 text-body text-zinc-800 placeholder:text-zinc-400 outline-none transition-all duration-200 focus:border-zinc-400 focus:bg-white focus:shadow-focus"
             />
           </div>
           <div className="flex items-center gap-2 flex-wrap shrink-0">
             <Select value={statusFilter || 'all'} onValueChange={(v) => { setStatusFilter(v === 'all' ? '' : v); setPage(1); }}>
-              <SelectTrigger className="w-full sm:w-[140px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-focus">
+              <SelectTrigger className="w-full sm:w-[140px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-body text-zinc-600 focus:border-zinc-400 focus:shadow-focus">
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
               <SelectContent>
@@ -207,7 +207,7 @@ export function PoListPage() {
             </Select>
 
             <Select value={sourceFilter || 'all'} onValueChange={(v) => { setSourceFilter(v === 'all' ? '' : v); setPage(1); }}>
-              <SelectTrigger className="w-full sm:w-[154px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-focus">
+              <SelectTrigger className="w-full sm:w-[154px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-body text-zinc-600 focus:border-zinc-400 focus:shadow-focus">
                 <SelectValue placeholder="All Sources" />
               </SelectTrigger>
               <SelectContent>
@@ -219,7 +219,7 @@ export function PoListPage() {
             </Select>
 
             <Select value={sortValue} onValueChange={(v) => { setSortValue(v); setPage(1); }}>
-              <SelectTrigger className="w-full sm:w-[154px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-focus">
+              <SelectTrigger className="w-full sm:w-[154px] h-10 rounded-lg border-zinc-200 bg-zinc-50/40 text-body text-zinc-600 focus:border-zinc-400 focus:shadow-focus">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -249,10 +249,10 @@ export function PoListPage() {
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-zinc-50 mb-5">
               <ShoppingCart className="h-7 w-7 text-zinc-300" />
             </div>
-            <h3 className="text-[16px] font-semibold text-zinc-900 mb-1.5">
+            <h3 className="text-heading-sm font-semibold text-zinc-900 mb-1.5">
               {hasFilters ? 'No matching purchase orders' : 'No purchase orders yet'}
             </h3>
-            <p className="text-[13px] text-zinc-500 max-w-sm">
+            <p className="text-body text-zinc-500 max-w-sm">
               {hasFilters
                 ? 'Try adjusting your search or filters.'
                 : 'Purchase orders are auto-created when procurement requests are fully approved.'}
@@ -264,16 +264,16 @@ export function PoListPage() {
               <table className="w-full">
                 <thead className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm">
                   <tr className="border-b border-zinc-100">
-                    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+                    <th className="h-11 px-5 text-left text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400">
                       Order
                     </th>
-                    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400 hidden lg:table-cell">
+                    <th className="h-11 px-5 text-left text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400 hidden lg:table-cell">
                       Title
                     </th>
-                    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400 hidden md:table-cell">
+                    <th className="h-11 px-5 text-left text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400 hidden md:table-cell">
                       Supplier
                     </th>
-                    <th className="h-11 px-5 text-right text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+                    <th className="h-11 px-5 text-right text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400">
                       <span
                         onClick={() => toggleSort('totalAmount')}
                         className={`inline-flex items-center gap-1 cursor-pointer select-none transition-colors duration-150 ${sortField === 'totalAmount' ? 'text-zinc-700' : 'hover:text-zinc-600'}`}
@@ -284,10 +284,10 @@ export function PoListPage() {
                           : <ArrowUpDown className="h-3 w-3 opacity-40" />}
                       </span>
                     </th>
-                    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+                    <th className="h-11 px-5 text-left text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400">
                       Status
                     </th>
-                    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400 hidden lg:table-cell">
+                    <th className="h-11 px-5 text-left text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400 hidden lg:table-cell">
                       <span
                         onClick={() => toggleSort('createdAt')}
                         className={`inline-flex items-center gap-1 cursor-pointer select-none transition-colors duration-150 ${sortField === 'createdAt' ? 'text-zinc-700' : 'hover:text-zinc-600'}`}
@@ -324,11 +324,11 @@ export function PoListPage() {
                         {/* Order (PO + PR number) */}
                         <td className="px-5 py-4">
                           <div>
-                            <span className="font-mono text-[13px] font-medium text-zinc-800 tracking-tight group-hover:text-zinc-950 transition-colors">
+                            <span className="font-mono text-body font-medium text-zinc-800 tracking-tight group-hover:text-zinc-950 transition-colors">
                               {po.poNumber ?? '—'}
                             </span>
                             {sourceNumber && (
-                              <p className="font-mono text-[11px] text-zinc-400 mt-0.5 tracking-tight">
+                              <p className="font-mono text-caption text-zinc-400 mt-0.5 tracking-tight">
                                 {sourceNumber}
                               </p>
                             )}
@@ -338,11 +338,11 @@ export function PoListPage() {
                         {/* Title */}
                         <td className="px-5 py-4 hidden lg:table-cell">
                           {sourceTitle ? (
-                            <p className="text-[13px] text-zinc-700 max-w-[280px] truncate">
+                            <p className="text-body text-zinc-700 max-w-[280px] truncate">
                               {sourceTitle}
                             </p>
                           ) : (
-                            <span className="text-[12px] text-zinc-300 italic">—</span>
+                            <span className="text-label text-zinc-300 italic">—</span>
                           )}
                         </td>
 
@@ -350,23 +350,23 @@ export function PoListPage() {
                         <td className="px-5 py-4 hidden md:table-cell">
                           {po.supplierName ? (
                             <div className="max-w-[200px]">
-                              <p className="text-[13px] text-zinc-700 truncate">{po.supplierName}</p>
+                              <p className="text-body text-zinc-700 truncate">{po.supplierName}</p>
                             </div>
                           ) : (
-                            <span className="text-[12px] text-zinc-500 italic">Online</span>
+                            <span className="text-label text-zinc-500 italic">Online</span>
                           )}
                         </td>
 
                         {/* Amount */}
                         <td className="px-5 py-4 text-right">
-                          <span className={`text-[13px] font-semibold tabular-nums ${isCancelled ? 'text-zinc-400 line-through' : 'text-zinc-800'}`}>
+                          <span className={`text-body font-semibold tabular-nums ${isCancelled ? 'text-zinc-400 line-through' : 'text-zinc-800'}`}>
                             {formatCurrencyFull(po.totalAmount)}
                           </span>
                         </td>
 
                         {/* Status */}
                         <td className="px-5 py-4">
-                          <span className={`inline-flex h-[22px] items-center gap-1.5 rounded-md border px-2 text-[11px] font-medium leading-none ${STATUS_STYLE[po.status] ?? 'bg-tone-neutral-bg text-tone-neutral-text border-tone-neutral-border'}`}>
+                          <span className={`inline-flex h-[22px] items-center gap-1.5 rounded-md border px-2 text-caption font-medium leading-none ${STATUS_STYLE[po.status] ?? 'bg-tone-neutral-bg text-tone-neutral-text border-tone-neutral-border'}`}>
                             <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${STATUS_DOT[po.status] ?? 'bg-zinc-400'}`} />
                             {PO_STATUS_LABELS[po.status] ?? po.status}
                           </span>
@@ -375,14 +375,14 @@ export function PoListPage() {
                         {/* Date */}
                         <td className="px-5 py-4 hidden lg:table-cell">
                           <div>
-                            <span className="text-[12px] text-zinc-400 tabular-nums whitespace-nowrap">
+                            <span className="text-label text-zinc-400 tabular-nums whitespace-nowrap">
                               {dateLabel(dateToShow)}
                             </span>
                             {isReceived && po.receivedAt && (
-                              <p className="text-[10px] text-zinc-300 mt-0.5">Received</p>
+                              <p className="text-micro text-zinc-300 mt-0.5">Received</p>
                             )}
                             {po.status === 'ordered' && po.estimatedArrivalDate && (
-                              <p className="text-[10px] text-blue-400 mt-0.5">
+                              <p className="text-micro text-blue-400 mt-0.5">
                                 ETA: {new Date(po.estimatedArrivalDate).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}
                               </p>
                             )}
@@ -400,9 +400,9 @@ export function PoListPage() {
               <div className="flex items-center justify-between border-t border-zinc-100 px-5 py-3">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-[12px] text-zinc-400">Rows per page</span>
+                    <span className="text-label text-zinc-400">Rows per page</span>
                     <Select value={String(limit)} onValueChange={(v) => { setLimit(Number(v)); setPage(1); }}>
-                      <SelectTrigger className="w-auto h-8 px-2.5 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-focus">
+                      <SelectTrigger className="w-auto h-8 px-2.5 rounded-lg border-zinc-200 bg-zinc-50/40 text-body text-zinc-600 focus:border-zinc-400 focus:shadow-focus">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="min-w-0">
@@ -412,7 +412,7 @@ export function PoListPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <p className="text-[12px] text-zinc-400 tabular-nums">
+                  <p className="text-label text-zinc-400 tabular-nums">
                     {meta.totalPages > 1 && <>Page {meta.page} of {meta.totalPages}<span className="text-zinc-300 mx-1.5">&middot;</span></>}
                     {meta.total} total
                   </p>
@@ -422,18 +422,18 @@ export function PoListPage() {
                     <button
                       onClick={() => setPage(page - 1)}
                       disabled={page <= 1}
-                      className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-500 transition-all duration-150 hover:bg-zinc-50 hover:text-zinc-700 disabled:opacity-40 disabled:pointer-events-none"
+                      className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-label font-medium text-zinc-500 transition-all duration-150 hover:bg-zinc-50 hover:text-zinc-700 disabled:opacity-40 disabled:pointer-events-none"
                     >
                       <ChevronLeft className="h-3.5 w-3.5" /> Previous
                     </button>
                     {getPageNumbers(meta.page, meta.totalPages).map((p, i) =>
                       p === '...' ? (
-                        <span key={`dots-${i}`} className="px-1.5 text-[12px] text-zinc-300">...</span>
+                        <span key={`dots-${i}`} className="px-1.5 text-label text-zinc-300">...</span>
                       ) : (
                         <button
                           key={p}
                           onClick={() => setPage(p as number)}
-                          className={`h-8 w-8 rounded-lg text-[12px] font-semibold transition-all duration-150 ${
+                          className={`h-8 w-8 rounded-lg text-label font-semibold transition-all duration-150 ${
                             p === meta.page
                               ? 'bg-zinc-900 text-white shadow-xs'
                               : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700'
@@ -446,7 +446,7 @@ export function PoListPage() {
                     <button
                       onClick={() => setPage(page + 1)}
                       disabled={page >= meta.totalPages}
-                      className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-500 transition-all duration-150 hover:bg-zinc-50 hover:text-zinc-700 disabled:opacity-40 disabled:pointer-events-none"
+                      className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-label font-medium text-zinc-500 transition-all duration-150 hover:bg-zinc-50 hover:text-zinc-700 disabled:opacity-40 disabled:pointer-events-none"
                     >
                       Next <ChevronRight className="h-3.5 w-3.5" />
                     </button>

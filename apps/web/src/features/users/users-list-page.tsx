@@ -243,28 +243,28 @@ export function UsersListPage() {
                               src={resolvePhotoUrl(user.photoUrl)}
                               alt={`${user.firstName} ${user.lastName}`}
                             />
-                            <AvatarFallback className="bg-zinc-100 text-zinc-600 text-[12px] font-semibold">
+                            <AvatarFallback className="bg-zinc-100 text-zinc-600 text-label font-semibold">
                               {user.firstName[0]}
                               {user.lastName[0]}
                             </AvatarFallback>
                           </Avatar>
                           <div className="min-w-0">
-                            <p className="text-[13px] font-medium text-zinc-800 truncate group-hover:text-zinc-950">
+                            <p className="text-body font-medium text-zinc-800 truncate group-hover:text-zinc-950">
                               {user.firstName} {user.lastName}
                             </p>
-                            <p className="text-[12px] text-zinc-400 truncate">{user.email}</p>
+                            <p className="text-label text-zinc-400 truncate">{user.email}</p>
                           </div>
                         </div>
                       </td>
                       <td className="px-5 py-4">
-                        <span className="font-mono text-[13px] text-zinc-700">{user.employeeId}</span>
+                        <span className="font-mono text-body text-zinc-700">{user.employeeId}</span>
                       </td>
                       <td className="px-5 py-4">
                         <StatusBadge tone={ROLE_TONE[user.role] ?? 'neutral'}>
                           {ROLE_LABELS[user.role as UserRole]}
                         </StatusBadge>
                       </td>
-                      <td className="px-5 py-4 text-[13px] text-zinc-500">
+                      <td className="px-5 py-4 text-body text-zinc-500">
                         {user.department?.name || '—'}
                       </td>
                       <td className="px-5 py-4">
@@ -716,7 +716,7 @@ function CreateUserModal({ open, onOpenChange, departments }: CreateUserModalPro
 function Th({ children, align = 'left' }: { children: React.ReactNode; align?: 'left' | 'right' }) {
   return (
     <th
-      className={`h-11 px-5 text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400 ${
+      className={`h-11 px-5 text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400 ${
         align === 'right' ? 'text-right' : 'text-left'
       }`}
     >

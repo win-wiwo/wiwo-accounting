@@ -133,25 +133,25 @@ export function ProcurementQueuePage() {
       {/* ── Page Header ──────────────────────────────────────── */}
       <div className="pr-list-section flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between" style={{ animationDelay: '0s' }}>
         <div>
-          <h1 className="text-[28px] font-bold tracking-[-0.01em] leading-tight text-zinc-900">
+          <h1 className="text-display font-bold tracking-[-0.01em] leading-tight text-zinc-900">
             Procurement Queue
           </h1>
-          <p className="mt-1.5 text-[14px] text-zinc-500">
+          <p className="mt-1.5 text-body-lg text-zinc-500">
             Purchase requests pending quotation and supplier pricing.
           </p>
         </div>
         {!isLoading && rawPrs.length > 0 && (
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1 text-[12px] font-medium text-zinc-600 tabular-nums">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1 text-label font-medium text-zinc-600 tabular-nums">
               {totalPending} Pending
             </span>
             {highCount > 0 && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-tone-warning-bg px-3 py-1 text-[12px] font-medium text-tone-warning-text tabular-nums">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-tone-warning-bg px-3 py-1 text-label font-medium text-tone-warning-text tabular-nums">
                 {highCount} High Priority
               </span>
             )}
             {oldestDays >= 5 && (
-              <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-medium tabular-nums ${oldestDays >= 10 ? 'bg-tone-danger-bg text-tone-danger-text' : 'bg-tone-warning-bg text-tone-warning-text'}`}>
+              <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-label font-medium tabular-nums ${oldestDays >= 10 ? 'bg-tone-danger-bg text-tone-danger-text' : 'bg-tone-warning-bg text-tone-warning-text'}`}>
                 {oldestDays}d oldest
               </span>
             )}
@@ -175,8 +175,8 @@ export function ProcurementQueuePage() {
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 mb-5">
               <CheckCircle2 className="h-7 w-7 text-emerald-500" />
             </div>
-            <h3 className="text-[16px] font-semibold text-zinc-900 mb-1.5">All requests are processed</h3>
-            <p className="text-[13px] text-zinc-500 max-w-sm">
+            <h3 className="text-heading-sm font-semibold text-zinc-900 mb-1.5">All requests are processed</h3>
+            <p className="text-body text-zinc-500 max-w-sm">
               No purchase requests currently need quotations or pricing updates.
             </p>
           </div>
@@ -186,16 +186,16 @@ export function ProcurementQueuePage() {
               <table className="w-full">
                 <thead className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm">
                   <tr className="border-b border-zinc-100">
-                    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+                    <th className="h-11 px-5 text-left text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400">
                       PR Number
                     </th>
-                    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+                    <th className="h-11 px-5 text-left text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400">
                       Request
                     </th>
-                    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+                    <th className="h-11 px-5 text-left text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400">
                       Requester
                     </th>
-                    <th className="h-11 px-5 text-right text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+                    <th className="h-11 px-5 text-right text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400">
                       <span
                         onClick={() => toggleSort('amount')}
                         className={`inline-flex items-center gap-1 cursor-pointer select-none transition-colors duration-150 ${sortCol === 'amount' ? 'text-zinc-700' : 'hover:text-zinc-600'}`}
@@ -206,13 +206,13 @@ export function ProcurementQueuePage() {
                           : <ArrowUpDown className="h-3 w-3 opacity-40" />}
                       </span>
                     </th>
-                    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+                    <th className="h-11 px-5 text-left text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400">
                       Status
                     </th>
-                    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+                    <th className="h-11 px-5 text-left text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400">
                       Priority
                     </th>
-                    <th className="h-11 px-5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400">
+                    <th className="h-11 px-5 text-left text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400">
                       <span
                         onClick={() => toggleSort('age')}
                         className={`inline-flex items-center gap-1 cursor-pointer select-none transition-colors duration-150 ${sortCol === 'age' ? 'text-zinc-700' : 'hover:text-zinc-600'}`}
@@ -244,21 +244,21 @@ export function ProcurementQueuePage() {
                       >
                         {/* PR Number */}
                         <td className="px-5 py-4">
-                          <span className="font-mono text-[13px] font-medium text-zinc-800 tracking-tight">
+                          <span className="font-mono text-body font-medium text-zinc-800 tracking-tight">
                             {pr.prNumber}
                           </span>
                         </td>
 
                         {/* Request */}
                         <td className="px-5 py-4">
-                          <p className="max-w-[320px] text-[13px] font-medium text-zinc-800 leading-snug truncate group-hover:text-zinc-950 transition-colors duration-150">
+                          <p className="max-w-[320px] text-body font-medium text-zinc-800 leading-snug truncate group-hover:text-zinc-950 transition-colors duration-150">
                             {pr.title}
                           </p>
                         </td>
 
                         {/* Requester */}
                         <td className="px-5 py-4">
-                          <span className="text-[13px] text-zinc-500">
+                          <span className="text-body text-zinc-500">
                             {requester ? `${requester.firstName} ${requester.lastName}` : '\u2014'}
                           </span>
                         </td>
@@ -266,9 +266,9 @@ export function ProcurementQueuePage() {
                         {/* Amount */}
                         <td className="px-5 py-4 text-right">
                           {amountIsUnknown ? (
-                            <span className="text-[13px] italic text-amber-600">Pending Quote</span>
+                            <span className="text-body italic text-amber-600">Pending Quote</span>
                           ) : (
-                            <span className="text-[13px] font-semibold tabular-nums text-zinc-800">
+                            <span className="text-body font-semibold tabular-nums text-zinc-800">
                               {formatCurrency(pr.totalAmount)}
                             </span>
                           )}
@@ -276,7 +276,7 @@ export function ProcurementQueuePage() {
 
                         {/* Status */}
                         <td className="px-5 py-4">
-                          <span className={`inline-flex h-[22px] items-center gap-1.5 rounded-md border px-2 text-[11px] font-medium leading-none ${procStatusStyle[pr.status] ?? 'bg-tone-neutral-bg text-tone-neutral-text border-tone-neutral-border'}`}>
+                          <span className={`inline-flex h-[22px] items-center gap-1.5 rounded-md border px-2 text-caption font-medium leading-none ${procStatusStyle[pr.status] ?? 'bg-tone-neutral-bg text-tone-neutral-text border-tone-neutral-border'}`}>
                             <span className={`h-1.5 w-1.5 rounded-full ${procStatusDot[pr.status] ?? 'bg-zinc-400'}`} />
                             {PR_STATUS_LABELS[pr.status as PrStatusType]}
                           </span>
@@ -284,7 +284,7 @@ export function ProcurementQueuePage() {
 
                         {/* Priority */}
                         <td className="px-5 py-4">
-                          <span className={`inline-flex h-[22px] items-center gap-1.5 rounded-md px-2 text-[11px] font-medium leading-none ${priorityStyle[pr.priority] ?? 'bg-tone-neutral-bg text-tone-neutral-text'}`}>
+                          <span className={`inline-flex h-[22px] items-center gap-1.5 rounded-md px-2 text-caption font-medium leading-none ${priorityStyle[pr.priority] ?? 'bg-tone-neutral-bg text-tone-neutral-text'}`}>
                             <span className={`h-1.5 w-1.5 rounded-full ${priorityDot[pr.priority] ?? 'bg-zinc-300'}`} />
                             {PR_PRIORITY_LABELS[pr.priority as PrPriorityType]}
                           </span>
@@ -292,7 +292,7 @@ export function ProcurementQueuePage() {
 
                         {/* Age */}
                         <td className="px-5 py-4">
-                          <span className={`text-[13px] tabular-nums whitespace-nowrap ${
+                          <span className={`text-body tabular-nums whitespace-nowrap ${
                             ageDays >= 10
                               ? 'text-red-600 font-semibold'
                               : ageDays >= 7
@@ -306,7 +306,7 @@ export function ProcurementQueuePage() {
                         {/* Chevron */}
                         <td className="px-3 py-4">
                           <span className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                            <span className="text-[11px] font-medium text-zinc-400 hidden lg:inline">Review</span>
+                            <span className="text-caption font-medium text-zinc-400 hidden lg:inline">Review</span>
                             <ChevronRight className="h-4 w-4 text-zinc-400" />
                           </span>
                         </td>
@@ -322,9 +322,9 @@ export function ProcurementQueuePage() {
               <div className="flex items-center justify-between border-t border-zinc-100 px-5 py-3">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-[12px] text-zinc-400">Rows per page</span>
+                    <span className="text-label text-zinc-400">Rows per page</span>
                     <Select value={String(limit)} onValueChange={(v) => { setLimit(Number(v)); setPage(1); }}>
-                      <SelectTrigger className="w-auto h-8 px-2.5 rounded-lg border-zinc-200 bg-zinc-50/40 text-[13px] text-zinc-600 focus:border-zinc-400 focus:shadow-focus">
+                      <SelectTrigger className="w-auto h-8 px-2.5 rounded-lg border-zinc-200 bg-zinc-50/40 text-body text-zinc-600 focus:border-zinc-400 focus:shadow-focus">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="min-w-0">
@@ -334,7 +334,7 @@ export function ProcurementQueuePage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <p className="text-[12px] text-zinc-400 tabular-nums">
+                  <p className="text-label text-zinc-400 tabular-nums">
                     {meta.totalPages > 1 && <>Page {meta.page} of {meta.totalPages}<span className="text-zinc-300 mx-1.5">&middot;</span></>}
                     {meta.total} total
                   </p>
@@ -344,18 +344,18 @@ export function ProcurementQueuePage() {
                     <button
                       onClick={() => setPage(page - 1)}
                       disabled={page <= 1}
-                      className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-500 transition-all duration-150 hover:bg-zinc-50 hover:text-zinc-700 disabled:opacity-40 disabled:pointer-events-none"
+                      className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-label font-medium text-zinc-500 transition-all duration-150 hover:bg-zinc-50 hover:text-zinc-700 disabled:opacity-40 disabled:pointer-events-none"
                     >
                       <ChevronLeft className="h-3.5 w-3.5" /> Previous
                     </button>
                     {getPageNumbers(meta.page, meta.totalPages).map((p, i) =>
                       p === '...' ? (
-                        <span key={`dots-${i}`} className="px-1.5 text-[12px] text-zinc-300">...</span>
+                        <span key={`dots-${i}`} className="px-1.5 text-label text-zinc-300">...</span>
                       ) : (
                         <button
                           key={p}
                           onClick={() => setPage(p as number)}
-                          className={`h-8 w-8 rounded-lg text-[12px] font-semibold transition-all duration-150 ${
+                          className={`h-8 w-8 rounded-lg text-label font-semibold transition-all duration-150 ${
                             p === meta.page
                               ? 'bg-zinc-900 text-white shadow-xs'
                               : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700'
@@ -368,7 +368,7 @@ export function ProcurementQueuePage() {
                     <button
                       onClick={() => setPage(page + 1)}
                       disabled={page >= meta.totalPages}
-                      className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-zinc-500 transition-all duration-150 hover:bg-zinc-50 hover:text-zinc-700 disabled:opacity-40 disabled:pointer-events-none"
+                      className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-label font-medium text-zinc-500 transition-all duration-150 hover:bg-zinc-50 hover:text-zinc-700 disabled:opacity-40 disabled:pointer-events-none"
                     >
                       Next <ChevronRight className="h-3.5 w-3.5" />
                     </button>

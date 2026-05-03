@@ -161,7 +161,7 @@ function ProjectFormDialog({ project, open, onClose }: ProjectFormDialogProps) {
           <div className="space-y-1.5">
             <Label htmlFor="proj-code">
               Project Code
-              <span className="text-xs text-muted-foreground ml-1">(optional, e.g. ORP2)</span>
+              <span className="text-label text-muted-foreground ml-1">(optional, e.g. ORP2)</span>
             </Label>
             <Input
               id="proj-code"
@@ -175,12 +175,12 @@ function ProjectFormDialog({ project, open, onClose }: ProjectFormDialogProps) {
           <div className="space-y-1.5">
             <Label htmlFor="proj-desc">
               Description{' '}
-              <span className="text-xs text-muted-foreground">(optional)</span>
+              <span className="text-label text-muted-foreground">(optional)</span>
             </Label>
             <textarea
               id="proj-desc"
               rows={3}
-              className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-body-lg shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               placeholder="Brief description of this project..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -327,11 +327,11 @@ export function ProjectsPage() {
                   <div className="shrink-0">{statusIcon(project.status)}</div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-[13px] font-semibold text-zinc-900">
+                      <p className="text-body font-semibold text-zinc-900">
                         {project.name}
                       </p>
                       {project.code && (
-                        <span className="inline-flex items-center rounded-md border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 font-mono text-[11px] text-zinc-600">
+                        <span className="inline-flex items-center rounded-md border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 font-mono text-caption text-zinc-600">
                           {project.code}
                         </span>
                       )}
@@ -340,11 +340,11 @@ export function ProjectsPage() {
                       </StatusBadge>
                     </div>
                     {project.description && (
-                      <p className="text-[12px] text-zinc-500 mt-0.5 truncate">
+                      <p className="text-label text-zinc-500 mt-0.5 truncate">
                         {project.description}
                       </p>
                     )}
-                    <p className="text-[11px] text-zinc-400 mt-1">Created by {createdBy}</p>
+                    <p className="text-caption text-zinc-400 mt-1">Created by {createdBy}</p>
                   </div>
                   <GhostButton onClick={() => openEdit(project)} className="shrink-0">
                     <Pencil className="h-3.5 w-3.5" /> Edit
