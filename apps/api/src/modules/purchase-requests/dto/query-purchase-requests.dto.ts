@@ -67,6 +67,11 @@ export class QueryPurchaseRequestsDto {
   @IsOptional()
   amountMax?: number;
 
+  @ApiPropertyOptional({ description: 'Filter PRs by project ID' })
+  @IsString()
+  @IsOptional()
+  projectId?: string;
+
   @ApiPropertyOptional({ enum: ['purchase_request', 'job_request'] })
   @IsIn(['purchase_request', 'job_request'])
   @IsOptional()

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { purchaseRequestsApi, type PurchaseRequestsQuery, type CreatePrPayload, type ProjectSpendingItem, type ManagementStats } from '@/lib/api-services';
+import { purchaseRequestsApi, type PurchaseRequestsQuery, type CreatePrPayload, type ProjectSpendingItem, type ManagementStats, type ProjectHealthResponse } from '@/lib/api-services';
 import type { SubmitQuotationDto, SaveCanvassDraftDto } from '@prams/shared';
 
 interface UsePurchaseRequestsOptions {
@@ -41,11 +41,21 @@ export function useProjectSpending(_params?: undefined, options?: { enabled?: bo
   });
 }
 
-export function useManagementStats() {
+export function useManagementStats(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['purchase-requests', 'stats', 'management'],
     queryFn: () => purchaseRequestsApi.getManagementStats(),
     select: (data) => (data as unknown as { data?: ManagementStats })?.data ?? null,
+    enabled: options?.enabled ?? true,
+  });
+}
+
+export function useProjectHealth(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ['purchase-requests', 'stats', 'project-health'],
+    queryFn: () => purchaseRequestsApi.getProjectHealth(),
+    select: (data) => (data as unknown as { data?: ProjectHealthResponse })?.data ?? null,
+    enabled: options?.enabled ?? true,
   });
 }
 

@@ -179,6 +179,12 @@ export class PurchaseRequestsService {
       filter.requestType = query.requestType;
     }
 
+    if (query.projectId) {
+      filter.projectId = query.projectId === 'none'
+        ? null
+        : new Types.ObjectId(query.projectId);
+    }
+
     // Date range filters
     if (dateFrom || dateTo) {
       filter.createdAt = {};
@@ -1336,5 +1342,145 @@ export class PurchaseRequestsService {
     ]);
 
     return rows;
+  }
+
+  async getProjectHealth(user: RequestUser) {
+    const matchStage: FilterQuery<PurchaseRequest> = {};
+
+    // Apply same visibility rules as getProjectSpending
+    if (user.role === UserRole.STAFF) {
+      matchStage.requesterId = new Types.ObjectId(user._id);
+    } else if (user.role === UserRole.DEPT_HEAD && user.departmentId) {
+      matchStage.$or = [
+        { requesterId: new Types.ObjectId(user._id) },
+        { departmentId: new Types.ObjectId(user.departmentId) },
+      ];
+    }
+
+    const overdueCutoff = new Date(Date.now() - 5 * 86_400_000);
+
+    const reviewStatuses = [
+      PrStatus.LEVEL1_REVIEW, PrStatus.LEVEL2_REVIEW, PrStatus.LEVEL3_REVIEW,
+    ];
+    const procStatuses = [PrStatus.PENDING_QUOTATION, PrStatus.QUOTED];
+    const activeStatuses = [...reviewStatuses, ...procStatuses];
+
+    const rows = await this.prModel.aggregate([
+      { $match: matchStage },
+      {
+        $group: {
+          _id: '$projectId',
+          totalPrs: { $sum: 1 },
+          draftCount: { $sum: { $cond: [{ $eq: ['$status', PrStatus.DRAFT] }, 1, 0] } },
+          inReviewCount: { $sum: { $cond: [{ $in: ['$status', reviewStatuses] }, 1, 0] } },
+          inProcurementCount: { $sum: { $cond: [{ $in: ['$status', procStatuses] }, 1, 0] } },
+          approvedCount: { $sum: { $cond: [{ $eq: ['$status', PrStatus.APPROVED] }, 1, 0] } },
+          returnedCount: { $sum: { $cond: [{ $eq: ['$status', PrStatus.RETURNED] }, 1, 0] } },
+          rejectedCount: { $sum: { $cond: [{ $eq: ['$status', PrStatus.REJECTED] }, 1, 0] } },
+          overdueCount: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $in: ['$status', activeStatuses] },
+                    { $ne: ['$submittedAt', null] },
+                    { $lte: ['$submittedAt', overdueCutoff] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          totalAmount: { $sum: '$totalAmount' },
+          approvedAmount: {
+            $sum: { $cond: [{ $eq: ['$status', PrStatus.APPROVED] }, '$totalAmount', 0] },
+          },
+          pendingAmount: {
+            $sum: { $cond: [{ $in: ['$status', activeStatuses] }, '$totalAmount', 0] },
+          },
+          oldestSubmittedAt: { $min: '$submittedAt' },
+          highestPriority: {
+            $min: {
+              $switch: {
+                branches: [
+                  { case: { $eq: ['$priority', 'urgent'] }, then: 0 },
+                  { case: { $eq: ['$priority', 'high'] }, then: 1 },
+                  { case: { $eq: ['$priority', 'medium'] }, then: 2 },
+                ],
+                default: 3,
+              },
+            },
+          },
+        },
+      },
+      {
+        $lookup: {
+          from: 'projects',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'project',
+        },
+      },
+      { $unwind: { path: '$project', preserveNullAndEmptyArrays: true } },
+      {
+        $addFields: {
+          health: {
+            $switch: {
+              branches: [
+                { case: { $gt: ['$returnedCount', 0] }, then: 'blocked' },
+                { case: { $gt: ['$overdueCount', 0] }, then: 'delayed' },
+                {
+                  case: {
+                    $and: [
+                      { $gt: [{ $add: ['$approvedCount', '$rejectedCount'] }, 0] },
+                      { $gt: [{ $divide: ['$rejectedCount', { $add: ['$approvedCount', '$rejectedCount'] }] }, 0.3] },
+                    ],
+                  },
+                  then: 'at_risk',
+                },
+              ],
+              default: 'on_track',
+            },
+          },
+        },
+      },
+      { $sort: { health: 1, overdueCount: -1, totalAmount: -1 } },
+      { $limit: 20 },
+      {
+        $project: {
+          _id: 0,
+          projectId: { $ifNull: ['$_id', null] },
+          projectName: { $ifNull: ['$project.name', 'General'] },
+          projectCode: { $ifNull: ['$project.code', null] },
+          projectStatus: { $ifNull: ['$project.status', null] },
+          totalPrs: 1,
+          draftCount: 1,
+          inReviewCount: 1,
+          inProcurementCount: 1,
+          approvedCount: 1,
+          returnedCount: 1,
+          rejectedCount: 1,
+          overdueCount: 1,
+          totalAmount: 1,
+          approvedAmount: 1,
+          pendingAmount: 1,
+          oldestSubmittedAt: 1,
+          highestPriority: 1,
+          health: 1,
+        },
+      },
+    ]);
+
+    // Compute summary counts
+    const summary = {
+      total: rows.length,
+      onTrack: rows.filter((r: any) => r.health === 'on_track').length,
+      atRisk: rows.filter((r: any) => r.health === 'at_risk').length,
+      delayed: rows.filter((r: any) => r.health === 'delayed').length,
+      blocked: rows.filter((r: any) => r.health === 'blocked').length,
+    };
+
+    return { summary, projects: rows };
   }
 }
