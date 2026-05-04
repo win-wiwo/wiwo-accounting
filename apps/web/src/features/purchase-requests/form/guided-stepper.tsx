@@ -21,7 +21,7 @@ export function GuidedStepper({
             <p className="text-micro font-semibold uppercase tracking-[0.08em] text-zinc-400 leading-none">
               Step {currentStep + 1} of {steps.length}
             </p>
-            <p className="mt-1.5 text-body-lg font-semibold text-zinc-900 leading-none">
+            <p className="mt-1.5 text-body font-semibold text-zinc-900 leading-none">
               {steps[currentStep]}
             </p>
           </div>
@@ -48,7 +48,7 @@ export function GuidedStepper({
       </div>
 
       {/* Desktop: full horizontal stepper */}
-      <ol className="hidden sm:flex items-center gap-2 px-5 py-5">
+      <ol className="hidden sm:flex items-center gap-2 px-5 py-3.5">
         {steps.map((label, i) => {
           const completed = i < currentStep;
           const current = i === currentStep;
@@ -71,7 +71,7 @@ export function GuidedStepper({
               >
                 <span
                   className={cn(
-                    'flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-body font-bold transition-all duration-300',
+                    'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all duration-300',
                     current &&
                       'bg-zinc-900 text-white shadow-focus',
                     completed && 'bg-zinc-900 text-white',
@@ -97,7 +97,7 @@ export function GuidedStepper({
                   </p>
                   <p
                     className={cn(
-                      'mt-1.5 text-body-lg font-semibold leading-none transition-colors',
+                      'mt-1 text-xs font-semibold leading-none transition-colors',
                       current && 'text-zinc-900',
                       completed && 'text-zinc-700',
                       !current && !completed && 'text-zinc-400',

@@ -49,7 +49,7 @@ function ApprovalFlow() {
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-caption font-semibold text-zinc-600 tabular-nums">
                 {i + 1}
               </span>
-              <span className="text-body font-medium text-zinc-800 leading-6">
+              <span className="text-xs font-medium text-zinc-800 leading-6">
                 {step}
               </span>
             </li>
@@ -115,7 +115,7 @@ function CompletionChecklist({ form }: CompletionChecklistProps) {
               )}
               <span
                 className={cn(
-                  'text-body leading-6 transition-colors',
+                  'text-xs leading-6 transition-colors',
                   item.done
                     ? 'font-medium text-zinc-800'
                     : 'text-zinc-500',
@@ -209,7 +209,7 @@ function RunningTotals({
               Sourcing
             </p>
             <span className={cn(
-              'mt-1.5 inline-flex items-center rounded-full border px-2.5 py-0.5 text-caption font-semibold',
+              'mt-1.5 inline-flex items-center rounded-full border px-2.5 py-0.5 text-caption font-medium',
               isProcurement
                 ? 'bg-amber-50 border-amber-100 text-amber-700'
                 : 'bg-blue-50 border-blue-100 text-blue-700',

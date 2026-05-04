@@ -361,12 +361,14 @@ export function UsersListPage() {
           </DialogHeader>
           <DialogFooter>
             <Button
+              size="sm"
               variant="outline"
               onClick={() => setConfirmDialog({ ...confirmDialog, open: false })}
             >
               Cancel
             </Button>
             <Button
+              size="sm"
               variant={confirmDialog.action === 'deactivate' ? 'destructive' : 'default'}
               onClick={handleToggleStatus}
             >
@@ -515,7 +517,7 @@ function EditUserModal({ open, onOpenChange, user, departments }: EditUserModalP
           </FormField>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button size="sm" variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <PrimaryButton
@@ -693,7 +695,7 @@ function CreateUserModal({ open, onOpenChange, departments }: CreateUserModalPro
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => { resetForm(); onOpenChange(false); }}>
+          <Button size="sm" variant="outline" onClick={() => { resetForm(); onOpenChange(false); }}>
             Cancel
           </Button>
           <PrimaryButton

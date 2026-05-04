@@ -219,7 +219,7 @@ export function PrFormPage() {
               <p className="text-micro font-semibold uppercase tracking-[0.08em] text-zinc-400 leading-none">
                 Step {step + 1} of {STEP_LABELS.length}
               </p>
-              <p className="mt-1.5 text-body-lg font-semibold text-zinc-900 leading-none">
+              <p className="mt-1.5 text-body font-semibold text-zinc-900 leading-none">
                 {STEP_LABELS[step]}
               </p>
             </div>

@@ -336,7 +336,7 @@ export function SettingsPage() {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmSaveConfig(false)}>
+            <Button size="sm" variant="outline" onClick={() => setConfirmSaveConfig(false)}>
               Cancel
             </Button>
             <PrimaryButton onClick={handleSave} disabled={updateMutation.isPending}>
@@ -460,7 +460,7 @@ function SetSeriesForm({
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmApply(false)}>
+            <Button size="sm" variant="outline" onClick={() => setConfirmApply(false)}>
               Cancel
             </Button>
             <PrimaryButton onClick={handleSubmit} disabled={setSeriesMutation.isPending}>

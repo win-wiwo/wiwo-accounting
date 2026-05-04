@@ -310,7 +310,7 @@ export function PoDetailPage() {
               <Button
                 size="sm"
                 variant="outline"
-                className="rounded-lg text-body h-8 border-blue-200 text-blue-700 hover:bg-blue-50"
+                className="rounded-lg text-xs h-8 border-blue-200 text-blue-700 hover:bg-blue-50"
                 onClick={() => navigate(`/purchase-requests/${sourceRequest._id}`)}
               >
                 <FileText className="h-3.5 w-3.5" /> View Purchase Request
@@ -628,7 +628,7 @@ export function PoDetailPage() {
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOrderDialog(false)}>Cancel</Button>
+            <Button size="sm" variant="outline" onClick={() => setOrderDialog(false)}>Cancel</Button>
             <PrimaryButton onClick={handleMarkOrdered} disabled={markOrderedMutation.isPending}>
               <Truck className="h-3.5 w-3.5" /> {markOrderedMutation.isPending ? 'Saving…' : 'Mark as Ordered'}
             </PrimaryButton>
@@ -703,7 +703,7 @@ export function PoDetailPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setReceiveDialog(false)}>Cancel</Button>
+            <Button size="sm" variant="outline" onClick={() => setReceiveDialog(false)}>Cancel</Button>
             <PrimaryButton
               onClick={handleReceive}
               disabled={receiveMutation.isPending || receivePhotos.length === 0}
@@ -730,7 +730,7 @@ export function PoDetailPage() {
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEtaDialog(false)}>Cancel</Button>
+            <Button size="sm" variant="outline" onClick={() => setEtaDialog(false)}>Cancel</Button>
             <PrimaryButton onClick={handleUpdateEta} disabled={updateArrivalMutation.isPending || !newEta}>
               {updateArrivalMutation.isPending ? 'Saving…' : 'Update ETA'}
             </PrimaryButton>
@@ -794,8 +794,8 @@ export function PoDetailPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setCancelDialog(false); setCancelReason(''); setCancelPrAction('keep_approved'); }}>Back</Button>
-            <Button variant="destructive" onClick={handleCancel} disabled={cancelMutation.isPending || !cancelReason.trim()}>
+            <Button size="sm" variant="outline" onClick={() => { setCancelDialog(false); setCancelReason(''); setCancelPrAction('keep_approved'); }}>Back</Button>
+            <Button size="sm" variant="destructive" onClick={handleCancel} disabled={cancelMutation.isPending || !cancelReason.trim()}>
               <XCircle className="h-4 w-4" /> Cancel PO
             </Button>
           </DialogFooter>

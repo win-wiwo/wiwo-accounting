@@ -188,12 +188,12 @@ export const CanvassMatrix = forwardRef<CanvassMatrixHandle, CanvassMatrixProps>
                         <span className="text-label font-semibold text-zinc-800 truncate block">{supplierName}</span>
                         <div className="flex items-center gap-1">
                           {entry.isSelected && entry.supplierId && !isOnlySupplier && (
-                            <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-100 px-1.5 py-0 text-micro font-semibold text-emerald-700 border border-emerald-200 shrink-0">
+                            <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-100 px-1.5 py-0 text-micro font-medium text-emerald-700 border border-emerald-200 shrink-0">
                               <Trophy className="h-2.5 w-2.5" /> Winner
                             </span>
                           )}
                           {entry.isSelected && entry.supplierId && isOnlySupplier && (
-                            <span className="inline-flex items-center gap-0.5 rounded-full bg-blue-50 px-1.5 py-0 text-micro font-semibold text-blue-600 border border-blue-100 shrink-0">
+                            <span className="inline-flex items-center gap-0.5 rounded-full bg-blue-50 px-1.5 py-0 text-micro font-medium text-blue-600 border border-blue-100 shrink-0">
                               Only Supplier
                             </span>
                           )}
@@ -439,7 +439,7 @@ export const CanvassMatrix = forwardRef<CanvassMatrixHandle, CanvassMatrixProps>
             <div>
               <p className="text-label text-zinc-500 mb-2">Select a supplier and enter quoted prices.</p>
               <Select value={addSupplierId || 'none'} onValueChange={(v) => setAddSupplierId(v === 'none' ? '' : v)}>
-                <SelectTrigger className="h-9 text-body">
+                <SelectTrigger className="h-8 text-body">
                   <SelectValue placeholder="Select supplier" />
                 </SelectTrigger>
                 <SelectContent>

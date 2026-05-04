@@ -49,7 +49,7 @@ export function StepReview({
       {/* Basics summary */}
       <Surface delay={0.04}>
         <div className="flex items-center justify-between px-6 pt-5 pb-3">
-          <h2 className="text-body-lg font-semibold text-zinc-900">Request Basics</h2>
+          <h2 className="text-body font-semibold text-zinc-900">Request Basics</h2>
           <GhostButton
             type="button"
             onClick={() => onGoToStep(0)}
@@ -104,7 +104,7 @@ export function StepReview({
       {/* Items summary */}
       <Surface delay={0.06}>
         <div className="flex items-center justify-between px-6 pt-5 pb-3">
-          <h2 className="text-body-lg font-semibold text-zinc-900">
+          <h2 className="text-body font-semibold text-zinc-900">
             Line Items ({data.items.length})
           </h2>
           <GhostButton
@@ -209,7 +209,7 @@ export function StepReview({
       {isReturned && (
         <Surface className="border-amber-200 bg-amber-50/40">
           <div className="px-6 pt-5 pb-3">
-            <h2 className="flex items-center gap-2 text-body-lg font-semibold text-amber-900">
+            <h2 className="flex items-center gap-2 text-body font-semibold text-amber-900">
               <AlertCircle className="h-4 w-4" />
               What changed? <span className="text-red-600">*</span>
             </h2>

@@ -234,12 +234,14 @@ export function DepartmentsListPage() {
           </DialogHeader>
           <DialogFooter>
             <Button
+              size="sm"
               variant="outline"
               onClick={() => setConfirmDelete({ open: false, id: '', name: '' })}
             >
               Cancel
             </Button>
             <Button
+              size="sm"
               variant="destructive"
               onClick={handleDelete}
               disabled={deleteMutation.isPending}
@@ -341,7 +343,7 @@ function EditDepartmentModal({ open, onOpenChange, dept }: EditDepartmentModalPr
           </FormField>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button size="sm" variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <PrimaryButton
@@ -445,7 +447,7 @@ function CreateDepartmentModal({ open, onOpenChange }: CreateDepartmentModalProp
           </FormField>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => { resetForm(); onOpenChange(false); }}>
+          <Button size="sm" variant="outline" onClick={() => { resetForm(); onOpenChange(false); }}>
             Cancel
           </Button>
           <PrimaryButton

@@ -180,7 +180,7 @@ function ProjectFormDialog({ project, open, onClose }: ProjectFormDialogProps) {
             <textarea
               id="proj-desc"
               rows={3}
-              className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-body-lg shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-[13px] shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               placeholder="Brief description of this project..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -208,10 +208,10 @@ function ProjectFormDialog({ project, open, onClose }: ProjectFormDialogProps) {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isPending}>
+          <Button size="sm" variant="outline" onClick={onClose} disabled={isPending}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={isPending || !name.trim()}>
+          <Button size="sm" onClick={handleSubmit} disabled={isPending || !name.trim()}>
             {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
             {isEdit ? 'Save Changes' : 'Create Project'}
           </Button>

@@ -14,13 +14,13 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      'flex h-10 w-full items-center justify-between gap-2 whitespace-nowrap rounded-xl border border-zinc-200/80 bg-zinc-50/40 px-3.5 py-2 text-body text-zinc-700 shadow-xs ring-offset-background transition-all duration-200',
+      'flex h-10 w-full items-center justify-between gap-2 whitespace-nowrap rounded-xl border border-zinc-200/80 bg-zinc-50/40 px-3.5 py-2 text-body text-zinc-700 shadow-xs transition-all duration-200',
       'placeholder:text-zinc-400',
-      'hover:border-zinc-300 hover:bg-zinc-50/80 hover:shadow-card',
+      'hover:border-zinc-300 hover:bg-zinc-50/80',
       'focus:outline-none focus:border-zinc-400 focus:bg-white focus:shadow-focus',
       'disabled:cursor-not-allowed disabled:opacity-50',
       'data-[state=open]:border-zinc-400 data-[state=open]:bg-white data-[state=open]:shadow-focus',
-      '[&>span]:line-clamp-1 [&>span]:text-left',
+      '[&>span]:line-clamp-1 [&>span]:text-left [&>span]:text-body',
       className,
     )}
     {...props}
@@ -41,7 +41,7 @@ const SelectContent = React.forwardRef<
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        'relative z-50 max-h-[min(320px,var(--radix-select-content-available-height))] min-w-[8rem] overflow-y-auto',
+        'relative z-50 max-h-[min(320px,var(--radix-select-content-available-height))] min-w-[8rem] overflow-y-auto text-[13px]',
         'rounded-xl border border-zinc-200/80 bg-white text-zinc-800',
         'shadow-popover',
         'data-[state=open]:animate-in data-[state=closed]:animate-out',
@@ -76,7 +76,7 @@ const SelectItem = React.forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      'relative flex w-full cursor-default select-none items-center rounded-lg py-2 pl-3 pr-8 text-body outline-none transition-colors duration-100',
+      'relative flex w-full cursor-default select-none items-center rounded-lg py-2 pl-3 pr-8 text-[13px] outline-none transition-colors duration-100',
       'text-zinc-700',
       'focus:bg-zinc-50 focus:text-zinc-900',
       'data-[state=checked]:text-zinc-900 data-[state=checked]:font-medium',

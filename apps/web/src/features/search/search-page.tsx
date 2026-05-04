@@ -122,7 +122,7 @@ function writeFiltersToParams(filters: ReturnType<typeof readFiltersFromParams>)
 // ─── Reusable styled inputs ───────────────────────────────────
 
 const PREMIUM_INPUT_CLASS =
-  'w-full h-10 rounded-xl border border-zinc-200/80 bg-zinc-50/40 px-3.5 text-body text-zinc-700 shadow-xs outline-none transition-all duration-200 hover:border-zinc-300 hover:bg-zinc-50/80 focus:border-zinc-400 focus:bg-white focus:shadow-focus [&::-webkit-calendar-picker-indicator]:opacity-60 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:hover:opacity-100 [&::-webkit-calendar-picker-indicator]:transition-opacity';
+  'w-full h-10 rounded-xl border border-zinc-200/80 bg-zinc-50/40 px-3.5 text-xs text-zinc-700 shadow-xs outline-none transition-all duration-200 hover:border-zinc-300 hover:bg-zinc-50/80 focus:border-zinc-400 focus:bg-white focus:shadow-focus [&::-webkit-calendar-picker-indicator]:opacity-60 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:hover:opacity-100 [&::-webkit-calendar-picker-indicator]:transition-opacity';
 
 // ─── Component ────────────────────────────────────────────────
 
@@ -358,7 +358,7 @@ export function SearchPage() {
           onClick={() => setFiltersExpanded((v) => !v)}
           className="w-full flex items-center justify-between px-6 py-4 cursor-pointer select-none hover:bg-zinc-50/50 transition-colors duration-150"
         >
-          <span className="flex items-center gap-2 text-body-lg font-semibold text-zinc-900">
+          <span className="flex items-center gap-2 text-body font-semibold text-zinc-900">
             <Search className="h-4 w-4 text-zinc-400" />
             Advanced Search
             {hasActiveFilters && (
@@ -402,7 +402,7 @@ export function SearchPage() {
                       type="button"
                       onClick={() => toggleStatus(s)}
                       className={cn(
-                        'inline-flex items-center rounded-full border px-3 py-1 text-label font-medium transition-colors duration-150',
+                        'inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium transition-colors duration-150',
                         isActive
                           ? 'border-zinc-900 bg-zinc-900 text-white'
                           : 'border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900',
@@ -423,7 +423,7 @@ export function SearchPage() {
               <div>
                 <FieldLabel>Priority</FieldLabel>
                 <Select value={priority} onValueChange={setPriority}>
-                  <SelectTrigger className={premiumSelectTriggerClass}>
+                  <SelectTrigger className={cn(premiumSelectTriggerClass, 'text-xs [&>span]:text-xs')}>
                     <SelectValue placeholder="All Priorities" />
                   </SelectTrigger>
                   <SelectContent>
@@ -440,7 +440,7 @@ export function SearchPage() {
               <div>
                 <FieldLabel>Department</FieldLabel>
                 <Select value={departmentId} onValueChange={setDepartmentId}>
-                  <SelectTrigger className={premiumSelectTriggerClass}>
+                  <SelectTrigger className={cn(premiumSelectTriggerClass, 'text-xs [&>span]:text-xs')}>
                     <SelectValue placeholder="All Departments" />
                   </SelectTrigger>
                   <SelectContent>
@@ -463,6 +463,7 @@ export function SearchPage() {
                   value={dateFrom}
                   onChange={setDateFrom}
                   placeholder="From date..."
+                  className="text-xs"
                 />
               </div>
               <div>
@@ -471,6 +472,7 @@ export function SearchPage() {
                   value={dateTo}
                   onChange={setDateTo}
                   placeholder="To date..."
+                  className="text-xs"
                 />
               </div>
             </div>
@@ -508,7 +510,7 @@ export function SearchPage() {
               <div>
                 <FieldLabel>Sort By</FieldLabel>
                 <Select value={sort} onValueChange={setSort}>
-                  <SelectTrigger className={premiumSelectTriggerClass}>
+                  <SelectTrigger className={cn(premiumSelectTriggerClass, 'text-xs [&>span]:text-xs')}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -763,7 +765,7 @@ function Th({ children, align = 'left' }: { children: React.ReactNode; align?: '
   return (
     <th
       className={cn(
-        'h-11 px-5 text-caption font-semibold uppercase tracking-[0.06em] text-zinc-400',
+        'h-11 px-5 text-[11px] font-semibold uppercase tracking-[0.06em] text-zinc-400',
         align === 'left' && 'text-left',
         align === 'right' && 'text-right',
         align === 'center' && 'text-center',

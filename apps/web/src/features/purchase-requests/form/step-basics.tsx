@@ -221,6 +221,7 @@ export function StepBasics({ form, isEdit, projectOptions }: StepBasicsProps) {
                     onChange={field.onChange}
                     min={new Date().toISOString().split('T')[0]}
                     placeholder="Select date..."
+                    className="text-xs"
                   />
                 )}
               />
@@ -396,7 +397,7 @@ function PanelHeader({
 }) {
   return (
     <div className="px-6 pt-6 pb-4">
-      <h2 className="flex items-center gap-2 text-body-lg font-semibold text-zinc-900">
+      <h2 className="flex items-center gap-2 text-body font-semibold text-zinc-900">
         {icon}
         {title}
       </h2>

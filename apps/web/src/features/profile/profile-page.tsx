@@ -452,7 +452,7 @@ function ChangePasswordModal({
           </div>
 
           <DialogFooter className="pt-2">
-            <Button type="button" variant="outline" onClick={() => handleClose(false)}>
+            <Button size="sm" type="button" variant="outline" onClick={() => handleClose(false)}>
               Cancel
             </Button>
             <PrimaryButton type="submit" disabled={isSubmitting}>

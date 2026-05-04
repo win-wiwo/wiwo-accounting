@@ -246,11 +246,11 @@ export function PrApprovalModal({
                 <div className="flex-1 min-w-0 pr-8">
                   <div className="flex items-center gap-2.5 flex-wrap">
                     <span className="font-mono text-label font-medium text-zinc-400 tracking-tight">{pr.prNumber}</span>
-                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-micro font-semibold ${priorityStyle[pr.priority] ?? 'bg-tone-neutral-bg text-tone-neutral-text'}`}>
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-micro font-medium ${priorityStyle[pr.priority] ?? 'bg-tone-neutral-bg text-tone-neutral-text'}`}>
                       {PR_PRIORITY_LABELS[pr.priority as PrPriorityType]}
                     </span>
                     {isPriceReview && (
-                      <span className="inline-flex items-center rounded-full bg-tone-success-bg px-2 py-0.5 text-micro font-semibold text-tone-success-text">
+                      <span className="inline-flex items-center rounded-full bg-tone-success-bg px-2 py-0.5 text-micro font-medium text-tone-success-text">
                         Price Review
                       </span>
                     )}
@@ -285,7 +285,7 @@ export function PrApprovalModal({
                     {/* Summary strip */}
                     <div className="rounded-xl border border-zinc-200/60 bg-zinc-50/40 px-5 py-3 flex items-center gap-4 flex-wrap">
                       <div className="flex-1 min-w-[180px]">
-                        <p className="text-micro font-semibold uppercase tracking-[0.08em] text-zinc-400 mb-0.5">Purpose</p>
+                        <p className="text-micro font-medium uppercase tracking-[0.08em] text-zinc-400 mb-0.5">Purpose</p>
                         <p className="text-label leading-relaxed text-zinc-800 line-clamp-2">{pr.justification}</p>
                         {pr.projectId && (
                           <p className="text-caption text-zinc-500 mt-1 flex items-center gap-1.5">
@@ -303,7 +303,7 @@ export function PrApprovalModal({
                       </div>
                       <div className="h-8 w-px bg-zinc-200/60 shrink-0 hidden sm:block" />
                       <div className="text-right shrink-0">
-                        <p className="text-micro font-semibold uppercase tracking-[0.08em] text-zinc-400 mb-0.5">Total</p>
+                        <p className="text-micro font-medium uppercase tracking-[0.08em] text-zinc-400 mb-0.5">Total</p>
                         {hasProcurementItems && hasUnquotedItems && !isPriceReview ? (
                           <p className="text-body-lg font-bold text-amber-600">Pending Quote</p>
                         ) : (
@@ -314,7 +314,7 @@ export function PrApprovalModal({
                         <>
                           <div className="h-8 w-px bg-zinc-200/60 shrink-0 hidden sm:block" />
                           <div className="text-right shrink-0">
-                            <p className="text-micro font-semibold uppercase tracking-[0.08em] text-zinc-400 mb-0.5">Needed by</p>
+                            <p className="text-micro font-medium uppercase tracking-[0.08em] text-zinc-400 mb-0.5">Needed by</p>
                             <p className={`text-body font-semibold ${isOverdue ? 'text-red-500' : 'text-zinc-800'}`}>
                               {formatDate(pr.neededByDate)}
                               {isOverdue && <span className="text-micro ml-1 text-red-500 font-medium">(overdue)</span>}
@@ -324,7 +324,7 @@ export function PrApprovalModal({
                       )}
                       <div className="h-8 w-px bg-zinc-200/60 shrink-0 hidden sm:block" />
                       <div className="text-right shrink-0">
-                        <p className="text-micro font-semibold uppercase tracking-[0.08em] text-zinc-400 mb-0.5">Items</p>
+                        <p className="text-micro font-medium uppercase tracking-[0.08em] text-zinc-400 mb-0.5">Items</p>
                         <p className="text-body font-semibold text-zinc-800 tabular-nums">{pr.items.length}</p>
                       </div>
                     </div>
@@ -355,7 +355,7 @@ export function PrApprovalModal({
                                       <div className="flex items-center gap-2">
                                         <p className="text-label font-medium text-zinc-800 truncate">{item.description}</p>
                                         {isProcurement && (
-                                          <span className="inline-flex items-center text-micro font-semibold text-tone-info-text bg-tone-info-bg border border-blue-100 rounded-full px-1.5 py-0.5 shrink-0">Procurement</span>
+                                          <span className="inline-flex items-center text-micro font-medium text-tone-info-text bg-tone-info-bg border border-blue-100 rounded-full px-1.5 py-0.5 shrink-0">Procurement</span>
                                         )}
                                         {item.referencePhotoPath && (
                                           <button type="button" onClick={(e) => { e.stopPropagation(); handleViewItemPhoto(item._id); }}
@@ -395,7 +395,7 @@ export function PrApprovalModal({
                                         className="flex w-full items-center justify-between px-4 py-2 text-left hover:bg-zinc-100/40 transition-colors"
                                       >
                                         <div className="flex items-center gap-2">
-                                          <p className="text-micro font-semibold uppercase tracking-[0.08em] text-zinc-400">
+                                          <p className="text-micro font-medium uppercase tracking-[0.08em] text-zinc-400">
                                             Seller Comparison ({sellers.length})
                                           </p>
                                           {!isExpanded && selectedSeller && (
@@ -449,7 +449,7 @@ export function PrApprovalModal({
                                           })}
                                           {item.sellerReferencesJustification && (
                                             <div className="mt-1.5 rounded-lg border border-amber-200/60 bg-amber-50/50 px-2.5 py-2">
-                                              <p className="text-micro font-semibold uppercase tracking-[0.08em] text-amber-700 mb-0.5">Justification</p>
+                                              <p className="text-micro font-medium uppercase tracking-[0.08em] text-amber-700 mb-0.5">Justification</p>
                                               <p className="text-caption text-zinc-700 leading-relaxed whitespace-pre-wrap">
                                                 {item.sellerReferencesJustification}
                                               </p>
@@ -472,7 +472,7 @@ export function PrApprovalModal({
                       <div>
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-3">
-                            <p className="text-micro font-semibold uppercase tracking-[0.08em] text-zinc-400">
+                            <p className="text-micro font-medium uppercase tracking-[0.08em] text-zinc-400">
                               Supplier Comparison ({canvassEntries.length})
                             </p>
                             {selectedSupplier && (
@@ -491,7 +491,7 @@ export function PrApprovalModal({
                             )}
                           </div>
                           {canvassEntries.length < 3 && pr.canvassJustification && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-tone-warning-bg px-2 py-0.5 text-micro font-semibold text-tone-warning-text">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-tone-warning-bg px-2 py-0.5 text-micro font-medium text-tone-warning-text">
                               <AlertTriangle className="h-2.5 w-2.5" /> &lt;3 suppliers
                             </span>
                           )}
@@ -502,13 +502,13 @@ export function PrApprovalModal({
                           <table className="w-full text-label">
                             <thead>
                               <tr className="border-b border-zinc-100 bg-zinc-50/60">
-                                <th className="text-left px-3 py-2 text-micro font-semibold uppercase tracking-[0.06em] text-zinc-400">Supplier</th>
+                                <th className="text-left px-3 py-2 text-micro font-medium uppercase tracking-[0.06em] text-zinc-400">Supplier</th>
                                 {canvassEntries[0]?.quotedItems.map((qi) => (
-                                  <th key={qi.itemId} className="text-right px-3 py-2 text-micro font-semibold uppercase tracking-[0.06em] text-zinc-400 max-w-[100px]" title={qi.description}>
+                                  <th key={qi.itemId} className="text-right px-3 py-2 text-micro font-medium uppercase tracking-[0.06em] text-zinc-400 max-w-[100px]" title={qi.description}>
                                     <span className="block truncate">{qi.description}</span>
                                   </th>
                                 ))}
-                                <th className="text-right px-3 py-2 text-micro font-semibold uppercase tracking-[0.06em] text-zinc-400">Total</th>
+                                <th className="text-right px-3 py-2 text-micro font-medium uppercase tracking-[0.06em] text-zinc-400">Total</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -521,7 +521,7 @@ export function PrApprovalModal({
                                     <div className="flex items-center gap-2">
                                       <span className="text-label font-medium text-zinc-800">{entry.supplierName}</span>
                                       {entry.isSelected && (
-                                        <span className="inline-flex items-center rounded-full bg-emerald-100 px-1.5 py-0.5 text-micro font-semibold text-emerald-700">Selected</span>
+                                        <span className="inline-flex items-center rounded-full bg-emerald-100 px-1.5 py-0.5 text-micro font-medium text-emerald-700">Selected</span>
                                       )}
                                       {!entry.isSelected && canvassEntries.length > 1 && entry.totalQuotedAmount === lowestTotal && (
                                         <span className="inline-flex items-center rounded-full bg-zinc-100 px-1.5 py-0.5 text-micro font-medium text-zinc-500">Lowest</span>
@@ -585,7 +585,7 @@ export function PrApprovalModal({
 
                     {supportingAttachments.length > 0 && (
                       <div>
-                        <p className="text-micro font-semibold uppercase tracking-[0.08em] text-zinc-400 mb-3">
+                        <p className="text-micro font-medium uppercase tracking-[0.08em] text-zinc-400 mb-3">
                           Supporting Documents ({supportingAttachments.length})
                         </p>
                         <div className="grid gap-2 sm:grid-cols-2">
@@ -604,7 +604,7 @@ export function PrApprovalModal({
 
                       {/* Requester */}
                       <div>
-                        <p className="text-micro font-semibold uppercase tracking-[0.08em] text-zinc-400 mb-2">Requester</p>
+                        <p className="text-micro font-medium uppercase tracking-[0.08em] text-zinc-400 mb-2">Requester</p>
                         <div className="flex items-center gap-3">
                           <Avatar className="h-8 w-8 shrink-0">
                             <AvatarImage
@@ -628,7 +628,7 @@ export function PrApprovalModal({
 
                       {/* Workflow history — full vertical timeline */}
                       <div>
-                        <p className="text-micro font-semibold uppercase tracking-[0.08em] text-zinc-400 mb-3">
+                        <p className="text-micro font-medium uppercase tracking-[0.08em] text-zinc-400 mb-3">
                           Workflow History
                         </p>
                         {!pr?.submittedAt && approvalHistory.length === 0 ? (
@@ -649,7 +649,7 @@ export function PrApprovalModal({
                       {confirmStep === null ? (
                         <div className="space-y-2.5">
                           <button
-                            className="w-full inline-flex items-center justify-center gap-2 rounded-xl h-10 text-body font-semibold text-white bg-emerald-600 transition-all duration-200 hover:bg-emerald-700 hover:-translate-y-px hover:shadow-card disabled:opacity-50 disabled:pointer-events-none"
+                            className="w-full inline-flex items-center justify-center gap-2 rounded-xl h-8 text-xs font-semibold text-white bg-emerald-600 transition-all duration-200 hover:bg-emerald-700 hover:-translate-y-px hover:shadow-card disabled:opacity-50 disabled:pointer-events-none"
                             onClick={() => startAction('approved')}
                             disabled={!pr || processApproval.isPending}
                           >
@@ -662,7 +662,7 @@ export function PrApprovalModal({
 
                           <div className="flex gap-2">
                             <button
-                              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl h-9 text-label font-medium text-zinc-500 bg-transparent transition-all duration-150 hover:bg-zinc-100 hover:text-zinc-700 disabled:opacity-50 disabled:pointer-events-none"
+                              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl h-8 text-xs font-medium text-zinc-500 bg-transparent transition-all duration-150 hover:bg-zinc-100 hover:text-zinc-700 disabled:opacity-50 disabled:pointer-events-none"
                               onClick={() => startAction('returned')}
                               disabled={!pr || processApproval.isPending}
                             >
@@ -670,7 +670,7 @@ export function PrApprovalModal({
                               Return
                             </button>
                             <button
-                              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl h-9 text-label font-medium text-red-500/80 bg-transparent transition-all duration-150 hover:bg-red-50 hover:text-red-600 disabled:opacity-50 disabled:pointer-events-none"
+                              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl h-8 text-xs font-medium text-red-500/80 bg-transparent transition-all duration-150 hover:bg-red-50 hover:text-red-600 disabled:opacity-50 disabled:pointer-events-none"
                               onClick={() => startAction('rejected')}
                               disabled={!pr || processApproval.isPending}
                             >
@@ -708,14 +708,14 @@ export function PrApprovalModal({
                           </div>
                           <div className="flex gap-2">
                             <button
-                              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl h-9 text-label font-medium text-zinc-600 border border-zinc-200 bg-white transition-all duration-150 hover:bg-zinc-50 disabled:opacity-50"
+                              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl h-8 text-xs font-medium text-zinc-600 border border-zinc-200 bg-white transition-all duration-150 hover:bg-zinc-50 disabled:opacity-50"
                               onClick={cancelAction}
                               disabled={processApproval.isPending}
                             >
                               Cancel
                             </button>
                             <button
-                              className={`flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl h-9 text-label font-semibold transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none ${
+                              className={`flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl h-8 text-xs font-semibold transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none ${
                                 confirmStep === 'approved'
                                   ? 'text-white bg-emerald-600 hover:bg-emerald-700'
                                   : confirmStep === 'rejected'

@@ -56,7 +56,7 @@ SearchInput.displayName = 'SearchInput';
  * This class only adds context-specific overrides for filter bars.
  */
 export const premiumSelectTriggerClass =
-  'text-zinc-600';
+  'text-zinc-600 text-xs [&>span]:text-xs';
 
 interface FilterControlsProps {
   children: React.ReactNode;

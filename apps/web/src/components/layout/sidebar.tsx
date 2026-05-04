@@ -327,10 +327,10 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             size={collapsed ? "icon" : "sm"}
             onClick={handleLogout}
             className={cn(
-              "text-[oklch(0.60_0_0)] hover:bg-white/[0.07] hover:text-sidebar-foreground transition-all duration-200",
+              "text-xs text-[oklch(0.60_0_0)] hover:bg-white/[0.07] hover:text-sidebar-foreground transition-all duration-200",
               collapsed
                 ? "h-9 w-9"
-                : "w-full justify-start gap-3 px-3 text-body",
+                : "w-full justify-start gap-3 px-3",
             )}
           >
             <LogOut className="h-4 w-4 shrink-0" />

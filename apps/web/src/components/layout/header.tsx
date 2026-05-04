@@ -267,7 +267,7 @@ export function Header({ sidebarCollapsed }: HeaderProps) {
               {/* Header */}
               <div className="flex items-center justify-between px-5 py-3.5 border-b border-zinc-100">
                 <div className="flex items-center gap-2.5">
-                  <h3 className="text-body font-semibold text-zinc-900 tracking-tight">Notifications</h3>
+                  <h3 className="text-xs font-semibold text-zinc-900 tracking-tight">Notifications</h3>
                   {unreadCount > 0 && (
                     <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-zinc-900 px-1.5 text-micro font-bold text-white tabular-nums">
                       {unreadCount > 99 ? '99+' : unreadCount}
@@ -292,7 +292,7 @@ export function Header({ sidebarCollapsed }: HeaderProps) {
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-50 mb-3">
                       <Bell className="h-4 w-4 text-zinc-300" />
                     </div>
-                    <p className="text-body font-medium text-zinc-400">No notifications yet</p>
+                    <p className="text-xs font-medium text-zinc-400">No notifications yet</p>
                     <p className="text-caption text-zinc-300 mt-0.5">You're all caught up</p>
                   </div>
                 ) : (
@@ -320,7 +320,7 @@ export function Header({ sidebarCollapsed }: HeaderProps) {
                         {/* Content */}
                         <div className="min-w-0 flex-1">
                           <p className={cn(
-                            'text-body leading-snug text-zinc-800 truncate',
+                            'text-xs leading-snug text-zinc-800 truncate',
                             !notif.isRead ? 'font-semibold' : 'font-medium',
                           )}>
                             {notif.title}

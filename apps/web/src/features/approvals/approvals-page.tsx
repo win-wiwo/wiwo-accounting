@@ -311,11 +311,11 @@ export function ApprovalsPage() {
                         {isCoo && (
                           <td className="px-5 py-4">
                             {pr.status === PrStatus.QUOTED ? (
-                              <span className="inline-flex items-center gap-1 text-caption font-semibold text-tone-success-text bg-tone-success-bg border border-tone-success-border rounded-full px-2 py-0.5">
+                              <span className="inline-flex items-center gap-1 text-caption font-medium text-tone-success-text bg-tone-success-bg border border-tone-success-border rounded-full px-2 py-0.5">
                                 Price Review
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 text-caption font-semibold text-tone-info-text bg-tone-info-bg border border-tone-info-border rounded-full px-2 py-0.5">
+                              <span className="inline-flex items-center gap-1 text-caption font-medium text-tone-info-text bg-tone-info-bg border border-tone-info-border rounded-full px-2 py-0.5">
                                 Approval
                               </span>
                             )}
@@ -371,7 +371,7 @@ export function ApprovalsPage() {
 
                         {/* Priority */}
                         <td className="px-5 py-4">
-                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-caption font-semibold ${priorityStyle[pr.priority] ?? 'bg-tone-neutral-bg text-tone-neutral-text'}`}>
+                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-caption font-medium ${priorityStyle[pr.priority] ?? 'bg-tone-neutral-bg text-tone-neutral-text'}`}>
                             {PR_PRIORITY_LABELS[pr.priority as PrPriorityType]}
                           </span>
                         </td>

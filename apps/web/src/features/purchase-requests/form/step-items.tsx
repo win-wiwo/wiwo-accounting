@@ -115,7 +115,7 @@ export function StepItems({
       {/* ── Sourcing picker — sets the mode for all line items ───── */}
       <Surface delay={0.02}>
         <div className="px-6 pt-6 pb-2">
-          <h2 className="flex items-center gap-2 text-body-lg font-semibold text-zinc-900">
+          <h2 className="flex items-center gap-2 text-body font-semibold text-zinc-900">
             <ShoppingCart className="h-4 w-4 text-zinc-400" />
             Sourcing
           </h2>
@@ -155,7 +155,7 @@ export function StepItems({
         {/* ── Section header ─────────────────────────────── */}
         <div className="flex items-center justify-between px-6 pt-6 pb-4">
           <div>
-            <h2 className="flex items-center gap-2 text-body-lg font-semibold text-zinc-900">
+            <h2 className="flex items-center gap-2 text-body font-semibold text-zinc-900">
               <Package className="h-4 w-4 text-zinc-400" />
               Line Items
             </h2>

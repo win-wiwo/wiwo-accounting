@@ -450,12 +450,13 @@ export function DepartmentDetailPage() {
           </DialogHeader>
           <DialogFooter>
             <Button
+              size="sm"
               variant="outline"
               onClick={() => setConfirmRemove({ ...confirmRemove, open: false })}
             >
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleRemoveMember}>
+            <Button size="sm" variant="destructive" onClick={handleRemoveMember}>
               Remove
             </Button>
           </DialogFooter>
@@ -474,10 +475,11 @@ export function DepartmentDetailPage() {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmDelete(false)}>
+            <Button size="sm" variant="outline" onClick={() => setConfirmDelete(false)}>
               Cancel
             </Button>
             <Button
+              size="sm"
               variant="destructive"
               onClick={handleDelete}
               disabled={deleteDept.isPending}
@@ -574,7 +576,7 @@ function EditDepartmentModal({ open, onOpenChange, dept }: EditDepartmentModalPr
           </FormField>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button size="sm" variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <PrimaryButton

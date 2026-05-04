@@ -762,17 +762,17 @@ export function PrDetailPage() {
             {/* Title + badges */}
             <div className="flex items-center gap-2.5 flex-wrap">
               <h1 className="text-heading-sm font-bold tracking-[-0.01em] leading-tight text-zinc-900 truncate max-w-[480px]">{pr.title}</h1>
-              <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-caption font-semibold shrink-0 ${statusStyle[pr.status] ?? 'bg-zinc-100 text-zinc-600'}`}>
+              <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-caption font-medium shrink-0 ${statusStyle[pr.status] ?? 'bg-zinc-100 text-zinc-600'}`}>
                 {PR_STATUS_LABELS[pr.status as PrStatusType]}
               </span>
-              <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-caption font-semibold shrink-0 ${
+              <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-caption font-medium shrink-0 ${
                 pr.sourcingMode === SourcingType.ONLINE
                   ? 'bg-tone-info-bg text-tone-info-text border border-tone-info-border'
                   : 'bg-tone-success-bg text-tone-success-text border border-tone-success-border'
               }`}>
                 {pr.sourcingMode === SourcingType.ONLINE ? 'Online' : 'Procurement'}
               </span>
-              <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-caption font-semibold shrink-0 ${priorityStyle[pr.priority] ?? 'bg-zinc-100 text-zinc-500'}`}>
+              <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-caption font-medium shrink-0 ${priorityStyle[pr.priority] ?? 'bg-zinc-100 text-zinc-500'}`}>
                 {PR_PRIORITY_LABELS[pr.priority as PrPriorityType]}
               </span>
             </div>
@@ -797,7 +797,7 @@ export function PrDetailPage() {
           {/* Actions */}
           <div className="flex items-center gap-2 flex-wrap">
             {linkedPo && linkedPo.status !== 'cancelled' && (
-              <Button size="sm" variant="outline" className="rounded-lg text-body h-8 border-blue-200 text-blue-700 hover:bg-blue-50" onClick={() => navigate(`/purchase-orders/${linkedPo._id}`)}>
+              <Button size="sm" variant="outline" className="rounded-lg text-xs h-8 border-blue-200 text-blue-700 hover:bg-blue-50" onClick={() => navigate(`/purchase-orders/${linkedPo._id}`)}>
                 <ShoppingCart className="h-3.5 w-3.5" /> View Purchase Order
               </Button>
             )}
@@ -808,7 +808,7 @@ export function PrDetailPage() {
                     <Button
                       size="sm"
                       variant="outline"
-                      className={`rounded-lg text-body h-8 ${canDownloadPdf ? '' : 'opacity-50 hover:bg-background'}`}
+                      className={`rounded-lg text-xs h-8 ${canDownloadPdf ? '' : 'opacity-50 hover:bg-background'}`}
                       style={canDownloadPdf ? undefined : { cursor: 'default' }}
                       onClick={canDownloadPdf ? handleGenerateReport : (e) => e.preventDefault()}
                       aria-disabled={!canDownloadPdf}
@@ -835,7 +835,7 @@ export function PrDetailPage() {
               <Button
                 size="sm"
                 variant="outline"
-                className="rounded-lg text-body h-8"
+                className="rounded-lg text-xs h-8"
                 onClick={() => {
                   setEditSpecsDraft(pr.items.map((item) => ({
                     itemId: item._id,
@@ -850,7 +850,7 @@ export function PrDetailPage() {
             )}
             {canEdit && (
               <>
-                <Button size="sm" variant="outline" className="rounded-lg text-body h-8" onClick={() => navigate(`/purchase-requests/${id}/edit`)}>
+                <Button size="sm" variant="outline" className="rounded-lg text-xs h-8" onClick={() => navigate(`/purchase-requests/${id}/edit`)}>
                   <Pencil className="h-3.5 w-3.5" /> Edit
                 </Button>
                 <button
@@ -870,7 +870,7 @@ export function PrDetailPage() {
               </>
             )}
             {canRecall && (
-              <Button size="sm" variant="outline" className="rounded-lg text-body h-8" onClick={() => setConfirmDialog({ open: true, type: "recall" })}>
+              <Button size="sm" variant="outline" className="rounded-lg text-xs h-8" onClick={() => setConfirmDialog({ open: true, type: "recall" })}>
                 <Undo2 className="h-3.5 w-3.5" /> Recall
               </Button>
             )}
@@ -890,14 +890,14 @@ export function PrDetailPage() {
               <Button
                 size="sm"
                 variant="outline"
-                className="rounded-lg text-body h-8 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                className="rounded-lg text-xs h-8 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
                 onClick={() => { setCancelReason(""); setCancelDialog(true); }}
               >
                 <Ban className="h-3.5 w-3.5" /> Cancel
               </Button>
             )}
             {isOwner && isDraft && (
-              <Button size="sm" variant="destructive" className="rounded-lg text-body h-8" onClick={() => setConfirmDialog({ open: true, type: "delete" })}>
+              <Button size="sm" variant="destructive" className="rounded-lg text-xs h-8" onClick={() => setConfirmDialog({ open: true, type: "delete" })}>
                 <Trash2 className="h-3.5 w-3.5" /> Delete
               </Button>
             )}
@@ -910,10 +910,10 @@ export function PrDetailPage() {
                   <CheckCircle2 className="h-3.5 w-3.5" />
                   {isPriceReview ? "Approve Pricing" : "Approve"}
                 </button>
-                <Button size="sm" variant="outline" className="rounded-lg text-body h-8" onClick={() => { setApprovalComments(""); setApprovalDialog({ open: true, action: "returned" }); }}>
+                <Button size="sm" variant="outline" className="rounded-lg text-xs h-8" onClick={() => { setApprovalComments(""); setApprovalDialog({ open: true, action: "returned" }); }}>
                   <RotateCcw className="h-3.5 w-3.5" /> Return
                 </Button>
-                <Button size="sm" variant="destructive" className="rounded-lg text-body h-8" onClick={() => { setApprovalComments(""); setApprovalDialog({ open: true, action: "rejected" }); }}>
+                <Button size="sm" variant="destructive" className="rounded-lg text-xs h-8 text-white" onClick={() => { setApprovalComments(""); setApprovalDialog({ open: true, action: "rejected" }); }}>
                   <XCircle className="h-3.5 w-3.5" /> Reject
                 </Button>
               </>
@@ -1303,7 +1303,7 @@ export function PrDetailPage() {
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-label text-zinc-500">Priority</span>
-                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-caption font-semibold ${priorityStyle[pr.priority] ?? 'bg-zinc-100 text-zinc-500'}`}>
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium ${priorityStyle[pr.priority] ?? 'bg-zinc-100 text-zinc-500'}`}>
                       {PR_PRIORITY_LABELS[pr.priority as PrPriorityType]}
                     </span>
                   </div>
@@ -1409,6 +1409,7 @@ export function PrDetailPage() {
           )}
           <DialogFooter>
             <Button
+              size="sm"
               variant="outline"
               onClick={() => {
                 setConfirmDialog({ ...confirmDialog, open: false });
@@ -1418,6 +1419,7 @@ export function PrDetailPage() {
               Cancel
             </Button>
             <Button
+              size="sm"
               variant={
                 confirmDialog.type === "delete" ? "destructive" : "default"
               }
@@ -1454,7 +1456,7 @@ export function PrDetailPage() {
             <textarea
               id="cancel-reason"
               rows={3}
-              className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-body-lg shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-[13px] shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               placeholder="Why is this PR being cancelled?"
               value={cancelReason}
               onChange={(e) => setCancelReason(e.target.value)}
@@ -1462,6 +1464,7 @@ export function PrDetailPage() {
           </div>
           <DialogFooter>
             <Button
+              size="sm"
               variant="outline"
               onClick={() => {
                 setCancelDialog(false);
@@ -1471,6 +1474,7 @@ export function PrDetailPage() {
               Back
             </Button>
             <Button
+              size="sm"
               variant="destructive"
               onClick={handleCancel}
               disabled={cancelMutation.isPending || !cancelReason.trim()}
@@ -1575,6 +1579,7 @@ export function PrDetailPage() {
 
           <DialogFooter>
             <Button
+              size="sm"
               variant="outline"
               className="rounded-lg"
               onClick={() => {
@@ -1586,7 +1591,7 @@ export function PrDetailPage() {
             </Button>
             {approvalDialog.action === "approved" && (
               <button
-                className="inline-flex items-center gap-1.5 rounded-lg h-9 px-4 text-body font-semibold text-white bg-emerald-600 transition-all duration-200 hover:bg-emerald-700 hover:-translate-y-px hover:shadow-card disabled:opacity-50 disabled:pointer-events-none"
+                className="inline-flex items-center gap-1.5 rounded-lg h-8 px-3.5 text-xs font-semibold text-white bg-emerald-600 transition-all duration-200 hover:bg-emerald-700 hover:-translate-y-px hover:shadow-card disabled:opacity-50 disabled:pointer-events-none"
                 onClick={handleApprovalAction}
                 disabled={processApproval.isPending}
               >
@@ -1595,6 +1600,7 @@ export function PrDetailPage() {
             )}
             {approvalDialog.action === "rejected" && (
               <Button
+                size="sm"
                 variant="destructive"
                 className="rounded-lg"
                 onClick={handleApprovalAction}
@@ -1605,6 +1611,7 @@ export function PrDetailPage() {
             )}
             {approvalDialog.action === "returned" && (
               <Button
+                size="sm"
                 variant="outline"
                 className="rounded-lg"
                 onClick={handleApprovalAction}
@@ -1688,11 +1695,12 @@ export function PrDetailPage() {
             ))}
           </div>
           <DialogFooter>
-            <Button variant="outline" className="text-label" onClick={() => setEditSpecsOpen(false)}>
+            <Button size="sm" variant="outline" onClick={() => setEditSpecsOpen(false)}>
               Cancel
             </Button>
             <Button
-              className="text-label bg-zinc-900 hover:bg-zinc-800 text-white"
+              size="sm"
+              className="bg-zinc-900 hover:bg-zinc-800 text-white text-xs"
               disabled={updateItemSpecsMutation.isPending || editSpecsDraft.some((d) => !d.description.trim())}
               onClick={async () => {
                 try {

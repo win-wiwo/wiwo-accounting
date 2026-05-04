@@ -235,7 +235,7 @@ export function ProcurementWorkspacePage() {
                 <span className="font-mono text-label font-semibold text-zinc-400 tracking-tight">{pr.prNumber}</span>
               )}
               <span className="h-3.5 w-px bg-zinc-200" />
-              <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-caption font-semibold ${
+              <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-caption font-medium ${
                 pr.status === 'pending_quotation' || pr.status === 'returned'
                   ? 'bg-tone-warning-bg text-tone-warning-text border-tone-warning-border'
                   : 'bg-tone-neutral-bg text-tone-neutral-text border-tone-neutral-border'
@@ -243,7 +243,7 @@ export function ProcurementWorkspacePage() {
                 {PR_STATUS_LABELS[pr.status as PrStatusType]}
               </span>
               {(pr.priority === 'urgent' || pr.priority === 'high') && (
-                <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-caption font-semibold ${
+                <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-caption font-medium ${
                   pr.priority === 'urgent' ? 'bg-tone-danger-bg text-tone-danger-text border-tone-danger-border' : 'bg-tone-warning-bg text-tone-warning-text border-tone-warning-border'
                 }`}>
                   <AlertTriangle className="h-2.5 w-2.5" /> {PR_PRIORITY_LABELS[pr.priority as PrPriority]}
@@ -271,7 +271,7 @@ export function ProcurementWorkspacePage() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="border-zinc-200 text-zinc-600 hover:bg-zinc-50 text-label h-9 gap-1.5"
+                  className="border-zinc-200 text-xs text-zinc-600 hover:bg-zinc-50 h-8 gap-1.5"
                   onClick={() => { canvass.setReturnNote(''); setShowReturnModal(true); }}
                   disabled={canvass.isReturning || canvass.isSubmitting}
                 >
@@ -279,7 +279,7 @@ export function ProcurementWorkspacePage() {
                 </Button>
                 <Button
                   size="sm"
-                  className="bg-zinc-900 hover:bg-zinc-800 text-white text-label h-9 gap-1.5"
+                  className="bg-zinc-900 hover:bg-zinc-800 text-white text-xs h-8 gap-1.5"
                   onClick={() => canvass.startQuotation(pr)}
                   disabled={procItems.length === 0 || canvass.isSubmitting || canvass.isReturning}
                 >
@@ -289,7 +289,7 @@ export function ProcurementWorkspacePage() {
               </>
             )}
             {canvass.actionStep === 'quotation' && (
-              <Button size="sm" variant="outline" className="text-label h-9" onClick={() => setShowDiscardConfirm(true)} disabled={canvass.isSubmitting}>
+              <Button size="sm" variant="outline" className="h-8" onClick={() => setShowDiscardConfirm(true)} disabled={canvass.isSubmitting}>
                 Discard Changes
               </Button>
             )}
@@ -478,12 +478,12 @@ export function ProcurementWorkspacePage() {
                               {isWinner && <CheckCircle className="h-3.5 w-3.5 text-emerald-500 shrink-0" />}
                               <span className={`font-semibold ${isWinner ? 'text-zinc-900' : 'text-zinc-700'}`}>{entry.supplierName}</span>
                               {isWinner && !isOnlySupplier && (
-                                <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-100 border border-emerald-200 px-2 py-0.5 text-micro font-semibold text-emerald-700">
+                                <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-100 border border-emerald-200 px-2 py-0.5 text-micro font-medium text-emerald-700">
                                   <Trophy className="h-2.5 w-2.5" /> Winner
                                 </span>
                               )}
                               {isOnlySupplier && (
-                                <span className="inline-flex items-center rounded-full bg-tone-info-bg border border-tone-info-border px-2 py-0.5 text-micro font-semibold text-tone-info-text">
+                                <span className="inline-flex items-center rounded-full bg-tone-info-bg border border-tone-info-border px-2 py-0.5 text-micro font-medium text-tone-info-text">
                                   Only Supplier
                                 </span>
                               )}
@@ -685,8 +685,9 @@ export function ProcurementWorkspacePage() {
                 </p>
               )}
               <Button
+                size="sm"
                 variant="outline"
-                className="text-label h-9 gap-1.5"
+                className="h-8 gap-1.5"
                 onClick={() => canvass.handleSaveDraft()}
                 disabled={canvass.isSubmitting || canvass.isSavingDraft || suppliersWithIds.length === 0}
               >
@@ -694,7 +695,8 @@ export function ProcurementWorkspacePage() {
                 Save Draft
               </Button>
               <Button
-                className="bg-zinc-900 hover:bg-zinc-800 text-white text-label h-9 gap-1.5"
+                size="sm"
+                className="bg-zinc-900 hover:bg-zinc-800 text-white text-xs h-8 gap-1.5"
                 onClick={() => {
                   // Validate justification for fewer than 3 suppliers
                   if (canvass.canvassEntries.length < 3 && !canvass.canvassJustification.trim()) {
@@ -758,8 +760,8 @@ export function ProcurementWorkspacePage() {
             All supplier entries, prices, and notes you entered will be lost.
           </p>
           <DialogFooter>
-            <Button variant="outline" className="text-label" onClick={() => setShowDiscardConfirm(false)}>Keep Editing</Button>
-            <Button variant="destructive" className="text-label" onClick={() => { setShowDiscardConfirm(false); canvass.resetActions(); }}>
+            <Button size="sm" variant="outline" className="text-label" onClick={() => setShowDiscardConfirm(false)}>Keep Editing</Button>
+            <Button size="sm" variant="destructive" className="text-label" onClick={() => { setShowDiscardConfirm(false); canvass.resetActions(); }}>
               Discard
             </Button>
           </DialogFooter>
@@ -838,9 +840,10 @@ export function ProcurementWorkspacePage() {
             </p>
           </div>
           <DialogFooter>
-            <Button variant="outline" className="text-label" onClick={() => setShowSubmitConfirm(false)}>Go Back</Button>
+            <Button size="sm" variant="outline" className="text-xs" onClick={() => setShowSubmitConfirm(false)}>Go Back</Button>
             <Button
-              className="bg-zinc-900 hover:bg-zinc-800 text-white text-label gap-1.5"
+              size="sm"
+              className="bg-zinc-900 hover:bg-zinc-800 text-white text-xs gap-1.5"
               onClick={() => { setShowSubmitConfirm(false); canvass.handleSubmitQuotation(); }}
               disabled={canvass.isSubmitting}
             >

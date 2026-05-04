@@ -13,10 +13,10 @@ import {
   type PrPriority as PrPriorityType,
 } from '@prams/shared';
 import { useAuthStore } from '@/stores/auth.store';
-import { usePrStats, usePurchaseRequests, useProjectSpending, useManagementStats, useProjectHealth } from '@/hooks/use-purchase-requests';
+import { usePrStats, usePurchaseRequests, useManagementStats, useProjectHealth } from '@/hooks/use-purchase-requests';
 import { usePendingApprovals, usePendingCount } from '@/hooks/use-approvals';
 import { usePoStats, usePurchaseOrders } from '@/hooks/use-purchase-orders';
-import type { ProjectSpendingItem, ProjectHealthItem } from '@/lib/api-services';
+import type { ProjectHealthItem } from '@/lib/api-services';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -84,10 +84,7 @@ export function DashboardPage() {
 
   // Data hooks
   const { data: statsData, isLoading: statsLoading } = usePrStats();
-  const { data: projectSpending, isLoading: projectSpendingLoading } = useProjectSpending(
-    undefined, { enabled: !isStaff || isAccounting },
-  );
-  const { data: mgmtStats, isLoading: mgmtLoading } = useManagementStats({ enabled: isManagement || isAccounting });
+const { data: mgmtStats, isLoading: mgmtLoading } = useManagementStats({ enabled: isManagement || isAccounting });
   const { data: projectHealthData, isLoading: projectHealthLoading } = useProjectHealth();
   const { data: pendingCountData } = usePendingCount();
   const { data: pendingPrsData, isLoading: queueLoading } = usePendingApprovals({ page: 1, limit: 50 });
@@ -309,7 +306,7 @@ export function DashboardPage() {
                 {isAccounting && mgmtStats && mgmtStats.spendByDepartment.length > 0 && (
                   <Card>
                     <CardHeader className="flex flex-row items-center justify-between pb-3 px-6 pt-6">
-                      <CardTitle className="text-body-lg font-semibold text-zinc-900">Spend by Department</CardTitle>
+                      <CardTitle className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-400">Spend by Department</CardTitle>
                       <span className="text-caption text-zinc-400">Approved only</span>
                     </CardHeader>
                     <CardContent className="pt-0 px-6 pb-6">
@@ -467,10 +464,10 @@ export function DashboardPage() {
                                 <div className="flex items-center gap-2 mt-0.5">
                                   <span className="text-label text-zinc-400">{requesterName(pr)}</span>
                                   {pr.status === PrStatus.QUOTED && (
-                                    <span className="text-micro font-semibold text-tone-info-text bg-tone-info-bg rounded-full px-2 py-0.5">Price Review</span>
+                                    <span className="text-micro font-medium text-tone-info-text bg-tone-info-bg rounded-full px-2 py-0.5">Price Review</span>
                                   )}
                                   {hasProcurement && pr.status !== PrStatus.QUOTED && (
-                                    <span className="text-micro font-semibold text-tone-info-text bg-tone-info-bg rounded-full px-2 py-0.5">Procurement</span>
+                                    <span className="text-micro font-medium text-tone-info-text bg-tone-info-bg rounded-full px-2 py-0.5">Procurement</span>
                                   )}
                                 </div>
                               </div>
@@ -503,7 +500,7 @@ export function DashboardPage() {
                 {isManagement && mgmtStats && mgmtStats.spendByDepartment.length > 0 && (
                   <Card>
                     <CardHeader className="flex flex-row items-center justify-between pb-3 px-6 pt-6">
-                      <CardTitle className="text-body-lg font-semibold text-zinc-900">Spend by Department</CardTitle>
+                      <CardTitle className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-400">Spend by Department</CardTitle>
                       <span className="text-caption text-zinc-400">Approved only</span>
                     </CardHeader>
                     <CardContent className="pt-0 px-6 pb-6">
@@ -793,7 +790,7 @@ export function DashboardPage() {
                 {mgmtStats && mgmtStats.spendByDepartment.length > 0 && (
                   <Card>
                     <CardHeader className="flex flex-row items-center justify-between pb-3 px-6 pt-6">
-                      <CardTitle className="text-body-lg font-semibold text-zinc-900">Spend by Department</CardTitle>
+                      <CardTitle className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-400">Spend by Department</CardTitle>
                       <span className="text-caption text-zinc-400">Approved only</span>
                     </CardHeader>
                     <CardContent className="pt-0 px-6 pb-6">
@@ -806,10 +803,6 @@ export function DashboardPage() {
               <div className="lg:col-span-4 space-y-4">
                 <SystemStatusCard byStatus={byStatus} totalPrs={totalPrs} loading={statsLoading} />
 
-                {/* Project Spending */}
-                {!projectSpendingLoading && projectSpending && (projectSpending as ProjectSpendingItem[]).length > 0 && (
-                  <ProjectSpendingCard spending={projectSpending as ProjectSpendingItem[]} loading={projectSpendingLoading} />
-                )}
               </div>
             </div>
           </AnimSection>
@@ -858,7 +851,7 @@ function ProjectOverviewPanel({ summary, projects, loading, onProjectClick }: {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-3 px-6 pt-6">
-        <CardTitle className="text-body-lg font-semibold text-zinc-900">Spending</CardTitle>
+        <CardTitle className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-400">Spending</CardTitle>
         <span className="text-caption text-zinc-400">{summary.total} categor{summary.total !== 1 ? 'ies' : 'y'}</span>
       </CardHeader>
 
@@ -878,7 +871,7 @@ function ProjectOverviewPanel({ summary, projects, loading, onProjectClick }: {
                     <span className="text-body font-medium text-zinc-700 truncate">{proj.projectName}</span>
                     {proj.projectCode && <span className="text-micro text-zinc-500 font-mono shrink-0 bg-zinc-100 rounded-full px-2 py-0.5">{proj.projectCode}</span>}
                     {proj.health !== 'on_track' && (
-                      <span className={`inline-flex items-center gap-1 text-micro font-semibold rounded-full px-2 py-0.5 shrink-0 ${h.bg} ${h.text}`}>
+                      <span className={`inline-flex items-center gap-1 text-micro font-medium rounded-full px-2 py-0.5 shrink-0 ${h.bg} ${h.text}`}>
                         <span className={`h-1.5 w-1.5 rounded-full ${h.dot}`} />
                         {h.label}
                       </span>
@@ -1016,7 +1009,7 @@ function SystemStatusCard({ byStatus, totalPrs, loading }: {
   return (
     <Card>
       <CardHeader className="pb-4 px-6 pt-5">
-        <CardTitle className="text-micro font-semibold uppercase tracking-[0.1em] text-zinc-400">System Status</CardTitle>
+        <CardTitle className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-400">System Status</CardTitle>
       </CardHeader>
       <CardContent className="pt-0 px-6 pb-5">
         {loading ? (
@@ -1071,48 +1064,6 @@ function QuickActionsCard({ actions }: {
             )}
           </button>
         ))}
-      </CardContent>
-    </Card>
-  );
-}
-
-// ─── Project Spending ───────────────────────────────────────────────────
-
-function ProjectSpendingCard({ spending, loading }: { spending: ProjectSpendingItem[]; loading: boolean }) {
-  return (
-    <Card>
-      <CardHeader className="pb-4 px-6 pt-5">
-        <CardTitle className="text-micro font-semibold uppercase tracking-[0.1em] text-zinc-400">Project Spending</CardTitle>
-      </CardHeader>
-      <CardContent className="pt-0 px-6 pb-5">
-        {loading ? (
-          <QueueSkeleton count={3} height="h-10" />
-        ) : (
-          <div className="space-y-3">
-            {spending.map((p) => {
-              const pct = p.totalAmount > 0 ? Math.round((p.approvedAmount / p.totalAmount) * 100) : 0;
-              return (
-                <div key={String(p.projectId)}>
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="min-w-0 flex-1 pr-3">
-                      <p className="text-body font-medium text-zinc-800 truncate">{p.projectName}</p>
-                      {p.projectCode && <p className="text-caption text-zinc-400 font-mono">{p.projectCode}</p>}
-                    </div>
-                    <div className="text-right shrink-0">
-                      <p className="text-body font-semibold tabular-nums text-zinc-900">{compact(p.approvedAmount)}</p>
-                      {p.pendingAmount > 0 && (
-                        <p className="text-caption tabular-nums text-zinc-400">+{compact(p.pendingAmount)} pending</p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="h-1 rounded-full bg-zinc-100 overflow-hidden">
-                    <div className="h-full rounded-full bg-emerald-400/70 transition-all duration-500" style={{ width: `${pct}%` }} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
       </CardContent>
     </Card>
   );
