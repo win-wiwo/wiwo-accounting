@@ -271,7 +271,7 @@ const { data: mgmtStats, isLoading: mgmtLoading } = useManagementStats({ enabled
               <div className="lg:col-span-8 space-y-5">
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between pb-3 px-6 pt-6">
-                    <CardTitle className="text-body-lg font-semibold text-zinc-900">My Recent Requests</CardTitle>
+                    <CardTitle className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-400">My Recent Requests</CardTitle>
                     <NavLink label="View all" onClick={() => navigate('/purchase-requests')} />
                   </CardHeader>
                   <CardContent className="pt-0 px-6">
@@ -411,7 +411,7 @@ const { data: mgmtStats, isLoading: mgmtLoading } = useManagementStats({ enabled
                 {/* Approval Queue */}
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between pb-3 px-6 pt-6">
-                    <CardTitle className="text-body-lg font-semibold text-zinc-900">Approval Queue</CardTitle>
+                    <CardTitle className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-400">Approval Queue</CardTitle>
                     <NavLink label="View all" onClick={() => navigate('/approvals')} />
                   </CardHeader>
 
@@ -637,7 +637,7 @@ const { data: mgmtStats, isLoading: mgmtLoading } = useManagementStats({ enabled
                 {/* Pending Canvass */}
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between pb-3 px-6 pt-6">
-                    <CardTitle className="text-body-lg font-semibold text-zinc-900">Canvass Queue</CardTitle>
+                    <CardTitle className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-400">Canvass Queue</CardTitle>
                     <NavLink label="View all" onClick={() => navigate('/procurement')} />
                   </CardHeader>
                   <CardContent className="pt-0 px-6">
@@ -687,7 +687,7 @@ const { data: mgmtStats, isLoading: mgmtLoading } = useManagementStats({ enabled
                 {/* Recent POs */}
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between pb-3 px-6 pt-6">
-                    <CardTitle className="text-body-lg font-semibold text-zinc-900">Recent Purchase Orders</CardTitle>
+                    <CardTitle className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-400">Recent Purchase Orders</CardTitle>
                     <NavLink label="View all" onClick={() => navigate('/purchase-orders')} />
                   </CardHeader>
                   <CardContent className="pt-0 px-6">
@@ -951,7 +951,7 @@ function UrgentPanel({ title, items, action, summary }: {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-3 px-6 pt-6">
         <div className="flex items-center gap-2">
-          <CardTitle className="text-body-lg font-semibold text-zinc-900">{title}</CardTitle>
+          <CardTitle className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-400">{title}</CardTitle>
           {summary && <span className="text-label text-zinc-400">{summary}</span>}
         </div>
         {action && (

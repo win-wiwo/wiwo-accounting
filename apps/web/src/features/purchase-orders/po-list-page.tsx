@@ -167,11 +167,6 @@ export function PoListPage() {
                   {stats.received} Received
                 </span>
               )}
-              {stats.activeValue > 0 && (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-tone-info-bg px-3 py-1 text-label font-medium text-tone-info-text tabular-nums">
-                  {formatCurrency(stats.activeValue)} Active
-                </span>
-              )}
             </>
           )}
         </div>

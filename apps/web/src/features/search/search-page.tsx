@@ -43,7 +43,6 @@ import {
   PrimaryButton,
   prStatusTone,
   prPriorityTone,
-  premiumSelectTriggerClass,
 } from '@/components/premium';
 import { cn } from '@/lib/utils';
 import apiClient from '@/lib/api-client';
@@ -122,7 +121,7 @@ function writeFiltersToParams(filters: ReturnType<typeof readFiltersFromParams>)
 // ─── Reusable styled inputs ───────────────────────────────────
 
 const PREMIUM_INPUT_CLASS =
-  'w-full h-10 rounded-xl border border-zinc-200/80 bg-zinc-50/40 px-3.5 text-xs text-zinc-700 shadow-xs outline-none transition-all duration-200 hover:border-zinc-300 hover:bg-zinc-50/80 focus:border-zinc-400 focus:bg-white focus:shadow-focus [&::-webkit-calendar-picker-indicator]:opacity-60 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:hover:opacity-100 [&::-webkit-calendar-picker-indicator]:transition-opacity';
+  'w-full h-10 rounded-xl border border-zinc-200/80 bg-zinc-50/40 px-3.5 text-[13px] text-zinc-700 shadow-xs outline-none transition-all duration-200 hover:border-zinc-300 hover:bg-zinc-50/80 focus:border-zinc-400 focus:bg-white focus:shadow-focus [&::-webkit-calendar-picker-indicator]:opacity-60 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:hover:opacity-100 [&::-webkit-calendar-picker-indicator]:transition-opacity';
 
 // ─── Component ────────────────────────────────────────────────
 
@@ -423,7 +422,7 @@ export function SearchPage() {
               <div>
                 <FieldLabel>Priority</FieldLabel>
                 <Select value={priority} onValueChange={setPriority}>
-                  <SelectTrigger className={cn(premiumSelectTriggerClass, 'text-xs [&>span]:text-xs')}>
+                  <SelectTrigger className="text-zinc-600 text-[13px] [&>span]:text-[13px]">
                     <SelectValue placeholder="All Priorities" />
                   </SelectTrigger>
                   <SelectContent>
@@ -440,7 +439,7 @@ export function SearchPage() {
               <div>
                 <FieldLabel>Department</FieldLabel>
                 <Select value={departmentId} onValueChange={setDepartmentId}>
-                  <SelectTrigger className={cn(premiumSelectTriggerClass, 'text-xs [&>span]:text-xs')}>
+                  <SelectTrigger className="text-zinc-600 text-[13px] [&>span]:text-[13px]">
                     <SelectValue placeholder="All Departments" />
                   </SelectTrigger>
                   <SelectContent>
@@ -463,7 +462,7 @@ export function SearchPage() {
                   value={dateFrom}
                   onChange={setDateFrom}
                   placeholder="From date..."
-                  className="text-xs"
+                  className="text-[13px]"
                 />
               </div>
               <div>
@@ -472,7 +471,7 @@ export function SearchPage() {
                   value={dateTo}
                   onChange={setDateTo}
                   placeholder="To date..."
-                  className="text-xs"
+                  className="text-[13px]"
                 />
               </div>
             </div>
@@ -510,7 +509,7 @@ export function SearchPage() {
               <div>
                 <FieldLabel>Sort By</FieldLabel>
                 <Select value={sort} onValueChange={setSort}>
-                  <SelectTrigger className={cn(premiumSelectTriggerClass, 'text-xs [&>span]:text-xs')}>
+                  <SelectTrigger className="text-zinc-600 text-[13px] [&>span]:text-[13px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

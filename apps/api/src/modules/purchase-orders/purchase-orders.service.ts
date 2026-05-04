@@ -573,7 +573,7 @@ export class PurchaseOrdersService {
     const cancelled = byStatus['cancelled'] ?? 0;
     const activeValue = activeValueResult[0]?.sum ?? 0;
 
-    return { data: { total, pending, ordered, received, cancelled, activeValue } };
+    return { total, pending, ordered, received, cancelled, activeValue };
   }
 
   async getMonthlyReceivedCount(): Promise<number> {

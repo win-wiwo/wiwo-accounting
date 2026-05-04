@@ -50,7 +50,7 @@ export class PurchaseOrdersController {
   @ApiOperation({ summary: 'Get monthly PO received count' })
   async getMonthlyStats() {
     const count = await this.poService.getMonthlyReceivedCount();
-    return { data: { receivedThisMonth: count } };
+    return { receivedThisMonth: count };
   }
 
   @Get()
